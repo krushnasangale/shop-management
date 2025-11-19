@@ -1,0 +1,46 @@
+{
+  "rules": {
+    "suppliers": {
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        ".write": "auth.uid === $uid",
+        "items": {
+          "$supplier_id": {
+            ".validate": "newData.hasChildren(['name', 'contact', 'location'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0"
+            },
+            "contact": {
+              ".validate": "newData.isString() && newData.val().length > 0"
+            },
+            "location": {
+              ".validate": "newData.isString() && newData.val().length > 0"
+            }
+          }
+        }
+      }
+    },
+    "products": {
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        ".write": "auth.uid === $uid",
+        "items": {
+          "$product_id": {
+            ".validate": "newData.hasChildren(['name'])"
+          }
+        }
+      }
+    },
+    "units": {
+      "$uid": {
+        ".read": "auth.uid === $uid",
+        ".write": "auth.uid === $uid",
+        "items": {
+          "$unit_id": {
+            ".validate": "newData.hasChildren(['name'])"
+          }
+        }
+      }
+    }
+  }
+}
