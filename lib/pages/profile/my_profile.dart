@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:nkt/navigation/app_navigator.dart';
 import 'package:nkt/pages/login/login.dart';
 import 'package:nkt/pages/profile/products/product.dart';
 import 'package:nkt/pages/profile/supplier/suppliers.dart';
 import 'package:nkt/pages/profile/units/units.dart';
+import 'package:nkt/pages/profile/edit_profile.dart';
 import 'package:nkt/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -17,6 +19,32 @@ class MyProfile extends StatefulWidget {
 
 class _MyProfileState extends State<MyProfile> {
   bool _isLoggingOut = false;
+  String _shopName = '----';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShopName();
+  }
+
+  Future<void> _loadShopName() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final database = FirebaseDatabase.instance;
+      final snapshot = await database.ref('shop-profile/${user.uid}/shopName').get();
+
+      if (snapshot.exists) {
+        final shopName = snapshot.value as String?;
+        if (shopName != null && shopName.isNotEmpty) {
+          setState(() => _shopName = shopName);
+        }
+      }
+    } catch (e) {
+      print('Error loading shop name: $e');
+    }
+  }
 
   Future<void> _logout() async {
     setState(() => _isLoggingOut = true);
@@ -73,7 +101,7 @@ class _MyProfileState extends State<MyProfile> {
                           ),
                         ),
                         title: Text(
-                          'Alex Johnson',
+                          _shopName,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -90,7 +118,7 @@ class _MyProfileState extends State<MyProfile> {
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          print('Go to profile edit page');
+                          AppNavigator.push(context, const EditProfile());
                         },
                       ),
                     ),
@@ -106,7 +134,7 @@ class _MyProfileState extends State<MyProfile> {
                       },
                     ),
                     _buildMenuItem(
-                      Icons.inventory_2_outlined,
+                      Icons.scale_outlined,
                       'Unit',
                       context,
                       onTap: () {
@@ -114,8 +142,16 @@ class _MyProfileState extends State<MyProfile> {
                       },
                     ),
                     _buildMenuItem(
-                      Icons.inventory_2_outlined,
+                      Icons.shopping_bag_outlined,
                       'Product Name',
+                      context,
+                      onTap: () {
+                        AppNavigator.push(context, const ProductName());
+                      },
+                    ),
+                    _buildMenuItem(
+                      Icons.people_alt_outlined,
+                      'Customer',
                       context,
                       onTap: () {
                         AppNavigator.push(context, const ProductName());

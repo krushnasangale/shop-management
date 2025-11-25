@@ -7,19 +7,16 @@ import 'dart:async';
 class UnitOfMeasure {
   final String id;
   final String name;
-  final int minLimit;
 
   UnitOfMeasure({
     required this.id,
     required this.name,
-    required this.minLimit,
   });
 
   // Convert to Map for Firebase
   Map<String, dynamic> toMap() {
     return {
       'name': name,
-      'minLimit': minLimit,
     };
   }
 
@@ -28,7 +25,6 @@ class UnitOfMeasure {
     return UnitOfMeasure(
       id: id,
       name: data['name'] ?? '',
-      minLimit: data['minLimit'] ?? 1,
     );
   }
 }
@@ -52,7 +48,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
 
   // Controllers for the Add Unit Popup
   final TextEditingController _unitNameController = TextEditingController();
-  final TextEditingController _minLimitController = TextEditingController();
 
   @override
   void initState() {
@@ -65,7 +60,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   @override
   void dispose() {
     _unitNameController.dispose();
-    _minLimitController.dispose();
     _searchController.dispose();
     _unitsSubscription?.cancel();
     super.dispose();
@@ -131,7 +125,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   void _showAddUnitPopup() {
     // Clear controllers before showing
     _unitNameController.clear();
-    _minLimitController.clear();
 
     showDialog(
       context: context,
@@ -160,18 +153,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _minLimitController,
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: primaryTextColor),
-                  decoration: InputDecoration(
-                    labelText: 'Minimum Limit (e.g., 1, 5)',
-                    labelStyle: TextStyle(
-                      color: primaryTextColor.withOpacity(0.7),
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
@@ -186,15 +167,13 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
               child: const Text('Add', style: TextStyle(color: Colors.white)),
               onPressed: () async {
-                if (_unitNameController.text.isNotEmpty &&
-                    _minLimitController.text.isNotEmpty) {
+                if (_unitNameController.text.isNotEmpty) {
                   try {
                     final rawName = _unitNameController.text;
                     final capitalizedName =
                         rawName[0].toUpperCase() + rawName.substring(1);
                     await _unitsRef.push().set({
                       'name': capitalizedName,
-                      'minLimit': int.tryParse(_minLimitController.text) ?? 1,
                     });
                     if (context.mounted) {
                       Navigator.of(context).pop();
@@ -223,7 +202,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
 
     return Card(
       color: cardColor,
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+      margin: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
@@ -233,7 +212,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0),
         child: Column(
           children: [
             Row(
@@ -254,13 +233,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                       const SizedBox(
                         height: 4,
                       ), // Added small space for separation
-                      Text(
-                        'Min. Limit: ${unit.minLimit}',
-                        style: TextStyle(
-                          color: secondaryTextColor,
-                          fontSize: 14,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -355,9 +327,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   void _showEditUnitPopup(UnitOfMeasure unit) {
     // Controllers for editing
     final nameController = TextEditingController(text: unit.name);
-    final limitController = TextEditingController(
-      text: unit.minLimit.toString(),
-    );
 
     showDialog(
       context: context,
@@ -379,12 +348,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                 'Enter unit name',
                 nameController,
               ),
-              buildFormField(
-                'Unit Limit',
-                'Enter unit limit',
-                limitController,
-                keyboardType: TextInputType.phone,
-              ),
             ],
           ),
           actions: [
@@ -397,8 +360,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                 try {
                   await _unitsRef.child(unit.id).update({
                     'name': nameController.text,
-                    'minLimit':
-                        int.tryParse(limitController.text) ?? unit.minLimit,
                   });
                   if (context.mounted) {
                     Navigator.pop(context);

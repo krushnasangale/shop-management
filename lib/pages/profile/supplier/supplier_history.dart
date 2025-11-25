@@ -43,8 +43,8 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
         for (var entry in data.entries) {
           final product = entry.value as Map<dynamic, dynamic>;
           
-          // Filter by supplier ID
-          if (product['supplierId'] == widget.supplierId) {
+          // Filter by supplier name (since purchased-products stores supplierName)
+          if (product['supplierName'] == widget.supplierName) {
             final quantity = product['quantity'] ?? 0;
             final buyingPrice = (product['buyingPrice'] ?? 0).toDouble();
             final amount = quantity * buyingPrice;

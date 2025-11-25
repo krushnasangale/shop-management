@@ -13,6 +13,7 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
   DateTime selectedDate = DateTime.now();
+  String filterType = 'month'; // 'month', 'year', or 'day'
   bool _isLoading = true;
   int _totalSales = 0;
   int _totalBuying = 0;
@@ -228,27 +229,36 @@ class _DashboardState extends State<Dashboard> {
       final parts = billDate.split('/');
       if (parts.length != 3) return false;
 
+      final day = int.parse(parts[0]);
       final month = int.parse(parts[1]);
       final year = int.parse(parts[2]);
 
-      return month == selectedDate.month && year == selectedDate.year;
+      if (filterType == 'month') {
+        return month == selectedDate.month && year == selectedDate.year;
+      } else if (filterType == 'year') {
+        return year == selectedDate.year;
+      } else if (filterType == 'day') {
+        return day == selectedDate.day && month == selectedDate.month && year == selectedDate.year;
+      }
+      return false;
     } catch (e) {
       print('Error parsing date "$billDate": $e');
       return false;
     }
   }
 
-  bool _isFromMonth(String billDate, DateTime month) {
+  bool _isFromMonth(String dateString, DateTime targetMonth) {
     try {
       // Expected format: "dd/MM/yyyy" (e.g., "18/11/2025")
-      final parts = billDate.split('/');
+      final parts = dateString.split('/');
       if (parts.length != 3) return false;
 
-      final billMonth = int.parse(parts[1]);
-      final billYear = int.parse(parts[2]);
+      final month = int.parse(parts[1]);
+      final year = int.parse(parts[2]);
 
-      return billMonth == month.month && billYear == month.year;
+      return month == targetMonth.month && year == targetMonth.year;
     } catch (e) {
+      print('Error parsing date "$dateString": $e');
       return false;
     }
   }
@@ -270,9 +280,30 @@ class _DashboardState extends State<Dashboard> {
                     fontSize: 20,
                   ),
                 ),
-                IconButton(
-                  onPressed: () => _showMonthPicker(context),
-                  icon: const Icon(Icons.calendar_month),
+                Row(
+                  children: [
+                    DropdownButton<String>(
+                      value: filterType,
+                      items: const [
+                        DropdownMenuItem(value: 'day', child: Text('Day')),
+                        DropdownMenuItem(value: 'month', child: Text('Month')),
+                        DropdownMenuItem(value: 'year', child: Text('Year')),
+                      ],
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            filterType = newValue;
+                            _isLoading = true;
+                          });
+                          _loadSalesReport();
+                        }
+                      },
+                    ),
+                    IconButton(
+                      onPressed: () => _showMonthPicker(context),
+                      icon: const Icon(Icons.calendar_month),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -335,14 +366,37 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void _showMonthPicker(BuildContext context) {
+    // If day filter is selected, show calendar picker instead
+    if (filterType == 'day') {
+      showDatePicker(
+        context: context,
+        initialDate: selectedDate,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2100),
+      ).then((pickedDate) {
+        if (pickedDate != null) {
+          setState(() {
+            selectedDate = pickedDate;
+            _isLoading = true;
+          });
+          _loadSalesReport();
+        }
+      });
+      return;
+    }
+
     int selectedYear = selectedDate.year;
     int selectedMonth = selectedDate.month;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        String dialogTitle = filterType == 'year'
+            ? 'Select Year'
+            : 'Select Month & Year';
+
         return AlertDialog(
-          title: const Text('Select Month & Year'),
+          title: Text(dialogTitle),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
               return SizedBox(
@@ -350,7 +404,7 @@ class _DashboardState extends State<Dashboard> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Year Selector
+                    // Year Selector (always shown)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -379,52 +433,55 @@ class _DashboardState extends State<Dashboard> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
-                    // Month Grid
-                    GridView.builder(
-                      shrinkWrap: true,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: 1.5,
-                      ),
-                      itemCount: 12,
-                      itemBuilder: (context, index) {
-                        return InkWell(
-                          onTap: () {
-                            setStateDialog(() {
-                              selectedMonth = index + 1;
-                            });
-                          },
-                          child: Container(
-                            margin: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: selectedMonth == index + 1
-                                  ? Theme.of(context).primaryColor
-                                  : null,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
+                    // Only show month selector if not year filter
+                    if (filterType != 'year') ...[
+                      const SizedBox(height: 20),
+                      // Month Grid
+                      GridView.builder(
+                        shrinkWrap: true,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          childAspectRatio: 1.5,
+                        ),
+                        itemCount: 12,
+                        itemBuilder: (context, index) {
+                          return InkWell(
+                            onTap: () {
+                              setStateDialog(() {
+                                selectedMonth = index + 1;
+                              });
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
                                 color: selectedMonth == index + 1
                                     ? Theme.of(context).primaryColor
-                                    : Colors.grey,
-                              ),
-                            ),
-                            child: Center(
-                              child: Text(
-                                getMonthName(index + 1).substring(0, 3),
-                                style: TextStyle(
+                                    : null,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
                                   color: selectedMonth == index + 1
-                                      ? Colors.white
-                                      : null,
-                                  fontWeight: selectedMonth == index + 1
-                                      ? FontWeight.bold
-                                      : null,
+                                      ? Theme.of(context).primaryColor
+                                      : Colors.grey,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  getMonthName(index + 1).substring(0, 3),
+                                  style: TextStyle(
+                                    color: selectedMonth == index + 1
+                                        ? Colors.white
+                                        : null,
+                                    fontWeight: selectedMonth == index + 1
+                                        ? FontWeight.bold
+                                        : null,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      ),
+                    ],
                   ],
                 ),
               );
@@ -453,7 +510,13 @@ class _DashboardState extends State<Dashboard> {
   }
 
   String _getMonthYear() {
-    return '${getMonthName(selectedDate.month)} ${selectedDate.year}';
+    if (filterType == 'year') {
+      return '${selectedDate.year}';
+    } else if (filterType == 'day') {
+      return '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}';
+    } else {
+      return '${getMonthName(selectedDate.month)} ${selectedDate.year}';
+    }
   }
 
   // Helper widget for the dashboard cards

@@ -432,28 +432,36 @@ class _SuppliersState extends State<Suppliers> {
               borderRadius: BorderRadius.circular(12.0),
               border: Border.all(color: Colors.grey[700]!),
             ),
-            child: TextFormField(
-              onTap: onTap,
-              controller: controller,
-              keyboardType: keyboardType,
-              maxLines: maxLines,
-              decoration: InputDecoration(
-                fillColor: Colors.white,
-                hintText: hint,
-                hintStyle: TextStyle(color: Colors.grey[700]!),
-                filled: true,
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: maxLines > 1 ? 16.0 : 16.0,
-                  horizontal: 16.0,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: suffixIcon != null
-                    ? Icon(suffixIcon, color: Colors.grey[700]!)
-                    : null,
-              ),
+            child: Builder(
+              builder: (context) {
+                final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                return TextFormField(
+                  onTap: onTap,
+                  controller: controller,
+                  keyboardType: keyboardType,
+                  maxLines: maxLines,
+                  style: TextStyle(
+                    color: isDarkMode ? Colors.white : Colors.black,
+                  ),
+                  decoration: InputDecoration(
+                    fillColor: isDarkMode ? Colors.grey[800] : Colors.white,
+                    hintText: hint,
+                    hintStyle: TextStyle(color: Colors.grey[500]!),
+                    filled: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      vertical: maxLines > 1 ? 16.0 : 16.0,
+                      horizontal: 16.0,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: BorderSide.none,
+                    ),
+                    suffixIcon: suffixIcon != null
+                        ? Icon(suffixIcon, color: Colors.grey[700]!)
+                        : null,
+                  ),
+                );
+              }
             ),
           ),
         ],

@@ -203,7 +203,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               final index = mapEntry.key;
               final item = mapEntry.value;
               final productName = item['productName'] ?? 'Unknown';
-              final quantity = item['quantity'] ?? 0;
+              final quantity = item['initialQuantity'] ?? 0;
               final buyingPrice = item['buyingPrice'] ?? 0;
               final sellingPrice = item['sellingPrice'] ?? 0;
               final unit = item['unit'] ?? '';

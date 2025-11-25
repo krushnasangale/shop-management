@@ -17,7 +17,8 @@ class BoughtItem {
   final String supplierName;
   final String unit;
   final int minLimit;
-  int quantity;
+  int initialQuantity; // Original quantity bought (for purchase history)
+  int quantity; // Current quantity (decreases as items are sold)
   int buyingPrice;
   int sellingPrice;
 
@@ -26,6 +27,7 @@ class BoughtItem {
     required this.supplierName,
     required this.unit,
     required this.minLimit,
+    required this.initialQuantity,
     required this.quantity,
     required this.buyingPrice,
     this.sellingPrice = 0,
@@ -54,6 +56,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   String _supplierNameError = '';
   int _totalBoughtAmount = 0;
 
+  late TextEditingController _minLimitController;
+
   @override
   void initState() {
     super.initState();
@@ -67,6 +71,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _quantityController = TextEditingController();
     _buyingPriceController = TextEditingController();
     _sellingPriceController = TextEditingController();
+    _minLimitController = TextEditingController();
     _loadProductNames();
     _loadSupplierDetails();
     _loadUnits();
@@ -110,7 +115,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               return {
                 'id': e.key,
                 'name': e.value['name'] ?? 'Unknown',
-                'minLimit': e.value['minLimit'] ?? 0,
               };
             }).toList();
             setState(() {
@@ -219,6 +223,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           fontSize: 14,
                         ),
                       ),
+                      Text(
+                        'Initial Quantity (Bought): ${item.initialQuantity}',
+                        style: const TextStyle(
+                          color: Colors.blue,
+                          fontSize: 14,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -226,7 +237,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   controller: quantityController,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
-                    labelText: 'Quantity',
+                    labelText: 'Current Quantity (Available)',
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -346,13 +357,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       return;
     }
 
-    // Get the selected unit's minLimit
-    int minLimit = 0;
-    final selectedUnit = _allUnits.firstWhere(
-      (unit) => unit['name'] == _unitController.text,
-      orElse: () => {'minLimit': 0},
-    );
-    minLimit = selectedUnit['minLimit'] ?? 0;
+    // Get minLimit from the input field
+    final minLimit = int.tryParse(_minLimitController.text) ?? 0;
 
     // Create and add new bought item
     final newItem = BoughtItem(
@@ -360,6 +366,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       supplierName: _supplierNameController.text,
       unit: _unitController.text,
       minLimit: minLimit,
+      initialQuantity: quantity,
       quantity: quantity,
       buyingPrice: buyingPrice,
       sellingPrice: sellingPrice,
@@ -376,6 +383,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _quantityController.clear();
     _buyingPriceController.clear();
     _sellingPriceController.clear();
+    _minLimitController.clear();
   }
 
   void _removeBoughtItem(int index) {
@@ -1297,6 +1305,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'supplierName': item.supplierName,
           'unit': item.unit,
           'minLimit': item.minLimit,
+          'initialQuantity': item.initialQuantity,
           'quantity': item.quantity,
           'buyingPrice': item.buyingPrice,
           'sellingPrice': item.sellingPrice,
@@ -1377,7 +1386,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 buildFormField(
-                  'Date',
                   'Select Date',
                   _dateController,
                   suffixIcon: Icons.calendar_today_outlined,
@@ -1396,11 +1404,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   },
                 ),
                 buildFormField(
-                  'Supplier',
                   'Select Supplier',
                   _supplierNameController,
                   onTap: () => _showSupplierSelectionDrawer(context),
                   suffixIcon: Icons.arrow_drop_down,
+                  enabled: false,
                 ),
                 if (_supplierNameError.isNotEmpty)
                   Padding(
@@ -1413,7 +1421,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       ),
                     ),
                   ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 6),
                 // Info message
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -1435,10 +1443,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
                 // Product Name Field
                 buildFormField(
-                  'Product Name',
                   'Select Product Name',
                   _productController,
                   suffixIcon: Icons.arrow_drop_down,
@@ -1447,42 +1454,63 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     _allProducts,
                     _productController,
                   ),
+                  enabled: false,
                 ),
                 // Unit Field
                 buildFormField(
-                  'Select Unit',
                   'Select product unit',
                   _unitController,
                   suffixIcon: Icons.arrow_drop_down,
                   onTap: () =>
                       _showSelectionSheet('Units', _allUnits, _unitController),
+                  enabled: false,
                 ),
                 // Quantity Field
-                buildFormField(
-                  'Quantity',
-                  'Enter Quantity',
-                  _quantityController,
-                  keyboardType: TextInputType.number,
+                Row(
+                  children: [
+                    Expanded(
+                      child: buildFormField(
+                        'Product Quantity',
+                        _quantityController,
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: buildFormField(
+                        'Min. QTY',
+                        _minLimitController,
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
                 ),
                 // Buying Price Field
-                buildFormField(
-                  'Buying Price Per Item',
-                  'Enter Buying Price',
-                  _buyingPriceController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: buildFormField(
+                        'Buying Price Per Item',
+                        _buyingPriceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: buildFormField(
+                        'Selling Price Per Item',
+                        _sellingPriceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                // Selling Price Field
-                buildFormField(
-                  'Selling Price Per Item',
-                  'Enter Selling Price',
-                  _sellingPriceController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-                const SizedBox(height: 24),
+
+                const SizedBox(height: 15),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -1559,6 +1587,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
+                                            const SizedBox(width: 8),
                                             // horizontal line
                                             Container(
                                               width: 10,
@@ -1717,7 +1746,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   }
 
   Widget buildFormField(
-    String label,
     String hint,
     TextEditingController controller, {
     IconData? suffixIcon,
@@ -1725,47 +1753,58 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     int maxLines = 1,
     Function()? onTap,
     Function(String)? onChanged,
+    bool enabled = true,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
+      padding: const EdgeInsets.only(bottom: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8.0),
-          Container(
-            height: 53,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(color: Colors.grey[700]!),
-            ),
-            child: TextFormField(
-              onTap: onTap,
-              onChanged: onChanged,
-              controller: controller,
-              keyboardType: keyboardType,
-              maxLines: maxLines,
-              decoration: InputDecoration(
-                fillColor: Colors.white,
-                hintText: hint,
-                hintStyle: TextStyle(color: Colors.grey[700]!),
-                filled: true,
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: maxLines > 1 ? 16.0 : 16.0,
-                  horizontal: 16.0,
+          Builder(
+            builder: (context) {
+              final isDarkMode =
+                  Theme.of(context).brightness == Brightness.dark;
+              return GestureDetector(
+                onTap: !enabled && onTap != null ? onTap : null,
+                child: Card(
+                  child: TextFormField(
+                    enabled: enabled,
+                    onTap: enabled ? onTap : null,
+                    onChanged: onChanged,
+                    controller: controller,
+                    keyboardType: keyboardType,
+                    maxLines: maxLines,
+                    style: TextStyle(
+                      color: isDarkMode ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      fillColor: isDarkMode ? Colors.grey[800] : Colors.white,
+                      hintText: hint,
+                      hintStyle: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.grey[800],
+                      ),
+                      filled: false,
+                      contentPadding: EdgeInsets.symmetric(
+                        vertical: maxLines > 1 ? 16.0 : 16.0,
+                        horizontal: 16.0,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.0),
+                        borderSide: BorderSide.none,
+                      ),
+                      suffixIcon: suffixIcon != null
+                          ? Icon(
+                              suffixIcon,
+                              color: isDarkMode
+                                  ? Colors.white
+                                  : Colors.grey[800],
+                            )
+                          : null,
+                    ),
+                  ),
                 ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: suffixIcon != null
-                    ? Icon(suffixIcon, color: Colors.grey[700]!)
-                    : null,
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),

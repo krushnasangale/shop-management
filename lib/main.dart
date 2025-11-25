@@ -73,7 +73,6 @@ class _MyHomePageState extends State<MyHomePage> {
     AvailableProducts(),
     Bills(),
     PurchaseItemsList(),
-    MyProfile(),
   ];
 
   void _onItemTapped(int index) {
@@ -86,7 +85,21 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(title: Text(widget.title), centerTitle: true),
+        appBar: AppBar(
+          title: Text(widget.title),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.person),
+              onPressed: () async {
+                AppNavigator.push(context, const MyProfile());
+              },
+              tooltip: 'Logout',
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
         body: IndexedStack(index: _selectedIndex, children: _screens),
 
         floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3
@@ -124,13 +137,12 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.trending_up),
-              label: 'Sells',
+              label: 'Sales',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.shopping_bag),
               label: 'Purchases',
             ),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Me'),
           ],
         ),
       ),
