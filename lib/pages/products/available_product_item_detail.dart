@@ -111,7 +111,7 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           if (icon != null) ...[
@@ -157,7 +157,7 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -290,14 +290,14 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(12.0),
               child: Column(
                 children: [
                   // --- 1. Editable Stock & Price Card ---
                   Card(
                     color: cardColor,
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -305,7 +305,7 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                             'Inventory Management',
                             style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 18),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 10),
                           
                           // Editable Quantity Field
                           _buildEditableField(
@@ -358,13 +358,13 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
 
                   // --- 2. Financial Summary Card ---
                   Card(
                     color: cardColor,
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -372,7 +372,7 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                             'Financial Metrics (Current Stock)',
                             style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 18),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 10),
                           
                           _buildDetailRow(
                             context,
@@ -403,13 +403,13 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
                   
                   // --- 3. Purchase History & Source Card ---
                   Card(
                     color: cardColor,
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.all(12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -417,7 +417,7 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                             'Purchase Source & History',
                             style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 18),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 10),
                           
                           _buildDetailRow(
                             context,

@@ -111,7 +111,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
         centerTitle: false,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -125,7 +125,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                 ),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(12.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -137,7 +137,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                         fontSize: 20,
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -189,7 +189,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Text(
               'Purchased Items',
               style: TextStyle(
@@ -198,7 +198,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                 fontSize: 16,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             ..._items.asMap().entries.map((mapEntry) {
               final index = mapEntry.key;
               final item = mapEntry.value;
@@ -210,7 +210,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               final total = item['total'] ?? 0;
 
               return Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
+                padding: const EdgeInsets.only(bottom: 8.0),
                 child: Card(
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -221,7 +221,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(14.0),
+                    padding: const EdgeInsets.all(10.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -260,7 +260,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
                             Icon(Icons.straighten, size: 16, color: secondaryTextColor),
@@ -373,10 +373,10 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                 ),
               );
             }).toList(),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -414,7 +414,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
           ],
         ),
       ),

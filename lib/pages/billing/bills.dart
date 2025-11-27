@@ -18,6 +18,7 @@ class _BillsState extends State<Bills> {
   List<Bill> _allBills = [];
   List<Bill> _filteredBills = [];
   bool _isLoading = true;
+  bool _showSearchBar = false;
   late TextEditingController _searchController;
 
   @override
@@ -178,8 +179,22 @@ class _BillsState extends State<Bills> {
       appBar: AppBar(
         title: const Text('Recent Bills'),
         centerTitle: false,
-        actions: const [
+        actions: [
           Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+              onPressed: () {
+                setState(() {
+                  _showSearchBar = !_showSearchBar;
+                  if (!_showSearchBar) {
+                    _searchController.clear();
+                  }
+                });
+              },
+            ),
+          ),
+          const Padding(
             padding: EdgeInsets.only(right: 8.0),
             child: Icon(Icons.more_vert),
           ),
@@ -187,47 +202,48 @@ class _BillsState extends State<Bills> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+            : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- 1. Search Bar ---
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 12.0,
-                    right: 12.0,
-                    top: 0,
-                    bottom: 8.0,
-                  ),
-                  child: Card(
-                    elevation: 2,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search by customer name',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _searchController.clear();
-                                },
-                              )
-                            : null,
-                        filled: false,
-                        fillColor: Theme.of(
-                          context,
-                        ).inputDecorationTheme.fillColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 10,
+                // --- 1. Search Bar (Toggle Visibility) ---
+                if (_showSearchBar)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 12.0,
+                      right: 12.0,
+                      top: 0,
+                      bottom: 8.0,
+                    ),
+                    child: Card(
+                      elevation: 2,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search by customer name',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                  },
+                                )
+                              : null,
+                          filled: false,
+                          fillColor: Theme.of(
+                            context,
+                          ).inputDecorationTheme.fillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
 
                 // --- 2. Filter Chips Row ---
                 Padding(
@@ -254,9 +270,7 @@ class _BillsState extends State<Bills> {
                       ],
                     ),
                   ),
-                ),
-
-                // --- 3. Filtered Bills List ---
+                ),                // --- 3. Filtered Bills List ---
                 Expanded(
                   child: _filteredBills.isEmpty
                       ? Center(
@@ -339,6 +353,9 @@ class _BillsState extends State<Bills> {
           _filterBills();
         });
       },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       backgroundColor: cardColor,
       selectedColor: Colors.blue.withOpacity(0.3),
       side: BorderSide(

@@ -24,10 +24,12 @@ class _AvailableProductsState extends State<AvailableProducts> {
   late List<BoughtProduct> _boughtProducts;
   late List<BoughtProduct> _filteredProducts;
   bool _isLoading = true;
+  bool _showSearchBar = false;
   String _searchQuery = '';
   String _selectedFilter = 'All'; // 'All', 'Reorder Now', 'Order Soon', 'Well Stocked'
   late TextEditingController _searchController;
   StreamSubscription<DatabaseEvent>? _productsSubscription;
+  String _shopName = '--';
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
 
   @override
@@ -52,6 +54,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
       _boughtProductsRef = FirebaseDatabase.instance.ref(
         'purchased-products/$_userId',
       );
+      _loadShopName();
       _loadProductsFromDatabase();
     } else {
       setState(() {
@@ -59,6 +62,25 @@ class _AvailableProductsState extends State<AvailableProducts> {
         _boughtProducts = [];
         _filteredProducts = [];
       });
+    }
+  }
+
+  Future<void> _loadShopName() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final database = FirebaseDatabase.instance;
+        final snapshot = await database.ref('shop-profile/${user.uid}/shopName').get();
+        if (snapshot.exists) {
+          if (mounted) {
+            setState(() {
+              _shopName = snapshot.value.toString();
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading shop name: $e');
     }
   }
 
@@ -222,7 +244,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
         await Share.shareXFiles(
           [XFile(pdfFile.path)],
-          text: 'Available Products Report from NKT Shop',
+          text: 'Available Products Report from $_shopName',
         );
       }
     } catch (e) {
@@ -245,7 +267,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
       if (mounted) {
         await Share.shareXFiles(
           [XFile(csvFile.path)],
-          text: 'Available Products Report (CSV) from NKT Shop',
+          text: 'Available Products Report (CSV) from $_shopName',
         );
       }
     } catch (e) {
@@ -277,7 +299,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
             children: [
               // Header
               pw.Text(
-                'NKT Shop - Available Products Report',
+                '$_shopName - Available Products Report',
                 style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
               ),
               pw.SizedBox(height: 10),
@@ -447,9 +469,22 @@ class _AvailableProductsState extends State<AvailableProducts> {
         title: const Text('Available Products'),
         centerTitle: false,
         actions: [
-          // Three vertical dots menu icon
           Padding(
-            padding: EdgeInsets.only(right: 8.0),
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+              onPressed: () {
+                setState(() {
+                  _showSearchBar = !_showSearchBar;
+                  if (!_showSearchBar) {
+                    _searchController.clear();
+                  }
+                });
+              },
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
             child: IconButton(
               icon: const Icon(Icons.more_vert),
               onPressed: () => _showReportOptionsDialog(context),
@@ -459,40 +494,41 @@ class _AvailableProductsState extends State<AvailableProducts> {
       ),
       body: Column(
         children: [
-          // --- Search Bar ---
-          Padding(
-            padding: const EdgeInsets.only(
-              left: 12.0,
-              right: 12.0,
-              top: 0,
-              bottom: 5.0,
-            ),
-            child: Card(
-              child: TextField(
-                controller: _searchController,
-                style: TextStyle(color: primaryTextColor),
-                decoration: InputDecoration(
-                  hintText: 'Search product or supplier',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                          },
-                        )
-                      : null,
-                  filled: false,
-                  fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                    borderSide: BorderSide.none,
+          // --- Search Bar (Toggle Visibility) ---
+          if (_showSearchBar)
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 12.0,
+                right: 12.0,
+                top: 0,
+                bottom: 5.0,
+              ),
+              child: Card(
+                child: TextField(
+                  controller: _searchController,
+                  style: TextStyle(color: primaryTextColor),
+                  decoration: InputDecoration(
+                    hintText: 'Search product or supplier',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                    filled: false,
+                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 ),
               ),
             ),
-          ),
 
           // --- Filter Chips ---
           SingleChildScrollView(
@@ -555,6 +591,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
         });
         _filterProducts();
       },
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       backgroundColor: cardColor,
       selectedColor: Colors.blue.withOpacity(0.3),
       side: BorderSide(

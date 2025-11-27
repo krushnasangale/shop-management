@@ -46,6 +46,7 @@ class ViewBillDetailsScreen extends StatefulWidget {
   final int amountPaid;
   final int amountRemaining;
   final List<Map<String, dynamic>>? products;
+  final String paymentMethod;
 
   const ViewBillDetailsScreen({
     required this.billId,
@@ -58,6 +59,7 @@ class ViewBillDetailsScreen extends StatefulWidget {
     required this.amountPaid,
     required this.amountRemaining,
     this.products,
+    this.paymentMethod = 'cash',
     super.key,
   });
 
@@ -92,6 +94,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   
   // Profit calculation
   double totalProfit = 0;
+  
+  // Payment method
+  late String paymentMethod;
 
   @override
   void initState() {
@@ -102,6 +107,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     customerName = widget.customerName;
     customerMobile = widget.customerMobile;
     customerVehicle = widget.customerVehicle;
+    paymentMethod = widget.paymentMethod;
     totalAmount = '₹ ${widget.totalAmount.toString()}';
     isTotalAmountPaid = widget.totalAmountPaid;
     amountPaid = '₹ ${widget.amountPaid.toString()}';
@@ -113,6 +119,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         'name': (p['productName'] ?? 'Unknown').toString(),
         'qty': (p['quantity'] ?? 0).toString(),
         'price': '₹ ${(p['price'] ?? 0).toString()}',
+        'boughtPrice': '₹ ${(p['boughtPrice'] ?? 0).toString()}',
       }).toList();
       totalItems = widget.products!.length.toString();
       
@@ -245,7 +252,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
     // Fetch owner signature from Firebase
     String? ownerSignatureBase64;
-    String shopName = 'NKT Shop';
+    String shopName = '--';
+    String ownerName = '--';
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -254,7 +262,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         if (snapshot.exists) {
           final data = snapshot.value as Map<dynamic, dynamic>;
           ownerSignatureBase64 = data['ownerSignature'];
-          shopName = data['shopName'] ?? 'NKT Shop';
+          shopName = data['shopName'] ?? '--';
+          ownerName = data['ownerName'] ?? '--';
         }
       }
     } catch (e) {
@@ -321,6 +330,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               if (customerVehicle != null && customerVehicle!.isNotEmpty) pw.Text('Vehicle: $customerVehicle', style: const pw.TextStyle(fontSize: 10)),
               pw.SizedBox(height: 15),
 
+              // Payment Method Section
+              pw.Text('PAYMENT METHOD', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 5),
+              pw.Text('${paymentMethod == 'cash' ? 'Cash' : 'Online'}', style: const pw.TextStyle(fontSize: 10)),
+              pw.SizedBox(height: 15),
+
               // Products Table
               _buildProductTable(),
               pw.SizedBox(height: 15),
@@ -359,7 +374,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           ),
                         ),
                         pw.SizedBox(height: 5),
-                        pw.Text('Owner Signature', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text('Signature', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text(ownerName, style: const pw.TextStyle(fontSize: 8)),
                       ],
                     )
                   else
@@ -369,7 +385,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         pw.SizedBox(height: 30),
                         pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
                         pw.SizedBox(height: 5),
-                        pw.Text('Owner Signature', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text('Signature', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text(ownerName, style: const pw.TextStyle(fontSize: 8)),
                       ],
                     ),
                 ],
@@ -640,7 +657,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -651,7 +668,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     primaryTextColor,
                     secondaryTextColor,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
 
                   // --- 2. Products List Card ---
                   _buildProductsCard(
@@ -660,7 +677,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     primaryTextColor,
                     secondaryTextColor,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
 
                   // --- 3. Financial Summary Card ---
                   _buildSummaryCard(
@@ -669,7 +686,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     primaryTextColor,
                     secondaryTextColor,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
 
                   // --- 4. Profit & Loss Card ---
                   _buildProfitLossCard(
@@ -678,7 +695,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     primaryTextColor,
                     secondaryTextColor,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
 
                   // --- 5. Payment History Card ---
                   _buildPaymentHistoryCard(
@@ -917,19 +934,77 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow(
-              context,
-              'Bill Date',
-              billDate,
-              Icons.calendar_month,
-              primaryTextColor,
-              secondaryTextColor,
+            // Bill Date and Payment Method in one row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: _buildDetailRow(
+                    context,
+                    'Bill Date',
+                    billDate,
+                    Icons.calendar_month,
+                    primaryTextColor,
+                    secondaryTextColor,
+                  ),
+                ),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: paymentMethod == 'cash'
+                          ? Colors.blue.withOpacity(0.1)
+                          : Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: paymentMethod == 'cash'
+                            ? Colors.blue
+                            : Colors.green,
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Payment Method',
+                          style: TextStyle(
+                            color: secondaryTextColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
+                              color: paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              paymentMethod == 'cash' ? 'Cash' : 'Online',
+                              style: TextStyle(
+                                color: paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 30),
+            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 20),
             Text(
               'Customer Name',
               style: TextStyle(color: secondaryTextColor, fontSize: 14),
@@ -942,7 +1017,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 fontSize: 18,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               'Customer Mobile Number',
               style: TextStyle(color: secondaryTextColor, fontSize: 14),
@@ -955,19 +1030,20 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 fontSize: 18,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               'Customer Vehicle Number',
               style: TextStyle(color: secondaryTextColor, fontSize: 14),
             ),
             Text(
-              'AB12 CD3456',
+              customerVehicle ?? 'N/A',
               style: TextStyle(
                 color: primaryTextColor,
                 fontWeight: FontWeight.w600,
                 fontSize: 18,
               ),
             ),
+            const SizedBox(height: 12),
           ],
         ),
       ),
@@ -982,21 +1058,29 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     Color? primaryTextColor,
     Color? secondaryTextColor,
   ) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: Colors.blue),
-      title: Text(
-        title,
-        style: TextStyle(color: secondaryTextColor, fontSize: 14),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(
-          color: primaryTextColor,
-          fontWeight: FontWeight.w600,
-          fontSize: 16,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Colors.blue, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(color: secondaryTextColor, fontSize: 12),
+            ),
+          ],
         ),
-      ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: primaryTextColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1024,7 +1108,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             const SizedBox(height: 16),
             ...products.map((product) {
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: const EdgeInsets.symmetric(vertical: 6.0),
                 child: Column(
                   children: [
                     Row(
@@ -1048,15 +1132,35 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                 fontSize: 14,
                               ),
                             ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Buying Price: ${product['boughtPrice']!}',
+                              style: TextStyle(
+                                color: Colors.orange[700],
+                                fontSize: 12,
+                              ),
+                            ),
                           ],
                         ),
-                        Text(
-                          product['price']!,
-                          style: TextStyle(
-                            color: primaryTextColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Selling Price',
+                              style: TextStyle(
+                                color: secondaryTextColor,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              product['price']!,
+                              style: TextStyle(
+                                color: primaryTextColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1090,7 +1194,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
             _buildSummaryRow(
@@ -1106,7 +1210,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               secondaryTextColor,
               isBold: true,
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 32),
+            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 16),
             _buildSummaryRow(
               'Amount Paid',
               amountPaid,
@@ -1123,7 +1227,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               secondaryTextColor,
               isBold: true,
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 32),
+            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 16),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1248,7 +1352,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     double fontSize = isBold ? 18 : 16;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

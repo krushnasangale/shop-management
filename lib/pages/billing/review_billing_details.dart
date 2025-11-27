@@ -14,6 +14,7 @@ class ReviewBillingDetails extends StatefulWidget {
   final bool totalAmountPaid;
   final int? amountPaid;
   final int? amountRemaining;
+  final String paymentMethod;
 
   const ReviewBillingDetails({
     required this.billDate,
@@ -26,6 +27,7 @@ class ReviewBillingDetails extends StatefulWidget {
     required this.totalAmountPaid,
     this.amountPaid,
     this.amountRemaining,
+    required this.paymentMethod,
     super.key,
   });
 
@@ -176,6 +178,50 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ),
                 ],
               ),
+            
+            // Payment Method
+            const SizedBox(height: 16),
+            Divider(color: secondaryTextColor?.withOpacity(0.3)),
+            const SizedBox(height: 8),
+            Text(
+              'Payment Method',
+              style: TextStyle(color: secondaryTextColor, fontSize: 14),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: widget.paymentMethod == 'cash'
+                    ? Colors.blue.withOpacity(0.1)
+                    : Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: widget.paymentMethod == 'cash'
+                      ? Colors.blue
+                      : Colors.green,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    widget.paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
+                    color: widget.paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.paymentMethod == 'cash' ? 'Cash' : 'Online',
+                    style: TextStyle(
+                      color: widget.paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -500,6 +546,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               amountPaid: widget.totalAmountPaid ? widget.totalAmount : (widget.amountPaid ?? 0),
               amountRemaining: widget.totalAmountPaid ? 0 : (widget.amountRemaining ?? 0),
               products: widget.products,
+              paymentMethod: widget.paymentMethod,
             ),
           ),
         );
@@ -542,6 +589,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       'totalAmountPaid': widget.totalAmountPaid,
       'amountPaid': actualAmountPaid,
       'amountRemaining': actualAmountRemaining,
+      'paymentMethod': widget.paymentMethod,
       'timestamp': DateTime.now().toIso8601String(),
       'products': {
         for (int i = 0; i < widget.products.length; i++)
@@ -559,6 +607,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
         {
           'amount': actualAmountPaid,
           'date': widget.billDate,
+          'method': widget.paymentMethod,
         }
       ],
     };

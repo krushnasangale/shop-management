@@ -79,6 +79,7 @@ class BillItem {
 
 class _CreateNewBillState extends State<CreateNewBill> {
   bool totalAmountPaid = true;
+  String paymentMethod = 'cash'; // 'cash' or 'online'
   late DatabaseReference _boughtProductsRef;
   late String _userId;
   List<BoughtProduct> _availableProducts = [];
@@ -582,6 +583,124 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   ],
                 ),
 
+                // Payment Method Selection
+                const SizedBox(height: 20),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Payment Method',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 40,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  paymentMethod = 'cash';
+                                });
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: paymentMethod == 'cash'
+                                      ? Colors.blue.withOpacity(0.2)
+                                      : Colors.grey.withOpacity(0.1),
+                                  border: Border.all(
+                                    color: paymentMethod == 'cash'
+                                        ? Colors.blue
+                                        : Colors.grey.withOpacity(0.3),
+                                    width: paymentMethod == 'cash' ? 2 : 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.money,
+                                      color: paymentMethod == 'cash'
+                                          ? Colors.blue
+                                          : Colors.grey,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Cash',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: paymentMethod == 'cash'
+                                            ? Colors.blue
+                                            : Colors.grey[600],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  paymentMethod = 'online';
+                                });
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: paymentMethod == 'online'
+                                      ? Colors.green.withOpacity(0.2)
+                                      : Colors.grey.withOpacity(0.1),
+                                  border: Border.all(
+                                    color: paymentMethod == 'online'
+                                        ? Colors.green
+                                        : Colors.grey.withOpacity(0.3),
+                                    width: paymentMethod == 'online' ? 2 : 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.credit_card,
+                                      color: paymentMethod == 'online'
+                                          ? Colors.green
+                                          : Colors.grey,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Online',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: paymentMethod == 'online'
+                                            ? Colors.green
+                                            : Colors.grey[600],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
                 if (!totalAmountPaid)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -642,147 +761,144 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     ],
                   ),
                 // Buttons fixed at the bottom
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5.0,
-                    vertical: 12.0,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: 45,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12.0),
-                            ),
-                            child: TextButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              onPressed: () {
-                                Navigator.of(context).pop();
-                              },
-                              child: Text(
-                                'Cancel',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 45,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.0),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: SizedBox(
-                          height: 45,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              // Validate form fields
-                              setState(() {
-                                _customerNameError = _validateCustomerName(_customerNameController.text) ?? '';
-                                _customerMobileError = _validateMobileNumber(_customerMobileController.text) ?? '';
-                                _customerVehicleError = _validateVehicleNumber(_customerVehicleController.text) ?? '';
-                              });
-
-                              // Check if there are any errors
-                              if (_customerNameError.isNotEmpty || _customerMobileError.isNotEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please fix the errors in the form'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              // Check if products are added
-                              if (_billItems.isEmpty) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Please add products for billing'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                                return;
-                              }
-
-                              // Check if customer exists, if not add to database
-                              String? customerId = _getExistingCustomerId();
-                              
-                              if (customerId == null) {
-                                // Add new customer to database
-                                customerId = await _addNewCustomer();
-                                if (customerId == null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Failed to add customer'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                  return;
-                                }
-                              }
-
-                              // Prepare bill products for review screen
-                              final billProducts = _billItems.map((item) {
-                                return BillProductItem(
-                                  productName: item.productName,
-                                  supplierName: item.supplierName,
-                                  unit: item.unit,
-                                  quantity: item.billQuantity,
-                                  price: item.billPrice,
-                                  boughtPrice: item.buyingPrice.toInt(),
-                                  total: item.total,
-                                );
-                              }).toList();
-
-                              final totalBillAmount = _getTotalAmount().toInt();
-                              final amountPaidValue = totalAmountPaid ? totalBillAmount : (int.tryParse(_amountPaidController.text) ?? 0);
-                              final amountRemainingValue = totalBillAmount - amountPaidValue;
-
-                              AppNavigator.push(
-                                context,
-                                ReviewBillingDetails(
-                                  billDate: _dateController.text,
-                                  customerName: _customerNameController.text,
-                                  customerMobile: _customerMobileController.text,
-                                  customerVehicle: _customerVehicleController.text,
-                                  customerId: customerId,
-                                  products: billProducts,
-                                  totalAmount: totalBillAmount,
-                                  totalAmountPaid: totalAmountPaid,
-                                  amountPaid: amountPaidValue,
-                                  amountRemaining: amountRemainingValue,
-                                ),
-                              );
-                            },
+                          child: TextButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
+                              backgroundColor: Colors.grey[400],
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               elevation: 0,
                             ),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
                             child: const Text(
-                              'Process billing',
+                              'Cancel',
                               style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
                                 color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: SizedBox(
+                        height: 45,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            // Validate form fields
+                            setState(() {
+                              _customerNameError = _validateCustomerName(_customerNameController.text) ?? '';
+                              _customerMobileError = _validateMobileNumber(_customerMobileController.text) ?? '';
+                              _customerVehicleError = _validateVehicleNumber(_customerVehicleController.text) ?? '';
+                            });
+                
+                            // Check if there are any errors
+                            if (_customerNameError.isNotEmpty || _customerMobileError.isNotEmpty || _customerVehicleError.isNotEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please fix the errors in the form'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                
+                            // Check if products are added
+                            if (_billItems.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please add products for billing'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
+                
+                            // Check if customer exists, if not add to database
+                            String? customerId = _getExistingCustomerId();
+                            
+                            if (customerId == null) {
+                              // Add new customer to database
+                              customerId = await _addNewCustomer();
+                              if (customerId == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Failed to add customer'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+                            }
+                
+                            // Prepare bill products for review screen
+                            final billProducts = _billItems.map((item) {
+                              return BillProductItem(
+                                productName: item.productName,
+                                supplierName: item.supplierName,
+                                unit: item.unit,
+                                quantity: item.billQuantity,
+                                price: item.billPrice,
+                                boughtPrice: item.buyingPrice.toInt(),
+                                total: item.total,
+                              );
+                            }).toList();
+                
+                            final totalBillAmount = _getTotalAmount().toInt();
+                            final amountPaidValue = totalAmountPaid ? totalBillAmount : (int.tryParse(_amountPaidController.text) ?? 0);
+                            final amountRemainingValue = totalBillAmount - amountPaidValue;
+                
+                            AppNavigator.push(
+                              context,
+                              ReviewBillingDetails(
+                                billDate: _dateController.text,
+                                customerName: _customerNameController.text,
+                                customerMobile: _customerMobileController.text,
+                                customerVehicle: _customerVehicleController.text,
+                                customerId: customerId,
+                                products: billProducts,
+                                totalAmount: totalBillAmount,
+                                totalAmountPaid: totalAmountPaid,
+                                amountPaid: amountPaidValue,
+                                amountRemaining: amountRemainingValue,
+                                paymentMethod: paymentMethod,
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[600],
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'Process billing',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -912,9 +1028,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                 'Edit Product',
                 style: TextStyle(color: primaryTextColor),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                   Text(
                     billItem.productName,
                     style: TextStyle(
@@ -1099,6 +1216,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     ],
                   ),
                 ],
+              ),
               ),
               actions: [
                 TextButton(

@@ -1705,7 +1705,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           child: const Text(
                             'Cancel',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.blue,
                             ),
@@ -1740,7 +1740,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           child: const Text(
                             'Save & Review',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),

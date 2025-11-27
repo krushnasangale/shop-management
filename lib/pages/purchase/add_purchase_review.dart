@@ -314,7 +314,7 @@ class AddPurchaseReview extends StatelessWidget {
                           child: const Text(
                             'Back',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.blue,
                             ),
@@ -322,7 +322,7 @@ class AddPurchaseReview extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: SizedBox(
                         height: 45,
@@ -341,7 +341,7 @@ class AddPurchaseReview extends StatelessWidget {
                           child: const Text(
                             'Confirm & Save',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),

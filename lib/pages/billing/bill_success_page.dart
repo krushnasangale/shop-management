@@ -36,6 +36,7 @@ class BillSuccessPage extends StatefulWidget {
   final int amountPaid;
   final int amountRemaining;
   final List<BillProductItem> products;
+  final String paymentMethod;
 
   const BillSuccessPage({
     required this.customerName,
@@ -45,6 +46,7 @@ class BillSuccessPage extends StatefulWidget {
     required this.amountPaid,
     required this.amountRemaining,
     required this.products,
+    this.paymentMethod = 'cash',
     super.key,
   });
 
@@ -60,6 +62,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   late int amountPaid;
   late int amountRemaining;
   late List<BillProductItem> products;
+  late String paymentMethod;
 
   @override
   void initState() {
@@ -71,6 +74,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     amountPaid = widget.amountPaid;
     amountRemaining = widget.amountRemaining;
     products = widget.products;
+    paymentMethod = widget.paymentMethod;
   }
 
   @override
@@ -88,7 +92,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(12.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
@@ -124,10 +128,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 Text(
                   'Your bill has been saved to the system',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: secondaryTextColor,
-                  ),
+                  style: TextStyle(fontSize: 14, color: secondaryTextColor),
                 ),
                 const SizedBox(height: 40),
 
@@ -138,7 +139,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: secondaryTextColor?.withOpacity(0.1) ?? Colors.grey,
+                      color:
+                          secondaryTextColor?.withOpacity(0.1) ?? Colors.grey,
                       width: 1,
                     ),
                   ),
@@ -156,9 +158,19 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _buildStatusRow('Status', 'Completed', Colors.green, context),
+                        _buildStatusRow(
+                          'Status',
+                          'Completed',
+                          Colors.green,
+                          context,
+                        ),
                         const SizedBox(height: 12),
-                        _buildStatusRow('Payment', amountRemaining > 0 ? 'Partial' : 'Full', Colors.blue, context),
+                        _buildStatusRow(
+                          'Payment',
+                          amountRemaining > 0 ? 'Partial' : 'Full',
+                          Colors.blue,
+                          context,
+                        ),
                       ],
                     ),
                   ),
@@ -180,20 +192,22 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                             elevation: 0,
                           ),
                           onPressed: () {
-                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            Navigator.of(
+                              context,
+                            ).popUntil((route) => route.isFirst);
                           },
                           child: const Text(
                             'Go to Dashboard',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
                               color: Colors.white,
                             ),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: SizedBox(
                         height: 45,
@@ -202,7 +216,10 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            side: const BorderSide(color: Colors.blue, width: 2),
+                            side: const BorderSide(
+                              color: Colors.blue,
+                              width: 2,
+                            ),
                           ),
                           onPressed: () {
                             // Share bill functionality
@@ -212,8 +229,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                           label: const Text(
                             'Share Bill',
                             style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
                               color: Colors.blue,
                             ),
                           ),
@@ -271,10 +288,9 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         Navigator.pop(context); // Close loading dialog
 
         // Open share dialog
-        await Share.shareXFiles(
-          [XFile(pdfFile.path)],
-          text: 'Bill from NKT Shop',
-        );
+        await Share.shareXFiles([
+          XFile(pdfFile.path),
+        ], text: 'Bill from NKT Shop');
       }
     } catch (e) {
       if (mounted) {
@@ -294,11 +310,14 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
     // Get temporary directory
     final dir = await getTemporaryDirectory();
-    
+
     // Create filename with customer name and datetime
     final now = DateTime.now();
-    final dateTimeString = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
-    final sanitizedCustomerName = customerName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
+    final dateTimeString =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    final sanitizedCustomerName = customerName
+        .replaceAll(RegExp(r'[^\w\s-]'), '')
+        .replaceAll(' ', '_');
     final fileName = '${sanitizedCustomerName}_${dateTimeString}.pdf';
     final file = File('${dir.path}/$fileName');
 
@@ -307,7 +326,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
     // Fetch owner signature from Firebase
     String? ownerSignatureBase64;
-    String shopName = 'NKT Shop';
+    String shopName = '--';
+    String ownerName = '--';
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -316,7 +336,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         if (snapshot.exists) {
           final data = snapshot.value as Map<dynamic, dynamic>;
           ownerSignatureBase64 = data['ownerSignature'];
-          shopName = data['shopName'] ?? 'NKT Shop';
+          shopName = data['shopName'] ?? '--';
+          ownerName = data['ownerName'] ?? '--';
         }
       }
     } catch (e) {
@@ -360,15 +381,30 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('Invoice No.', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(
+                        'Invoice No.',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
                       pw.Text(billId, style: const pw.TextStyle(fontSize: 10)),
                     ],
                   ),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text('Invoice Date:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                      pw.Text(billDate, style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text(
+                        'Invoice Date:',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.Text(
+                        billDate,
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
                     ],
                   ),
                 ],
@@ -376,11 +412,42 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
               pw.SizedBox(height: 15),
 
               // Customer Details Section
-              pw.Text('BILL TO', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'BILL TO',
+                style: pw.TextStyle(
+                  fontSize: 11,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
               pw.SizedBox(height: 5),
-              pw.Text('Name: $customerName', style: const pw.TextStyle(fontSize: 10)),
-              pw.Text('Mobile: $customerMobile', style: const pw.TextStyle(fontSize: 10)),
-              if (customerVehicle.isNotEmpty) pw.Text('Vehicle: $customerVehicle', style: const pw.TextStyle(fontSize: 10)),
+              pw.Text(
+                'Name: $customerName',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              pw.Text(
+                'Mobile: $customerMobile',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              if (customerVehicle.isNotEmpty)
+                pw.Text(
+                  'Vehicle: $customerVehicle',
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
+              pw.SizedBox(height: 15),
+
+              // Payment Method Section
+              pw.Text(
+                'PAYMENT METHOD',
+                style: pw.TextStyle(
+                  fontSize: 11,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 5),
+              pw.Text(
+                '${paymentMethod == 'cash' ? 'Cash' : 'Online'}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
               pw.SizedBox(height: 15),
 
               // Products Table
@@ -388,12 +455,20 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
               pw.SizedBox(height: 15),
 
               // Rupees in words
-              pw.Text('Rupees in words: ' + _convertNumberToWords(totalAmount), 
-                style: const pw.TextStyle(fontSize: 10)),
+              pw.Text(
+                'Rupees in words: ' + _convertNumberToWords(totalAmount),
+                style: const pw.TextStyle(fontSize: 10),
+              ),
               pw.SizedBox(height: 10),
 
               // Terms & Conditions
-              pw.Text('Terms & Conditions', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'Terms & Conditions',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
               pw.SizedBox(height: 20),
 
               // Signature Section
@@ -403,12 +478,16 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('Customer Signature', style: const pw.TextStyle(fontSize: 9)),
+                      pw.Text(
+                        'Customer Signature',
+                        style: const pw.TextStyle(fontSize: 9),
+                      ),
                       pw.SizedBox(height: 30),
                       pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
                     ],
                   ),
-                  if (ownerSignatureBase64 != null && ownerSignatureBase64.isNotEmpty)
+                  if (ownerSignatureBase64 != null &&
+                      ownerSignatureBase64.isNotEmpty)
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.center,
                       children: [
@@ -416,12 +495,21 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                           width: 80,
                           height: 60,
                           child: pw.Image(
-                            pw.MemoryImage(convert.base64Decode(ownerSignatureBase64)),
+                            pw.MemoryImage(
+                              convert.base64Decode(ownerSignatureBase64),
+                            ),
                             fit: pw.BoxFit.contain,
                           ),
                         ),
                         pw.SizedBox(height: 5),
-                        pw.Text('Owner Signature', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text(
+                          'Signature',
+                          style: const pw.TextStyle(fontSize: 9),
+                        ),
+                        pw.Text(
+                          ownerName,
+                          style: const pw.TextStyle(fontSize: 8),
+                        ),
                       ],
                     )
                   else
@@ -429,9 +517,19 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                       crossAxisAlignment: pw.CrossAxisAlignment.center,
                       children: [
                         pw.SizedBox(height: 30),
-                        pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text(
+                          '_' * 20,
+                          style: const pw.TextStyle(fontSize: 8),
+                        ),
                         pw.SizedBox(height: 5),
-                        pw.Text('Owner Signature', style: const pw.TextStyle(fontSize: 9)),
+                        pw.Text(
+                          'Signature',
+                          style: const pw.TextStyle(fontSize: 9),
+                        ),
+                        pw.Text(
+                          ownerName,
+                          style: const pw.TextStyle(fontSize: 8),
+                        ),
                       ],
                     ),
                 ],
@@ -449,7 +547,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   pw.Widget _buildProductTable() {
     // Table headers
     final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
-    
+
     // Table rows - format prices with 'Rs.' prefix
     final rows = <List<String>>[
       ...products.asMap().entries.map(
@@ -481,7 +579,10 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
               padding: const pw.EdgeInsets.all(5),
               child: pw.Text(
                 header,
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
                 textAlign: pw.TextAlign.center,
               ),
             );
@@ -496,7 +597,9 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 child: pw.Text(
                   entry.value,
                   style: const pw.TextStyle(fontSize: 9),
-                  textAlign: entry.key == 0 ? pw.TextAlign.center : pw.TextAlign.left,
+                  textAlign: entry.key == 0
+                      ? pw.TextAlign.center
+                      : pw.TextAlign.left,
                 ),
               );
             }).toList(),
@@ -520,11 +623,25 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('Total:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+              child: pw.Text(
+                'Total:',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                textAlign: pw.TextAlign.right,
+              ),
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('Rs. $totalAmount', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+              child: pw.Text(
+                'Rs. $totalAmount',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                textAlign: pw.TextAlign.right,
+              ),
             ),
           ],
         ),
@@ -534,36 +651,70 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
   String _convertNumberToWords(int number) {
     final ones = [
-      '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
-      'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
-      'seventeen', 'eighteen', 'nineteen'
+      '',
+      'one',
+      'two',
+      'three',
+      'four',
+      'five',
+      'six',
+      'seven',
+      'eight',
+      'nine',
+      'ten',
+      'eleven',
+      'twelve',
+      'thirteen',
+      'fourteen',
+      'fifteen',
+      'sixteen',
+      'seventeen',
+      'eighteen',
+      'nineteen',
     ];
-    final tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+    final tens = [
+      '',
+      '',
+      'twenty',
+      'thirty',
+      'forty',
+      'fifty',
+      'sixty',
+      'seventy',
+      'eighty',
+      'ninety',
+    ];
 
     if (number == 0) return 'Zero';
     if (number < 20) return ones[number].toUpperCase();
     if (number < 100) {
-      return (tens[number ~/ 10] + (number % 10 != 0 ? ' ' + ones[number % 10] : '')).toUpperCase();
+      return (tens[number ~/ 10] +
+              (number % 10 != 0 ? ' ' + ones[number % 10] : ''))
+          .toUpperCase();
     }
     if (number < 1000) {
-      return (ones[number ~/ 100] + ' Hundred' + (number % 100 != 0 ? ' ' + _convertNumberToWords(number % 100) : '')).toUpperCase();
+      return (ones[number ~/ 100] +
+              ' Hundred' +
+              (number % 100 != 0
+                  ? ' ' + _convertNumberToWords(number % 100)
+                  : ''))
+          .toUpperCase();
     }
     return number.toString();
   }
 
-  Widget _buildStatusRow(String label, String value, Color valueColor, BuildContext context) {
+  Widget _buildStatusRow(
+    String label,
+    String value,
+    Color valueColor,
+    BuildContext context,
+  ) {
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            color: secondaryTextColor,
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 14, color: secondaryTextColor)),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
