@@ -4,6 +4,9 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'dart:convert' as convert;
 
 class BillProductItem {
   final String productName;
@@ -302,6 +305,24 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     final billId = 'BILL-${now.millisecondsSinceEpoch}';
     final billDate = now.toString().split('.')[0];
 
+    // Fetch owner signature from Firebase
+    String? ownerSignatureBase64;
+    String shopName = 'NKT Shop';
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final database = FirebaseDatabase.instance;
+        final snapshot = await database.ref('shop-profile/${user.uid}').get();
+        if (snapshot.exists) {
+          final data = snapshot.value as Map<dynamic, dynamic>;
+          ownerSignatureBase64 = data['ownerSignature'];
+          shopName = data['shopName'] ?? 'NKT Shop';
+        }
+      }
+    } catch (e) {
+      print('Error fetching owner signature: $e');
+    }
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -315,7 +336,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'NKT Shop',
+                    shopName,
                     style: pw.TextStyle(
                       fontSize: 28,
                       fontWeight: pw.FontWeight.bold,
@@ -373,12 +394,47 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
               // Terms & Conditions
               pw.Text('Terms & Conditions', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 30),
+              pw.SizedBox(height: 20),
 
-              // Signature
-              pw.Align(
-                alignment: pw.Alignment.centerRight,
-                child: pw.Text('Signature', style: const pw.TextStyle(fontSize: 10)),
+              // Signature Section
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Customer Signature', style: const pw.TextStyle(fontSize: 9)),
+                      pw.SizedBox(height: 30),
+                      pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
+                    ],
+                  ),
+                  if (ownerSignatureBase64 != null && ownerSignatureBase64.isNotEmpty)
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                      children: [
+                        pw.SizedBox(
+                          width: 80,
+                          height: 60,
+                          child: pw.Image(
+                            pw.MemoryImage(convert.base64Decode(ownerSignatureBase64)),
+                            fit: pw.BoxFit.contain,
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text('Owner Signature', style: const pw.TextStyle(fontSize: 9)),
+                      ],
+                    )
+                  else
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                      children: [
+                        pw.SizedBox(height: 30),
+                        pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
+                        pw.SizedBox(height: 5),
+                        pw.Text('Owner Signature', style: const pw.TextStyle(fontSize: 9)),
+                      ],
+                    ),
+                ],
               ),
             ],
           );
@@ -394,15 +450,15 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     // Table headers
     final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
     
-    // Table rows
+    // Table rows - format prices with 'Rs.' prefix
     final rows = <List<String>>[
       ...products.asMap().entries.map(
         (entry) => [
           '${entry.key + 1}',
           entry.value.productName,
           '${entry.value.quantity} ${entry.value.unit}',
-          '₹${entry.value.price}',
-          '₹${entry.value.total.toStringAsFixed(0)}',
+          'Rs. ${entry.value.price}',
+          'Rs. ${entry.value.total.toStringAsFixed(0)}',
         ],
       ),
     ];
@@ -468,7 +524,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('₹$totalAmount', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+              child: pw.Text('Rs. $totalAmount', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
             ),
           ],
         ),

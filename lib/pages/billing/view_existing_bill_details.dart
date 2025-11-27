@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'dart:convert' as convert;
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -88,6 +89,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   
   // Payment records
   List<PaymentRecord> paymentRecords = [];
+  
+  // Profit calculation
+  double totalProfit = 0;
 
   @override
   void initState() {
@@ -111,9 +115,20 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         'price': '₹ ${(p['price'] ?? 0).toString()}',
       }).toList();
       totalItems = widget.products!.length.toString();
+      
+      // Calculate total profit
+      totalProfit = 0;
+      for (var product in widget.products!) {
+        final quantity = (product['quantity'] ?? 0).toDouble();
+        final sellingPrice = (product['price'] ?? 0).toDouble();
+        final boughtPrice = (product['boughtPrice'] ?? 0).toDouble();
+        final profit = (sellingPrice - boughtPrice) * quantity;
+        totalProfit += profit;
+      }
     } else {
       products = [];
       totalItems = '0';
+      totalProfit = 0;
     }
     
     // Set payment status
@@ -228,6 +243,24 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
     final billDate = now.toString().split('.')[0];
 
+    // Fetch owner signature from Firebase
+    String? ownerSignatureBase64;
+    String shopName = 'NKT Shop';
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final database = FirebaseDatabase.instance;
+        final snapshot = await database.ref('shop-profile/${user.uid}').get();
+        if (snapshot.exists) {
+          final data = snapshot.value as Map<dynamic, dynamic>;
+          ownerSignatureBase64 = data['ownerSignature'];
+          shopName = data['shopName'] ?? 'NKT Shop';
+        }
+      }
+    } catch (e) {
+      print('Error fetching owner signature: $e');
+    }
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
@@ -241,7 +274,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'NKT Shop',
+                    shopName,
                     style: pw.TextStyle(
                       fontSize: 28,
                       fontWeight: pw.FontWeight.bold,
@@ -299,12 +332,47 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
               // Terms & Conditions
               pw.Text('Terms & Conditions', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 30),
+              pw.SizedBox(height: 20),
 
-              // Signature
-              pw.Align(
-                alignment: pw.Alignment.centerRight,
-                child: pw.Text('Signature', style: const pw.TextStyle(fontSize: 10)),
+              // Signature Section
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Customer Signature', style: const pw.TextStyle(fontSize: 9)),
+                      pw.SizedBox(height: 30),
+                      pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
+                    ],
+                  ),
+                  if (ownerSignatureBase64 != null && ownerSignatureBase64.isNotEmpty)
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                      children: [
+                        pw.SizedBox(
+                          width: 80,
+                          height: 60,
+                          child: pw.Image(
+                            pw.MemoryImage(convert.base64Decode(ownerSignatureBase64)),
+                            fit: pw.BoxFit.contain,
+                          ),
+                        ),
+                        pw.SizedBox(height: 5),
+                        pw.Text('Owner Signature', style: const pw.TextStyle(fontSize: 9)),
+                      ],
+                    )
+                  else
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                      children: [
+                        pw.SizedBox(height: 30),
+                        pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
+                        pw.SizedBox(height: 5),
+                        pw.Text('Owner Signature', style: const pw.TextStyle(fontSize: 9)),
+                      ],
+                    ),
+                ],
               ),
             ],
           );
@@ -320,16 +388,22 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     // Table headers
     final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
     
-    // Table rows
+    // Table rows - format prices with rupee text
     final rows = <List<String>>[
       ...products.asMap().entries.map(
-        (entry) => [
-          '${entry.key + 1}',
-          entry.value['name']!,
-          entry.value['qty']!,
-          entry.value['price']!,
-          entry.value['price']!,
-        ],
+        (entry) {
+          String price = entry.value['price']!;
+          // Remove rupee symbol and add 'Rs.' prefix for PDF
+          price = price.replaceAll('₹', '').trim();
+          price = 'Rs. $price';
+          return [
+            '${entry.key + 1}',
+            entry.value['name']!,
+            entry.value['qty']!,
+            price,
+            price,
+          ];
+        },
       ),
     ];
 
@@ -394,7 +468,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
-              child: pw.Text(totalAmount, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+              child: pw.Text(
+                'Rs. ${totalAmount.replaceAll('₹', '').trim()}',
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                textAlign: pw.TextAlign.right,
+              ),
             ),
           ],
         ),
@@ -586,6 +664,15 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
                   // --- 3. Financial Summary Card ---
                   _buildSummaryCard(
+                    context,
+                    cardColor,
+                    primaryTextColor,
+                    secondaryTextColor,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // --- 4. Profit & Loss Card ---
+                  _buildProfitLossCard(
                     context,
                     cardColor,
                     primaryTextColor,
@@ -1064,6 +1151,83 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProfitLossCard(
+    BuildContext context,
+    Color? cardColor,
+    Color? primaryTextColor,
+    Color? secondaryTextColor,
+  ) {
+    final isProfitable = totalProfit >= 0;
+    final profitColor = isProfitable ? Colors.green : Colors.red;
+    final profitLossLabel = isProfitable ? 'Profit' : 'Loss';
+
+    return Card(
+      color: cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Profit & Loss',
+              style: TextStyle(
+                color: primaryTextColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: profitColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: profitColor.withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        profitLossLabel,
+                        style: TextStyle(
+                          color: profitColor,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '₹ ${totalProfit.abs().toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: profitColor,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Icon(
+                    isProfitable
+                        ? Icons.trending_up_rounded
+                        : Icons.trending_down_rounded,
+                    size: 48,
+                    color: profitColor.withOpacity(0.6),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

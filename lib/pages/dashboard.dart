@@ -124,6 +124,8 @@ class _DashboardState extends State<Dashboard> {
       int buyingCount = 0;
       int totalItemsBoughtThisMonth = 0;
       int totalQuantityBoughtThisMonth = 0;
+      
+      // Try to get data from purchase-history first
       final purchasesSnapshot = await database.ref('purchase-history/$userId').get();
 
       if (purchasesSnapshot.exists) {
@@ -148,58 +150,30 @@ class _DashboardState extends State<Dashboard> {
             }
           }
         });
-      }
+      } else {
+        // Fallback: Calculate from purchased-products if purchase-history doesn't exist
+        final productsSnapshot = await database.ref('purchased-products/$userId').get();
+        if (productsSnapshot.exists) {
+          final data = productsSnapshot.value as Map<dynamic, dynamic>;
+          data.forEach((key, value) {
+            if (value is Map) {
+              final productData = Map<String, dynamic>.from(value);
+              final productDate = productData['date'] as String? ?? '';
 
-      // Calculate previous month data for comparison
-      final prevMonth = DateTime(selectedDate.year, selectedDate.month - 1);
-      int prevMonthSales = 0;
-      int prevMonthBuying = 0;
-
-      if (billsSnapshot.exists) {
-        final data = billsSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, value) {
-          if (value is Map) {
-            final billData = Map<String, dynamic>.from(value);
-            final billDate = billData['billDate'] as String? ?? '';
-            final totalAmount = billData['totalAmount'] ?? 0;
-
-            // Check if bill is from previous month
-            if (_isFromMonth(billDate, prevMonth)) {
-              prevMonthSales += (totalAmount as num).toInt();
+              // Check if product purchase is from selected month
+              if (_isFromSelectedMonth(productDate)) {
+                final quantity = productData['quantity'] as num? ?? 0;
+                final buyingPrice = productData['buyingPrice'] as num? ?? 0;
+                final amount = (quantity * buyingPrice).toInt();
+                
+                totalBuying += amount;
+                buyingCount++;
+                totalItemsBoughtThisMonth += 1;
+                totalQuantityBoughtThisMonth += quantity.toInt();
+              }
             }
-          }
-        });
-      }
-
-      // Load previous month purchases
-      if (purchasesSnapshot.exists) {
-        final data = purchasesSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, value) {
-          if (value is Map) {
-            final purchaseData = Map<String, dynamic>.from(value);
-            final purchaseDate = purchaseData['date'] as String? ?? '';
-
-            // Check if purchase is from previous month
-            if (_isFromMonth(purchaseDate, prevMonth)) {
-              final amount = purchaseData['amount'] ?? 0;
-              prevMonthBuying += (amount as num).toInt();
-            }
-          }
-        });
-      }
-
-      // Calculate percentage changes
-      double salesPercentage = 0;
-      double buyingPercentage = 0;
-
-      if (prevMonthSales > 0) {
-        salesPercentage =
-            ((totalSales - prevMonthSales) / prevMonthSales) * 100;
-      }
-
-      if (prevMonthBuying > 0) {
-        buyingPercentage =
-            ((totalBuying - prevMonthBuying) / prevMonthBuying) * 100;
+          });
+        }
       }
 
       if (mounted) {
@@ -245,22 +219,6 @@ class _DashboardState extends State<Dashboard> {
       return false;
     } catch (e) {
       print('Error parsing date "$billDate": $e');
-      return false;
-    }
-  }
-
-  bool _isFromMonth(String dateString, DateTime targetMonth) {
-    try {
-      // Expected format: "dd/MM/yyyy" (e.g., "18/11/2025")
-      final parts = dateString.split('/');
-      if (parts.length != 3) return false;
-
-      final month = int.parse(parts[1]);
-      final year = int.parse(parts[2]);
-
-      return month == targetMonth.month && year == targetMonth.year;
-    } catch (e) {
-      print('Error parsing date "$dateString": $e');
       return false;
     }
   }
@@ -347,8 +305,9 @@ class _DashboardState extends State<Dashboard> {
                           children: [
                             Expanded(
                               child: _buildDashboardCard(
-                                title: 'Profit / Loss',
-                                value: '₹ ${_formatCurrency(_totalProfitLoss)}',
+                                title: _totalProfitLoss >= 0 ? 'Profit' : 'Loss',
+                                value: '₹ ${_formatCurrency(_totalProfitLoss.abs())}',
+                                valueColor: _totalProfitLoss >= 0 ? Colors.green : Colors.red,
                               ),
                             ),
                           ],
@@ -534,6 +493,7 @@ class _DashboardState extends State<Dashboard> {
     String? subtitleTop,
     String? subtitleMiddle,
     String? subtitleBottom,
+    Color? valueColor,
   }) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -542,13 +502,14 @@ class _DashboardState extends State<Dashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(title, style: Theme.of(context).textTheme.bodyMedium),
+            Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: valueColor)),
             const SizedBox(height: 8.0),
             Text(
               value,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontSize: 32,
                 fontWeight: FontWeight.w800,
+                color: valueColor,
               ),
             ),
             const SizedBox(height: 12.0),

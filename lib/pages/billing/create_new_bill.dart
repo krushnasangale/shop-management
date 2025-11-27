@@ -379,6 +379,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     SizedBox(
+
+
                       height: 25,
                       child: ElevatedButton.icon(
                         onPressed: () => showAvailableProductsDrawer(context),
@@ -949,91 +951,107 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  // Quantity with +/- buttons
+                  // Quantity with +/- buttons and input field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      Text(
+                        'Quantity',
+                        style: TextStyle(color: primaryTextColor),
+                      ),
+                      const SizedBox(height: 8),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Quantity',
-                            style: TextStyle(color: primaryTextColor),
+                          GestureDetector(
+                            onTap: () {
+                              double currentQty =
+                                  double.tryParse(
+                                    quantityController.text,
+                                  ) ??
+                                  1;
+                              if (currentQty > 1) {
+                                currentQty--;
+                                quantityController.text = currentQty
+                                    .toStringAsFixed(0);
+                                setDialogState(() {
+                                  quantityError = '';
+                                });
+                              }
+                            },
+                            child: Icon(
+                              Icons.remove_circle_outline,
+                              size: 24,
+                              color:
+                                  (double.tryParse(
+                                            quantityController.text,
+                                          ) ??
+                                          1) >
+                                      1
+                                  ? Colors.blue
+                                  : Colors.grey,
+                            ),
                           ),
-                          Row(
-                            children: [
-                              GestureDetector(
-                                onTap: () {
-                                  double currentQty =
-                                      double.tryParse(
-                                        quantityController.text,
-                                      ) ??
-                                      1;
-                                  if (currentQty > 1) {
-                                    currentQty--;
-                                    quantityController.text = currentQty
-                                        .toStringAsFixed(0);
-                                    setDialogState(() {
-                                      quantityError = '';
-                                    });
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextField(
+                              controller: quantityController,
+                              keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              textAlign: TextAlign.center,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  // Validate input
+                                  final quantity = double.tryParse(value) ?? 0;
+                                  if (quantity > billItem.maxQuantity) {
+                                    quantityController.text = billItem.maxQuantity.toStringAsFixed(0);
+                                    quantityController.selection = TextSelection.fromPosition(
+                                      TextPosition(offset: quantityController.text.length),
+                                    );
                                   }
-                                },
-                                child: Icon(
-                                  Icons.remove_circle_outline,
-                                  size: 24,
-                                  color:
-                                      (double.tryParse(
-                                                quantityController.text,
-                                              ) ??
-                                              1) >
-                                          1
-                                      ? Colors.blue
-                                      : Colors.grey,
+                                  quantityError = '';
+                                });
+                              },
+                              decoration: InputDecoration(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 8,
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                width: 50,
-                                child: Text(
-                                  quantityController.text,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              GestureDetector(
-                                onTap: () {
-                                  double currentQty =
-                                      double.tryParse(
-                                        quantityController.text,
-                                      ) ??
-                                      1;
-                                  if (currentQty < billItem.maxQuantity) {
-                                    currentQty++;
-                                    quantityController.text = currentQty
-                                        .toStringAsFixed(0);
-                                    setDialogState(() {
-                                      quantityError = '';
-                                    });
-                                  }
-                                },
-                                child: Icon(
-                                  Icons.add_circle_outline,
-                                  size: 24,
-                                  color:
-                                      (double.tryParse(
-                                                quantityController.text,
-                                              ) ??
-                                              1) <
-                                          billItem.maxQuantity
-                                      ? Colors.blue
-                                      : Colors.grey,
-                                ),
-                              ),
-                            ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          GestureDetector(
+                            onTap: () {
+                              double currentQty =
+                                  double.tryParse(
+                                    quantityController.text,
+                                  ) ??
+                                  1;
+                              if (currentQty < billItem.maxQuantity) {
+                                currentQty++;
+                                quantityController.text = currentQty
+                                    .toStringAsFixed(0);
+                                setDialogState(() {
+                                  quantityError = '';
+                                });
+                              }
+                            },
+                            child: Icon(
+                              Icons.add_circle_outline,
+                              size: 24,
+                              color:
+                                  (double.tryParse(
+                                            quantityController.text,
+                                          ) ??
+                                          1) <
+                                      billItem.maxQuantity
+                                  ? Colors.blue
+                                  : Colors.grey,
+                            ),
                           ),
                         ],
                       ),
@@ -1057,7 +1075,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       TextField(
                         controller: priceController,
                         keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
+                          decimal: false,
                         ),
                         decoration: InputDecoration(
                           labelText: 'Selling Price',
