@@ -87,17 +87,24 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.title),
-          centerTitle: true,
           actions: [
-            IconButton(
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.person),
-              onPressed: () async {
-                AppNavigator.push(context, const MyProfile());
-              },
-              tooltip: 'Logout',
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.grey.withOpacity(0.2),
+              ),
+              height: 40,
+              width: 40,
+              child: IconButton(
+                padding: EdgeInsets.zero,
+                icon: const Icon(Icons.person_2_rounded),
+                onPressed: () async {
+                  AppNavigator.push(context, const MyProfile());
+                },
+                tooltip: 'Logout',
+              ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 14),
           ],
         ),
         body: IndexedStack(index: _selectedIndex, children: _screens),

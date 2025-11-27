@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:nkt/navigation/app_navigator.dart';
+import 'package:nkt/pages/billing/bill_success_page.dart';
 import 'package:nkt/pages/billing/review_billing_details.dart';
 import 'package:nkt/ui%20helpers/ui_helper.dart';
 
@@ -83,6 +84,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
   List<BoughtProduct> _availableProducts = [];
   List<BillItem> _billItems = [];
   bool _productsLoading = true;
+  List<Map<String, dynamic>> _customers = [];
+  bool _customersLoading = true;
+  StreamSubscription<DatabaseEvent>? _customersSubscription;
   late TextEditingController _searchController;
   late TextEditingController _dateController;
   late TextEditingController _customerNameController;
@@ -108,6 +112,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _amountPaidController = TextEditingController();
     _amountRemainingController = TextEditingController();
     _loadProducts();
+    _loadCustomers();
   }
 
   @override
@@ -120,6 +125,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _amountPaidController.dispose();
     _amountRemainingController.dispose();
     _productsSubscription?.cancel();
+    _customersSubscription?.cancel();
     super.dispose();
   }
 
@@ -189,6 +195,39 @@ class _CreateNewBillState extends State<CreateNewBill> {
     }
   }
 
+  void _loadCustomers() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final database = FirebaseDatabase.instance;
+    final customersRef = database.ref('customers/${user.uid}');
+
+    _customersSubscription = customersRef.onValue.listen((event) {
+      if (!mounted) return;
+
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null) {
+        final customers = data.entries.map((e) {
+          return {
+            'id': e.key,
+            'name': e.value['name'] ?? '',
+            'mobileNumber': e.value['mobileNumber'] ?? '',
+            'vehicleNumber': e.value['vehicleNumber'] ?? '',
+          };
+        }).toList();
+        setState(() {
+          _customers = customers;
+          _customersLoading = false;
+        });
+      } else {
+        setState(() {
+          _customers = [];
+          _customersLoading = false;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
@@ -228,6 +267,30 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       ).format(pickedDate);
                     }
                   },
+                ),
+
+                // Select Customer section
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      height: 25,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showCustomersDrawer(context),
+                        icon: const Icon(Icons.person_add, color: Colors.white),
+                        label: const Text(
+                          'Select existing Customer',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
 
                 Column(
@@ -618,7 +681,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         child: SizedBox(
                           height: 45,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
                               // Validate form fields
                               setState(() {
                                 _customerNameError = _validateCustomerName(_customerNameController.text) ?? '';
@@ -648,6 +711,23 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 return;
                               }
 
+                              // Check if customer exists, if not add to database
+                              String? customerId = _getExistingCustomerId();
+                              
+                              if (customerId == null) {
+                                // Add new customer to database
+                                customerId = await _addNewCustomer();
+                                if (customerId == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Failed to add customer'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                  return;
+                                }
+                              }
+
                               // Prepare bill products for review screen
                               final billProducts = _billItems.map((item) {
                                 return BillProductItem(
@@ -672,6 +752,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                   customerName: _customerNameController.text,
                                   customerMobile: _customerMobileController.text,
                                   customerVehicle: _customerVehicleController.text,
+                                  customerId: customerId,
                                   products: billProducts,
                                   totalAmount: totalBillAmount,
                                   totalAmountPaid: totalAmountPaid,
@@ -741,6 +822,53 @@ class _CreateNewBillState extends State<CreateNewBill> {
         );
       },
     );
+  }
+
+  String? _getExistingCustomerId() {
+    final customerName = _customerNameController.text.trim();
+    final customerMobile = _customerMobileController.text.trim();
+    
+    for (var customer in _customers) {
+      if (customer['name'] == customerName && 
+          customer['mobileNumber'] == customerMobile) {
+        return customer['id'];
+      }
+    }
+    return null;
+  }
+
+  Future<String?> _addNewCustomer() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return null;
+
+      final database = FirebaseDatabase.instance;
+      final customerData = {
+        'name': _customerNameController.text.trim(),
+        'mobileNumber': _customerMobileController.text.trim(),
+        'vehicleNumber': _customerVehicleController.text.trim(),
+        'createdAt': DateTime.now().toString(),
+      };
+
+      await database.ref('customers/${user.uid}').push().set(customerData);
+      
+      // Get the key of the newly added customer
+      final snapshot = await database
+          .ref('customers/${user.uid}')
+          .orderByChild('createdAt')
+          .limitToLast(1)
+          .get();
+
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        final customerId = data.keys.first as String;
+        return customerId;
+      }
+      return null;
+    } catch (e) {
+      print('Error adding customer: $e');
+      return null;
+    }
   }
 
   double _getTotalAmount() {
@@ -1002,6 +1130,194 @@ class _CreateNewBillState extends State<CreateNewBill> {
           },
         );
       },
+    );
+  }
+
+  void _showCustomersDrawer(BuildContext context) {
+    final searchController = TextEditingController();
+    List<Map<String, dynamic>> displayCustomers = _customers;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) => Column(
+            children: [
+              // Title and close button
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Select Customer',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Search field
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  height: 50,
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (query) {
+                      setModalState(() {
+                        if (query.isEmpty) {
+                          displayCustomers = _customers;
+                        } else {
+                          displayCustomers = _customers
+                              .where(
+                                (customer) =>
+                                    customer['name'].toLowerCase().contains(
+                                      query.toLowerCase(),
+                                    ) ||
+                                    customer['mobileNumber'].contains(query),
+                              )
+                              .toList();
+                        }
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search customer...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Customers list
+              Expanded(
+                child: _customersLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : displayCustomers.isEmpty
+                        ? Center(
+                            child: Text(
+                              'No customers found',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          )
+                        : ListView.builder(
+                            controller: scrollController,
+                            itemCount: displayCustomers.length,
+                            itemBuilder: (context, index) {
+                              final customer = displayCustomers[index];
+                              return Card(
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 16.0,
+                                  vertical: 6.0,
+                                ),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                  side: BorderSide(
+                                    color: Theme.of(context)
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.color
+                                            ?.withOpacity(0.1) ??
+                                        Colors.grey,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _customerNameController.text =
+                                          customer['name'];
+                                      _customerMobileController.text =
+                                          customer['mobileNumber'];
+                                      _customerVehicleController.text =
+                                          customer['vehicleNumber'];
+                                    });
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          '${customer['name']} selected',
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12.0,
+                                      horizontal: 16.0,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          customer['name'],
+                                          style: TextStyle(
+                                            color: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'Mobile: ${customer['mobileNumber']}',
+                                              style: TextStyle(
+                                                color: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyMedium?.color,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            if (customer['vehicleNumber']
+                                                .isNotEmpty)
+                                              Text(
+                                                'Vehicle: ${customer['vehicleNumber']}',
+                                                style: TextStyle(
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyMedium?.color,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

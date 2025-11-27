@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:nkt/pages/billing/bill_success_page.dart';
 
 class ReviewBillingDetails extends StatefulWidget {
   final String billDate;
   final String customerName;
   final String customerMobile;
   final String? customerVehicle;
+  final String customerId;
   final List<BillProductItem> products;
   final int totalAmount;
   final bool totalAmountPaid;
@@ -18,6 +20,7 @@ class ReviewBillingDetails extends StatefulWidget {
     required this.customerName,
     required this.customerMobile,
     this.customerVehicle,
+    required this.customerId,
     required this.products,
     required this.totalAmount,
     required this.totalAmountPaid,
@@ -28,26 +31,6 @@ class ReviewBillingDetails extends StatefulWidget {
 
   @override
   State<ReviewBillingDetails> createState() => _ReviewBillingDetailsState();
-}
-
-class BillProductItem {
-  final String productName;
-  final String supplierName;
-  final String unit;
-  final double quantity;
-  final int price; // Selling price
-  final int boughtPrice; // Cost price
-  final double total;
-
-  BillProductItem({
-    required this.productName,
-    required this.supplierName,
-    required this.unit,
-    required this.quantity,
-    required this.price,
-    required this.boughtPrice,
-    required this.total,
-  });
 }
 
 class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
@@ -507,19 +490,19 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       await _saveBillToDatabase();
       if (mounted) {
         Navigator.pop(context); // Close loader
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Bill created successfully'),
-            backgroundColor: Colors.green,
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => BillSuccessPage(
+              customerName: widget.customerName,
+              customerMobile: widget.customerMobile,
+              customerVehicle: widget.customerVehicle ?? '',
+              totalAmount: widget.totalAmount,
+              amountPaid: widget.totalAmountPaid ? widget.totalAmount : (widget.amountPaid ?? 0),
+              amountRemaining: widget.totalAmountPaid ? 0 : (widget.amountRemaining ?? 0),
+              products: widget.products,
+            ),
           ),
         );
-        // Navigate to bills screen
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            // Navigate back to home and set Bills tab as active
-            Navigator.of(context).popUntil((route) => route.isFirst);
-          }
-        });
       }
     } catch (e) {
       if (mounted) {
@@ -550,6 +533,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     
     final billData = {
       'billId': billId,
+      'customerId': widget.customerId, // Add customerId for efficient customer history fetching
       'billDate': widget.billDate,
       'customerName': widget.customerName,
       'customerMobile': widget.customerMobile,
@@ -579,7 +563,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       ],
     };
 
-    // Save bill
+    // Save bill to bills table only (with customerId for efficient querying)
     await database.ref('bills/$userId/$billId').set(billData);
 
     // Update product quantities in purchased-products

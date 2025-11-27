@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'package:share_plus/share_plus.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 import 'package:nkt/navigation/app_navigator.dart';
 import 'package:nkt/pages/products/available_product_item_detail.dart';
@@ -120,6 +125,307 @@ class _AvailableProductsState extends State<AvailableProducts> {
     });
   }
 
+  void _showReportOptionsDialog(BuildContext context) {
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Generate Report', style: TextStyle(color: primaryTextColor),),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Select format to export products data:'),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.maxFinite,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('Export as PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _generateAndSharePDF();
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.maxFinite,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.table_chart),
+                  label: const Text('Export as CSV (Excel)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _generateAndShareCSV();
+                  },
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _generateAndSharePDF() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Generating PDF...',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
+      final pdfFile = await _generateProductsPDF();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+
+        await Share.shareXFiles(
+          [XFile(pdfFile.path)],
+          text: 'Available Products Report from NKT Shop',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _generateAndShareCSV() async {
+    try {
+      final csvFile = await _generateProductsCSV();
+
+      if (mounted) {
+        await Share.shareXFiles(
+          [XFile(csvFile.path)],
+          text: 'Available Products Report (CSV) from NKT Shop',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating CSV: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<File> _generateProductsPDF() async {
+    final pdf = pw.Document();
+    final dir = await getTemporaryDirectory();
+    final now = DateTime.now();
+    final dateTimeString = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    final file = File('${dir.path}/products_report_$dateTimeString.pdf');
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Text(
+                'NKT Shop - Available Products Report',
+                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Text(
+                'Generated on: ${now.toString().split('.')[0]}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              pw.SizedBox(height: 20),
+
+              // Products Table
+              pw.Table(
+                border: pw.TableBorder.all(width: 1),
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(30),
+                  1: const pw.FlexColumnWidth(2),
+                  2: const pw.FlexColumnWidth(1.5),
+                  3: const pw.FlexColumnWidth(1.2),
+                  4: const pw.FlexColumnWidth(1.2),
+                  5: const pw.FlexColumnWidth(1),
+                  6: const pw.FlexColumnWidth(1),
+                },
+                children: [
+                  // Header row
+                  pw.TableRow(
+                    decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                    children: [
+                      'S.No.',
+                      'Product Name',
+                      'Supplier',
+                      'Unit',
+                      'Qty',
+                      'Buying',
+                      'Selling',
+                    ]
+                        .map((header) => pw.Padding(
+                              padding: const pw.EdgeInsets.all(5),
+                              child: pw.Text(
+                                header,
+                                style: pw.TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                                textAlign: pw.TextAlign.center,
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                  // Data rows
+                  ..._boughtProducts.asMap().entries.map((entry) {
+                    final product = entry.value;
+                    final index = entry.key + 1;
+                    return pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            index.toString(),
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            product.productName,
+                            style: const pw.TextStyle(fontSize: 8),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            product.supplierName,
+                            style: const pw.TextStyle(fontSize: 8),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            product.unit,
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            product.quantity.toString(),
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            '₹${product.buyingPrice.toStringAsFixed(2)}',
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            '₹${product.sellingPrice.toStringAsFixed(2)}',
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+              pw.Text(
+                'Total Products: ${_boughtProducts.length}',
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    await file.writeAsBytes(await pdf.save());
+    return file;
+  }
+
+  Future<File> _generateProductsCSV() async {
+    final dir = await getTemporaryDirectory();
+    final now = DateTime.now();
+    final dateTimeString = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    final file = File('${dir.path}/products_report_$dateTimeString.csv');
+
+    // Create CSV header
+    final csv = StringBuffer();
+    csv.writeln('S.No.,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Stock Status,Min Limit');
+
+    // Add product rows
+    for (var i = 0; i < _boughtProducts.length; i++) {
+      final product = _boughtProducts[i];
+      final status = _getStockStatus(product.quantity, product.minLimit);
+      csv.writeln('${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},${product.buyingPrice.toStringAsFixed(2)},${product.sellingPrice.toStringAsFixed(2)},"$status",${product.minLimit}');
+    }
+
+    await file.writeAsString(csv.toString());
+    return file;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -140,11 +446,14 @@ class _AvailableProductsState extends State<AvailableProducts> {
       appBar: AppBar(
         title: const Text('Available Products'),
         centerTitle: false,
-        actions: const [
+        actions: [
           // Three vertical dots menu icon
           Padding(
             padding: EdgeInsets.only(right: 8.0),
-            child: Icon(Icons.more_vert),
+            child: IconButton(
+              icon: const Icon(Icons.more_vert),
+              onPressed: () => _showReportOptionsDialog(context),
+            ),
           ),
         ],
       ),
@@ -289,7 +598,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final stockColor = _getStockColor(quantity, minLimit);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: stockColor.withOpacity(0.2),
         border: Border.all(color: stockColor, width: 1.5),
@@ -358,65 +667,70 @@ class _AvailableProductsState extends State<AvailableProducts> {
               // Product Name & Supplier with Stock Badge
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        productName[0].toUpperCase() + productName.substring(1),
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          productName[0].toUpperCase() + productName.substring(1),
+                          style: TextStyle(
+                            color: primaryTextColor,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Supplier: $supplierName',
-                        style: TextStyle(
-                          color: secondaryTextColor,
-                          fontSize: 13,
+                        const SizedBox(height: 4),
+                        Text(
+                          'Supplier: $supplierName',
+                          style: TextStyle(
+                            color: secondaryTextColor,
+                            fontSize: 12,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _buildStockBadge(product.quantity, product.minLimit),
-                    ],
-                  ),
+                  const SizedBox(width: 8),
+                  _buildStockBadge(product.quantity, product.minLimit),
                 ],
               ),
+              const SizedBox(height: 10),
               // Unit and Quantity
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Unit: $unit',
-                    style: TextStyle(color: secondaryTextColor, fontSize: 13),
+                    style: TextStyle(color: secondaryTextColor, fontSize: 12),
                   ),
                   Text(
                     'Qty: $quantity',
                     style: TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 13,
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
               // Prices
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Buying: ₹${buyingPrice.toStringAsFixed(2)}',
-                    style: TextStyle(color: Colors.red[400], fontSize: 12),
+                    style: TextStyle(color: Colors.red[400], fontSize: 11),
                   ),
                   Text(
                     'Selling: ₹${sellingPrice.toStringAsFixed(2)}',
-                    style: TextStyle(color: Colors.green[400], fontSize: 12),
+                    style: TextStyle(color: Colors.green[400], fontSize: 11),
                   ),
                 ],
               ),

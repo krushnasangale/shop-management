@@ -15,6 +15,7 @@ class AddPurchaseEntry extends StatefulWidget {
 class BoughtItem {
   final String productName;
   final String supplierName;
+  final String supplierId;
   final String unit;
   final int minLimit;
   int initialQuantity; // Original quantity bought (for purchase history)
@@ -25,6 +26,7 @@ class BoughtItem {
   BoughtItem({
     required this.productName,
     required this.supplierName,
+    required this.supplierId,
     required this.unit,
     required this.minLimit,
     required this.initialQuantity,
@@ -54,6 +56,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   StreamSubscription<DatabaseEvent>? _supplierSubscription;
   StreamSubscription<DatabaseEvent>? _unitsSubscription;
   String _supplierNameError = '';
+  String _selectedSupplierId = '';
   int _totalBoughtAmount = 0;
 
   late TextEditingController _minLimitController;
@@ -298,6 +301,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
   void _addProductToList() {
     // Validate all fields
+    if (_supplierNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a supplier')),
+      );
+      return;
+    }
+
     if (_productController.text.isEmpty) {
       ScaffoldMessenger.of(
         context,
@@ -364,6 +374,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     final newItem = BoughtItem(
       productName: _productController.text,
       supplierName: _supplierNameController.text,
+      supplierId: _selectedSupplierId,
       unit: _unitController.text,
       minLimit: minLimit,
       initialQuantity: quantity,
@@ -1004,6 +1015,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 onTap: () {
                                   setState(() {
                                     _supplierNameController.text = name;
+                                    _selectedSupplierId = supplier['id'] ?? '';
                                   });
                                   Navigator.pop(context);
                                 },
@@ -1302,6 +1314,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         final productEntry = {
           'purchaseId': purchaseId,
           'productName': item.productName,
+          'supplierId': item.supplierId,
           'supplierName': item.supplierName,
           'unit': item.unit,
           'minLimit': item.minLimit,
@@ -1310,6 +1323,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'buyingPrice': item.buyingPrice,
           'sellingPrice': item.sellingPrice,
           'total': item.total,
+          'date': _dateController.text,
           'timestamp': DateTime.now().toIso8601String(),
         };
         await productsRef.push().set(productEntry);

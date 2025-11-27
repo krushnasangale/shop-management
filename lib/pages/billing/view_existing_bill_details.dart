@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -149,6 +154,286 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     }
   }
 
+  void _shareBill(BuildContext context) async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Generating PDF...',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
+      // Generate PDF
+      final pdfFile = await _generateBillPDF();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+
+        // Open share dialog
+        await Share.shareXFiles(
+          [XFile(pdfFile.path)],
+          text: 'Bill from NKT Shop',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating bill: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<File> _generateBillPDF() async {
+    final pdf = pw.Document();
+
+    // Get temporary directory
+    final dir = await getTemporaryDirectory();
+    
+    // Create filename with customer name and datetime
+    final now = DateTime.now();
+    final dateTimeString = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    final sanitizedCustomerName = customerName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
+    final fileName = '${sanitizedCustomerName}_${dateTimeString}.pdf';
+    final file = File('${dir.path}/$fileName');
+
+    final billDate = now.toString().split('.')[0];
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header with Company Name and Invoice Title
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'NKT Shop',
+                    style: pw.TextStyle(
+                      fontSize: 28,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'INVOICE',
+                    style: pw.TextStyle(
+                      fontSize: 24,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 15),
+
+              // Bill ID and Date
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text('Invoice No.', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(billId, style: const pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                  pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.end,
+                    children: [
+                      pw.Text('Invoice Date:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(billDate, style: const pw.TextStyle(fontSize: 10)),
+                    ],
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 15),
+
+              // Customer Details Section
+              pw.Text('BILL TO', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 5),
+              pw.Text('Name: $customerName', style: const pw.TextStyle(fontSize: 10)),
+              pw.Text('Mobile: $customerMobile', style: const pw.TextStyle(fontSize: 10)),
+              if (customerVehicle != null && customerVehicle!.isNotEmpty) pw.Text('Vehicle: $customerVehicle', style: const pw.TextStyle(fontSize: 10)),
+              pw.SizedBox(height: 15),
+
+              // Products Table
+              _buildProductTable(),
+              pw.SizedBox(height: 15),
+
+              // Rupees in words
+              pw.Text('Rupees in words: ' + _convertNumberToWords(), 
+                style: const pw.TextStyle(fontSize: 10)),
+              pw.SizedBox(height: 10),
+
+              // Terms & Conditions
+              pw.Text('Terms & Conditions', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 30),
+
+              // Signature
+              pw.Align(
+                alignment: pw.Alignment.centerRight,
+                child: pw.Text('Signature', style: const pw.TextStyle(fontSize: 10)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    await file.writeAsBytes(await pdf.save());
+    return file;
+  }
+
+  pw.Widget _buildProductTable() {
+    // Table headers
+    final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
+    
+    // Table rows
+    final rows = <List<String>>[
+      ...products.asMap().entries.map(
+        (entry) => [
+          '${entry.key + 1}',
+          entry.value['name']!,
+          entry.value['qty']!,
+          entry.value['price']!,
+          entry.value['price']!,
+        ],
+      ),
+    ];
+
+    return pw.Table(
+      border: pw.TableBorder.all(width: 1),
+      columnWidths: {
+        0: const pw.FixedColumnWidth(40),
+        1: const pw.FlexColumnWidth(3),
+        2: const pw.FlexColumnWidth(1.5),
+        3: const pw.FlexColumnWidth(1.2),
+        4: const pw.FlexColumnWidth(1.2),
+      },
+      children: [
+        // Header row
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColors.grey300),
+          children: headers.map((header) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text(
+                header,
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                textAlign: pw.TextAlign.center,
+              ),
+            );
+          }).toList(),
+        ),
+        // Data rows
+        ...rows.map((row) {
+          return pw.TableRow(
+            children: row.asMap().entries.map((entry) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text(
+                  entry.value,
+                  style: const pw.TextStyle(fontSize: 9),
+                  textAlign: entry.key == 0 ? pw.TextAlign.center : pw.TextAlign.left,
+                ),
+              );
+            }).toList(),
+          );
+        }).toList(),
+        // Total row
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColors.grey300),
+          children: [
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('Total:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text(totalAmount, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _convertNumberToWords() {
+    try {
+      final totalAmountInt = int.parse(totalAmount.replaceAll('₹ ', '').replaceAll(',', ''));
+      
+      return _numberToWords(totalAmountInt);
+    } catch (e) {
+      return 'Unable to convert';
+    }
+  }
+
+  String _numberToWords(int number) {
+    final ones = [
+      '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
+      'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
+      'seventeen', 'eighteen', 'nineteen'
+    ];
+    final tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+
+    if (number == 0) return 'Zero';
+    if (number < 20) return ones[number].toUpperCase();
+    if (number < 100) {
+      return (tens[number ~/ 10] + (number % 10 != 0 ? ' ' + ones[number % 10] : '')).toUpperCase();
+    }
+    if (number < 1000) {
+      return (ones[number ~/ 100] + ' Hundred' + (number % 100 != 0 ? ' ' + _numberToWords(number % 100) : '')).toUpperCase();
+    }
+    if (number < 1000000) {
+      return (_numberToWords(number ~/ 1000) + ' Thousand' + (number % 1000 != 0 ? ' ' + _numberToWords(number % 1000) : '')).toUpperCase();
+    }
+    return number.toString();
+  }
+
   Future<void> _saveAmountPaid(String paymentAmountStr, [String notes = 'Payment received']) async {
     try {
       final paymentAmount = int.parse(paymentAmountStr);
@@ -268,8 +553,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.more_vert),
-            onPressed: () => print('More options tapped'),
+            icon: const Icon(Icons.share),
+            onPressed: () => _shareBill(context),
           ),
         ],
       ),
@@ -443,59 +728,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
-  Future<void> _deletePayment(int index) async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception('User not authenticated');
-
-      // Remove from list
-      final updatedPayments = List<PaymentRecord>.from(paymentRecords);
-      final deletedAmount = updatedPayments[index].amount;
-      updatedPayments.removeAt(index);
-
-      // Update Firebase
-      final database = FirebaseDatabase.instance;
-      await database
-          .ref('bills/${user.uid}/$billId/payments')
-          .set(updatedPayments.map((p) => p.toMap()).toList());
-
-      // Recalculate totals
-      int newTotalAmountPaid = 0;
-      for (var payment in updatedPayments) {
-        newTotalAmountPaid += payment.amount;
-      }
-
-      final totalAmountInt = int.parse(totalAmount.replaceAll('₹ ', ''));
-      final newRemaining = totalAmountInt - newTotalAmountPaid;
-      final isFullyPaid = newTotalAmountPaid >= totalAmountInt;
-
-      await database
-          .ref('bills/${user.uid}/$billId')
-          .update({
-            'amountPaid': newTotalAmountPaid,
-            'amountRemaining': newRemaining,
-            'totalAmountPaid': isFullyPaid,
-          });
-
-      // Update local state
-      setState(() {
-        paymentRecords = updatedPayments;
-        amountPaid = '₹ $newTotalAmountPaid';
-        amountRemaining = '₹ $newRemaining';
-        isTotalAmountPaid = isFullyPaid;
-        paymentStatus = isFullyPaid ? 'Paid' : 'Partially Paid';
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment of ₹$deletedAmount removed')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-    }
-  }
-
   // --- Helper 5: Payment History Card ---
   Widget _buildPaymentHistoryCard(
     BuildContext context,
@@ -576,12 +808,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                               ),
                             ],
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, size: 20, color: Colors.red),
-                          onPressed: () => _deletePayment(index),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
                         ),
                       ],
                     ),

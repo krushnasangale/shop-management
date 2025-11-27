@@ -22,9 +22,7 @@ class _DashboardState extends State<Dashboard> {
   int _totalItemsSold = 0; // Total items sold
   int _totalBuyingCount = 0; // Number of purchase transactions
   int _totalItemsBought = 0; // Total items bought in selected month
-  int _totalQuantityBought = 0; // Total quantity of items bought in selected month
-  double _salesPercentageChange = 0;
-  double _buyingPercentageChange = 0;
+  int _totalQuantityBought = 0;
   StreamSubscription<DatabaseEvent>? _billsSubscription;
   StreamSubscription<DatabaseEvent>? _purchasesSubscription;
   StreamSubscription<DatabaseEvent>? _productsSubscription;
@@ -58,28 +56,31 @@ class _DashboardState extends State<Dashboard> {
       _calculateAndUpdateDashboard(user.uid);
     });
 
-    // Listen to purchases changes
-    _purchasesSubscription = database.ref('purchases/$userId').onValue.listen((_) {
+    // Listen to purchase-history changes
+    _purchasesSubscription = database.ref('purchase-history/$userId').onValue.listen((_) {
       _calculateAndUpdateDashboard(user.uid);
     });
 
     // Listen to purchased products changes (for inventory)
-    _productsSubscription = database.ref('purchased-products/$userId').onValue.listen((_) {
-      _calculateAndUpdateDashboard(user.uid);
-    });
+    _productsSubscription = database
+        .ref('purchased-products/$userId')
+        .onValue
+        .listen((_) {
+          _calculateAndUpdateDashboard(user.uid);
+        });
   }
 
   Future<void> _calculateAndUpdateDashboard(String userId) async {
     try {
       final database = FirebaseDatabase.instance;
-      
+
       // Load bills data and calculate sales + profit
       int totalSales = 0;
       int totalProfit = 0;
       int totalBuying = 0;
       int salesCount = 0;
       int itemsSold = 0;
-      
+
       final billsSnapshot = await database.ref('bills/$userId').get();
 
       if (billsSnapshot.exists) {
@@ -104,12 +105,12 @@ class _DashboardState extends State<Dashboard> {
                     final quantity = productData['quantity'] as num? ?? 0;
                     final sellingPrice = productData['price'] as num? ?? 0;
                     final boughtPrice = productData['boughtPrice'] as num? ?? 0;
-                  
+
                     itemsSold += quantity.toInt();
-                    
+
                     final profitPerUnit = (sellingPrice - boughtPrice).toInt();
                     final productProfit = (profitPerUnit * quantity).toInt();
-                    
+
                     totalProfit += productProfit;
                   }
                 });
@@ -123,7 +124,7 @@ class _DashboardState extends State<Dashboard> {
       int buyingCount = 0;
       int totalItemsBoughtThisMonth = 0;
       int totalQuantityBoughtThisMonth = 0;
-      final purchasesSnapshot = await database.ref('purchases/$userId').get();
+      final purchasesSnapshot = await database.ref('purchase-history/$userId').get();
 
       if (purchasesSnapshot.exists) {
         final data = purchasesSnapshot.value as Map<dynamic, dynamic>;
@@ -131,20 +132,19 @@ class _DashboardState extends State<Dashboard> {
           if (value is Map) {
             final purchaseData = Map<String, dynamic>.from(value);
             final purchaseDate = purchaseData['date'] as String? ?? '';
-            
+
             // Check if purchase is from selected month
             if (_isFromSelectedMonth(purchaseDate)) {
-              final totalAmount = purchaseData['totalAmount'] ?? 0;
-              totalBuying += (totalAmount as num).toInt();
+              final amount = purchaseData['amount'] ?? 0;
+              totalBuying += (amount as num).toInt();
               buyingCount++;
-              
-              // Count total products in this purchase
-              final totalProducts = purchaseData['totalProducts'] as num? ?? 0;
-              totalItemsBoughtThisMonth += totalProducts.toInt();
-              
-              // Count total units/quantity in this purchase
-              final totalUnits = purchaseData['totalUnits'] as num? ?? 0;
-              totalQuantityBoughtThisMonth += totalUnits.toInt();
+
+              // Count as 1 item (each purchase-history entry is 1 product purchase)
+              totalItemsBoughtThisMonth += 1;
+
+              // Get original quantity for this purchase
+              final originalQuantity = purchaseData['originalQuantity'] as num? ?? 0;
+              totalQuantityBoughtThisMonth += originalQuantity.toInt();
             }
           }
         });
@@ -178,11 +178,11 @@ class _DashboardState extends State<Dashboard> {
           if (value is Map) {
             final purchaseData = Map<String, dynamic>.from(value);
             final purchaseDate = purchaseData['date'] as String? ?? '';
-            
+
             // Check if purchase is from previous month
             if (_isFromMonth(purchaseDate, prevMonth)) {
-              final totalAmount = purchaseData['totalAmount'] ?? 0;
-              prevMonthBuying += (totalAmount as num).toInt();
+              final amount = purchaseData['amount'] ?? 0;
+              prevMonthBuying += (amount as num).toInt();
             }
           }
         });
@@ -191,13 +191,15 @@ class _DashboardState extends State<Dashboard> {
       // Calculate percentage changes
       double salesPercentage = 0;
       double buyingPercentage = 0;
-      
+
       if (prevMonthSales > 0) {
-        salesPercentage = ((totalSales - prevMonthSales) / prevMonthSales) * 100;
+        salesPercentage =
+            ((totalSales - prevMonthSales) / prevMonthSales) * 100;
       }
-      
+
       if (prevMonthBuying > 0) {
-        buyingPercentage = ((totalBuying - prevMonthBuying) / prevMonthBuying) * 100;
+        buyingPercentage =
+            ((totalBuying - prevMonthBuying) / prevMonthBuying) * 100;
       }
 
       if (mounted) {
@@ -210,8 +212,6 @@ class _DashboardState extends State<Dashboard> {
           _totalBuyingCount = buyingCount;
           _totalItemsBought = totalItemsBoughtThisMonth;
           _totalQuantityBought = totalQuantityBoughtThisMonth;
-          _salesPercentageChange = salesPercentage;
-          _buyingPercentageChange = buyingPercentage;
           _isLoading = false;
         });
       }
@@ -238,7 +238,9 @@ class _DashboardState extends State<Dashboard> {
       } else if (filterType == 'year') {
         return year == selectedDate.year;
       } else if (filterType == 'day') {
-        return day == selectedDate.day && month == selectedDate.month && year == selectedDate.year;
+        return day == selectedDate.day &&
+            month == selectedDate.month &&
+            year == selectedDate.year;
       }
       return false;
     } catch (e) {
@@ -275,10 +277,10 @@ class _DashboardState extends State<Dashboard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Dashboard',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontSize: 20,
-                  ),
+                  _getMonthYear(),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontSize: 30),
                 ),
                 Row(
                   children: [
@@ -308,43 +310,48 @@ class _DashboardState extends State<Dashboard> {
               ],
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              _getMonthYear(),
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 34,
-              ),
-            ),
-          ),
+
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
                     child: Column(
                       children: [
-                        _buildDashboardCard(
-                          title: 'Total Sales',
-                          value: '₹ ${_formatCurrency(_totalSales)}',
-                          subtitleTop: 'Bills: $_totalSalesCount',
-                          subtitleBottom: 'Items Sold: $_totalItemsSold',
-                          percentageText: '${_salesPercentageChange >= 0 ? '+' : ''}${_salesPercentageChange.toStringAsFixed(1)}% vs. last month',
-                          isPositive: _salesPercentageChange >= 0,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDashboardCard(
+                                title: 'Total Sales',
+                                value: '₹ ${_formatCurrency(_totalSales)}',
+                                subtitleTop: 'Bills: $_totalSalesCount',
+                                subtitleBottom: 'Items Sold: $_totalItemsSold',
+                              ),
+                            ),
+                          ],
                         ),
-                        _buildDashboardCard(
-                          title: 'Total Purchase',
-                          value: '₹ ${_formatCurrency(_totalBuying)}',
-                          subtitleTop: 'Purchases: $_totalBuyingCount',
-                          subtitleMiddle: 'Products Bought: $_totalItemsBought',
-                          subtitleBottom: 'Quantity Bought: $_totalQuantityBought',
-                          percentageText: '${_buyingPercentageChange >= 0 ? '+' : ''}${_buyingPercentageChange.toStringAsFixed(1)}% vs. last month',
-                          isPositive: _buyingPercentageChange >= 0,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDashboardCard(
+                                title: 'Total Purchase',
+                                value: '₹ ${_formatCurrency(_totalBuying)}',
+                                subtitleTop: 'Purchases: $_totalBuyingCount',
+                                subtitleMiddle: 'Products Bought: $_totalItemsBought',
+                                subtitleBottom:
+                                    'Quantity Bought: $_totalQuantityBought',
+                              ),
+                            ),
+                          ],
                         ),
-                        _buildDashboardCard(
-                          title: 'Profit / Loss',
-                          value: '₹ ${_formatCurrency(_totalProfitLoss)}',
-                          percentageText: _totalProfitLoss >= 0 ? 'Profit' : 'Loss',
-                          isPositive: _totalProfitLoss >= 0,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildDashboardCard(
+                                title: 'Profit / Loss',
+                                value: '₹ ${_formatCurrency(_totalProfitLoss)}',
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 80), // Space for FAB
                       ],
@@ -439,10 +446,11 @@ class _DashboardState extends State<Dashboard> {
                       // Month Grid
                       GridView.builder(
                         shrinkWrap: true,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 1.5,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              childAspectRatio: 1.5,
+                            ),
                         itemCount: 12,
                         itemBuilder: (context, index) {
                           return InkWell(
@@ -523,11 +531,9 @@ class _DashboardState extends State<Dashboard> {
   Widget _buildDashboardCard({
     required String title,
     required String value,
-    String? percentageText,
     String? subtitleTop,
     String? subtitleMiddle,
     String? subtitleBottom,
-    required bool isPositive,
   }) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
@@ -536,10 +542,7 @@ class _DashboardState extends State<Dashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(title, style: Theme.of(context).textTheme.bodyMedium),
             const SizedBox(height: 8.0),
             Text(
               value,
@@ -553,7 +556,7 @@ class _DashboardState extends State<Dashboard> {
               Text(
                 subtitleTop,
                 style: TextStyle(
-                  color: isPositive ? Colors.green : Colors.red,
+                  color: Colors.green,
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
                 ),
@@ -564,7 +567,7 @@ class _DashboardState extends State<Dashboard> {
                 child: Text(
                   subtitleMiddle,
                   style: TextStyle(
-                    color: isPositive ? Colors.green : Colors.red,
+                    color: Colors.green,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -576,31 +579,10 @@ class _DashboardState extends State<Dashboard> {
                 child: Text(
                   subtitleBottom,
                   style: TextStyle(
-                    color: isPositive ? Colors.green : Colors.red,
+                    color: Colors.green,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
-                ),
-              ),
-            if (percentageText != null && percentageText.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  children: [
-                    Icon(
-                      isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                      color: isPositive ? Colors.green : Colors.red,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4.0),
-                    Text(
-                      percentageText,
-                      style: TextStyle(
-                        color: isPositive ? Colors.green : Colors.red,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
                 ),
               ),
           ],

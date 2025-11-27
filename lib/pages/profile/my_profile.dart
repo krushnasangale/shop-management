@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:nkt/navigation/app_navigator.dart';
 import 'package:nkt/pages/login/login.dart';
+import 'package:nkt/pages/profile/customer/customers.dart';
 import 'package:nkt/pages/profile/products/product.dart';
 import 'package:nkt/pages/profile/supplier/suppliers.dart';
 import 'package:nkt/pages/profile/units/units.dart';
@@ -154,7 +155,7 @@ class _MyProfileState extends State<MyProfile> {
                       'Customer',
                       context,
                       onTap: () {
-                        AppNavigator.push(context, const ProductName());
+                        AppNavigator.push(context, const Customers());
                       },
                     ),
 

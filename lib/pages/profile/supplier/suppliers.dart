@@ -295,12 +295,24 @@ class _SuppliersState extends State<Suppliers> {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        supplier.contact,
-                        style: TextStyle(
-                          color: secondaryTextColor,
-                          fontSize: 14,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            supplier.contact,
+                            style: TextStyle(
+                              color: secondaryTextColor,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            supplier.location,
+                            style: TextStyle(
+                              color: secondaryTextColor,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -311,37 +323,29 @@ class _SuppliersState extends State<Suppliers> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  supplier.location,
-                  style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                TextButton.icon(
+                  onPressed: () => _showSupplierHistory(supplier),
+                  icon: const Icon(Icons.history, size: 18),
+                  label: const Text('History'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.green,
+                  ),
                 ),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: () => _showSupplierHistory(supplier),
-                      icon: const Icon(Icons.history, size: 18),
-                      label: const Text('History'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.green,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => _editSupplier(supplier),
-                      icon: const Icon(Icons.edit, size: 18),
-                      label: const Text('Edit'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.blue,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => _showDeleteConfirmation(supplier),
-                      icon: const Icon(Icons.delete, size: 18),
-                      label: const Text('Delete'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.red,
-                      ),
-                    ),
-                  ],
+                TextButton.icon(
+                  onPressed: () => _editSupplier(supplier),
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Edit'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.blue,
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () => _showDeleteConfirmation(supplier),
+                  icon: const Icon(Icons.delete, size: 18),
+                  label: const Text('Delete'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
                 ),
               ],
             ),
