@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:nkt/pages/helpers/utils.dart';
+import 'package:nkt/pages/billing/view_existing_bill_details.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -25,6 +26,21 @@ class _DashboardState extends State<Dashboard> {
   StreamSubscription<DatabaseEvent>? _billsSubscription;
   StreamSubscription<DatabaseEvent>? _purchasesSubscription;
   StreamSubscription<DatabaseEvent>? _productsSubscription;
+  
+  // Top Selling Products
+  List<Map<String, dynamic>> _topSellingProducts = [];
+  
+  // Recent Bills
+  List<Map<String, dynamic>> _recentBills = [];
+  
+  // Pending Payments
+  List<Map<String, dynamic>> _pendingPayments = [];
+  int _totalPendingAmount = 0;
+  
+  // Expansion states
+  bool _expandTopProducts = false;
+  bool _expandRecentBills = false;
+  bool _expandPendingPayments = false;
 
   @override
   void initState() {
@@ -53,6 +69,9 @@ class _DashboardState extends State<Dashboard> {
     // Listen to bills changes
     _billsSubscription = database.ref('bills/$userId').onValue.listen((_) {
       _calculateAndUpdateDashboard(user.uid);
+      _loadTopSellingProducts(userId);
+      _loadRecentBills(userId);
+      _loadPendingPayments(userId);
     });
 
     // Listen to purchase-history changes
@@ -67,6 +86,176 @@ class _DashboardState extends State<Dashboard> {
         .listen((_) {
           _calculateAndUpdateDashboard(user.uid);
         });
+  }
+
+  Future<void> _loadTopSellingProducts(String userId) async {
+    try {
+      final database = FirebaseDatabase.instance;
+      final billsSnapshot = await database.ref('bills/$userId').get();
+      
+      final productSales = <String, Map<String, dynamic>>{};
+      
+      if (billsSnapshot.exists) {
+        final data = billsSnapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, value) {
+          if (value is Map) {
+            final billData = Map<String, dynamic>.from(value);
+            final products = billData['products'] as Map<dynamic, dynamic>?;
+            
+            if (products != null) {
+              products.forEach((pKey, pValue) {
+                if (pValue is Map) {
+                  final productData = Map<String, dynamic>.from(pValue);
+                  final productName = productData['productName'] as String? ?? 'Unknown';
+                  final quantity = productData['quantity'] as num? ?? 0;
+                  final price = productData['price'] as num? ?? 0;
+                  
+                  if (productSales.containsKey(productName)) {
+                    productSales[productName]!['quantity'] += quantity.toInt();
+                    productSales[productName]!['revenue'] += (quantity * price).toInt();
+                  } else {
+                    productSales[productName] = {
+                      'quantity': quantity.toInt(),
+                      'revenue': (quantity * price).toInt(),
+                      'name': productName,
+                    };
+                  }
+                }
+              });
+            }
+          }
+        });
+      }
+      
+      // Convert to list and sort by revenue
+      final topProducts = productSales.values.toList()
+        ..sort((a, b) => (b['revenue'] as int).compareTo(a['revenue'] as int));
+      
+      if (mounted) {
+        setState(() {
+          _topSellingProducts = topProducts.take(5).toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading top selling products: $e');
+    }
+  }
+  
+  Future<void> _loadRecentBills(String userId) async {
+    try {
+      final database = FirebaseDatabase.instance;
+      final billsSnapshot = await database.ref('bills/$userId').get();
+      
+      final bills = <Map<String, dynamic>>[];
+      
+      if (billsSnapshot.exists) {
+        final data = billsSnapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, value) {
+          if (value is Map) {
+            final billData = Map<String, dynamic>.from(value);
+            bills.add({
+              'id': key,
+              'customerName': billData['customerName'] ?? 'Unknown',
+              'customerMobile': billData['customerMobile'] ?? 'N/A',
+              'customerVehicle': billData['customerVehicle'],
+              'billDate': billData['billDate'] ?? 'N/A',
+              'totalAmount': billData['totalAmount'] ?? 0,
+              'totalAmountPaid': billData['totalAmountPaid'] ?? false,
+              'amountPaid': billData['amountPaid'] ?? 0,
+              'amountRemaining': billData['amountRemaining'] ?? billData['totalAmount'] ?? 0,
+              'products': billData['products'],
+              'paymentMethod': billData['paymentMethod'] ?? 'cash',
+            });
+          }
+        });
+      }
+      
+      // Sort by date (most recent first) - assuming billDate format is "dd/MM/yyyy"
+      bills.sort((a, b) {
+        try {
+          final dateA = _parseDate(a['billDate'] as String);
+          final dateB = _parseDate(b['billDate'] as String);
+          return dateB.compareTo(dateA);
+        } catch (e) {
+          return 0;
+        }
+      });
+      
+      if (mounted) {
+        setState(() {
+          _recentBills = bills.take(10).toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading recent bills: $e');
+    }
+  }
+  
+  Future<void> _loadPendingPayments(String userId) async {
+    try {
+      final database = FirebaseDatabase.instance;
+      final billsSnapshot = await database.ref('bills/$userId').get();
+      
+      final pendingBills = <Map<String, dynamic>>[];
+      int totalPending = 0;
+      
+      if (billsSnapshot.exists) {
+        final data = billsSnapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, value) {
+          if (value is Map) {
+            final billData = Map<String, dynamic>.from(value);
+            final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? false;
+            
+            // If not fully paid, it's a pending payment
+            if (!totalAmountPaid) {
+              final amountRemaining = billData['amountRemaining'] as num? ?? 0;
+              pendingBills.add({
+                'id': key,
+                'customerName': billData['customerName'] ?? 'Unknown',
+                'customerMobile': billData['customerMobile'] ?? 'N/A',
+                'customerVehicle': billData['customerVehicle'],
+                'billDate': billData['billDate'] ?? 'N/A',
+                'amountRemaining': amountRemaining.toInt(),
+                'totalAmount': billData['totalAmount'] ?? 0,
+                'totalAmountPaid': billData['totalAmountPaid'] ?? false,
+                'amountPaid': billData['amountPaid'] ?? 0,
+                'products': billData['products'],
+                'paymentMethod': billData['paymentMethod'] ?? 'cash',
+              });
+              totalPending += amountRemaining.toInt();
+            }
+          }
+        });
+      }
+      
+      // Sort by amount remaining (highest first)
+      pendingBills.sort((a, b) => (b['amountRemaining'] as int).compareTo(a['amountRemaining'] as int));
+      
+      if (mounted) {
+        setState(() {
+          _pendingPayments = pendingBills.take(5).toList();
+          _totalPendingAmount = totalPending;
+        });
+      }
+    } catch (e) {
+      print('Error loading pending payments: $e');
+    }
+  }
+  
+  DateTime _parseDate(String dateString) {
+    try {
+      // Expected format: "dd/MM/yyyy"
+      final parts = dateString.split('/');
+      if (parts.length == 3) {
+        final day = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final year = int.parse(parts[2]);
+        return DateTime(year, month, day);
+      }
+    } catch (e) {
+      print('Error parsing date: $e');
+    }
+    return DateTime.now();
   }
 
   Future<void> _calculateAndUpdateDashboard(String userId) async {
@@ -229,6 +418,383 @@ class _DashboardState extends State<Dashboard> {
       print('Error parsing date "$billDate": $e');
       return false;
     }
+  }
+
+  Widget _buildTopSellingProductsCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.purple.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.purple.withOpacity(0.3) : Colors.purple.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expandTopProducts = !_expandTopProducts),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Top Selling Products',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.grey[100] : Colors.grey[800],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.purple.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${_topSellingProducts.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.purple[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _expandTopProducts ? Icons.expand_less : Icons.expand_more,
+                        color: Colors.purple[600],
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expandTopProducts) ...[            
+            Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _topSellingProducts.isEmpty
+                ? Center(
+                    child: Text(
+                      'No sales data yet',
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _topSellingProducts.length,
+                    separatorBuilder: (_, __) => Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 12),
+                    itemBuilder: (context, index) {
+                      final product = _topSellingProducts[index];
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${index + 1}. ${product['name']}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.grey[100] : Colors.grey[800],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Qty: ${product['quantity']} • Revenue: ₹${product['revenue']}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildRecentBillsCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.blue.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.blue.withOpacity(0.3) : Colors.blue.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expandRecentBills = !_expandRecentBills),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Recent Bills',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.grey[100] : Colors.grey[800],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${_recentBills.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _expandRecentBills ? Icons.expand_less : Icons.expand_more,
+                        color: Colors.blue[600],
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expandRecentBills) ...[            
+            Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _recentBills.isEmpty
+                ? Center(
+                    child: Text(
+                      'No bills yet',
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _recentBills.length,
+                    separatorBuilder: (_, __) => Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 12),
+                    itemBuilder: (context, index) {
+                      final bill = _recentBills[index];
+                      final isPaid = bill['totalAmountPaid'] as bool;
+                      return InkWell(
+                        onTap: () => _navigateToBillDetails(bill),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          bill['customerName'],
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark ? Colors.grey[100] : Colors.grey[800],
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isPaid ? Colors.green.withOpacity(0.15) : Colors.orange.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          isPaid ? 'Paid' : 'Pending',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                            color: isPaid ? Colors.green[600] : Colors.orange[600],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${bill['billDate']} • ₹${bill['totalAmount']}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildPendingPaymentsCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.orange.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? Colors.orange.withOpacity(0.3) : Colors.orange.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expandPendingPayments = !_expandPendingPayments),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Pending Payments',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.grey[100] : Colors.grey[800],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '₹${_formatCurrency(_totalPendingAmount)}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.orange[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _expandPendingPayments ? Icons.expand_less : Icons.expand_more,
+                        color: Colors.orange[600],
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expandPendingPayments) ...[            
+            Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _pendingPayments.isEmpty
+                ? Center(
+                    child: Text(
+                      'No pending payments',
+                      style: TextStyle(color: Colors.grey[500]),
+                    ),
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _pendingPayments.length,
+                    separatorBuilder: (_, __) => Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 12),
+                    itemBuilder: (context, index) {
+                      final payment = _pendingPayments[index];
+                      return InkWell(
+                        onTap: () => _navigateToBillDetails(payment),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    payment['customerName'],
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.grey[100] : Colors.grey[800],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Bill: ₹${payment['totalAmount']} • Remaining: ₹${payment['amountRemaining']}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   @override
@@ -404,6 +970,18 @@ class _DashboardState extends State<Dashboard> {
                           
                           // Profit/Loss Card
                           _buildProfitLossCard(),
+                          const SizedBox(height: 20),
+                          
+                          // Top Selling Products
+                          _buildTopSellingProductsCard(),
+                          const SizedBox(height: 16),
+                          
+                          // Recent Bills
+                          _buildRecentBillsCard(),
+                          const SizedBox(height: 16),
+                          
+                          // Pending Payments
+                          _buildPendingPaymentsCard(),
                           const SizedBox(height: 80),
                         ],
                       ),
@@ -709,6 +1287,44 @@ class _DashboardState extends State<Dashboard> {
       return '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}';
     } else {
       return '${getMonthName(selectedDate.month)} ${selectedDate.year}';
+    }
+  }
+  
+  void _navigateToBillDetails(Map<String, dynamic> bill) {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      
+      // Convert bill data to match ViewBillDetailsScreen parameters
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => ViewBillDetailsScreen(
+            billId: bill['id'] as String,
+            billDate: bill['billDate'] as String,
+            customerName: bill['customerName'] as String,
+            customerMobile: (bill['customerMobile'] ?? 'N/A') as String,
+            customerVehicle: bill['customerVehicle'] as String?,
+            totalAmount: (bill['totalAmount'] ?? 0) as int,
+            totalAmountPaid: (bill['totalAmountPaid'] as bool?) ?? false,
+            amountPaid: (bill['amountPaid'] ?? 0) as int,
+            amountRemaining: (bill['amountRemaining'] ?? bill['totalAmount'] ?? 0) as int,
+            products: bill['products'] != null 
+              ? (bill['products'] as Map).entries.map((e) => {
+                  'productName': (e.value['productName'] ?? 'Unknown') as String,
+                  'quantity': (e.value['quantity'] ?? 0) as int,
+                  'price': (e.value['price'] ?? 0) as int,
+                  'boughtPrice': (e.value['boughtPrice'] ?? 0) as int,
+                }).toList()
+              : null,
+            paymentMethod: (bill['paymentMethod'] ?? 'cash') as String,
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Error navigating to bill details: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error opening bill details: $e')),
+      );
     }
   }
 }

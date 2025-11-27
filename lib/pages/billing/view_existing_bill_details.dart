@@ -13,16 +13,19 @@ import 'dart:convert' as convert;
 class PaymentRecord {
   final int amount;
   final String date;
+  final String paymentMethod;
 
   PaymentRecord({
     required this.amount,
     required this.date,
+    required this.paymentMethod,
   });
 
   factory PaymentRecord.fromMap(Map<dynamic, dynamic> map) {
     return PaymentRecord(
       amount: map['amount'] ?? 0,
       date: map['date'] ?? '',
+      paymentMethod: map['paymentMethod'] ?? 'cash',
     );
   }
 
@@ -30,6 +33,7 @@ class PaymentRecord {
     return {
       'amount': amount,
       'date': date,
+      'paymentMethod': paymentMethod,
     };
   }
 }
@@ -330,11 +334,27 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               if (customerVehicle != null && customerVehicle!.isNotEmpty) pw.Text('Vehicle: $customerVehicle', style: const pw.TextStyle(fontSize: 10)),
               pw.SizedBox(height: 15),
 
-              // Payment Method Section
-              pw.Text('PAYMENT METHOD', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 5),
-              pw.Text('${paymentMethod == 'cash' ? 'Cash' : 'Online'}', style: const pw.TextStyle(fontSize: 10)),
-              pw.SizedBox(height: 15),
+              // Payment History Section - Show as table
+              if (paymentRecords.isNotEmpty) ...[
+                pw.Text('PAYMENT HISTORY', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 8),
+                _buildPaymentHistoryTable(),
+                pw.SizedBox(height: 15),
+              ],
+
+              // Payment Status Section - Only show if not fully paid
+              if (amountRemaining != '₹ 0') ...[
+                pw.Text('PAYMENT STATUS', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 5),
+                pw.Text(paymentStatus, style: const pw.TextStyle(fontSize: 10)),
+                pw.SizedBox(height: 15),
+
+                // Pending Payment Section
+                pw.Text('PENDING PAYMENT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 5),
+                pw.Text('Rs. ${amountRemaining.replaceAll('₹ ', '')}', style: const pw.TextStyle(fontSize: 10)),
+                pw.SizedBox(height: 15),
+              ],
 
               // Products Table
               _buildProductTable(),
@@ -497,6 +517,94 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
+  pw.Widget _buildPaymentHistoryTable() {
+    // Table headers
+    final headers = ['S.No.', 'Amount', 'Method', 'Date'];
+    
+    // Table rows - payment records
+    final rows = <List<String>>[
+      ...paymentRecords.asMap().entries.map(
+        (entry) {
+          final index = entry.key + 1;
+          final payment = entry.value;
+          return [
+            '$index',
+            'Rs. ${payment.amount}',
+            payment.paymentMethod == 'cash' ? 'Cash' : 'Online',
+            payment.date,
+          ];
+        },
+      ),
+    ];
+
+    return pw.Table(
+      border: pw.TableBorder.all(width: 1),
+      columnWidths: {
+        0: const pw.FixedColumnWidth(40),
+        1: const pw.FlexColumnWidth(1.5),
+        2: const pw.FlexColumnWidth(1.5),
+        3: const pw.FlexColumnWidth(2),
+      },
+      children: [
+        // Header row
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColors.grey300),
+          children: headers.map((header) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text(
+                header,
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                textAlign: pw.TextAlign.center,
+              ),
+            );
+          }).toList(),
+        ),
+        // Data rows
+        ...rows.map((row) {
+          return pw.TableRow(
+            children: row.asMap().entries.map((entry) {
+              return pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text(
+                  entry.value,
+                  style: const pw.TextStyle(fontSize: 9),
+                  textAlign: entry.key == 0 ? pw.TextAlign.center : pw.TextAlign.left,
+                ),
+              );
+            }).toList(),
+          );
+        }).toList(),
+        // Total paid row
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColors.grey300),
+          children: [
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('Total Paid:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text(
+                'Rs. ${amountPaid.replaceAll('₹ ', '')}',
+                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                textAlign: pw.TextAlign.right,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   String _convertNumberToWords() {
     try {
       final totalAmountInt = int.parse(totalAmount.replaceAll('₹ ', '').replaceAll(',', ''));
@@ -529,7 +637,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return number.toString();
   }
 
-  Future<void> _saveAmountPaid(String paymentAmountStr, [String notes = 'Payment received']) async {
+  Future<void> _saveAmountPaid(String paymentAmountStr, String selectedPaymentMethod) async {
     try {
       final paymentAmount = int.parse(paymentAmountStr);
       
@@ -552,8 +660,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         return;
       }
 
-      // Add new payment record
-      await _addPaymentRecord(paymentAmount, notes);
+      // Add new payment record with selected method
+      await _addPaymentRecord(paymentAmount, selectedPaymentMethod);
 
       // Update bill totals
       final newRemaining = totalAmountInt - newTotalAmountPaid;
@@ -569,6 +677,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             'amountPaid': newTotalAmountPaid,
             'amountRemaining': newRemaining,
             'totalAmountPaid': isFullyPaid,
+            'paymentMethod': selectedPaymentMethod,
           });
 
       // Update local state
@@ -577,6 +686,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         amountRemaining = '₹ $newRemaining';
         isTotalAmountPaid = isFullyPaid;
         paymentStatus = isFullyPaid ? 'Paid' : 'Partially Paid';
+        paymentMethod = selectedPaymentMethod;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -589,7 +699,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     }
   }
 
-  Future<void> _addPaymentRecord(int amount, [String notes = 'Payment received']) async {
+  Future<void> _addPaymentRecord(int amount, String selectedPaymentMethod) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not authenticated');
@@ -597,6 +707,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       final newPayment = PaymentRecord(
         amount: amount,
         date: DateFormat('dd MMM yyyy').format(DateTime.now()),
+        paymentMethod: selectedPaymentMethod,
       );
 
       final database = FirebaseDatabase.instance;
@@ -718,115 +829,155 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
   void _showAddPaymentDialog() {
     final TextEditingController amountController = TextEditingController();
-    final TextEditingController notesController = TextEditingController();
     final remainingAmount = int.parse(amountRemaining.replaceAll('₹ ', ''));
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    String selectedPaymentMethod = 'cash';
 
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('Record Payment', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Amount Left',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Record Payment', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      Text(
-                        '₹ $remainingAmount',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Amount Left',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Theme.of(context).textTheme.bodyMedium?.color,
+                            ),
+                          ),
+                          Text(
+                            '₹ $remainingAmount',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Payment Amount',
+                        hintText: 'e.g., 2000',
+                        prefixText: '₹ ',
+                        helperText: 'Max: ₹ $remainingAmount',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Payment Method',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: primaryTextColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: const Text('Cash'),
+                                value: 'cash',
+                                groupValue: selectedPaymentMethod,
+                                contentPadding: EdgeInsets.zero,
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedPaymentMethod = value ?? 'cash';
+                                  });
+                                },
+                              ),
+                            ),
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: const Text('Online'),
+                                value: 'online',
+                                groupValue: selectedPaymentMethod,
+                                contentPadding: EdgeInsets.zero,
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedPaymentMethod = value ?? 'cash';
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: amountController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Payment Amount',
-                    hintText: 'e.g., 2000',
-                    prefixText: '₹ ',
-                    helperText: 'Max: ₹ $remainingAmount',
-                  ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: notesController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'Notes (Optional)',
-                    hintText: 'Cheque #, reference, etc.',
-                  ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Validate payment amount
+                    final paymentAmountStr = amountController.text.trim();
+                    if (paymentAmountStr.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter payment amount')),
+                      );
+                      return;
+                    }
+
+                    final paymentAmount = int.tryParse(paymentAmountStr);
+                    if (paymentAmount == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter a valid number')),
+                      );
+                      return;
+                    }
+
+                    if (paymentAmount <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Payment amount must be greater than 0')),
+                      );
+                      return;
+                    }
+
+                    if (paymentAmount > remainingAmount) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Payment cannot exceed ₹ $remainingAmount'),
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.of(context).pop();
+                    _saveAmountPaid(paymentAmountStr, selectedPaymentMethod);
+                  },
+                  child: const Text('Record'),
                 ),
               ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Validate payment amount
-                final paymentAmountStr = amountController.text.trim();
-                if (paymentAmountStr.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter payment amount')),
-                  );
-                  return;
-                }
-
-                final paymentAmount = int.tryParse(paymentAmountStr);
-                if (paymentAmount == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter a valid number')),
-                  );
-                  return;
-                }
-
-                if (paymentAmount <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Payment amount must be greater than 0')),
-                  );
-                  return;
-                }
-
-                if (paymentAmount > remainingAmount) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Payment cannot exceed ₹ $remainingAmount'),
-                    ),
-                  );
-                  return;
-                }
-
-                Navigator.of(context).pop();
-                _saveAmountPaid(paymentAmountStr, notesController.text);
-              },
-              child: const Text('Record'),
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -842,28 +993,32 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Payment History',
-                  style: TextStyle(
-                    color: primaryTextColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                Expanded(
+                  child: Text(
+                    'Payment History',
+                    style: TextStyle(
+                      color: primaryTextColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
                 if (amountRemaining != '₹ 0')
-                  ElevatedButton.icon(
-                    onPressed: _showAddPaymentDialog,
-                    icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                    label: const Text('Add Payment', style: TextStyle(color: Colors.white)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                  Flexible(
+                    child: ElevatedButton.icon(
+                      onPressed: _showAddPaymentDialog,
+                      icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                      label: const Text('Add Payment', style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                      ),
                     ),
                   ),
               ],
@@ -895,14 +1050,40 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '₹ ${payment.amount}',
-                                style: TextStyle(
-                                  color: primaryTextColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 16,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    '₹ ${payment.amount}',
+                                    style: TextStyle(
+                                      color: primaryTextColor,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  if (payment.amount > 0)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: payment.paymentMethod == 'cash'
+                                            ? Colors.blue.withOpacity(0.15)
+                                            : Colors.green.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        payment.paymentMethod == 'cash' ? 'Cash' : 'Online',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: payment.paymentMethod == 'cash'
+                                              ? Colors.blue[600]
+                                              : Colors.green[600],
+                                        ),
+                                      ),
+                                    ),
+                                ],
                               ),
+                              const SizedBox(height: 4),
                               Text(
                                 payment.date,
                                 style: TextStyle(
@@ -952,56 +1133,58 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     secondaryTextColor,
                   ),
                 ),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: paymentMethod == 'cash'
-                          ? Colors.blue.withOpacity(0.1)
-                          : Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
+                // Only show payment method if amount paid is greater than 0
+                if (int.parse(amountPaid.replaceAll('₹ ', '')) > 0)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
                         color: paymentMethod == 'cash'
-                            ? Colors.blue
-                            : Colors.green,
-                        width: 1.5,
+                            ? Colors.blue.withOpacity(0.1)
+                            : Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: paymentMethod == 'cash'
+                              ? Colors.blue
+                              : Colors.green,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Payment Method',
+                            style: TextStyle(
+                              color: secondaryTextColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
+                                color: paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                paymentMethod == 'cash' ? 'Cash' : 'Online',
+                                style: TextStyle(
+                                  color: paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Payment Method',
-                          style: TextStyle(
-                            color: secondaryTextColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
-                              color: paymentMethod == 'cash' ? Colors.blue : Colors.green,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              paymentMethod == 'cash' ? 'Cash' : 'Online',
-                              style: TextStyle(
-                                color: paymentMethod == 'cash' ? Colors.blue : Colors.green,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
                   ),
-                ),
               ],
             ),
             Divider(color: secondaryTextColor?.withOpacity(0.3), height: 20),

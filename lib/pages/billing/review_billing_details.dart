@@ -67,7 +67,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 primaryTextColor,
                 secondaryTextColor,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Products Card
               _buildProductsCard(
@@ -76,7 +76,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 primaryTextColor,
                 secondaryTextColor,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Financial Summary Card
               _buildSummaryCard(
@@ -86,11 +86,11 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 secondaryTextColor,
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
               // Bottom Buttons
               _buildBottomButtons(context, isDarkMode),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
             ],
           ),
         ),
@@ -107,29 +107,79 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Bill Date
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.calendar_month, color: primaryTextColor),
-              title: Text(
-                'Bill Date',
-                style: TextStyle(color: secondaryTextColor, fontSize: 14),
-              ),
-              subtitle: Text(
-                widget.billDate,
-                style: TextStyle(
-                  color: primaryTextColor,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
+            // Bill Date and Payment Method in one row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: _buildDetailRow(
+                    context,
+                    'Bill Date',
+                    widget.billDate,
+                    Icons.calendar_month,
+                    primaryTextColor,
+                    secondaryTextColor,
+                  ),
                 ),
-              ),
+                // Only show payment method if amount paid is greater than 0
+                if ((widget.amountPaid ?? 0) > 0)
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: widget.paymentMethod == 'cash'
+                            ? Colors.blue.withOpacity(0.1)
+                            : Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: widget.paymentMethod == 'cash'
+                              ? Colors.blue
+                              : Colors.green,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Payment Method',
+                            style: TextStyle(
+                              color: secondaryTextColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                widget.paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
+                                color: widget.paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                widget.paymentMethod == 'cash' ? 'Cash' : 'Online',
+                                style: TextStyle(
+                                  color: widget.paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3)),
-            const SizedBox(height: 8),
+            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 20),
 
             // Customer Name
             Text(
@@ -144,7 +194,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 fontSize: 18,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // Customer Mobile Number
             Text(
@@ -163,7 +213,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
                     'Vehicle Number',
                     style: TextStyle(color: secondaryTextColor, fontSize: 14),
@@ -179,52 +229,43 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 ],
               ),
             
-            // Payment Method
-            const SizedBox(height: 16),
-            Divider(color: secondaryTextColor?.withOpacity(0.3)),
-            const SizedBox(height: 8),
-            Text(
-              'Payment Method',
-              style: TextStyle(color: secondaryTextColor, fontSize: 14),
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: widget.paymentMethod == 'cash'
-                    ? Colors.blue.withOpacity(0.1)
-                    : Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: widget.paymentMethod == 'cash'
-                      ? Colors.blue
-                      : Colors.green,
-                  width: 1.5,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    widget.paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
-                    color: widget.paymentMethod == 'cash' ? Colors.blue : Colors.green,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.paymentMethod == 'cash' ? 'Cash' : 'Online',
-                    style: TextStyle(
-                      color: widget.paymentMethod == 'cash' ? Colors.blue : Colors.green,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDetailRow(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    Color? primaryTextColor,
+    Color? secondaryTextColor,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Colors.blue, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: TextStyle(color: secondaryTextColor, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: TextStyle(
+            color: primaryTextColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
+      ],
     );
   }
 
@@ -237,7 +278,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -339,7 +380,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -412,6 +453,37 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                         ),
                       ),
                     ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Divider(color: secondaryTextColor?.withOpacity(0.3)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Payment Status',
+                    style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: ((widget.amountRemaining ?? 0) == 0)
+                          ? Colors.green.withOpacity(0.2)
+                          : Colors.orange.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      ((widget.amountRemaining ?? 0) == 0) ? 'Paid' : 'Unpaid',
+                      style: TextStyle(
+                        color: ((widget.amountRemaining ?? 0) == 0)
+                            ? Colors.green
+                            : Colors.orange,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ],
               ),

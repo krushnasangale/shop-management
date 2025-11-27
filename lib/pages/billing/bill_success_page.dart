@@ -435,20 +435,37 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 ),
               pw.SizedBox(height: 15),
 
-              // Payment Method Section
-              pw.Text(
-                'PAYMENT METHOD',
-                style: pw.TextStyle(
-                  fontSize: 11,
-                  fontWeight: pw.FontWeight.bold,
+              // Payment Status Section - Only show if not fully paid
+              if (amountRemaining > 0) ...[
+                pw.Text(
+                  'PAYMENT STATUS',
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
                 ),
-              ),
-              pw.SizedBox(height: 5),
-              pw.Text(
-                '${paymentMethod == 'cash' ? 'Cash' : 'Online'}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              pw.SizedBox(height: 15),
+                pw.SizedBox(height: 5),
+                pw.Text(
+                  amountPaid > 0 ? 'Partially Paid' : 'Unpaid',
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
+                pw.SizedBox(height: 15),
+
+                // Pending Payment Section
+                pw.Text(
+                  'PENDING PAYMENT',
+                  style: pw.TextStyle(
+                    fontSize: 11,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 5),
+                pw.Text(
+                  'Rs. $amountRemaining',
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
+                pw.SizedBox(height: 15),
+              ],
 
               // Products Table
               _buildProductTable(),
