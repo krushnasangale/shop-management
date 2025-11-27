@@ -12,6 +12,7 @@ import 'package:nkt/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -33,7 +34,6 @@ class MyApp extends StatelessWidget {
     return Consumer<ThemeProvider>(
       builder: (context, themeProvider, _) {
         return MaterialApp(
-          title: 'Nath Krupa',
           debugShowCheckedModeBanner: false,
           theme: themeProvider.currentTheme,
           home: StreamBuilder<User?>(
@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
                 );
               }
               if (snapshot.hasData) {
-                return const MyHomePage(title: '# NK Nagarwala');
+                return const MyHomePage(title: '');
               }
               return const LoginScreen();
             },
@@ -66,6 +66,31 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
+  String _shopName = '----';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadShopName();
+  }
+
+  Future<void> _loadShopName() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final database = FirebaseDatabase.instance;
+        final snapshot = await database.ref('shop-profile/${user.uid}').get();
+        if (snapshot.exists) {
+          final data = snapshot.value as Map<dynamic, dynamic>;
+          setState(() {
+            _shopName = data['shopName'] ?? '----';
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading shop name: $e');
+    }
+  }
 
   // List of screens for the IndexedStack
   final List<Widget> _screens = const [
@@ -86,7 +111,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return SafeArea(
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.title),
+          title: Text(_shopName),
           actions: [
             Container(
               decoration: BoxDecoration(
@@ -97,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
               width: 40,
               child: IconButton(
                 padding: EdgeInsets.zero,
-                icon: const Icon(Icons.person_2_rounded),
+                icon: const Icon(Icons.account_circle, size: 35,),
                 onPressed: () async {
                   AppNavigator.push(context, const MyProfile());
                 },
@@ -143,8 +168,8 @@ class _MyHomePageState extends State<MyHomePage> {
               label: 'Products',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.trending_up),
-              label: 'Sales',
+              icon: Icon(Icons.receipt_long),
+              label: 'Bills',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.shopping_bag),

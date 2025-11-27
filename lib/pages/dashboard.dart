@@ -21,7 +21,6 @@ class _DashboardState extends State<Dashboard> {
   int _totalSalesCount = 0; // Number of bills/sales
   int _totalItemsSold = 0; // Total items sold
   int _totalBuyingCount = 0; // Number of purchase transactions
-  int _totalItemsBought = 0; // Total items bought in selected month
   int _totalQuantityBought = 0;
   StreamSubscription<DatabaseEvent>? _billsSubscription;
   StreamSubscription<DatabaseEvent>? _purchasesSubscription;
@@ -122,11 +121,10 @@ class _DashboardState extends State<Dashboard> {
 
       // Load bought products data for the selected month
       int buyingCount = 0;
-      int totalItemsBoughtThisMonth = 0;
       int totalQuantityBoughtThisMonth = 0;
       
-      // Try to get data from purchase-history first
-      final purchasesSnapshot = await database.ref('purchase-history/$userId').get();
+      // Try to get data from purchases (purchase entry headers)
+      final purchasesSnapshot = await database.ref('purchases/$userId').get();
 
       if (purchasesSnapshot.exists) {
         final data = purchasesSnapshot.value as Map<dynamic, dynamic>;
@@ -137,21 +135,18 @@ class _DashboardState extends State<Dashboard> {
 
             // Check if purchase is from selected month
             if (_isFromSelectedMonth(purchaseDate)) {
-              final amount = purchaseData['amount'] ?? 0;
+              final amount = purchaseData['totalAmount'] ?? 0;
               totalBuying += (amount as num).toInt();
               buyingCount++;
 
-              // Count as 1 item (each purchase-history entry is 1 product purchase)
-              totalItemsBoughtThisMonth += 1;
-
-              // Get original quantity for this purchase
-              final originalQuantity = purchaseData['originalQuantity'] as num? ?? 0;
-              totalQuantityBoughtThisMonth += originalQuantity.toInt();
+              // Get total units for this purchase
+              final totalUnits = purchaseData['totalUnits'] as num? ?? 0;
+              totalQuantityBoughtThisMonth += totalUnits.toInt();
             }
           }
         });
       } else {
-        // Fallback: Calculate from purchased-products if purchase-history doesn't exist
+        // Fallback: Calculate from purchased-products if purchases doesn't exist
         final productsSnapshot = await database.ref('purchased-products/$userId').get();
         if (productsSnapshot.exists) {
           final data = productsSnapshot.value as Map<dynamic, dynamic>;
@@ -167,12 +162,26 @@ class _DashboardState extends State<Dashboard> {
                 final amount = (quantity * buyingPrice).toInt();
                 
                 totalBuying += amount;
-                buyingCount++;
-                totalItemsBoughtThisMonth += 1;
                 totalQuantityBoughtThisMonth += quantity.toInt();
               }
             }
           });
+          
+          // Count distinct purchases from the products
+          final purchasesFromProducts = <String>{};
+          data.forEach((key, value) {
+            if (value is Map) {
+              final productData = Map<String, dynamic>.from(value);
+              final productDate = productData['date'] as String? ?? '';
+              if (_isFromSelectedMonth(productDate)) {
+                final purchaseId = productData['purchaseId'] as String?;
+                if (purchaseId != null) {
+                  purchasesFromProducts.add(purchaseId);
+                }
+              }
+            }
+          });
+          buyingCount = purchasesFromProducts.length;
         }
       }
 
@@ -184,7 +193,6 @@ class _DashboardState extends State<Dashboard> {
           _totalSalesCount = salesCount;
           _totalItemsSold = itemsSold;
           _totalBuyingCount = buyingCount;
-          _totalItemsBought = totalItemsBoughtThisMonth;
           _totalQuantityBought = totalQuantityBoughtThisMonth;
           _isLoading = false;
         });
@@ -225,97 +233,315 @@ class _DashboardState extends State<Dashboard> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    
     return Scaffold(
-      body: Column(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Modern Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Dashboard',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                              color: primaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.blue.withOpacity(0.2) : Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isDark ? Colors.blue.withOpacity(0.6) : Colors.blue.withOpacity(0.3),
+                                width: isDark ? 1.2 : 1,
+                              ),
+                            ),
+                            child: Text(
+                              _getMonthYear(),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.blue[300] : Colors.blue[700],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.grey[750] : Colors.grey[100],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isDark ? Colors.grey[600]! : Colors.transparent,
+                                width: isDark ? 1 : 0,
+                              ),
+                            ),
+                            child: PopupMenuButton<String>(
+                              offset: const Offset(0, 40),
+                              itemBuilder: (BuildContext context) => [
+                                PopupMenuItem(
+                                  value: 'day',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_today, size: 18),
+                                      const SizedBox(width: 8),
+                                      const Text('Day'),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'month',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_month, size: 18),
+                                      const SizedBox(width: 8),
+                                      const Text('Month'),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'year',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.calendar_month, size: 18),
+                                      const SizedBox(width: 8),
+                                      const Text('Year'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              onSelected: (String newValue) {
+                                setState(() {
+                                  filterType = newValue;
+                                  _isLoading = true;
+                                });
+                                _loadSalesReport();
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.filter_list, color: Colors.blue[600], size: 20),
+                                    const SizedBox(width: 4),
+                                    Icon(Icons.arrow_drop_down, color: Colors.blue[600], size: 18),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Material(
+                            color: Colors.transparent,
+                            child: IconButton(
+                              icon: Icon(Icons.calendar_today, color: Colors.blue[600], size: 22),
+                              onPressed: () => _showMonthPicker(context),
+                              style: IconButton.styleFrom(
+                                backgroundColor: isDark ? Colors.grey[750] : Colors.grey[100],
+                                side: isDark ? BorderSide(color: Colors.grey[600]!, width: 1) : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Content
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                      child: Column(
+                        children: [
+                          // Two Column Layout
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildModernCard(
+                                  title: 'Total Sales',
+                                  value: '₹${_formatCurrency(_totalSales)}',
+                                  subtitle: 'Bills: $_totalSalesCount • Items: $_totalItemsSold',
+                                  backgroundColor: Colors.blue.withOpacity(0.1),
+                                  textColor: Colors.blue[700]!,
+                                  icon: Icons.trending_up,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: _buildModernCard(
+                                  title: 'Total Purchase',
+                                  value: '₹${_formatCurrency(_totalBuying)}',
+                                  subtitle: 'Orders: $_totalBuyingCount • Qty: $_totalQuantityBought',
+                                  backgroundColor: Colors.orange.withOpacity(0.1),
+                                  textColor: Colors.orange[700]!,
+                                  icon: Icons.shopping_bag,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          // Profit/Loss Card
+                          _buildProfitLossCard(),
+                          const SizedBox(height: 80),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color backgroundColor,
+    required Color textColor,
+    required IconData icon,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : backgroundColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? textColor.withOpacity(0.4) : textColor.withOpacity(0.2),
+          width: isDark ? 1.5 : 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(10),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _getMonthYear(),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontSize: 30),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.grey[300] : Colors.grey[700],
+                    letterSpacing: 0.5,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Row(
-                  children: [
-                    DropdownButton<String>(
-                      value: filterType,
-                      items: const [
-                        DropdownMenuItem(value: 'day', child: Text('Day')),
-                        DropdownMenuItem(value: 'month', child: Text('Month')),
-                        DropdownMenuItem(value: 'year', child: Text('Year')),
-                      ],
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          setState(() {
-                            filterType = newValue;
-                            _isLoading = true;
-                          });
-                          _loadSalesReport();
-                        }
-                      },
-                    ),
-                    IconButton(
-                      onPressed: () => _showMonthPicker(context),
-                      icon: const Icon(Icons.calendar_month),
-                    ),
-                  ],
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark ? textColor.withOpacity(0.15) : textColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              ],
+                child: Icon(icon, size: 16, color: textColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: textColor,
+              letterSpacing: -0.5,
             ),
           ),
+          const SizedBox(height: 12),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              fontWeight: FontWeight.w500,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDashboardCard(
-                                title: 'Total Sales',
-                                value: '₹ ${_formatCurrency(_totalSales)}',
-                                subtitleTop: 'Bills: $_totalSalesCount',
-                                subtitleBottom: 'Items Sold: $_totalItemsSold',
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDashboardCard(
-                                title: 'Total Purchase',
-                                value: '₹ ${_formatCurrency(_totalBuying)}',
-                                subtitleTop: 'Purchases: $_totalBuyingCount',
-                                subtitleMiddle: 'Products Bought: $_totalItemsBought',
-                                subtitleBottom:
-                                    'Quantity Bought: $_totalQuantityBought',
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildDashboardCard(
-                                title: _totalProfitLoss >= 0 ? 'Profit' : 'Loss',
-                                value: '₹ ${_formatCurrency(_totalProfitLoss.abs())}',
-                                valueColor: _totalProfitLoss >= 0 ? Colors.green : Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 80), // Space for FAB
-                      ],
-                    ),
-                  ),
+  Widget _buildProfitLossCard() {
+    final isProfitable = _totalProfitLoss >= 0;
+    final bgColor = isProfitable ? Colors.green : Colors.red;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : bgColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? bgColor.withOpacity(0.4) : bgColor.withOpacity(0.2),
+          width: isDark ? 1.5 : 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isProfitable ? 'Profit' : 'Loss',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.grey[300] : Colors.grey[700],
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '₹${_formatCurrency(_totalProfitLoss.abs())}',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: bgColor,
+                  letterSpacing: -0.5,
+                ),
+              ),
+            ],
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark ? bgColor.withOpacity(0.15) : bgColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isProfitable ? Icons.trending_up : Icons.trending_down,
+              size: 28,
+              color: bgColor,
+            ),
           ),
         ],
       ),
@@ -484,71 +710,5 @@ class _DashboardState extends State<Dashboard> {
     } else {
       return '${getMonthName(selectedDate.month)} ${selectedDate.year}';
     }
-  }
-
-  // Helper widget for the dashboard cards
-  Widget _buildDashboardCard({
-    required String title,
-    required String value,
-    String? subtitleTop,
-    String? subtitleMiddle,
-    String? subtitleBottom,
-    Color? valueColor,
-  }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: valueColor)),
-            const SizedBox(height: 8.0),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 32,
-                fontWeight: FontWeight.w800,
-                color: valueColor,
-              ),
-            ),
-            const SizedBox(height: 12.0),
-            if (subtitleTop != null && subtitleTop.isNotEmpty)
-              Text(
-                subtitleTop,
-                style: TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            if (subtitleMiddle != null && subtitleMiddle.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  subtitleMiddle,
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            if (subtitleBottom != null && subtitleBottom.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 4.0),
-                child: Text(
-                  subtitleBottom,
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
   }
 }
