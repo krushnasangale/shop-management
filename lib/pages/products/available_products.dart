@@ -598,7 +598,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
       selectedColor: Colors.blue.withOpacity(0.3),
       side: BorderSide(
         color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
-        width: isSelected ? 2 : 1,
+        width: 1,
       ),
       labelStyle: TextStyle(
         color: isSelected ? Colors.blue : null,

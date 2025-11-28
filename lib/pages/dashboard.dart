@@ -30,16 +30,12 @@ class _DashboardState extends State<Dashboard> {
   // Top Selling Products
   List<Map<String, dynamic>> _topSellingProducts = [];
   
-  // Recent Bills
-  List<Map<String, dynamic>> _recentBills = [];
-  
   // Pending Payments
   List<Map<String, dynamic>> _pendingPayments = [];
   int _totalPendingAmount = 0;
   
   // Expansion states
   bool _expandTopProducts = false;
-  bool _expandRecentBills = false;
   bool _expandPendingPayments = false;
 
   @override
@@ -70,7 +66,6 @@ class _DashboardState extends State<Dashboard> {
     _billsSubscription = database.ref('bills/$userId').onValue.listen((_) {
       _calculateAndUpdateDashboard(user.uid);
       _loadTopSellingProducts(userId);
-      _loadRecentBills(userId);
       _loadPendingPayments(userId);
     });
 
@@ -140,56 +135,7 @@ class _DashboardState extends State<Dashboard> {
       print('Error loading top selling products: $e');
     }
   }
-  
-  Future<void> _loadRecentBills(String userId) async {
-    try {
-      final database = FirebaseDatabase.instance;
-      final billsSnapshot = await database.ref('bills/$userId').get();
-      
-      final bills = <Map<String, dynamic>>[];
-      
-      if (billsSnapshot.exists) {
-        final data = billsSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, value) {
-          if (value is Map) {
-            final billData = Map<String, dynamic>.from(value);
-            bills.add({
-              'id': key,
-              'customerName': billData['customerName'] ?? 'Unknown',
-              'customerMobile': billData['customerMobile'] ?? 'N/A',
-              'customerVehicle': billData['customerVehicle'],
-              'billDate': billData['billDate'] ?? 'N/A',
-              'totalAmount': billData['totalAmount'] ?? 0,
-              'totalAmountPaid': billData['totalAmountPaid'] ?? false,
-              'amountPaid': billData['amountPaid'] ?? 0,
-              'amountRemaining': billData['amountRemaining'] ?? billData['totalAmount'] ?? 0,
-              'products': billData['products'],
-              'paymentMethod': billData['paymentMethod'] ?? 'cash',
-            });
-          }
-        });
-      }
-      
-      // Sort by date (most recent first) - assuming billDate format is "dd/MM/yyyy"
-      bills.sort((a, b) {
-        try {
-          final dateA = _parseDate(a['billDate'] as String);
-          final dateB = _parseDate(b['billDate'] as String);
-          return dateB.compareTo(dateA);
-        } catch (e) {
-          return 0;
-        }
-      });
-      
-      if (mounted) {
-        setState(() {
-          _recentBills = bills.take(10).toList();
-        });
-      }
-    } catch (e) {
-      print('Error loading recent bills: $e');
-    }
-  }
+
   
   Future<void> _loadPendingPayments(String userId) async {
     try {
@@ -241,22 +187,7 @@ class _DashboardState extends State<Dashboard> {
       print('Error loading pending payments: $e');
     }
   }
-  
-  DateTime _parseDate(String dateString) {
-    try {
-      // Expected format: "dd/MM/yyyy"
-      final parts = dateString.split('/');
-      if (parts.length == 3) {
-        final day = int.parse(parts[0]);
-        final month = int.parse(parts[1]);
-        final year = int.parse(parts[2]);
-        return DateTime(year, month, day);
-      }
-    } catch (e) {
-      print('Error parsing date: $e');
-    }
-    return DateTime.now();
-  }
+
 
   Future<void> _calculateAndUpdateDashboard(String userId) async {
     try {
@@ -535,148 +466,7 @@ class _DashboardState extends State<Dashboard> {
       ),
     );
   }
-  
-  Widget _buildRecentBillsCard() {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.blue.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? Colors.blue.withOpacity(0.3) : Colors.blue.withOpacity(0.15),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _expandRecentBills = !_expandRecentBills),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Recent Bills',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.grey[100] : Colors.grey[800],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${_recentBills.length}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _expandRecentBills ? Icons.expand_less : Icons.expand_more,
-                        color: Colors.blue[600],
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_expandRecentBills) ...[            
-            Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: _recentBills.isEmpty
-                ? Center(
-                    child: Text(
-                      'No bills yet',
-                      style: TextStyle(color: Colors.grey[500]),
-                    ),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _recentBills.length,
-                    separatorBuilder: (_, __) => Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 12),
-                    itemBuilder: (context, index) {
-                      final bill = _recentBills[index];
-                      final isPaid = bill['totalAmountPaid'] as bool;
-                      return InkWell(
-                        onTap: () => _navigateToBillDetails(bill),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          bill['customerName'],
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark ? Colors.grey[100] : Colors.grey[800],
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: isPaid ? Colors.green.withOpacity(0.15) : Colors.orange.withOpacity(0.15),
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: Text(
-                                          isPaid ? 'Paid' : 'Pending',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w600,
-                                            color: isPaid ? Colors.green[600] : Colors.orange[600],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${bill['billDate']} • ₹${bill['totalAmount']}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+
   
   Widget _buildPendingPaymentsCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -937,7 +727,7 @@ class _DashboardState extends State<Dashboard> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
                       child: Column(
                         children: [
                           // Two Column Layout
@@ -970,15 +760,11 @@ class _DashboardState extends State<Dashboard> {
                           
                           // Profit/Loss Card
                           _buildProfitLossCard(),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
                           
                           // Top Selling Products
                           _buildTopSellingProductsCard(),
-                          const SizedBox(height: 16),
-                          
-                          // Recent Bills
-                          _buildRecentBillsCard(),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 12),
                           
                           // Pending Payments
                           _buildPendingPaymentsCard(),

@@ -7,6 +7,8 @@ import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
 import 'package:flashbill/pages/billing/review_billing_details.dart';
 import 'package:flashbill/ui%20helpers/ui_helper.dart';
+import 'package:fast_contacts/fast_contacts.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class CreateNewBill extends StatefulWidget {
   const CreateNewBill({super.key});
@@ -250,7 +252,6 @@ class _CreateNewBillState extends State<CreateNewBill> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 buildFormField(
-                  'Date',
                   'Select Date',
                   _dateController,
                   suffixIcon: Icons.calendar_today_outlined,
@@ -269,22 +270,49 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     }
                   },
                 ),
-
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Select Customer From',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 // Select Customer section
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
+                    SizedBox(
+                      height: 25,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _showContactsBottomSheet(context),
+                        icon: const Icon(
+                          Icons.contact_page,
+                          color: Colors.white,
+                        ),
+                        label: const Text(
+                          'Contacts',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
                     SizedBox(
                       height: 25,
                       child: ElevatedButton.icon(
                         onPressed: () => _showCustomersDrawer(context),
                         icon: const Icon(Icons.person_add, color: Colors.white),
                         label: const Text(
-                          'Select existing Customer',
+                          'Existing',
                           style: TextStyle(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
+                          backgroundColor: Colors.blue,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -294,16 +322,18 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   ],
                 ),
 
+                const SizedBox(height: 12),
+
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Customer Name',
                       'Enter Customer Name',
                       _customerNameController,
                       onChanged: (value) {
                         setState(() {
-                          _customerNameError = _validateCustomerName(value) ?? '';
+                          _customerNameError =
+                              _validateCustomerName(value) ?? '';
                         });
                       },
                     ),
@@ -312,7 +342,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         padding: const EdgeInsets.only(top: 4, left: 16),
                         child: Text(
                           _customerNameError,
-                          style: const TextStyle(color: Colors.red, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                   ],
@@ -322,13 +355,13 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Customer Mobile Number',
                       'Enter Mobile Number',
                       _customerMobileController,
                       keyboardType: TextInputType.phone,
                       onChanged: (value) {
                         setState(() {
-                          _customerMobileError = _validateMobileNumber(value) ?? '';
+                          _customerMobileError =
+                              _validateMobileNumber(value) ?? '';
                         });
                       },
                     ),
@@ -337,7 +370,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         padding: const EdgeInsets.only(top: 4, left: 16),
                         child: Text(
                           _customerMobileError,
-                          style: const TextStyle(color: Colors.red, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                   ],
@@ -347,7 +383,6 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Customer Vehicle Number',
                       'Enter Vehicle Number',
                       _customerVehicleController,
                       keyboardType: TextInputType.text,
@@ -355,12 +390,17 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         // Convert to uppercase
                         if (value != value.toUpperCase()) {
                           _customerVehicleController.text = value.toUpperCase();
-                          _customerVehicleController.selection = TextSelection.fromPosition(
+                          _customerVehicleController
+                              .selection = TextSelection.fromPosition(
                             TextPosition(offset: value.toUpperCase().length),
                           );
                         }
                         setState(() {
-                          _customerVehicleError = _validateVehicleNumber(_customerVehicleController.text) ?? '';
+                          _customerVehicleError =
+                              _validateVehicleNumber(
+                                _customerVehicleController.text,
+                              ) ??
+                              '';
                         });
                       },
                     ),
@@ -369,7 +409,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         padding: const EdgeInsets.only(top: 4, left: 16),
                         child: Text(
                           _customerVehicleError,
-                          style: const TextStyle(color: Colors.red, fontSize: 12),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                   ],
@@ -380,14 +423,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     SizedBox(
-
-
                       height: 25,
                       child: ElevatedButton.icon(
                         onPressed: () => showAvailableProductsDrawer(context),
                         icon: const Icon(Icons.add, color: Colors.white),
                         label: Text(
-                          _billItems.isEmpty ? 'Add Product' : 'Add More Products',
+                          _billItems.isEmpty
+                              ? 'Add Product'
+                              : 'Add More Products',
                           style: const TextStyle(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -620,7 +663,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                   ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -668,7 +713,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                   ),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -706,7 +753,6 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       buildFormField(
-                        'Amount Paid',
                         'Enter paid amount',
                         _amountPaidController,
                         keyboardType: TextInputType.number,
@@ -716,7 +762,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             final totalAmount = _getTotalAmount().toInt();
                             final amountPaid = int.tryParse(value) ?? 0;
                             final remaining = totalAmount - amountPaid;
-                            _amountRemainingController.text = remaining.toString();
+                            _amountRemainingController.text = remaining
+                                .toString();
                           });
                         },
                       ),
@@ -729,7 +776,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     children: [
                       Text(
                         'Amount Remaining',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                       const SizedBox(height: 8.0),
                       Container(
@@ -802,36 +852,54 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           onPressed: () async {
                             // Validate form fields
                             setState(() {
-                              _customerNameError = _validateCustomerName(_customerNameController.text) ?? '';
-                              _customerMobileError = _validateMobileNumber(_customerMobileController.text) ?? '';
-                              _customerVehicleError = _validateVehicleNumber(_customerVehicleController.text) ?? '';
+                              _customerNameError =
+                                  _validateCustomerName(
+                                    _customerNameController.text,
+                                  ) ??
+                                  '';
+                              _customerMobileError =
+                                  _validateMobileNumber(
+                                    _customerMobileController.text,
+                                  ) ??
+                                  '';
+                              _customerVehicleError =
+                                  _validateVehicleNumber(
+                                    _customerVehicleController.text,
+                                  ) ??
+                                  '';
                             });
-                
+
                             // Check if there are any errors
-                            if (_customerNameError.isNotEmpty || _customerMobileError.isNotEmpty || _customerVehicleError.isNotEmpty) {
+                            if (_customerNameError.isNotEmpty ||
+                                _customerMobileError.isNotEmpty ||
+                                _customerVehicleError.isNotEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Please fix the errors in the form'),
+                                  content: Text(
+                                    'Please fix the errors in the form',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                               return;
                             }
-                
+
                             // Check if products are added
                             if (_billItems.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Please add products for billing'),
+                                  content: Text(
+                                    'Please add products for billing',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
                               return;
                             }
-                
+
                             // Check if customer exists, if not add to database
                             String? customerId = _getExistingCustomerId();
-                            
+
                             if (customerId == null) {
                               // Add new customer to database
                               customerId = await _addNewCustomer();
@@ -845,7 +913,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 return;
                               }
                             }
-                
+
                             // Prepare bill products for review screen
                             final billProducts = _billItems.map((item) {
                               return BillProductItem(
@@ -858,18 +926,23 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 total: item.total,
                               );
                             }).toList();
-                
+
                             final totalBillAmount = _getTotalAmount().toInt();
-                            final amountPaidValue = totalAmountPaid ? totalBillAmount : (int.tryParse(_amountPaidController.text) ?? 0);
-                            final amountRemainingValue = totalBillAmount - amountPaidValue;
-                
+                            final amountPaidValue = totalAmountPaid
+                                ? totalBillAmount
+                                : (int.tryParse(_amountPaidController.text) ??
+                                      0);
+                            final amountRemainingValue =
+                                totalBillAmount - amountPaidValue;
+
                             AppNavigator.push(
                               context,
                               ReviewBillingDetails(
                                 billDate: _dateController.text,
                                 customerName: _customerNameController.text,
                                 customerMobile: _customerMobileController.text,
-                                customerVehicle: _customerVehicleController.text,
+                                customerVehicle:
+                                    _customerVehicleController.text,
                                 customerId: customerId,
                                 products: billProducts,
                                 totalAmount: totalBillAmount,
@@ -945,9 +1018,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
   String? _getExistingCustomerId() {
     final customerName = _customerNameController.text.trim();
     final customerMobile = _customerMobileController.text.trim();
-    
+
     for (var customer in _customers) {
-      if (customer['name'] == customerName && 
+      if (customer['name'] == customerName &&
           customer['mobileNumber'] == customerMobile) {
         return customer['id'];
       }
@@ -969,7 +1042,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
       };
 
       await database.ref('customers/${user.uid}').push().set(customerData);
-      
+
       // Get the key of the newly added customer
       final snapshot = await database
           .ref('customers/${user.uid}')
@@ -1032,191 +1105,195 @@ class _CreateNewBillState extends State<CreateNewBill> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                  Text(
-                    billItem.productName,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: primaryTextColor,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Bought Price Display (Reference)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Bought Price',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                        ),
-                        Text(
-                          '₹ ${billItem.buyingPrice.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[700],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Quantity with +/- buttons and input field
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quantity',
-                        style: TextStyle(color: primaryTextColor),
+                    Text(
+                      billItem.productName,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTextColor,
                       ),
-                      const SizedBox(height: 8),
-                      Row(
+                    ),
+                    const SizedBox(height: 16),
+                    // Bought Price Display (Reference)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          GestureDetector(
-                            onTap: () {
-                              double currentQty =
-                                  double.tryParse(
-                                    quantityController.text,
-                                  ) ??
-                                  1;
-                              if (currentQty > 1) {
-                                currentQty--;
-                                quantityController.text = currentQty
-                                    .toStringAsFixed(0);
-                                setDialogState(() {
-                                  quantityError = '';
-                                });
-                              }
-                            },
-                            child: Icon(
-                              Icons.remove_circle_outline,
-                              size: 24,
-                              color:
-                                  (double.tryParse(
-                                            quantityController.text,
-                                          ) ??
-                                          1) >
-                                      1
-                                  ? Colors.blue
-                                  : Colors.grey,
+                          const Text(
+                            'Bought Price',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: quantityController,
-                              keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
-                              textAlign: TextAlign.center,
-                              onChanged: (value) {
-                                setDialogState(() {
-                                  // Validate input
-                                  final quantity = double.tryParse(value) ?? 0;
-                                  if (quantity > billItem.maxQuantity) {
-                                    quantityController.text = billItem.maxQuantity.toStringAsFixed(0);
-                                    quantityController.selection = TextSelection.fromPosition(
-                                      TextPosition(offset: quantityController.text.length),
-                                    );
-                                  }
-                                  quantityError = '';
-                                });
-                              },
-                              decoration: InputDecoration(
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 8,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          GestureDetector(
-                            onTap: () {
-                              double currentQty =
-                                  double.tryParse(
-                                    quantityController.text,
-                                  ) ??
-                                  1;
-                              if (currentQty < billItem.maxQuantity) {
-                                currentQty++;
-                                quantityController.text = currentQty
-                                    .toStringAsFixed(0);
-                                setDialogState(() {
-                                  quantityError = '';
-                                });
-                              }
-                            },
-                            child: Icon(
-                              Icons.add_circle_outline,
-                              size: 24,
-                              color:
-                                  (double.tryParse(
-                                            quantityController.text,
-                                          ) ??
-                                          1) <
-                                      billItem.maxQuantity
-                                  ? Colors.blue
-                                  : Colors.grey,
+                          Text(
+                            '₹ ${billItem.buyingPrice.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[700],
                             ),
                           ),
                         ],
                       ),
-                      if (quantityError.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            quantityError,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
+                    ),
+                    const SizedBox(height: 16),
+                    // Quantity with +/- buttons and input field
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Quantity',
+                          style: TextStyle(color: primaryTextColor),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () {
+                                double currentQty =
+                                    double.tryParse(quantityController.text) ??
+                                    1;
+                                if (currentQty > 1) {
+                                  currentQty--;
+                                  quantityController.text = currentQty
+                                      .toStringAsFixed(0);
+                                  setDialogState(() {
+                                    quantityError = '';
+                                  });
+                                }
+                              },
+                              child: Icon(
+                                Icons.remove_circle_outline,
+                                size: 24,
+                                color:
+                                    (double.tryParse(quantityController.text) ??
+                                            1) >
+                                        1
+                                    ? Colors.blue
+                                    : Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: quantityController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                textAlign: TextAlign.center,
+                                onChanged: (value) {
+                                  setDialogState(() {
+                                    // Validate input
+                                    final quantity =
+                                        double.tryParse(value) ?? 0;
+                                    if (quantity > billItem.maxQuantity) {
+                                      quantityController.text = billItem
+                                          .maxQuantity
+                                          .toStringAsFixed(0);
+                                      quantityController.selection =
+                                          TextSelection.fromPosition(
+                                            TextPosition(
+                                              offset: quantityController
+                                                  .text
+                                                  .length,
+                                            ),
+                                          );
+                                    }
+                                    quantityError = '';
+                                  });
+                                },
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 8,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            GestureDetector(
+                              onTap: () {
+                                double currentQty =
+                                    double.tryParse(quantityController.text) ??
+                                    1;
+                                if (currentQty < billItem.maxQuantity) {
+                                  currentQty++;
+                                  quantityController.text = currentQty
+                                      .toStringAsFixed(0);
+                                  setDialogState(() {
+                                    quantityError = '';
+                                  });
+                                }
+                              },
+                              child: Icon(
+                                Icons.add_circle_outline,
+                                size: 24,
+                                color:
+                                    (double.tryParse(quantityController.text) ??
+                                            1) <
+                                        billItem.maxQuantity
+                                    ? Colors.blue
+                                    : Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (quantityError.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              quantityError,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: priceController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: false,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Selling Price',
+                            prefixText: '₹ ',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
                           ),
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      TextField(
-                        controller: priceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: false,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Selling Price',
-                          prefixText: '₹ ',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      if (priceError.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Text(
-                            priceError,
-                            style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 12,
+                        if (priceError.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              priceError,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -1347,108 +1424,107 @@ class _CreateNewBillState extends State<CreateNewBill> {
                 child: _customersLoading
                     ? const Center(child: CircularProgressIndicator())
                     : displayCustomers.isEmpty
-                        ? Center(
-                            child: Text(
-                              'No customers found',
-                              style: Theme.of(context).textTheme.bodyMedium,
+                    ? Center(
+                        child: Text(
+                          'No customers found',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: displayCustomers.length,
+                        itemBuilder: (context, index) {
+                          final customer = displayCustomers[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 6.0,
                             ),
-                          )
-                        : ListView.builder(
-                            controller: scrollController,
-                            itemCount: displayCustomers.length,
-                            itemBuilder: (context, index) {
-                              final customer = displayCustomers[index];
-                              return Card(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 16.0,
-                                  vertical: 6.0,
-                                ),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10.0),
-                                  side: BorderSide(
-                                    color: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.color
-                                            ?.withOpacity(0.1) ??
-                                        Colors.grey,
-                                    width: 1.5,
-                                  ),
-                                ),
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _customerNameController.text =
-                                          customer['name'];
-                                      _customerMobileController.text =
-                                          customer['mobileNumber'];
-                                      _customerVehicleController.text =
-                                          customer['vehicleNumber'];
-                                    });
-                                    Navigator.pop(context);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          '${customer['name']} selected',
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 12.0,
-                                      horizontal: 16.0,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                              side: BorderSide(
+                                color:
+                                    Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color
+                                        ?.withOpacity(0.1) ??
+                                    Colors.grey,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _customerNameController.text =
+                                      customer['name'];
+                                  _customerMobileController.text =
+                                      customer['mobileNumber'];
+                                  _customerVehicleController.text =
+                                      customer['vehicleNumber'];
+                                });
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      '${customer['name']} selected',
                                     ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12.0,
+                                  horizontal: 16.0,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      customer['name'],
+                                      style: TextStyle(
+                                        color: Theme.of(
+                                          context,
+                                        ).textTheme.bodyLarge?.color,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          customer['name'],
+                                          'Mobile: ${customer['mobileNumber']}',
                                           style: TextStyle(
-                                            color: Theme.of(context)
-                                                .textTheme
-                                                .bodyLarge
-                                                ?.color,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
+                                            color: Theme.of(
+                                              context,
+                                            ).textTheme.bodyMedium?.color,
+                                            fontSize: 12,
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              'Mobile: ${customer['mobileNumber']}',
-                                              style: TextStyle(
-                                                color: Theme.of(
-                                                  context,
-                                                ).textTheme.bodyMedium?.color,
-                                                fontSize: 12,
-                                              ),
+                                        if (customer['vehicleNumber']
+                                            .isNotEmpty)
+                                          Text(
+                                            'Vehicle: ${customer['vehicleNumber']}',
+                                            style: TextStyle(
+                                              color: Theme.of(
+                                                context,
+                                              ).textTheme.bodyMedium?.color,
+                                              fontSize: 12,
                                             ),
-                                            if (customer['vehicleNumber']
-                                                .isNotEmpty)
-                                              Text(
-                                                'Vehicle: ${customer['vehicleNumber']}',
-                                                style: TextStyle(
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).textTheme.bodyMedium?.color,
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
+                                          ),
                                       ],
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ),
             ],
           ),
@@ -1585,7 +1661,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             sellingPrice: product.sellingPrice,
                                             maxQuantity: product.quantity,
                                             billQuantity: 1,
-                                            billPrice: product.sellingPrice.toInt(),
+                                            billPrice: product.sellingPrice
+                                                .toInt(),
                                           ),
                                         );
                                       });
@@ -1710,6 +1787,226 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           ),
                                         ),
                                       ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showContactsBottomSheet(BuildContext context) async {
+    // Request permission to access contacts
+    final status = await Permission.contacts.request();
+    
+    if (!status.isGranted) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Contact permission is required to select from contacts'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Fetch contacts
+    List<Contact> contacts = [];
+    try {
+      contacts = await FastContacts.getAllContacts();
+    } catch (e) {
+      print('Error fetching contacts: $e');
+    }
+
+    if (!context.mounted) return;
+
+    final searchController = TextEditingController();
+    List<Contact> displayContacts = contacts;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) => Column(
+            children: [
+              // Title and close button
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Select from Contacts',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              // Search field
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  height: 50,
+                  child: TextField(
+                    controller: searchController,
+                    onChanged: (query) {
+                      setModalState(() {
+                        if (query.isEmpty) {
+                          displayContacts = contacts;
+                        } else {
+                          displayContacts = contacts
+                              .where((contact) =>
+                                  contact.displayName
+                                      .toLowerCase()
+                                      .contains(query.toLowerCase()) ||
+                                  contact.phones.any((phone) =>
+                                      phone.number.contains(query)))
+                              .toList();
+                        }
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Search contacts by name or phone...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Contacts list
+              Expanded(
+                child: displayContacts.isEmpty
+                    ? Center(
+                        child: Text(
+                          'No contacts found',
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      )
+                    : ListView.builder(
+                        controller: scrollController,
+                        itemCount: displayContacts.length,
+                        itemBuilder: (context, index) {
+                          final contact = displayContacts[index];
+                          final phoneNumber = contact.phones.isNotEmpty
+                              ? contact.phones.first.number
+                              : 'No phone';
+                          final cleanedPhoneNumber = phoneNumber
+                              .replaceAll(RegExp(r'[^\d]'), '');
+
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 16.0,
+                              vertical: 6.0,
+                            ),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10.0),
+                              side: BorderSide(
+                                color: Colors.grey[300]!,
+                                width: 1.5,
+                              ),
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                // Check if phone number is valid (10 digits)
+                                if (cleanedPhoneNumber.length == 10) {
+                                  setState(() {
+                                    _customerNameController.text =
+                                        contact.displayName;
+                                    _customerMobileController.text =
+                                        cleanedPhoneNumber;
+                                  });
+                                  Navigator.pop(context);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Invalid phone number for ${contact.displayName}. Phone must have 10 digits.',
+                                      ),
+                                      backgroundColor: Colors.orange,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(12.0),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 45,
+                                      height: 45,
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        Icons.person,
+                                        color: Colors.blue[600],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            contact.displayName,
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            phoneNumber,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: cleanedPhoneNumber.length ==
+                                                      10
+                                                  ? Colors.green[600]
+                                                  : Colors.red[600],
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 16,
+                                      color: Colors.grey[400],
                                     ),
                                   ],
                                 ),

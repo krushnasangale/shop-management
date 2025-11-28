@@ -250,7 +250,6 @@ class _BillsState extends State<Bills> {
                   padding: const EdgeInsets.only(
                     left: 12.0,
                     right: 12.0,
-                    top: 0,
                   ),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -360,7 +359,7 @@ class _BillsState extends State<Bills> {
       selectedColor: Colors.blue.withOpacity(0.3),
       side: BorderSide(
         color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
-        width: isSelected ? 2 : 1,
+        width: 1,
       ),
       labelStyle: TextStyle(
         color: isSelected ? Colors.blue : null,

@@ -37,7 +37,6 @@ Widget buildInputField({
   }
 
   Widget buildFormField(
-    String label,
     String hint,
     TextEditingController controller, {
     IconData? suffixIcon,
@@ -51,11 +50,6 @@ Widget buildInputField({
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8.0),
           Container(
             height: 53,
             decoration: BoxDecoration(
