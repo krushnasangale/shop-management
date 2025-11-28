@@ -3,10 +3,10 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
-import 'package:nkt/navigation/app_navigator.dart';
-import 'package:nkt/pages/billing/bill_success_page.dart';
-import 'package:nkt/pages/billing/review_billing_details.dart';
-import 'package:nkt/ui%20helpers/ui_helper.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/billing/bill_success_page.dart';
+import 'package:flashbill/pages/billing/review_billing_details.dart';
+import 'package:flashbill/ui%20helpers/ui_helper.dart';
 
 class CreateNewBill extends StatefulWidget {
   const CreateNewBill({super.key});

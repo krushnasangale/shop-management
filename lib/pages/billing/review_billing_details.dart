@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:nkt/pages/billing/bill_success_page.dart';
+import 'package:flashbill/pages/billing/bill_success_page.dart';
 
 class ReviewBillingDetails extends StatefulWidget {
   final String billDate;

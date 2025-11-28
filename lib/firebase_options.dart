@@ -60,7 +60,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '963502909808',
     projectId: 'shop-management-42ce1',
     storageBucket: 'shop-management-42ce1.firebasestorage.app',
-    iosBundleId: 'com.example.nkt',
+    iosBundleId: 'com.flashbill.manage',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

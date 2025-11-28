@@ -3,7 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
-import 'package:nkt/pages/profile/customer/customer_history.dart';
+import 'package:flashbill/pages/profile/customer/customer_history.dart';
 
 class Customers extends StatefulWidget {
   const Customers({super.key});

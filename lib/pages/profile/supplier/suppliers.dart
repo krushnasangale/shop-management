@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:nkt/pages/profile/supplier/supplier_history.dart';
+import 'package:flashbill/pages/profile/supplier/supplier_history.dart';
 
 // --- Supplier Data Model ---
 class Supplier {

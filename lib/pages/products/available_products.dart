@@ -8,8 +8,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
-import 'package:nkt/navigation/app_navigator.dart';
-import 'package:nkt/pages/products/available_product_item_detail.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/products/available_product_item_detail.dart';
 
 class AvailableProducts extends StatefulWidget {
   const AvailableProducts({super.key});

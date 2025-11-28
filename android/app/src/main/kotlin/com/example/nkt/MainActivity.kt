@@ -1,4 +1,4 @@
-package com.example.nkt
+package com.flashbill.manage
 
 import io.flutter.embedding.android.FlutterActivity
 

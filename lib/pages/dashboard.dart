@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import 'package:nkt/pages/helpers/utils.dart';
-import 'package:nkt/pages/billing/view_existing_bill_details.dart';
+import 'package:flashbill/pages/helpers/utils.dart';
+import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});

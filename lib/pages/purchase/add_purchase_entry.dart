@@ -3,7 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
-import 'package:nkt/pages/purchase/add_purchase_review.dart';
+import 'package:flashbill/pages/purchase/add_purchase_review.dart';
 
 class AddPurchaseEntry extends StatefulWidget {
   const AddPurchaseEntry({super.key});

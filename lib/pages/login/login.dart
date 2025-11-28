@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:nkt/main.dart';
+import 'package:flashbill/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginScreen extends StatefulWidget {

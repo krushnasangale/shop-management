@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:nkt/navigation/app_navigator.dart';
-import 'package:nkt/pages/billing/view_existing_bill_details.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 
 class Bills extends StatefulWidget {
   const Bills({super.key});

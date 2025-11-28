@@ -1,8 +1,8 @@
 // --- Customer History Screen ---
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:nkt/navigation/app_navigator.dart';
-import 'package:nkt/pages/billing/view_existing_bill_details.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 
 class CustomerHistoryScreen extends StatefulWidget {
   final String customerId;

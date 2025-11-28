@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:nkt/navigation/app_navigator.dart';
-import 'package:nkt/pages/login/login.dart';
-import 'package:nkt/pages/profile/customer/customers.dart';
-import 'package:nkt/pages/profile/products/product.dart';
-import 'package:nkt/pages/profile/supplier/suppliers.dart';
-import 'package:nkt/pages/profile/units/units.dart';
-import 'package:nkt/pages/profile/edit_profile.dart';
-import 'package:nkt/providers/theme_provider.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/login/login.dart';
+import 'package:flashbill/pages/profile/customer/customers.dart';
+import 'package:flashbill/pages/profile/products/product.dart';
+import 'package:flashbill/pages/profile/supplier/suppliers.dart';
+import 'package:flashbill/pages/profile/units/units.dart';
+import 'package:flashbill/pages/profile/edit_profile.dart';
+import 'package:flashbill/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 
 class MyProfile extends StatefulWidget {

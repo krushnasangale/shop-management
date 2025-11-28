@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:async';
-import 'package:nkt/pages/products/available_products.dart';
+import 'package:flashbill/pages/products/available_products.dart';
 
 class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
