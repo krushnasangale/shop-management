@@ -705,12 +705,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             final currentQty = productData['quantity'] as int? ?? 0;
             final newQty = (currentQty - product.quantity.toInt()).toInt();
             
-            // Update quantity or delete if quantity becomes 0 or negative
-            if (newQty <= 0) {
-              await database.ref('purchased-products/$userId/$productId').remove();
-            } else {
-              await database.ref('purchased-products/$userId/$productId/quantity').set(newQty);
-            }
+            // Update quantity (set to 0 if it goes below 0, don't delete)
+            await database.ref('purchased-products/$userId/$productId/quantity').set(newQty.clamp(0, double.infinity).toInt());
             break; // Found and updated, move to next product
           }
         }
