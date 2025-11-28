@@ -747,6 +747,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     ),
                   ],
                 ),
+                if (!totalAmountPaid)const SizedBox(height: 12),
 
                 if (!totalAmountPaid)
                   Column(
