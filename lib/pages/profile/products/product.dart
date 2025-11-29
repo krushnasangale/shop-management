@@ -224,6 +224,15 @@ class _ProductNameState extends State<ProductName> {
           title: Text('Add Product Name', style: TextStyle(color: primaryTextColor),),
           content: TextField(
             controller: _productNameController,
+            textCapitalization: TextCapitalization.characters,
+            onChanged: (value) {
+              if (value != value.toUpperCase()) {
+                _productNameController.text = value.toUpperCase();
+                _productNameController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: value.toUpperCase().length),
+                );
+              }
+            },
             decoration: const InputDecoration(
               labelText: 'Product Name',
               hintText: 'Enter product name',
@@ -239,10 +248,7 @@ class _ProductNameState extends State<ProductName> {
               onPressed: () async {
                 if (_productNameController.text.isNotEmpty) {
                   try {
-                    final rawName = _productNameController.text;
-                    final capitalizedName =
-                        rawName[0].toUpperCase() + rawName.substring(1);
-                    await _productsRef.push().set({'name': capitalizedName});
+                    await _productsRef.push().set({'name': _productNameController.text.trim()});
                     if (context.mounted) {
                       Navigator.pop(context);
                     }
@@ -273,6 +279,15 @@ class _ProductNameState extends State<ProductName> {
           title: const Text('Edit Product Name'),
           content: TextField(
             controller: nameController,
+            textCapitalization: TextCapitalization.characters,
+            onChanged: (value) {
+              if (value != value.toUpperCase()) {
+                nameController.text = value.toUpperCase();
+                nameController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: value.toUpperCase().length),
+                );
+              }
+            },
             decoration: const InputDecoration(
               labelText: 'Product Name',
               hintText: 'Enter product name',
@@ -289,7 +304,7 @@ class _ProductNameState extends State<ProductName> {
                 if (nameController.text.isNotEmpty) {
                   try {
                     await _productsRef.child(product.id).update({
-                      'name': nameController.text,
+                      'name': nameController.text.trim(),
                     });
                     if (context.mounted) {
                       Navigator.pop(context);

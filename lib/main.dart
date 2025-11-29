@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'dart:async';
 import 'firebase_options.dart';
 
 void main() async {
@@ -67,29 +68,76 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
   String _shopName = '----';
+  StreamSubscription<DatabaseEvent>? _shopNameSubscription;
+  StreamSubscription<DatabaseEvent>? _productsSubscription;
+  int _productsCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadShopName();
+    _listenToShopName();
+    _listenToProductsCount();
   }
 
-  Future<void> _loadShopName() async {
+  void _listenToShopName() {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final database = FirebaseDatabase.instance;
-        final snapshot = await database.ref('shop-profile/${user.uid}').get();
-        if (snapshot.exists) {
-          final data = snapshot.value as Map<dynamic, dynamic>;
-          setState(() {
-            _shopName = data['shopName'] ?? '----';
-          });
-        }
+        _shopNameSubscription = database
+            .ref('shop-profile/${user.uid}/shopName')
+            .onValue
+            .listen((DatabaseEvent event) {
+          if (mounted && event.snapshot.exists) {
+            final shopName = event.snapshot.value as String?;
+            if (shopName != null && shopName.isNotEmpty) {
+              setState(() => _shopName = shopName);
+            }
+          }
+        });
       }
     } catch (e) {
-      print('Error loading shop name: $e');
+      print('Error listening to shop name: $e');
     }
+  }
+
+  void _listenToProductsCount() {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final database = FirebaseDatabase.instance;
+        _productsSubscription = database
+            .ref('purchased-products/${user.uid}')
+            .onValue
+            .listen((DatabaseEvent event) {
+          if (mounted && event.snapshot.exists) {
+            final data = event.snapshot.value as Map<dynamic, dynamic>;
+            // Count only products with quantity > 0
+            int count = 0;
+            data.forEach((key, value) {
+              if (value is Map) {
+                final quantity = value['quantity'] as int? ?? 0;
+                if (quantity > 0) {
+                  count++;
+                }
+              }
+            });
+            setState(() => _productsCount = count);
+          } else {
+            setState(() => _productsCount = 0);
+          }
+        });
+      }
+    } catch (e) {
+      print('Error listening to products count: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _shopNameSubscription?.cancel();
+    _productsSubscription?.cancel();
+    super.dispose();
   }
 
   // List of screens for the IndexedStack
@@ -158,20 +206,51 @@ class _MyHomePageState extends State<MyHomePage> {
           selectedItemColor: Colors.blue,
           unselectedItemColor: Colors.grey,
           showUnselectedLabels: true,
-          items: const [
-            BottomNavigationBarItem(
+          items: [
+            const BottomNavigationBarItem(
               icon: Icon(Icons.dashboard),
               label: 'Dashboard',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.inventory_2),
+              icon: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.center,
+                children: [
+                  const Icon(Icons.inventory_2),
+                  if (_productsCount > 0)
+                    Positioned(
+                      right: -10,
+                      top: -10,
+                      child: Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 20,
+                          minHeight: 20,
+                        ),
+                        child: Text(
+                          _productsCount.toString(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
               label: 'Products',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.receipt_long),
               label: 'Bills',
             ),
-            BottomNavigationBarItem(
+            const BottomNavigationBarItem(
               icon: Icon(Icons.shopping_bag),
               label: 'Purchases',
             ),

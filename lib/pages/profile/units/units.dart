@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'package:flutter/services.dart';
 
 // --- Data Model ---
 class UnitOfMeasure {
@@ -146,8 +147,17 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                 TextField(
                   controller: _unitNameController,
                   style: TextStyle(color: primaryTextColor),
+                  textCapitalization: TextCapitalization.characters,
+                  onChanged: (value) {
+                    if (value != value.toUpperCase()) {
+                      _unitNameController.text = value.toUpperCase();
+                      _unitNameController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: value.toUpperCase().length),
+                      );
+                    }
+                  },
                   decoration: InputDecoration(
-                    labelText: 'Unit Name (e.g., Meter, Piece)',
+                    labelText: 'Unit Name (e.g., METER, PIECE)',
                     labelStyle: TextStyle(
                       color: primaryTextColor!.withOpacity(0.7),
                     ),
@@ -169,11 +179,8 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
               onPressed: () async {
                 if (_unitNameController.text.isNotEmpty) {
                   try {
-                    final rawName = _unitNameController.text;
-                    final capitalizedName =
-                        rawName[0].toUpperCase() + rawName.substring(1);
                     await _unitsRef.push().set({
-                      'name': capitalizedName,
+                      'name': _unitNameController.text.trim(),
                     });
                     if (context.mounted) {
                       Navigator.of(context).pop();
@@ -416,6 +423,15 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
               controller: controller,
               keyboardType: keyboardType,
               maxLines: maxLines,
+              textCapitalization: TextCapitalization.characters,
+              onChanged: (value) {
+                if (value != value.toUpperCase()) {
+                  controller.text = value.toUpperCase();
+                  controller.selection = TextSelection.fromPosition(
+                    TextPosition(offset: value.toUpperCase().length),
+                  );
+                }
+              },
               decoration: InputDecoration(
                 fillColor: Colors.white,
                 hintText: hint,

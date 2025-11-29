@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'dart:async';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/login/login.dart';
 import 'package:flashbill/pages/profile/customer/customers.dart';
@@ -21,30 +22,40 @@ class MyProfile extends StatefulWidget {
 class _MyProfileState extends State<MyProfile> {
   bool _isLoggingOut = false;
   String _shopName = '----';
+  StreamSubscription<DatabaseEvent>? _shopNameSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadShopName();
+    _listenToShopName();
   }
 
-  Future<void> _loadShopName() async {
+  void _listenToShopName() {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
       final database = FirebaseDatabase.instance;
-      final snapshot = await database.ref('shop-profile/${user.uid}/shopName').get();
-
-      if (snapshot.exists) {
-        final shopName = snapshot.value as String?;
-        if (shopName != null && shopName.isNotEmpty) {
-          setState(() => _shopName = shopName);
+      _shopNameSubscription = database
+          .ref('shop-profile/${user.uid}/shopName')
+          .onValue
+          .listen((DatabaseEvent event) {
+        if (mounted && event.snapshot.exists) {
+          final shopName = event.snapshot.value as String?;
+          if (shopName != null && shopName.isNotEmpty) {
+            setState(() => _shopName = shopName);
+          }
         }
-      }
+      });
     } catch (e) {
-      print('Error loading shop name: $e');
+      print('Error listening to shop name: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _shopNameSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _logout() async {

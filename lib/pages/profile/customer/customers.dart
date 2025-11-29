@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-
+import 'package:flutter/services.dart';
 import 'package:flashbill/pages/profile/customer/customer_history.dart';
 
 class Customers extends StatefulWidget {
@@ -328,15 +328,15 @@ class _CustomersState extends State<Customers> {
                     // Name Field
                     TextField(
                       controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: 'Name*',
-                        hintText: 'Enter customer name',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        errorText: nameError,
-                      ),
+                      textCapitalization: TextCapitalization.characters,
                       onChanged: (value) {
+                        // Convert to uppercase
+                        if (value != value.toUpperCase()) {
+                          nameController.text = value.toUpperCase();
+                          nameController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: value.toUpperCase().length),
+                          );
+                        }
                         setStateDialog(() {
                           if (value.isEmpty) {
                             nameError = 'Name is required';
@@ -345,6 +345,14 @@ class _CustomersState extends State<Customers> {
                           }
                         });
                       },
+                      decoration: InputDecoration(
+                        labelText: 'Name*',
+                        hintText: 'Enter customer name',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        errorText: nameError,
+                      ),
                     ),
                     const SizedBox(height: 12),
                     // Mobile Number Field
@@ -376,6 +384,19 @@ class _CustomersState extends State<Customers> {
                     // Vehicle Number Field
                     TextField(
                       controller: vehicleController,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                      ],
+                      onChanged: (value) {
+                        // Convert to uppercase
+                        if (value != value.toUpperCase()) {
+                          vehicleController.text = value.toUpperCase();
+                          vehicleController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: value.toUpperCase().length),
+                          );
+                        }
+                      },
                       decoration: InputDecoration(
                         labelText: 'Vehicle Number',
                         hintText: 'Enter vehicle number',

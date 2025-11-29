@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import 'package:flashbill/pages/profile/supplier/supplier_history.dart';
 
 // --- Supplier Data Model ---
@@ -53,6 +54,7 @@ class _SuppliersState extends State<Suppliers> {
   bool _isLoading = true;
   String _searchQuery = '';
   late TextEditingController _searchController;
+  StreamSubscription<DatabaseEvent>? _suppliersSubscription;
 
   // --- Random Color Generator for Avatar Initials ---
   final Random _random = Random();
@@ -87,6 +89,7 @@ class _SuppliersState extends State<Suppliers> {
   @override
   void dispose() {
     _searchController.dispose();
+    _suppliersSubscription?.cancel();
     super.dispose();
   }
 
@@ -123,23 +126,29 @@ class _SuppliersState extends State<Suppliers> {
   }
 
   void _loadSuppliersFromDatabase() {
-    _suppliersRef.onValue.listen((DatabaseEvent event) {
+    _suppliersSubscription = _suppliersRef.onValue.listen((DatabaseEvent event) {
+      if (!mounted) return;
+      
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
       if (data != null) {
         final loadedSuppliers = data.entries
             .map((e) => Supplier.fromMap(e.key as String, e.value as Map<dynamic, dynamic>))
             .toList();
-        setState(() {
-          _suppliers = loadedSuppliers;
-          _filterSuppliers();
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _suppliers = loadedSuppliers;
+            _filterSuppliers();
+            _isLoading = false;
+          });
+        }
       } else {
-        setState(() {
-          _suppliers = [];
-          _filteredSuppliers = [];
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _suppliers = [];
+            _filteredSuppliers = [];
+            _isLoading = false;
+          });
+        }
       }
     });
   }
@@ -384,16 +393,10 @@ class _SuppliersState extends State<Suppliers> {
                 if (nameController.text.isNotEmpty &&
                     contactController.text.isNotEmpty &&
                     locationController.text.isNotEmpty) {
-                      final rawName = nameController.text;
-                    final capitalizedName =
-                        rawName[0].toUpperCase() + rawName.substring(1);
-                        final rawLocation = locationController.text;
-                        final capitalizedLocation =
-                        rawLocation[0].toUpperCase() + rawLocation.substring(1);
                   final newSupplier = {
-                    'name': capitalizedName,
+                    'name': nameController.text.trim(),
                     'contact': contactController.text,
-                    'location': capitalizedLocation,
+                    'location': locationController.text.trim(),
                   };
                   await _suppliersRef.push().set(newSupplier);
                   if (mounted) Navigator.pop(context);
@@ -444,6 +447,18 @@ class _SuppliersState extends State<Suppliers> {
                   controller: controller,
                   keyboardType: keyboardType,
                   maxLines: maxLines,
+                  textCapitalization: keyboardType == TextInputType.phone ? TextCapitalization.none : TextCapitalization.characters,
+                  onChanged: (value) {
+                    // Only apply uppercase conversion for name and location (not phone)
+                    if (keyboardType != TextInputType.phone) {
+                      if (value != value.toUpperCase()) {
+                        controller.text = value.toUpperCase();
+                        controller.selection = TextSelection.fromPosition(
+                          TextPosition(offset: value.toUpperCase().length),
+                        );
+                      }
+                    }
+                  },
                   style: TextStyle(
                     color: isDarkMode ? Colors.white : Colors.black,
                   ),

@@ -79,9 +79,9 @@ class _DashboardState extends State<Dashboard> {
       _loadOrderNowProducts(userId);
     });
 
-    // Listen to purchase-history changes
+    // Listen to purchases changes (purchase entries)
     _purchasesSubscription = database
-        .ref('purchase-history/$userId')
+        .ref('purchases/$userId')
         .onValue
         .listen((_) {
           _calculateAndUpdateDashboard(user.uid);
