@@ -16,6 +16,8 @@ class BillProductItem {
   final int price;
   final int boughtPrice;
   final double total;
+  final String batchId;
+  final double profitMargin;
 
   BillProductItem({
     required this.productName,
@@ -25,7 +27,11 @@ class BillProductItem {
     required this.price,
     required this.boughtPrice,
     required this.total,
+    required this.batchId,
+    required this.profitMargin,
   });
+
+  double get profitTotal => quantity * profitMargin;
 }
 
 class BillSuccessPage extends StatefulWidget {
@@ -37,6 +43,7 @@ class BillSuccessPage extends StatefulWidget {
   final int amountRemaining;
   final List<BillProductItem> products;
   final String paymentMethod;
+  final String nextPaymentDate;
 
   const BillSuccessPage({
     required this.customerName,
@@ -47,6 +54,7 @@ class BillSuccessPage extends StatefulWidget {
     required this.amountRemaining,
     required this.products,
     this.paymentMethod = 'cash',
+    this.nextPaymentDate = '',
     super.key,
   });
 
@@ -63,6 +71,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   late int amountRemaining;
   late List<BillProductItem> products;
   late String paymentMethod;
+  late String nextPaymentDate;
 
   @override
   void initState() {
@@ -75,6 +84,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     amountRemaining = widget.amountRemaining;
     products = widget.products;
     paymentMethod = widget.paymentMethod;
+    nextPaymentDate = widget.nextPaymentDate;
   }
 
   @override
@@ -465,6 +475,23 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   style: const pw.TextStyle(fontSize: 10),
                 ),
                 pw.SizedBox(height: 15),
+
+                // Next Payment Date Section
+                if (nextPaymentDate.isNotEmpty) ...[
+                  pw.Text(
+                    'NEXT PAYMENT DATE',
+                    style: pw.TextStyle(
+                      fontSize: 11,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.SizedBox(height: 5),
+                  pw.Text(
+                    nextPaymentDate,
+                    style: const pw.TextStyle(fontSize: 10),
+                  ),
+                  pw.SizedBox(height: 15),
+                ],
               ],
 
               // Products Table
@@ -562,8 +589,11 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   }
 
   pw.Widget _buildProductTable() {
-    // Table headers
-    final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
+    // Calculate total profit
+    double totalProfit = products.fold(0, (sum, product) => sum + product.profitTotal);
+    
+    // Table headers with profit column
+    final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount', 'Profit'];
 
     // Table rows - format prices with 'Rs.' prefix
     final rows = <List<String>>[
@@ -574,93 +604,167 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
           '${entry.value.quantity} ${entry.value.unit}',
           'Rs. ${entry.value.price}',
           'Rs. ${entry.value.total.toStringAsFixed(0)}',
+          'Rs. ${entry.value.profitTotal.toStringAsFixed(0)}',
         ],
       ),
     ];
 
-    return pw.Table(
-      border: pw.TableBorder.all(width: 1),
-      columnWidths: {
-        0: const pw.FixedColumnWidth(40),
-        1: const pw.FlexColumnWidth(3),
-        2: const pw.FlexColumnWidth(1.5),
-        3: const pw.FlexColumnWidth(1.2),
-        4: const pw.FlexColumnWidth(1.2),
-      },
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        // Header row
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: PdfColors.grey300),
-          children: headers.map((header) {
-            return pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
-              child: pw.Text(
-                header,
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-                textAlign: pw.TextAlign.center,
-              ),
-            );
-          }).toList(),
-        ),
-        // Data rows
-        ...rows.map((row) {
-          return pw.TableRow(
-            children: row.asMap().entries.map((entry) {
-              return pw.Padding(
-                padding: const pw.EdgeInsets.all(5),
-                child: pw.Text(
-                  entry.value,
-                  style: const pw.TextStyle(fontSize: 9),
-                  textAlign: entry.key == 0
-                      ? pw.TextAlign.center
-                      : pw.TextAlign.left,
-                ),
+        pw.Table(
+          border: pw.TableBorder.all(width: 1),
+          columnWidths: {
+            0: const pw.FixedColumnWidth(30),
+            1: const pw.FlexColumnWidth(2.5),
+            2: const pw.FlexColumnWidth(1.2),
+            3: const pw.FlexColumnWidth(1.2),
+            4: const pw.FlexColumnWidth(1.2),
+            5: const pw.FlexColumnWidth(1.2),
+          },
+          children: [
+            // Header row
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: PdfColors.grey300),
+              children: headers.map((header) {
+                return pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text(
+                    header,
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                );
+              }).toList(),
+            ),
+            // Data rows
+            ...rows.map((row) {
+              return pw.TableRow(
+                children: row.asMap().entries.map((entry) {
+                  return pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(
+                      entry.value,
+                      style: const pw.TextStyle(fontSize: 8),
+                      textAlign: entry.key == 0
+                          ? pw.TextAlign.center
+                          : pw.TextAlign.left,
+                    ),
+                  );
+                }).toList(),
               );
             }).toList(),
-          );
-        }).toList(),
-        // Total row
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: PdfColors.grey300),
-          children: [
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
-              child: pw.Text(
-                'Total:',
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontWeight: pw.FontWeight.bold,
+            // Total row
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: PdfColors.grey300),
+              children: [
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
                 ),
-                textAlign: pw.TextAlign.right,
-              ),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
-              child: pw.Text(
-                'Rs. $totalAmount',
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontWeight: pw.FontWeight.bold,
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
                 ),
-                textAlign: pw.TextAlign.right,
-              ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text(
+                    'Total:',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text(
+                    'Rs. $totalAmount',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text(
+                    'Rs. ${totalProfit.toStringAsFixed(0)}',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+              ],
             ),
           ],
+        ),
+        pw.SizedBox(height: 8),
+        // Profit breakdown section
+        pw.Container(
+          padding: const pw.EdgeInsets.all(8),
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(width: 1),
+            color: PdfColors.grey100,
+          ),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                'Profit Breakdown by Batch:',
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 5),
+              ...products.map((product) => pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    '${product.productName} (Batch: ${product.batchId.substring(0, 8)}): ',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                  pw.Text(
+                    'Rs. ${product.profitTotal.toStringAsFixed(0)}',
+                    style: const pw.TextStyle(fontSize: 8),
+                  ),
+                ],
+              )),
+              pw.SizedBox(height: 5),
+              pw.Divider(),
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(
+                    'Total Profit: ',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                  pw.Text(
+                    'Rs. ${totalProfit.toStringAsFixed(0)}',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ],
     );

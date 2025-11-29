@@ -51,6 +51,7 @@ class ViewBillDetailsScreen extends StatefulWidget {
   final int amountRemaining;
   final List<Map<String, dynamic>>? products;
   final String paymentMethod;
+  final String? nextPaymentDate;
 
   const ViewBillDetailsScreen({
     required this.billId,
@@ -64,6 +65,7 @@ class ViewBillDetailsScreen extends StatefulWidget {
     required this.amountRemaining,
     this.products,
     this.paymentMethod = 'cash',
+    this.nextPaymentDate,
     super.key,
   });
 
@@ -101,6 +103,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   
   // Payment method
   late String paymentMethod;
+  
+  // Next payment date for partial payments
+  String? nextPaymentDate;
+  late TextEditingController _nextPaymentDateController;
 
   @override
   void initState() {
@@ -112,6 +118,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     customerMobile = widget.customerMobile;
     customerVehicle = widget.customerVehicle;
     paymentMethod = widget.paymentMethod;
+    nextPaymentDate = widget.nextPaymentDate;
+    _nextPaymentDateController = TextEditingController(text: nextPaymentDate ?? '');
     totalAmount = '₹ ${widget.totalAmount.toString()}';
     isTotalAmountPaid = widget.totalAmountPaid;
     amountPaid = '₹ ${widget.amountPaid.toString()}';
@@ -124,17 +132,28 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         'qty': (p['quantity'] ?? 0).toString(),
         'price': '₹ ${(p['price'] ?? 0).toString()}',
         'boughtPrice': '₹ ${(p['boughtPrice'] ?? 0).toString()}',
+        'batchId': (p['batchId'] as String?) ?? '',
+        'profitMargin': (p['profitMargin'] as num?)?.toStringAsFixed(2) ?? '0.00',
       }).toList();
       totalItems = widget.products!.length.toString();
       
-      // Calculate total profit
+      // Calculate total profit using batch profit data if available
       totalProfit = 0;
       for (var product in widget.products!) {
         final quantity = (product['quantity'] ?? 0).toDouble();
         final sellingPrice = (product['price'] ?? 0).toDouble();
         final boughtPrice = (product['boughtPrice'] ?? 0).toDouble();
-        final profit = (sellingPrice - boughtPrice) * quantity;
-        totalProfit += profit;
+        
+        // Use stored profitTotal if available (new batch system), else calculate
+        final profitTotal = product['profitTotal'];
+        if (profitTotal != null) {
+          // Use stored profit from batch system (accurate per batch)
+          totalProfit += (profitTotal as num).toDouble();
+        } else {
+          // Fallback: calculate from prices (legacy bills)
+          final profit = (sellingPrice - boughtPrice) * quantity;
+          totalProfit += profit;
+        }
       }
     } else {
       products = [];
@@ -153,6 +172,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     
     // Load payment records from Firebase
     _loadPaymentRecords();
+  }
+  
+  @override
+  void dispose() {
+    _nextPaymentDateController.dispose();
+    super.dispose();
   }
   
   Future<void> _loadPaymentRecords() async {
@@ -354,6 +379,14 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 pw.SizedBox(height: 5),
                 pw.Text('Rs. ${amountRemaining.replaceAll('₹ ', '')}', style: const pw.TextStyle(fontSize: 10)),
                 pw.SizedBox(height: 15),
+
+                // Next Payment Date Section
+                if (nextPaymentDate != null && nextPaymentDate!.isNotEmpty) ...[
+                  pw.Text('NEXT PAYMENT DATE', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 5),
+                  pw.Text(nextPaymentDate!, style: const pw.TextStyle(fontSize: 10)),
+                  pw.SizedBox(height: 15),
+                ],
               ],
 
               // Products Table
@@ -983,6 +1016,96 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
+  void _showEditNextPaymentDateDialog() {
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(
+            'Edit Next Payment Date',
+            style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor),
+          ),
+          content: GestureDetector(
+            onTap: () async {
+              final selectedDate = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (selectedDate != null) {
+                final formattedDate = DateFormat('dd/MM/yyyy').format(selectedDate);
+                _nextPaymentDateController.text = formattedDate;
+              }
+            },
+            child: AbsorbPointer(
+              child: TextField(
+                controller: _nextPaymentDateController,
+                decoration: InputDecoration(
+                  labelText: 'Next Payment Date',
+                  hintText: 'dd/MM/yyyy',
+                  prefixIcon: const Icon(Icons.calendar_today),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newDate = _nextPaymentDateController.text.trim();
+                if (newDate.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please select a date')),
+                  );
+                  return;
+                }
+                Navigator.of(context).pop();
+                _updateNextPaymentDate(newDate);
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _updateNextPaymentDate(String newDate) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      final database = FirebaseDatabase.instance;
+      await database
+          .ref('bills/${user.uid}/$billId')
+          .update({
+            'nextPaymentDate': newDate,
+          });
+
+      setState(() {
+        nextPaymentDate = newDate;
+        _nextPaymentDateController.text = newDate;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Next payment date updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   // --- Helper 5: Payment History Card ---
   Widget _buildPaymentHistoryCard(
     BuildContext context,
@@ -1276,7 +1399,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1285,46 +1408,35 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               style: TextStyle(
                 color: primaryTextColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
+                fontSize: 16,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             ...products.map((product) {
+              final batchId = product['batchId']?.toString() ?? '';
+              final profitMargin = product['profitMargin']?.toString() ?? '0.00';
+              
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6.0),
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
                 child: Column(
                   children: [
+                    // Product Name and Selling Price in Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              product['name']!,
-                              style: TextStyle(
-                                color: primaryTextColor,
-                                fontSize: 16,
-                              ),
+                        Expanded(
+                          child: Text(
+                            product['name']!,
+                            style: TextStyle(
+                              color: primaryTextColor,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
-                            Text(
-                              'Qty: ${product['qty']!}',
-                              style: TextStyle(
-                                color: secondaryTextColor,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Buying Price: ${product['boughtPrice']!}',
-                              style: TextStyle(
-                                color: Colors.orange[700],
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
+                        const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
@@ -1332,30 +1444,86 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                               'Selling Price',
                               style: TextStyle(
                                 color: secondaryTextColor,
-                                fontSize: 12,
+                                fontSize: 11,
                               ),
                             ),
                             Text(
                               product['price']!,
                               style: TextStyle(
                                 color: primaryTextColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
                             ),
                           ],
                         ),
                       ],
                     ),
+                    const SizedBox(height: 6),
+                    // Batch Badge
+                    if (batchId.isNotEmpty)
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Batch: ${batchId.substring(0, 8)}...',
+                            style: TextStyle(
+                              color: Colors.purple[600],
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 6),
+                    // Details Row: Qty, Buying Price, Profit
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Qty: ${product['qty']!}',
+                          style: TextStyle(
+                            color: secondaryTextColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          'Buying Price: ${product['boughtPrice']!}',
+                          style: TextStyle(
+                            color: Colors.orange[700],
+                            fontSize: 12,
+                          ),
+                        ),
+                        if (profitMargin != '0.00')
+                          Text(
+                            'Profit/unit: ₹$profitMargin',
+                            style: TextStyle(
+                              color: double.parse(profitMargin) >= 0
+                                  ? Colors.green[600]
+                                  : Colors.red[600],
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
+                    ),
                     if (products.last != product)
-                      Divider(
-                        color: secondaryTextColor?.withOpacity(0.3),
-                        height: 16,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10.0),
+                        child: Divider(
+                          color: secondaryTextColor?.withOpacity(0.2),
+                          height: 1,
+                        ),
                       ),
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -1439,6 +1607,45 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ),
               ],
             ),
+            if ((amountRemaining != '₹ 0') && nextPaymentDate != null && nextPaymentDate!.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Divider(color: secondaryTextColor?.withOpacity(0.3), height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Next Payment Date',
+                    style: TextStyle(color: primaryTextColor, fontSize: 16),
+                  ),
+                  GestureDetector(
+                    onTap: _showEditNextPaymentDateDialog,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            nextPaymentDate!,
+                            style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.edit, size: 14, color: Colors.blue[600]),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),

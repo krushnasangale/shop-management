@@ -102,6 +102,93 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
     }
   }
 
+  Widget _buildItemsCountBadge(Map<dynamic, dynamic> productsMap) {
+    // Count total items/products in the bill
+    final productCount = productsMap.length;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.shopping_cart_outlined, size: 14, color: Colors.blue),
+          const SizedBox(width: 4),
+          Text(
+            '$productCount Item${productCount != 1 ? 's' : ''}',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfitBadge(Map<dynamic, dynamic> productsMap) {
+    // Calculate total profit from products in the bill
+    double totalProfit = 0;
+
+    productsMap.forEach((key, value) {
+      if (value is Map) {
+        final product = Map<String, dynamic>.from(value);
+        
+        // Try to get profitTotal first (batch system)
+        final profitTotal = product['profitTotal'] as num?;
+        if (profitTotal != null) {
+          totalProfit += profitTotal as double;
+        } else {
+          // Fallback: calculate from profitMargin or manual calculation
+          final profitMargin = product['profitMargin'] as num?;
+          final quantity = product['quantity'] as num? ?? 1;
+          
+          if (profitMargin != null) {
+            totalProfit += (profitMargin as double) * (quantity as double);
+          } else {
+            // Final fallback: calculate from prices
+            final sellingPrice = (product['sellingPrice'] as num? ?? 0).toDouble();
+            final boughtPrice = (product['boughtPrice'] as num? ?? 0).toDouble();
+            final profit = (sellingPrice - boughtPrice) * (quantity as double);
+            totalProfit += profit;
+          }
+        }
+      }
+    });
+
+    final isProfit = totalProfit >= 0;
+    final profitDisplay = totalProfit.toStringAsFixed(0);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: (isProfit ? Colors.green : Colors.red).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isProfit ? Icons.trending_up : Icons.trending_down,
+            size: 14,
+            color: isProfit ? Colors.green : Colors.red,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '₹$profitDisplay ${isProfit ? 'Profit' : 'Loss'}',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: isProfit ? Colors.green : Colors.red,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
@@ -332,6 +419,15 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                             ),
                                           ),
                                         ),
+                                      const SizedBox(height: 8),
+                                      // Items count and Profit/Loss badges
+                                      Row(
+                                        children: [
+                                          _buildItemsCountBadge(bill['products'] as Map<dynamic, dynamic>? ?? {}),
+                                          const SizedBox(width: 8),
+                                          _buildProfitBadge(bill['products'] as Map<dynamic, dynamic>? ?? {}),
+                                        ],
+                                      ),
                                     ],
                                   ),
                                 ),

@@ -15,6 +15,7 @@ class ReviewBillingDetails extends StatefulWidget {
   final int? amountPaid;
   final int? amountRemaining;
   final String paymentMethod;
+  final String nextPaymentDate;
 
   const ReviewBillingDetails({
     required this.billDate,
@@ -28,6 +29,7 @@ class ReviewBillingDetails extends StatefulWidget {
     this.amountPaid,
     this.amountRemaining,
     required this.paymentMethod,
+    this.nextPaymentDate = '',
     super.key,
   });
 
@@ -487,6 +489,30 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ),
                 ],
               ),
+              if ((widget.amountRemaining ?? 0) > 0) ...[
+                const SizedBox(height: 12),
+                Divider(color: secondaryTextColor?.withOpacity(0.3)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Next Payment Date',
+                      style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                    ),
+                    Text(
+                      widget.nextPaymentDate.isNotEmpty
+                          ? widget.nextPaymentDate
+                          : 'Not set',
+                      style: TextStyle(
+                        color: primaryTextColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
           ],
         ),
       ),
@@ -619,6 +645,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               amountRemaining: widget.totalAmountPaid ? 0 : (widget.amountRemaining ?? 0),
               products: widget.products,
               paymentMethod: widget.paymentMethod,
+              nextPaymentDate: widget.nextPaymentDate,
             ),
           ),
         );
@@ -662,6 +689,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       'amountPaid': actualAmountPaid,
       'amountRemaining': actualAmountRemaining,
       'paymentMethod': widget.paymentMethod,
+      'nextPaymentDate': widget.nextPaymentDate,
       'timestamp': DateTime.now().toIso8601String(),
       'products': {
         for (int i = 0; i < widget.products.length; i++)
@@ -673,6 +701,9 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             'price': widget.products[i].price,
             'boughtPrice': widget.products[i].boughtPrice,
             'total': widget.products[i].total,
+            'batchId': widget.products[i].batchId,
+            'profitMargin': widget.products[i].profitMargin,
+            'profitTotal': widget.products[i].profitTotal,
           }
       },
       'payments': [

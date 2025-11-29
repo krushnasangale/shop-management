@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/add_purchase_review.dart';
 
@@ -1311,13 +1313,52 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
       // Then, save all purchased items with the purchase reference ID
       for (var item in _boughtItems) {
+        // Generate unique batch ID based on product name + supplier name + buying price
+        final batchHash = md5.convert(
+          utf8.encode('${item.productName}_${item.supplierName}_${item.buyingPrice}'),
+        ).toString().substring(0, 8);
+        final batchId = '${item.productName}_${item.supplierId}_$batchHash';
+
+        // Check if product already exists in stock (qty > 0)
+        // Get all existing batches for this product
+        final existingSnapshot = await productsRef.get();
+        int existingTotalQty = 0;
+        int existingMinLimit = 0;
+        String? existingMinLimitBatchId;
+        
+        if (existingSnapshot.exists) {
+          final allProducts = existingSnapshot.value as Map<dynamic, dynamic>;
+          for (var entry in allProducts.entries) {
+            final product = entry.value as Map<dynamic, dynamic>;
+            if (product['productName'] == item.productName) {
+              existingTotalQty += (product['quantity'] ?? 0) as int;
+              // Find the batch that holds the minLimit (minLimit > 0)
+              final batchMinLimit = (product['minLimit'] ?? 0) as int;
+              if (batchMinLimit > 0 && existingMinLimitBatchId == null) {
+                existingMinLimit = batchMinLimit;
+                existingMinLimitBatchId = entry.key.toString();
+              }
+            }
+          }
+        }
+
+        // Determine the minLimit for this new batch
+        int batchMinLimit;
+        if (existingTotalQty == 0) {
+          // Product not in stock, this batch will store the minLimit
+          batchMinLimit = item.minLimit;
+        } else {
+          // Product already in stock, new batch gets 0, we'll update the existing batch
+          batchMinLimit = 0;
+        }
+
         final productEntry = {
           'purchaseId': purchaseId,
           'productName': item.productName,
           'supplierId': item.supplierId,
           'supplierName': item.supplierName,
           'unit': item.unit,
-          'minLimit': item.minLimit,
+          'minLimit': batchMinLimit,
           'initialQuantity': item.initialQuantity,
           'quantity': item.quantity,
           'buyingPrice': item.buyingPrice,
@@ -1325,8 +1366,44 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'total': item.total,
           'date': _dateController.text,
           'timestamp': DateTime.now().toIso8601String(),
+          'batchId': batchId,
+          'purchaseDate': _dateController.text,
+          'profitMargin': (item.sellingPrice - item.buyingPrice).toDouble(),
         };
-        await productsRef.push().set(productEntry);
+        
+        // Save to purchased-products and capture the generated product ID
+        final newProductRef = productsRef.push();
+        await newProductRef.set(productEntry);
+        final productId = newProductRef.key!; // Get the unique product ID
+
+        // Also save to permanent purchase history using productId (not productName)
+        // This ensures history is not affected if product name changes in future
+        final purchaseHistoryRef = database.ref('product-purchase-history/${user.uid}/$productId');
+        final historyEntry = {
+          'purchaseId': purchaseId,
+          'productId': productId, // Store the unique product ID
+          'productName': item.productName,
+          'supplierId': item.supplierId,
+          'supplierName': item.supplierName,
+          'unit': item.unit,
+          'quantity': item.initialQuantity,
+          'buyingPrice': item.buyingPrice,
+          'sellingPrice': item.sellingPrice,
+          'total': item.total,
+          'date': _dateController.text,
+          'timestamp': DateTime.now().toIso8601String(),
+          'batchId': batchId,
+        };
+        await purchaseHistoryRef.push().set(historyEntry);
+        
+        // If product already exists and we need to update minLimit
+        if (existingTotalQty > 0 && existingMinLimitBatchId != null) {
+          // Update the existing batch that holds the minLimit
+          final updatedMinLimit = existingMinLimit + item.minLimit;
+          await productsRef.child(existingMinLimitBatchId).update({
+            'minLimit': updatedMinLimit,
+          });
+        }
       }
 
       if (mounted) {

@@ -26,17 +26,25 @@ class _DashboardState extends State<Dashboard> {
   StreamSubscription<DatabaseEvent>? _billsSubscription;
   StreamSubscription<DatabaseEvent>? _purchasesSubscription;
   StreamSubscription<DatabaseEvent>? _productsSubscription;
-  
+
   // Top Selling Products
   List<Map<String, dynamic>> _topSellingProducts = [];
-  
+
   // Pending Payments
   List<Map<String, dynamic>> _pendingPayments = [];
   int _totalPendingAmount = 0;
-  
+
+  // Upcoming Payments (based on next payment date where remaining amount is 0)
+  List<Map<String, dynamic>> _upcomingPayments = [];
+
   // Expansion states
   bool _expandTopProducts = false;
   bool _expandPendingPayments = false;
+  bool _expandUpcomingPayments = false;
+  bool _expandOrderNow = false;
+
+  // Order Now Products (qty = 0)
+  List<Map<String, dynamic>> _orderNowProducts = [];
 
   @override
   void initState() {
@@ -67,12 +75,17 @@ class _DashboardState extends State<Dashboard> {
       _calculateAndUpdateDashboard(user.uid);
       _loadTopSellingProducts(userId);
       _loadPendingPayments(userId);
+      _loadUpcomingPayments(userId);
+      _loadOrderNowProducts(userId);
     });
 
     // Listen to purchase-history changes
-    _purchasesSubscription = database.ref('purchase-history/$userId').onValue.listen((_) {
-      _calculateAndUpdateDashboard(user.uid);
-    });
+    _purchasesSubscription = database
+        .ref('purchase-history/$userId')
+        .onValue
+        .listen((_) {
+          _calculateAndUpdateDashboard(user.uid);
+        });
 
     // Listen to purchased products changes (for inventory)
     _productsSubscription = database
@@ -80,6 +93,7 @@ class _DashboardState extends State<Dashboard> {
         .onValue
         .listen((_) {
           _calculateAndUpdateDashboard(user.uid);
+          _loadOrderNowProducts(userId);
         });
   }
 
@@ -87,31 +101,38 @@ class _DashboardState extends State<Dashboard> {
     try {
       final database = FirebaseDatabase.instance;
       final billsSnapshot = await database.ref('bills/$userId').get();
-      
+
       final productSales = <String, Map<String, dynamic>>{};
-      
+
       if (billsSnapshot.exists) {
         final data = billsSnapshot.value as Map<dynamic, dynamic>;
         data.forEach((key, value) {
           if (value is Map) {
             final billData = Map<String, dynamic>.from(value);
             final products = billData['products'] as Map<dynamic, dynamic>?;
-            
+
             if (products != null) {
               products.forEach((pKey, pValue) {
                 if (pValue is Map) {
                   final productData = Map<String, dynamic>.from(pValue);
-                  final productName = productData['productName'] as String? ?? 'Unknown';
+                  final productName =
+                      productData['productName'] as String? ?? 'Unknown';
                   final quantity = productData['quantity'] as num? ?? 0;
                   final price = productData['price'] as num? ?? 0;
-                  
+                  final boughtPrice = productData['boughtPrice'] as num? ?? 0;
+                  final profitMargin = (price - boughtPrice).toDouble();
+                  final totalProfit = (profitMargin * quantity).toInt();
+
                   if (productSales.containsKey(productName)) {
                     productSales[productName]!['quantity'] += quantity.toInt();
-                    productSales[productName]!['revenue'] += (quantity * price).toInt();
+                    productSales[productName]!['revenue'] += (quantity * price)
+                        .toInt();
+                    productSales[productName]!['totalProfit'] += totalProfit;
                   } else {
                     productSales[productName] = {
                       'quantity': quantity.toInt(),
                       'revenue': (quantity * price).toInt(),
+                      'totalProfit': totalProfit,
                       'name': productName,
                     };
                   }
@@ -121,14 +142,14 @@ class _DashboardState extends State<Dashboard> {
           }
         });
       }
-      
+
       // Convert to list and sort by revenue
       final topProducts = productSales.values.toList()
         ..sort((a, b) => (b['revenue'] as int).compareTo(a['revenue'] as int));
-      
+
       if (mounted) {
         setState(() {
-          _topSellingProducts = topProducts.take(5).toList();
+          _topSellingProducts = topProducts.take(3).toList();
         });
       }
     } catch (e) {
@@ -136,47 +157,56 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  
   Future<void> _loadPendingPayments(String userId) async {
     try {
       final database = FirebaseDatabase.instance;
       final billsSnapshot = await database.ref('bills/$userId').get();
-      
+
       final pendingBills = <Map<String, dynamic>>[];
       int totalPending = 0;
-      
+
       if (billsSnapshot.exists) {
         final data = billsSnapshot.value as Map<dynamic, dynamic>;
         data.forEach((key, value) {
           if (value is Map) {
             final billData = Map<String, dynamic>.from(value);
-            final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? false;
-            
-            // If not fully paid, it's a pending payment
+            final totalAmountPaid =
+                billData['totalAmountPaid'] as bool? ?? false;
+
+            // Only process unpaid bills
             if (!totalAmountPaid) {
               final amountRemaining = billData['amountRemaining'] as num? ?? 0;
-              pendingBills.add({
-                'id': key,
-                'customerName': billData['customerName'] ?? 'Unknown',
-                'customerMobile': billData['customerMobile'] ?? 'N/A',
-                'customerVehicle': billData['customerVehicle'],
-                'billDate': billData['billDate'] ?? 'N/A',
-                'amountRemaining': amountRemaining.toInt(),
-                'totalAmount': billData['totalAmount'] ?? 0,
-                'totalAmountPaid': billData['totalAmountPaid'] ?? false,
-                'amountPaid': billData['amountPaid'] ?? 0,
-                'products': billData['products'],
-                'paymentMethod': billData['paymentMethod'] ?? 'cash',
-              });
-              totalPending += amountRemaining.toInt();
+              final amountRemainingInt = amountRemaining.toInt();
+
+              // Only add if there's an actual amount remaining
+              if (amountRemainingInt > 0) {
+                pendingBills.add({
+                  'id': key,
+                  'customerName': billData['customerName'] ?? 'Unknown',
+                  'customerMobile': billData['customerMobile'] ?? 'N/A',
+                  'customerVehicle': billData['customerVehicle'],
+                  'billDate': billData['billDate'] ?? 'N/A',
+                  'amountRemaining': amountRemainingInt,
+                  'totalAmount': billData['totalAmount'] ?? 0,
+                  'totalAmountPaid': false,
+                  'amountPaid': billData['amountPaid'] ?? 0,
+                  'products': billData['products'],
+                  'paymentMethod': billData['paymentMethod'] ?? 'cash',
+                });
+                totalPending += amountRemainingInt;
+              }
             }
           }
         });
       }
-      
-      // Sort by amount remaining (highest first)
-      pendingBills.sort((a, b) => (b['amountRemaining'] as int).compareTo(a['amountRemaining'] as int));
-      
+
+      // Sort by amount remaining (highest first) and take top 5
+      pendingBills.sort(
+        (a, b) => (b['amountRemaining'] as int).compareTo(
+          a['amountRemaining'] as int,
+        ),
+      );
+
       if (mounted) {
         setState(() {
           _pendingPayments = pendingBills.take(5).toList();
@@ -188,6 +218,120 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
+  Future<void> _loadUpcomingPayments(String userId) async {
+    try {
+      final database = FirebaseDatabase.instance;
+      final billsSnapshot = await database.ref('bills/$userId').get();
+
+      final upcomingBills = <Map<String, dynamic>>[];
+      final now = DateTime.now();
+      final currentMonth = now.month;
+      final currentYear = now.year;
+
+      if (billsSnapshot.exists) {
+        final data = billsSnapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, value) {
+          if (value is Map) {
+            final billData = Map<String, dynamic>.from(value);
+            final nextPaymentDate = billData['nextPaymentDate'] as String?;
+
+            // Show upcoming payments where nextPaymentDate is set (regardless of remaining amount)
+            if (nextPaymentDate != null && nextPaymentDate.isNotEmpty) {
+              try {
+                // Parse date in dd/MM/yyyy format
+                final dateParts = nextPaymentDate.split('/');
+                if (dateParts.length == 3) {
+                  final month = int.parse(dateParts[1]);
+                  final year = int.parse(dateParts[2]);
+
+                  // Only include if it's in the current month and year
+                  if (month == currentMonth && year == currentYear) {
+                    upcomingBills.add({
+                      'id': key,
+                      'customerName': billData['customerName'] ?? 'Unknown',
+                      'customerMobile': billData['customerMobile'] ?? 'N/A',
+                      'customerVehicle': billData['customerVehicle'],
+                      'billDate': billData['billDate'] ?? 'N/A',
+                      'nextPaymentDate': nextPaymentDate,
+                      'totalAmount': billData['totalAmount'] ?? 0,
+                      'amountPaid': billData['amountPaid'] ?? 0,
+                      'amountRemaining': billData['amountRemaining'] ?? 0,
+                      'products': billData['products'],
+                    });
+                  }
+                }
+              } catch (e) {
+                print('Error parsing date $nextPaymentDate: $e');
+              }
+            }
+          }
+        });
+      }
+
+      // Sort by next payment date (upcoming first)
+      upcomingBills.sort((a, b) {
+        try {
+          final dateA = DateTime.parse(
+            a['nextPaymentDate'].replaceAll('/', '-'),
+          );
+          final dateB = DateTime.parse(
+            b['nextPaymentDate'].replaceAll('/', '-'),
+          );
+          return dateA.compareTo(dateB);
+        } catch (e) {
+          return 0;
+        }
+      });
+
+      if (mounted) {
+        setState(() {
+          _upcomingPayments = upcomingBills.take(5).toList();
+        });
+      }
+    } catch (e) {
+      print('Error loading upcoming payments: $e');
+    }
+  }
+
+  Future<void> _loadOrderNowProducts(String userId) async {
+    try {
+      final database = FirebaseDatabase.instance;
+      final productsSnapshot = await database
+          .ref('purchased-products/$userId')
+          .get();
+
+      final orderNowList = <Map<String, dynamic>>[];
+
+      if (productsSnapshot.exists) {
+        final data = productsSnapshot.value as Map<dynamic, dynamic>;
+        data.forEach((key, productValue) {
+          if (productValue is Map) {
+            final productData = Map<String, dynamic>.from(productValue);
+            final quantity = productData['quantity'] as num? ?? 0;
+
+            // Only process products with zero quantity (out of stock)
+            if (quantity.toInt() == 0) {
+              orderNowList.add({
+                'productName': productData['productName'] ?? 'Unknown',
+                'supplierName':
+                    productData['supplierName'] ?? 'Unknown Supplier',
+                'unit': productData['unit'] ?? 'N/A',
+                'quantity': 0,
+              });
+            }
+          }
+        });
+      }
+
+      if (mounted) {
+        setState(() {
+          _orderNowProducts = orderNowList;
+        });
+      }
+    } catch (e) {
+      print('Error loading order now products: $e');
+    }
+  }
 
   Future<void> _calculateAndUpdateDashboard(String userId) async {
     try {
@@ -216,7 +360,7 @@ class _DashboardState extends State<Dashboard> {
               totalSales += (totalAmount as num).toInt();
               salesCount++; // Increment sales count
 
-              // Calculate profit for this bill using bought price and selling price
+              // Calculate profit for this bill using profitMargin if available, else calculate
               if (products != null) {
                 products.forEach((pKey, pValue) {
                   if (pValue is Map) {
@@ -224,13 +368,26 @@ class _DashboardState extends State<Dashboard> {
                     final quantity = productData['quantity'] as num? ?? 0;
                     final sellingPrice = productData['price'] as num? ?? 0;
                     final boughtPrice = productData['boughtPrice'] as num? ?? 0;
+                    final profitMargin = productData['profitMargin'] as num?;
 
                     itemsSold += quantity.toInt();
 
-                    final profitPerUnit = (sellingPrice - boughtPrice).toInt();
-                    final productProfit = (profitPerUnit * quantity).toInt();
-
-                    totalProfit += productProfit;
+                    // Use stored profitTotal if available (new batch system), else calculate
+                    final profitTotal = productData['profitTotal'] as num?;
+                    if (profitTotal != null) {
+                      // Use stored profit from batch system (accurate per batch)
+                      totalProfit += profitTotal.toInt();
+                    } else if (profitMargin != null) {
+                      // Use profitMargin if available (backward compatible)
+                      final productProfit = (profitMargin * quantity).toInt();
+                      totalProfit += productProfit;
+                    } else {
+                      // Fallback: calculate from prices (legacy bills)
+                      final profitPerUnit = (sellingPrice - boughtPrice)
+                          .toInt();
+                      final productProfit = (profitPerUnit * quantity).toInt();
+                      totalProfit += productProfit;
+                    }
                   }
                 });
               }
@@ -242,7 +399,7 @@ class _DashboardState extends State<Dashboard> {
       // Load bought products data for the selected month
       int buyingCount = 0;
       int totalQuantityBoughtThisMonth = 0;
-      
+
       // Try to get data from purchases (purchase entry headers)
       final purchasesSnapshot = await database.ref('purchases/$userId').get();
 
@@ -267,7 +424,9 @@ class _DashboardState extends State<Dashboard> {
         });
       } else {
         // Fallback: Calculate from purchased-products if purchases doesn't exist
-        final productsSnapshot = await database.ref('purchased-products/$userId').get();
+        final productsSnapshot = await database
+            .ref('purchased-products/$userId')
+            .get();
         if (productsSnapshot.exists) {
           final data = productsSnapshot.value as Map<dynamic, dynamic>;
           data.forEach((key, value) {
@@ -280,13 +439,13 @@ class _DashboardState extends State<Dashboard> {
                 final quantity = productData['quantity'] as num? ?? 0;
                 final buyingPrice = productData['buyingPrice'] as num? ?? 0;
                 final amount = (quantity * buyingPrice).toInt();
-                
+
                 totalBuying += amount;
                 totalQuantityBoughtThisMonth += quantity.toInt();
               }
             }
           });
-          
+
           // Count distinct purchases from the products
           final purchasesFromProducts = <String>{};
           data.forEach((key, value) {
@@ -353,13 +512,15 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _buildTopSellingProductsCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[850] : Colors.purple.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.purple.withOpacity(0.3) : Colors.purple.withOpacity(0.15),
+          color: isDark
+              ? Colors.purple.withOpacity(0.3)
+              : Colors.purple.withOpacity(0.15),
           width: 1,
         ),
       ),
@@ -367,7 +528,8 @@ class _DashboardState extends State<Dashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () => setState(() => _expandTopProducts = !_expandTopProducts),
+            onTap: () =>
+                setState(() => _expandTopProducts = !_expandTopProducts),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -384,7 +546,10 @@ class _DashboardState extends State<Dashboard> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.purple.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(6),
@@ -400,7 +565,9 @@ class _DashboardState extends State<Dashboard> {
                       ),
                       const SizedBox(width: 8),
                       Icon(
-                        _expandTopProducts ? Icons.expand_less : Icons.expand_more,
+                        _expandTopProducts
+                            ? Icons.expand_less
+                            : Icons.expand_more,
                         color: Colors.purple[600],
                         size: 20,
                       ),
@@ -410,56 +577,83 @@ class _DashboardState extends State<Dashboard> {
               ),
             ),
           ),
-          if (_expandTopProducts) ...[            
-            Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 1),
+          if (_expandTopProducts) ...[
+            Divider(
+              color: isDark ? Colors.grey[700] : Colors.grey[300],
+              height: 1,
+            ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: _topSellingProducts.isEmpty
-                ? Center(
-                    child: Text(
-                      'No sales data yet',
-                      style: TextStyle(color: Colors.grey[500]),
-                    ),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _topSellingProducts.length,
-                    separatorBuilder: (_, __) => Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 12),
-                    itemBuilder: (context, index) {
-                      final product = _topSellingProducts[index];
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${index + 1}. ${product['name']}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.grey[100] : Colors.grey[800],
+                  ? Center(
+                      child: Text(
+                        'No sales data yet',
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _topSellingProducts.length,
+                      separatorBuilder: (_, __) => Divider(
+                        color: isDark ? Colors.grey[700] : Colors.grey[300],
+                        height: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final product = _topSellingProducts[index];
+                        final profit = product['totalProfit'] as int? ?? 0;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${index + 1}. ${product['name']}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? Colors.grey[100]
+                                          : Colors.grey[800],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Qty: ${product['quantity']} • Revenue: ₹${product['revenue']}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Qty: ${product['quantity']} • Revenue: ₹${product['revenue']}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark
+                                              ? Colors.grey[400]
+                                              : Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Profit: ₹$profit',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: profit >= 0
+                                              ? Colors.green[600]
+                                              : Colors.red[600],
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                          ],
+                        );
+                      },
+                    ),
             ),
           ],
         ],
@@ -467,16 +661,17 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  
   Widget _buildPendingPaymentsCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[850] : Colors.orange.withOpacity(0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? Colors.orange.withOpacity(0.3) : Colors.orange.withOpacity(0.15),
+          color: isDark
+              ? Colors.orange.withOpacity(0.3)
+              : Colors.orange.withOpacity(0.15),
           width: 1,
         ),
       ),
@@ -484,7 +679,9 @@ class _DashboardState extends State<Dashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () => setState(() => _expandPendingPayments = !_expandPendingPayments),
+            onTap: () => setState(
+              () => _expandPendingPayments = !_expandPendingPayments,
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -501,7 +698,10 @@ class _DashboardState extends State<Dashboard> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.orange.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(6),
@@ -517,7 +717,9 @@ class _DashboardState extends State<Dashboard> {
                       ),
                       const SizedBox(width: 8),
                       Icon(
-                        _expandPendingPayments ? Icons.expand_less : Icons.expand_more,
+                        _expandPendingPayments
+                            ? Icons.expand_less
+                            : Icons.expand_more,
                         color: Colors.orange[600],
                         size: 20,
                       ),
@@ -527,27 +729,339 @@ class _DashboardState extends State<Dashboard> {
               ),
             ),
           ),
-          if (_expandPendingPayments) ...[            
-            Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 1),
+          if (_expandPendingPayments) ...[
+            Divider(
+              color: isDark ? Colors.grey[700] : Colors.grey[300],
+              height: 1,
+            ),
             Padding(
               padding: const EdgeInsets.all(16),
               child: _pendingPayments.isEmpty
-                ? Center(
-                    child: Text(
-                      'No pending payments',
-                      style: TextStyle(color: Colors.grey[500]),
+                  ? Center(
+                      child: Text(
+                        'No pending payments',
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _pendingPayments.length,
+                      separatorBuilder: (_, __) => Divider(
+                        color: isDark ? Colors.grey[700] : Colors.grey[300],
+                        height: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final payment = _pendingPayments[index];
+                        return InkWell(
+                          onTap: () => _navigateToBillDetails(payment),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      payment['customerName'],
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? Colors.grey[100]
+                                            : Colors.grey[800],
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Bill: ₹${payment['totalAmount']} • Remaining: ₹${payment['amountRemaining']}',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  )
-                : ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _pendingPayments.length,
-                    separatorBuilder: (_, __) => Divider(color: isDark ? Colors.grey[700] : Colors.grey[300], height: 12),
-                    itemBuilder: (context, index) {
-                      final payment = _pendingPayments[index];
-                      return InkWell(
-                        onTap: () => _navigateToBillDetails(payment),
-                        child: Row(
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpcomingPaymentsCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.blue.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.blue.withOpacity(0.3)
+              : Colors.blue.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(
+              () => _expandUpcomingPayments = !_expandUpcomingPayments,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Upcoming Payments',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.grey[100] : Colors.grey[800],
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              '${_upcomingPayments.length} Due',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.blue[600],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            _expandUpcomingPayments
+                                ? Icons.expand_less
+                                : Icons.expand_more,
+                            color: Colors.blue[600],
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Text(
+                    _getMonthYear(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expandUpcomingPayments) ...[
+            Divider(
+              color: isDark ? Colors.grey[700] : Colors.grey[300],
+              height: 1,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _upcomingPayments.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No upcoming payments',
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _upcomingPayments.length,
+                      separatorBuilder: (_, __) => Divider(
+                        color: isDark ? Colors.grey[700] : Colors.grey[300],
+                        height: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final payment = _upcomingPayments[index];
+                        return InkWell(
+                          onTap: () => _navigateToBillDetails(payment),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      payment['customerName'],
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark
+                                            ? Colors.grey[100]
+                                            : Colors.grey[800],
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Due: ${payment['nextPaymentDate']}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: isDark
+                                                ? Colors.grey[400]
+                                                : Colors.grey[600],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '₹${payment['totalAmount']}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.blue[600],
+                                          ),
+                                        ),
+
+                                        const Spacer(),
+                                        Text(
+                                          'Remaining: ₹${payment['amountRemaining']}',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.orange[600],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOrderNowCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.red.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.red.withOpacity(0.3)
+              : Colors.red.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expandOrderNow = !_expandOrderNow),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Order Now',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.grey[100] : Colors.grey[800],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${_orderNowProducts.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _expandOrderNow ? Icons.expand_less : Icons.expand_more,
+                        color: Colors.red[600],
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expandOrderNow) ...[
+            Divider(
+              color: isDark ? Colors.grey[700] : Colors.grey[300],
+              height: 1,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: _orderNowProducts.isEmpty
+                  ? Center(
+                      child: Text(
+                        'No products to order',
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _orderNowProducts.length,
+                      separatorBuilder: (_, __) => Divider(
+                        color: isDark ? Colors.grey[700] : Colors.grey[300],
+                        height: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final product = _orderNowProducts[index];
+                        return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Expanded(
@@ -555,31 +1069,52 @@ class _DashboardState extends State<Dashboard> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    payment['customerName'],
+                                    product['productName'],
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.grey[100] : Colors.grey[800],
+                                      color: isDark
+                                          ? Colors.grey[100]
+                                          : Colors.grey[800],
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Bill: ₹${payment['totalAmount']} • Remaining: ₹${payment['amountRemaining']}',
+                                    '${product['supplierName']} • ${product['unit']}',
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                      color: isDark
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600],
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'Stock: 0',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.red[600],
+                                ),
+                              ),
+                            ),
                           ],
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
             ),
           ],
         ],
@@ -591,7 +1126,7 @@ class _DashboardState extends State<Dashboard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -610,20 +1145,28 @@ class _DashboardState extends State<Dashboard> {
                         children: [
                           Text(
                             'Dashboard',
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                              color: primaryTextColor,
-                            ),
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
+                                  color: primaryTextColor,
+                                ),
                           ),
                           const SizedBox(height: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.blue.withOpacity(0.2) : Colors.blue.withOpacity(0.1),
+                              color: isDark
+                                  ? Colors.blue.withOpacity(0.2)
+                                  : Colors.blue.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(
-                                color: isDark ? Colors.blue.withOpacity(0.6) : Colors.blue.withOpacity(0.3),
+                                color: isDark
+                                    ? Colors.blue.withOpacity(0.6)
+                                    : Colors.blue.withOpacity(0.3),
                                 width: isDark ? 1.2 : 1,
                               ),
                             ),
@@ -632,7 +1175,9 @@ class _DashboardState extends State<Dashboard> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.blue[300] : Colors.blue[700],
+                                color: isDark
+                                    ? Colors.blue[300]
+                                    : Colors.blue[700],
                               ),
                             ),
                           ),
@@ -642,10 +1187,14 @@ class _DashboardState extends State<Dashboard> {
                         children: [
                           Container(
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.grey[750] : Colors.grey[100],
+                              color: isDark
+                                  ? Colors.grey[750]
+                                  : Colors.grey[100],
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: isDark ? Colors.grey[600]! : Colors.transparent,
+                                color: isDark
+                                    ? Colors.grey[600]!
+                                    : Colors.transparent,
                                 width: isDark ? 1 : 0,
                               ),
                             ),
@@ -656,7 +1205,10 @@ class _DashboardState extends State<Dashboard> {
                                   value: 'day',
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.calendar_today, size: 18),
+                                      const Icon(
+                                        Icons.calendar_today,
+                                        size: 18,
+                                      ),
                                       const SizedBox(width: 8),
                                       const Text('Day'),
                                     ],
@@ -666,7 +1218,10 @@ class _DashboardState extends State<Dashboard> {
                                   value: 'month',
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.calendar_month, size: 18),
+                                      const Icon(
+                                        Icons.calendar_month,
+                                        size: 18,
+                                      ),
                                       const SizedBox(width: 8),
                                       const Text('Month'),
                                     ],
@@ -676,7 +1231,10 @@ class _DashboardState extends State<Dashboard> {
                                   value: 'year',
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.calendar_month, size: 18),
+                                      const Icon(
+                                        Icons.calendar_month,
+                                        size: 18,
+                                      ),
                                       const SizedBox(width: 8),
                                       const Text('Year'),
                                     ],
@@ -691,12 +1249,23 @@ class _DashboardState extends State<Dashboard> {
                                 _loadSalesReport();
                               },
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                                 child: Row(
                                   children: [
-                                    Icon(Icons.filter_list, color: Colors.blue[600], size: 20),
+                                    Icon(
+                                      Icons.filter_list,
+                                      color: Colors.blue[600],
+                                      size: 20,
+                                    ),
                                     const SizedBox(width: 4),
-                                    Icon(Icons.arrow_drop_down, color: Colors.blue[600], size: 18),
+                                    Icon(
+                                      Icons.arrow_drop_down,
+                                      color: Colors.blue[600],
+                                      size: 18,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -706,11 +1275,22 @@ class _DashboardState extends State<Dashboard> {
                           Material(
                             color: Colors.transparent,
                             child: IconButton(
-                              icon: Icon(Icons.calendar_today, color: Colors.blue[600], size: 22),
+                              icon: Icon(
+                                Icons.calendar_today,
+                                color: Colors.blue[600],
+                                size: 22,
+                              ),
                               onPressed: () => _showMonthPicker(context),
                               style: IconButton.styleFrom(
-                                backgroundColor: isDark ? Colors.grey[750] : Colors.grey[100],
-                                side: isDark ? BorderSide(color: Colors.grey[600]!, width: 1) : null,
+                                backgroundColor: isDark
+                                    ? Colors.grey[750]
+                                    : Colors.grey[100],
+                                side: isDark
+                                    ? BorderSide(
+                                        color: Colors.grey[600]!,
+                                        width: 1,
+                                      )
+                                    : null,
                               ),
                             ),
                           ),
@@ -727,7 +1307,10 @@ class _DashboardState extends State<Dashboard> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 15,
+                        vertical: 6,
+                      ),
                       child: Column(
                         children: [
                           // Two Column Layout
@@ -737,7 +1320,8 @@ class _DashboardState extends State<Dashboard> {
                                 child: _buildModernCard(
                                   title: 'Total Sales',
                                   value: '₹${_formatCurrency(_totalSales)}',
-                                  subtitle: 'Bills: $_totalSalesCount • Items: $_totalItemsSold',
+                                  subtitle:
+                                      'Bills: $_totalSalesCount • Items: $_totalItemsSold',
                                   backgroundColor: Colors.blue.withOpacity(0.1),
                                   textColor: Colors.blue[700]!,
                                   icon: Icons.trending_up,
@@ -748,8 +1332,11 @@ class _DashboardState extends State<Dashboard> {
                                 child: _buildModernCard(
                                   title: 'Total Purchase',
                                   value: '₹${_formatCurrency(_totalBuying)}',
-                                  subtitle: 'Orders: $_totalBuyingCount • Qty: $_totalQuantityBought',
-                                  backgroundColor: Colors.orange.withOpacity(0.1),
+                                  subtitle:
+                                      'Orders: $_totalBuyingCount • Qty: $_totalQuantityBought',
+                                  backgroundColor: Colors.orange.withOpacity(
+                                    0.1,
+                                  ),
                                   textColor: Colors.orange[700]!,
                                   icon: Icons.shopping_bag,
                                 ),
@@ -757,17 +1344,25 @@ class _DashboardState extends State<Dashboard> {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          
+
                           // Profit/Loss Card
                           _buildProfitLossCard(),
                           const SizedBox(height: 12),
-                          
+
+                          // Upcoming Payments
+                          _buildUpcomingPaymentsCard(),
+                          const SizedBox(height: 12),
+
                           // Top Selling Products
                           _buildTopSellingProductsCard(),
                           const SizedBox(height: 12),
-                          
+
                           // Pending Payments
                           _buildPendingPaymentsCard(),
+                          const SizedBox(height: 12),
+
+                          // Order Now
+                          _buildOrderNowCard(),
                           const SizedBox(height: 80),
                         ],
                       ),
@@ -788,13 +1383,15 @@ class _DashboardState extends State<Dashboard> {
     required IconData icon,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[850] : backgroundColor,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? textColor.withOpacity(0.4) : textColor.withOpacity(0.2),
+          color: isDark
+              ? textColor.withOpacity(0.4)
+              : textColor.withOpacity(0.2),
           width: isDark ? 1.5 : 1,
         ),
       ),
@@ -821,7 +1418,9 @@ class _DashboardState extends State<Dashboard> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: isDark ? textColor.withOpacity(0.15) : textColor.withOpacity(0.1),
+                  color: isDark
+                      ? textColor.withOpacity(0.15)
+                      : textColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 16, color: textColor),
@@ -898,7 +1497,9 @@ class _DashboardState extends State<Dashboard> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isDark ? bgColor.withOpacity(0.15) : bgColor.withOpacity(0.15),
+              color: isDark
+                  ? bgColor.withOpacity(0.15)
+                  : bgColor.withOpacity(0.15),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -1075,12 +1676,12 @@ class _DashboardState extends State<Dashboard> {
       return '${getMonthName(selectedDate.month)} ${selectedDate.year}';
     }
   }
-  
+
   void _navigateToBillDetails(Map<String, dynamic> bill) {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
-      
+
       // Convert bill data to match ViewBillDetailsScreen parameters
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -1093,24 +1694,30 @@ class _DashboardState extends State<Dashboard> {
             totalAmount: (bill['totalAmount'] ?? 0) as int,
             totalAmountPaid: (bill['totalAmountPaid'] as bool?) ?? false,
             amountPaid: (bill['amountPaid'] ?? 0) as int,
-            amountRemaining: (bill['amountRemaining'] ?? bill['totalAmount'] ?? 0) as int,
-            products: bill['products'] != null 
-              ? (bill['products'] as Map).entries.map((e) => {
-                  'productName': (e.value['productName'] ?? 'Unknown') as String,
-                  'quantity': (e.value['quantity'] ?? 0) as int,
-                  'price': (e.value['price'] ?? 0) as int,
-                  'boughtPrice': (e.value['boughtPrice'] ?? 0) as int,
-                }).toList()
-              : null,
+            amountRemaining:
+                (bill['amountRemaining'] ?? bill['totalAmount'] ?? 0) as int,
+            products: bill['products'] != null
+                ? (bill['products'] as Map).entries
+                      .map(
+                        (e) => {
+                          'productName':
+                              (e.value['productName'] ?? 'Unknown') as String,
+                          'quantity': (e.value['quantity'] ?? 0) as int,
+                          'price': (e.value['price'] ?? 0) as int,
+                          'boughtPrice': (e.value['boughtPrice'] ?? 0) as int,
+                        },
+                      )
+                      .toList()
+                : null,
             paymentMethod: (bill['paymentMethod'] ?? 'cash') as String,
           ),
         ),
       );
     } catch (e) {
       print('Error navigating to bill details: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error opening bill details: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error opening bill details: $e')));
     }
   }
 }

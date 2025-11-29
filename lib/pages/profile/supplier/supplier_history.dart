@@ -58,6 +58,8 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
               'buyingPrice': buyingPrice,
               'amount': amount,
               'unit': product['unit'] ?? '',
+              'batchId': product['batchId'] ?? '',
+              'profitMargin': (product['profitMargin'] ?? 0).toDouble(),
             });
           }
         }
@@ -167,43 +169,109 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                             final transaction = _supplierHistory[index];
                             return Card(
                               margin: const EdgeInsets.symmetric(vertical: 8),
-                              child: ListTile(
-                                title: Text(transaction['productName']),
-                                subtitle: Row(
+                              child: Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Product Name
                                     Text(
-                                      'Date: ',
-                                      style: TextStyle(fontSize: 12, color: primaryTextColor),
-                                    ),
-                                    Text(
-                                      '${transaction['date']}  ',
-                                      style: TextStyle(fontSize: 12, color: secondaryTextColor),
-                                    ),
-                                    Text(
-                                      'QTY: ',
-                                      style: TextStyle(fontSize: 12, color: primaryTextColor),
-                                    ),
-                                    Text(
-                                      '${transaction['quantity']} ${transaction['unit']}',
-                                      style: TextStyle(fontSize: 12, color: secondaryTextColor),
-                                    ),
-                                    
-                                  ],
-                                ),
-                                trailing: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      '₹${transaction['amount'].toStringAsFixed(2)}',
+                                      transaction['productName'],
                                       style: TextStyle(
-                                        fontWeight: FontWeight.bold,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
                                         color: primaryTextColor,
                                       ),
                                     ),
-                                    Text(
-                                      '₹${transaction['buyingPrice']} each',
-                                      style: TextStyle(fontSize: 11, color: secondaryTextColor),
+                                    const SizedBox(height: 8),
+                                    // Date, Quantity, Price Row
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Date: ',
+                                          style: TextStyle(fontSize: 12, color: primaryTextColor),
+                                        ),
+                                        Text(
+                                          '${transaction['date']}  ',
+                                          style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                        ),
+                                        Text(
+                                          'QTY: ',
+                                          style: TextStyle(fontSize: 12, color: primaryTextColor),
+                                        ),
+                                        Text(
+                                          '${transaction['quantity']} ${transaction['unit']}',
+                                          style: TextStyle(fontSize: 12, color: secondaryTextColor),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // Amount and Buying Price Row
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              '₹${transaction['amount'].toStringAsFixed(2)}',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
+                                                color: primaryTextColor,
+                                              ),
+                                            ),
+                                            Text(
+                                              '₹${transaction['buyingPrice']} each',
+                                              style: TextStyle(fontSize: 11, color: secondaryTextColor),
+                                            ),
+                                          ],
+                                        ),
+                                        // Batch Badges
+                                        Wrap(
+                                          spacing: 6,
+                                          children: [
+                                            if (transaction['batchId'].toString().isNotEmpty)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.purple.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  'Batch: ${transaction['batchId'].toString().substring(0, transaction['batchId'].toString().length > 8 ? 8 : transaction['batchId'].toString().length)}...',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.purple,
+                                                  ),
+                                                ),
+                                              ),
+                                            if (transaction['profitMargin'] as double > 0)
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.green.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  '₹${(transaction['profitMargin'] as double).toStringAsFixed(1)}/unit',
+                                                  style: const TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.green,
+                                                  ),
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

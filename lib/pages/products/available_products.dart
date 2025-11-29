@@ -122,25 +122,50 @@ class _AvailableProductsState extends State<AvailableProducts> {
     _searchQuery = _searchController.text.toLowerCase();
     if (!mounted) return;
     setState(() {
-      // Apply search filter
-      var filtered = _boughtProducts;
-      if (_searchQuery.isNotEmpty) {
-        filtered = filtered
-            .where(
-              (product) =>
-                  product.productName.toLowerCase().contains(_searchQuery) ||
-                  product.supplierName.toLowerCase().contains(_searchQuery),
-            )
-            .toList();
+      // Group products by name and consolidate quantities across all suppliers/batches
+      Map<String, List<BoughtProduct>> groupedByName = {};
+      
+      for (var product in _boughtProducts) {
+        if (!groupedByName.containsKey(product.productName)) {
+          groupedByName[product.productName] = [];
+        }
+        groupedByName[product.productName]!.add(product);
       }
 
-      // Apply status filter
+      // Apply search filter
+      var filtered = <BoughtProduct>[];
+      if (_searchQuery.isNotEmpty) {
+        groupedByName.forEach((productName, batches) {
+          if (productName.toLowerCase().contains(_searchQuery)) {
+            filtered.addAll(batches);
+          }
+        });
+      } else {
+        groupedByName.values.forEach((batches) => filtered.addAll(batches));
+      }
+
+      // Apply status filter - check consolidated quantity
       if (_selectedFilter != 'All') {
-        filtered = filtered
-            .where((product) =>
-                _getStockStatus(product.quantity, product.minLimit) ==
-                _selectedFilter)
-            .toList();
+        filtered = filtered.where((product) {
+          // Get all batches for this product
+          final allBatches = groupedByName[product.productName] ?? [];
+          
+          // Filter only available batches (quantity > 0)
+          final availableBatches = allBatches.where((p) => p.quantity > 0).toList();
+          
+          // Calculate total quantity from available batches only
+          final totalQty = availableBatches.fold(0, (sum, p) => sum + p.quantity);
+          
+          // Get min limit from the one batch that stores it (minLimit > 0)
+          final minLimitForStatus = availableBatches.isNotEmpty
+              ? (availableBatches.firstWhere(
+                  (batch) => batch.minLimit > 0,
+                  orElse: () => availableBatches.first,
+                ).minLimit)
+              : 0;
+          
+          return _getStockStatus(totalQty, minLimitForStatus) == _selectedFilter;
+        }).toList();
       }
 
       _filteredProducts = filtered;
@@ -547,7 +572,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
             ),
           ),
 
-          // --- Product List ---
+          // --- Product List (Grouped by Name with Batch Details) ---
           Expanded(
             child: _filteredProducts.isEmpty
                 ? Center(
@@ -556,22 +581,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                       style: TextStyle(color: secondaryTextColor),
                     ),
                   )
-                : ListView.builder(
-                    itemCount: _filteredProducts.length,
-                    itemBuilder: (context, index) {
-                      final product = _filteredProducts[index];
-                      return _buildProductItem(
-                        context,
-                        product.productName,
-                        product.unit,
-                        product.quantity.toString(),
-                        product.supplierName,
-                        product.buyingPrice,
-                        product.sellingPrice,
-                        product,
-                      );
-                    },
-                  ),
+                : _buildGroupedProductList(context),
           ),
         ],
       ),
@@ -611,9 +621,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
   // Helper function to determine stock status with descriptive text
   String _getStockStatus(int quantity, int minLimit) {
-    if (quantity <= minLimit) {
+    if (quantity == 0) {
       return 'Reorder Now';
-    } else if (quantity <= minLimit + (minLimit ~/ 2)) {
+    } else if (quantity <= minLimit) {
       return 'Order Soon';
     } else {
       return 'Well Stocked';
@@ -622,9 +632,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
   // Helper function to get stock color
   Color _getStockColor(int quantity, int minLimit) {
-    if (quantity <= minLimit) {
+    if (quantity == 0) {
       return Colors.red;
-    } else if (quantity <= minLimit + (minLimit ~/ 2)) {
+    } else if (quantity <= minLimit) {
       return Colors.orange;
     } else {
       return Colors.green;
@@ -665,120 +675,127 @@ class _AvailableProductsState extends State<AvailableProducts> {
     );
   }
 
-  // Helper widget for the product list item (the Card/Tile)
-  Widget _buildProductItem(
-    BuildContext context,
-    String productName,
-    String unit,
-    String quantity,
-    String supplierName,
-    double buyingPrice,
-    double sellingPrice,
-    BoughtProduct product,
-  ) {
+  // Build grouped product list with batch hierarchy
+  Widget _buildGroupedProductList(BuildContext context) {
+    // Group products by name
+    Map<String, List<BoughtProduct>> groupedByName = {};
+    for (final product in _filteredProducts) {
+      if (!groupedByName.containsKey(product.productName)) {
+        groupedByName[product.productName] = [];
+      }
+      groupedByName[product.productName]!.add(product);
+    }
+
+    // Sort batches by purchase date (oldest first - FIFO)
+    for (final batches in groupedByName.values) {
+      batches.sort((a, b) {
+        DateTime dateA = DateTime.tryParse(a.purchaseDate) ?? DateTime.now();
+        DateTime dateB = DateTime.tryParse(b.purchaseDate) ?? DateTime.now();
+        return dateA.compareTo(dateB);
+      });
+    }
+
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
     final cardColor = Theme.of(context).cardTheme.color;
 
-    return Card(
-      color: cardColor,
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        side: BorderSide(
-          color: secondaryTextColor!.withOpacity(0.1),
-          width: 1.0,
-        ),
-      ),
-      child: InkWell(
-        onTap: () {
-          AppNavigator.push(
-            context,
-            AvailableProductDetailScreen(product: product, userId: _currentUserId),
-          );
-        },
-        borderRadius: BorderRadius.circular(10.0),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Product Name & Supplier with Stock Badge
-              Row(
+    return ListView.builder(
+      itemCount: groupedByName.length,
+      itemBuilder: (context, index) {
+        final productName = groupedByName.keys.toList()[index];
+        final batches = groupedByName[productName]!;
+        final totalQty = batches.fold<int>(0, (sum, p) => sum + p.quantity);
+        
+        // Filter only available batches (quantity > 0)
+        final availableBatches = batches.where((p) => p.quantity > 0).toList();
+        
+        // Calculate min limit from available batches (use SUM of all min limits)
+        final minLimitForStatus = availableBatches.fold(0, (sum, p) => sum + p.minLimit);
+        
+        final unit = batches.first.unit;
+        final firstBatch = batches.first;
+
+        return Card(
+          color: cardColor,
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.0),
+            side: BorderSide(
+              color: secondaryTextColor!.withOpacity(0.1),
+              width: 1.0,
+            ),
+          ),
+          child: InkWell(
+            onTap: () {
+              AppNavigator.push(
+                context,
+                AvailableProductDetailScreen(product: firstBatch, userId: _currentUserId),
+              );
+            },
+            borderRadius: BorderRadius.circular(10.0),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Product info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Product Name
                         Text(
                           productName[0].toUpperCase() + productName.substring(1),
                           style: TextStyle(
                             color: primaryTextColor,
                             fontWeight: FontWeight.w600,
-                            fontSize: 16,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Supplier: $supplierName',
-                          style: TextStyle(
-                            color: secondaryTextColor,
-                            fontSize: 12,
+                            fontSize: 15,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 6),
+                        // Unit and Total Qty
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Unit: $unit',
+                                style: TextStyle(
+                                  color: secondaryTextColor,
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Total: $totalQty',
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _buildStockBadge(product.quantity, product.minLimit),
+                  const SizedBox(width: 12),
+                  // Status badge based on sum of available batches min limits
+                  _buildStockBadge(totalQty, minLimitForStatus),
                 ],
               ),
-              const SizedBox(height: 10),
-              // Unit and Quantity
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Unit: $unit',
-                    style: TextStyle(color: secondaryTextColor, fontSize: 12),
-                  ),
-                  Text(
-                    'Qty: $quantity',
-                    style: TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              // Prices
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Buying: ₹${buyingPrice.toStringAsFixed(2)}',
-                    style: TextStyle(color: Colors.red[400], fontSize: 11),
-                  ),
-                  Text(
-                    'Selling: ₹${sellingPrice.toStringAsFixed(2)}',
-                    style: TextStyle(color: Colors.green[400], fontSize: 11),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+
 }
 
 // --- Data Model for Bought Products ---
@@ -792,6 +809,9 @@ class BoughtProduct {
   final int quantity;
   final double buyingPrice;
   final double sellingPrice;
+  final String batchId; // Unique identifier for this batch
+  final String purchaseDate; // Date when batch was purchased
+  final double profitMargin; // Profit per unit (sellingPrice - buyingPrice)
 
   BoughtProduct({
     required this.id,
@@ -803,10 +823,17 @@ class BoughtProduct {
     required this.quantity,
     required this.buyingPrice,
     required this.sellingPrice,
+    required this.batchId,
+    required this.purchaseDate,
+    required this.profitMargin,
   });
 
   factory BoughtProduct.fromMap(String id, Map<dynamic, dynamic> data,
       {String? entryDate}) {
+    final buyPrice = (data['buyingPrice'] ?? 0).toDouble();
+    final sellPrice = (data['sellingPrice'] ?? 0).toDouble();
+    final margin = sellPrice - buyPrice;
+    
     return BoughtProduct(
       id: id,
       date: entryDate ?? data['timestamp'] ?? '',
@@ -815,8 +842,11 @@ class BoughtProduct {
       unit: data['unit'] ?? '',
       minLimit: data['minLimit'] ?? 0,
       quantity: data['quantity'] ?? 0,
-      buyingPrice: (data['buyingPrice'] ?? 0).toDouble(),
-      sellingPrice: (data['sellingPrice'] ?? 0).toDouble(),
+      buyingPrice: buyPrice,
+      sellingPrice: sellPrice,
+      batchId: data['batchId'] ?? id, // Fallback to id if not present
+      purchaseDate: data['purchaseDate'] ?? data['date'] ?? '',
+      profitMargin: margin,
     );
   }
 }

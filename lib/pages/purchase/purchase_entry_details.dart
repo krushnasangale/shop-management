@@ -204,10 +204,12 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               final item = mapEntry.value;
               final productName = item['productName'] ?? 'Unknown';
               final quantity = item['initialQuantity'] ?? 0;
-              final buyingPrice = item['buyingPrice'] ?? 0;
-              final sellingPrice = item['sellingPrice'] ?? 0;
+              final buyingPrice = item['buyingPrice'] ?? 0; // Buying price never changes
+              final sellingPrice = item['sellingPrice'] ?? 0; // Selling price at time of purchase
               final unit = item['unit'] ?? '';
               final total = item['total'] ?? 0;
+              final batchId = item['batchId'] as String?;
+              final profitMargin = (sellingPrice - buyingPrice).toDouble(); // Calculate from prices
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
@@ -261,6 +263,33 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                           ],
                         ),
                         const SizedBox(height: 8),
+                        // Batch Information (if available)
+                        if (batchId != null && batchId.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: Colors.purple.withOpacity(0.3),
+                                    width: 0.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Batch: ${batchId.substring(0, 8)}...',
+                                  style: TextStyle(
+                                    color: Colors.purple[600],
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                            ],
+                          ),
                         Row(
                           children: [
                             Icon(Icons.straighten, size: 16, color: secondaryTextColor),
@@ -339,6 +368,34 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                     fontSize: 14,
                                   ),
                                 ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        // Profit Margin Row (always show with calculated value)
+                        Column(
+                          children: [
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Profit per Unit',
+                                  style: TextStyle(
+                                    color: secondaryTextColor,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              Text(
+                                '₹${profitMargin.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: profitMargin >= 0 
+                                    ? Colors.green[600] 
+                                    : Colors.red[600],
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
                               ],
                             ),
                           ],

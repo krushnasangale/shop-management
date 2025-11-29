@@ -7,105 +7,321 @@ class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
   final String userId; // Pass userId for correct database path
 
-  const AvailableProductDetailScreen({super.key, required this.product, required this.userId});
+  const AvailableProductDetailScreen({
+    super.key,
+    required this.product,
+    required this.userId,
+  });
 
   @override
-  State<AvailableProductDetailScreen> createState() => _AvailableProductDetailScreenState();
+  State<AvailableProductDetailScreen> createState() =>
+      _AvailableProductDetailScreenState();
 }
 
-class _AvailableProductDetailScreenState extends State<AvailableProductDetailScreen> {
+class _AvailableProductDetailScreenState
+    extends State<AvailableProductDetailScreen> {
   // Local state for editable fields
   late TextEditingController _quantityController;
-  late TextEditingController _sellingPriceController;
-  late DatabaseReference _productRef;
-  bool _isEditingQuantity = false;
-  bool _isEditingPrice = false;
+  late TextEditingController _minLimitController;
+  late DatabaseReference _allProductsRef;
+  List<BoughtProduct> _allBatches = [];
+  bool _isLoadingBatches = true;
+  bool _editingMinLimit = false;
+  Map<String, bool> _editingBatchPrices =
+      {}; // Track which batches are being edited
+  Map<String, TextEditingController> _batchPriceControllers =
+      {}; // Per-batch price controllers
+  Map<String, bool> _editingBatchQuantities =
+      {}; // Track which batches quantities are being edited
+  Map<String, TextEditingController> _batchQuantityControllers =
+      {}; // Per-batch quantity controllers
+  List<Map<String, dynamic>> _purchaseHistory = []; // Complete purchase history
+  bool _isLoadingHistory = true;
+  Map<int, bool> _expandedPurchaseHistory =
+      {}; // Track which purchase history items are expanded
+  Map<int, bool> _expandedBatches = {}; // Track which batch items are expanded
 
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize Database Reference to the specific product item
-    _productRef = FirebaseDatabase.instance.ref(
-      'purchased-products/${widget.userId}/${widget.product.id}',
+
+    // Initialize ref to all products to load batches
+    _allProductsRef = FirebaseDatabase.instance.ref(
+      'purchased-products/${widget.userId}',
     );
-    
+
     // Initialize controllers with current product values
-    _quantityController = TextEditingController(text: widget.product.quantity.toString());
-    _sellingPriceController = TextEditingController(text: widget.product.sellingPrice.toStringAsFixed(2));
+    _quantityController = TextEditingController(
+      text: widget.product.quantity.toString(),
+    );
+
+    // Calculate min limit from all available batches
+    _minLimitController = TextEditingController();
+
+    // Load all batches for this product
+    _loadAllBatches();
+
+    // Load complete purchase history for this product
+    _loadPurchaseHistory();
+  }
+
+  Future<void> _loadAllBatches() async {
+    try {
+      final snapshot = await _allProductsRef.get();
+
+      final batches = <BoughtProduct>[];
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        for (var entry in data.entries) {
+          final product = entry.value as Map<dynamic, dynamic>;
+          final quantity = product['quantity'] ?? 0;
+
+          // Only process batches with quantity > 0 and matching product name
+          if (quantity > 0 && product['productName'] == widget.product.productName) {
+            final batch = BoughtProduct.fromMap(entry.key, product);
+            batches.add(batch);
+          }
+        }
+      }
+
+      // Sort by purchase date (oldest first for FIFO)
+      batches.sort(
+        (a, b) =>
+            DateTime.tryParse(
+              a.purchaseDate,
+            )?.compareTo(DateTime.tryParse(b.purchaseDate) ?? DateTime.now()) ??
+            0,
+      );
+
+      if (mounted) {
+        // Calculate min limit - get it from the one batch that stores it (minLimit > 0)
+        // If multiple batches exist, find the one with minLimit > 0
+        int minLimit = 0;
+        for (var batch in batches) {
+          if (batch.minLimit > 0) {
+            minLimit = batch.minLimit;
+            break;
+          }
+        }
+        
+        setState(() {
+          _allBatches = batches;
+          _isLoadingBatches = false;
+          _minLimitController.text = minLimit.toString();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingBatches = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadPurchaseHistory() async {
+    try {
+      final database = FirebaseDatabase.instance;
+      
+      // Read from the product-purchase-history table and aggregate by product name
+      final historyRootRef = database.ref('product-purchase-history/${widget.userId}');
+      final snapshot = await historyRootRef.get();
+
+      final history = <Map<String, dynamic>>[];
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        
+        // Iterate through all productIds in the history
+        for (var productEntry in data.entries) {
+          final productHistories = productEntry.value as Map<dynamic, dynamic>;
+          
+          // For each product ID, iterate through all its history entries
+          for (var historyEntry in productHistories.entries) {
+            final item = Map<String, dynamic>.from(
+              historyEntry.value as Map<dynamic, dynamic>,
+            );
+            
+            // Match by product name to aggregate across all suppliers
+            if (item['productName']?.toString() == widget.product.productName) {
+              history.add(item);
+            }
+          }
+        }
+      }
+
+      // Sort by date (newest first)
+      history.sort((a, b) {
+        DateTime dateA = DateTime.tryParse(a['date'] ?? '') ?? DateTime(2000);
+        DateTime dateB = DateTime.tryParse(b['date'] ?? '') ?? DateTime(2000);
+        return dateB.compareTo(dateA);
+      });
+
+      if (mounted) {
+        setState(() {
+          _purchaseHistory = history;
+          _isLoadingHistory = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingHistory = false;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _quantityController.dispose();
-    _sellingPriceController.dispose();
+    _minLimitController.dispose();
+    // Dispose all batch price controllers
+    for (var controller in _batchPriceControllers.values) {
+      controller.dispose();
+    }
+    // Dispose all batch quantity controllers
+    for (var controller in _batchQuantityControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
-  // --- DATABASE UPDATE FUNCTION ---
-  Future<void> _updateProductField(String key, dynamic value) async {
+  // --- SAVE BATCH SELLING PRICE ---
+  Future<void> _saveBatchSellingPrice(String batchId, double newPrice) async {
     try {
-      await _productRef.update({key: value});
+      await _allProductsRef.child(batchId).update({'sellingPrice': newPrice});
+
+      // Reload batches to reflect changes
+      await _loadAllBatches();
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$key updated successfully!')),
-        );
+        setState(() {
+          _editingBatchPrices[batchId] = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Selling price updated!')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating $key: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error updating price: $e')));
       }
     }
   }
 
-  // --- SAVE FUNCTIONS ---
-  Future<void> _saveQuantity() async {
-    final newValue = _quantityController.text.trim();
-    final quantity = int.tryParse(newValue);
-    
-    if (quantity != null && quantity > 0) {
-      await _updateProductField('quantity', quantity);
-      setState(() {
-        _isEditingQuantity = false;
+  // --- SAVE BATCH QUANTITY ---
+  Future<void> _saveBatchQuantity(String batchId, int newQuantity) async {
+    try {
+      await _allProductsRef.child(batchId).update({
+        'quantity': newQuantity,
+        'initialQuantity': newQuantity,
       });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid quantity')),
-      );
+
+      // Reload batches to reflect changes
+      await _loadAllBatches();
+
+      if (mounted) {
+        setState(() {
+          _editingBatchQuantities[batchId] = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Quantity updated!')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error updating quantity: $e')));
+      }
     }
   }
 
-  Future<void> _saveSellingPrice() async {
-    final newValue = _sellingPriceController.text.trim();
-    final price = double.tryParse(newValue);
-    
-    if (price != null && price > 0) {
-      await _updateProductField('sellingPrice', price);
-      setState(() {
-        _isEditingPrice = false;
-      });
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid price')),
+  // --- GET OR CREATE PRICE CONTROLLER FOR BATCH ---
+  TextEditingController _getPriceController(
+    String batchId,
+    double currentPrice,
+  ) {
+    if (!_batchPriceControllers.containsKey(batchId)) {
+      _batchPriceControllers[batchId] = TextEditingController(
+        text: currentPrice.toStringAsFixed(2),
       );
     }
+    return _batchPriceControllers[batchId]!;
   }
 
-  // --- FINANCIAL CALCULATIONS (Same as before) ---
-  double get currentStockQty => double.tryParse(_quantityController.text) ?? 0.0;
-  double get currentSellingPrice => double.tryParse(_sellingPriceController.text) ?? widget.product.sellingPrice;
+  // --- GET OR CREATE QUANTITY CONTROLLER FOR BATCH ---
+  TextEditingController _getQuantityController(
+    String batchId,
+    int currentQuantity,
+  ) {
+    if (!_batchQuantityControllers.containsKey(batchId)) {
+      _batchQuantityControllers[batchId] = TextEditingController(
+        text: currentQuantity.toString(),
+      );
+    }
+    return _batchQuantityControllers[batchId]!;
+  }
 
-  double get totalPotentialRevenue => currentStockQty * currentSellingPrice;
-  double get totalPotentialProfit => currentStockQty * (currentSellingPrice - widget.product.buyingPrice);
+  // --- FINANCIAL CALCULATIONS (From all batches with their individual prices) ---
+  double get totalStockQty {
+    if (_isLoadingBatches) return 0;
+    return _allBatches.fold<double>(0, (sum, b) => sum + b.quantity);
+  }
+
+  double get totalPotentialRevenue {
+    if (_isLoadingBatches) return 0;
+    double total = 0;
+    for (var batch in _allBatches) {
+      total += batch.sellingPrice * batch.quantity;
+    }
+    return total;
+  }
+
+  double get totalPotentialProfit {
+    if (_isLoadingBatches) return 0;
+    double totalProfit = 0;
+    for (var batch in _allBatches) {
+      totalProfit += (batch.sellingPrice - batch.buyingPrice) * batch.quantity;
+    }
+    return totalProfit;
+  }
+
+  double get averageBuyingPrice {
+    if (_isLoadingBatches || totalStockQty == 0)
+      return widget.product.buyingPrice;
+    double totalCost = 0;
+    for (var batch in _allBatches) {
+      totalCost += batch.buyingPrice * batch.quantity;
+    }
+    return totalCost / totalStockQty;
+  }
+
+  double get averageSellingPrice {
+    if (_isLoadingBatches || totalStockQty == 0)
+      return widget.product.sellingPrice;
+    return totalPotentialRevenue / totalStockQty;
+  }
+
   double get profitMargin {
-    if (widget.product.buyingPrice <= 0) return 0.0;
-    return ((currentSellingPrice - widget.product.buyingPrice) / widget.product.buyingPrice) * 100;
+    final avgBuy = averageBuyingPrice;
+    final avgSell = averageSellingPrice;
+    if (avgBuy <= 0) return 0.0;
+    return ((avgSell - avgBuy) / avgBuy) * 100;
   }
-  
-  // --- UI BUILDERS (Same as before) ---
-  Widget _buildDetailRow(BuildContext context, String title, String subtitle, {IconData? icon, Color? valueColor}) {
+
+  // --- UI BUILDERS ---
+  Widget _buildDetailRow(
+    BuildContext context,
+    String title,
+    String subtitle, {
+    IconData? icon,
+    Color? valueColor,
+  }) {
     // ... (implementation remains the same) ...
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
@@ -143,148 +359,64 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
     );
   }
 
-  Widget _buildEditableField(
-    BuildContext context,
-    String label,
-    TextEditingController controller,
-    String unitOrPrefix,
-    bool isEditing,
-    VoidCallback onEdit,
-    VoidCallback onSave,
-    VoidCallback onCancel,
-  ) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: secondaryTextColor, fontWeight: FontWeight.w600, fontSize: 14),
-          ),
-          const SizedBox(height: 4),
-          if (!isEditing)
-            GestureDetector(
-              onTap: onEdit,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '$unitOrPrefix ${controller.text}',
-                    style: TextStyle(
-                      color: primaryTextColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 24,
-                    ),
-                  ),
-                  Icon(Icons.edit, color: Colors.blue, size: 20),
-                ],
-              ),
-            )
-          else
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: controller,
-                    keyboardType: unitOrPrefix == '₹' 
-                      ? const TextInputType.numberWithOptions(decimal: true)
-                      : TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'Enter $label',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: onSave,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                  child: const Text('Save', style: TextStyle(color: Colors.white)),
-                ),
-                const SizedBox(width: 4),
-                ElevatedButton(
-                  onPressed: onCancel,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  ),
-                  child: const Text('Cancel', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            ),
-          Divider(color: secondaryTextColor!.withOpacity(0.3)),
-        ],
-      ),
-    );
-  }
-
   // --- Main Build Method ---
   @override
   Widget build(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final cardColor = Theme.of(context).cardTheme.color;
-    final unit = widget.product.unit;
-    
+
     // Capitalize product name for display
-    final displayedProductName = widget.product.productName[0].toUpperCase() + widget.product.productName.substring(1);
+    final displayedProductName =
+        widget.product.productName[0].toUpperCase() +
+        widget.product.productName.substring(1);
 
     return Scaffold(
       appBar: AppBar(
         title: Text(displayedProductName),
         centerTitle: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: () {
-              // Confirm deletion
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Text('Delete Product', style: TextStyle(color: primaryTextColor),),
-                  content: const Text('Are you sure you want to delete this product? This action cannot be undone.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          await _productRef.remove();
-                          if (mounted) {
-                            Navigator.of(context).pop(); // Close dialog
-                            Navigator.of(context).pop(); // Go back after deletion
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Product deleted successfully.')),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            Navigator.of(context).pop(); // Close dialog
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error deleting product: $e')),
-                            );
-                          }
-                        }
-                      },
-                      child: const Text('Delete'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     icon: const Icon(Icons.delete),
+        //     onPressed: () {
+        //       // Confirm deletion
+        //       showDialog(
+        //         context: context,
+        //         builder: (context) => AlertDialog(
+        //           title: Text('Delete Product', style: TextStyle(color: primaryTextColor),),
+        //           content: const Text('Are you sure you want to delete this product? This action cannot be undone.'),
+        //           actions: [
+        //             TextButton(
+        //               onPressed: () => Navigator.of(context).pop(),
+        //               child: const Text('Cancel'),
+        //             ),
+        //             ElevatedButton(
+        //               onPressed: () async {
+        //                 try {
+        //                   await _productRef.remove();
+        //                   if (mounted) {
+        //                     Navigator.of(context).pop(); // Close dialog
+        //                     Navigator.of(context).pop(); // Go back after deletion
+        //                     ScaffoldMessenger.of(context).showSnackBar(
+        //                       const SnackBar(content: Text('Product deleted successfully.')),
+        //                     );
+        //                   }
+        //                 } catch (e) {
+        //                   if (mounted) {
+        //                     Navigator.of(context).pop(); // Close dialog
+        //                     ScaffoldMessenger.of(context).showSnackBar(
+        //                       SnackBar(content: Text('Error deleting product: $e')),
+        //                     );
+        //                   }
+        //                 }
+        //               },
+        //               child: const Text('Delete'),
+        //             ),
+        //           ],
+        //         ),
+        //       );
+        //     },
+        //   ),
+        // ],
       ),
       body: Column(
         children: [
@@ -293,74 +425,7 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
               padding: const EdgeInsets.all(12.0),
               child: Column(
                 children: [
-                  // --- 1. Editable Stock & Price Card ---
-                  Card(
-                    color: cardColor,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Inventory Management',
-                            style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 18),
-                          ),
-                          const SizedBox(height: 10),
-                          
-                          // Editable Quantity Field
-                          _buildEditableField(
-                            context,
-                            'Current Stock',
-                            _quantityController,
-                            unit,
-                            _isEditingQuantity,
-                            () => setState(() => _isEditingQuantity = true),
-                            _saveQuantity,
-                            () => setState(() {
-                              _quantityController.text = widget.product.quantity.toString();
-                              _isEditingQuantity = false;
-                            }),
-                          ),
-                          
-                          // Editable Selling Price Field
-                          _buildEditableField(
-                            context,
-                            'Selling Price per $unit',
-                            _sellingPriceController,
-                            '₹',
-                            _isEditingPrice,
-                            () => setState(() => _isEditingPrice = true),
-                            _saveSellingPrice,
-                            () => setState(() {
-                              _sellingPriceController.text = widget.product.sellingPrice.toStringAsFixed(2);
-                              _isEditingPrice = false;
-                            }),
-                          ),
-                          
-                          // Non-editable Buying Price
-                          _buildDetailRow(
-                            context,
-                            'Buying Price (Cost)',
-                            '₹${widget.product.buyingPrice.toStringAsFixed(2)} / $unit',
-                            icon: Icons.attach_money,
-                            valueColor: Colors.red[400],
-                          ),
-                          
-                          // Minimum Limit Display
-                          _buildDetailRow(
-                            context,
-                            'Minimum Limit',
-                            '${widget.product.minLimit} $unit',
-                            icon: Icons.warning_outlined,
-                            valueColor: Colors.orange[400],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // --- 2. Financial Summary Card ---
+                  // --- 1. Financial Metrics Card (Current Stock) ---
                   Card(
                     color: cardColor,
                     child: Padding(
@@ -370,10 +435,14 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                         children: [
                           Text(
                             'Financial Metrics (Current Stock)',
-                            style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 18),
+                            style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
                           ),
                           const SizedBox(height: 10),
-                          
+
                           _buildDetailRow(
                             context,
                             'Total Potential Revenue',
@@ -382,7 +451,7 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                             valueColor: Colors.green,
                           ),
                           Divider(),
-                          
+
                           _buildDetailRow(
                             context,
                             'Total Potential Profit',
@@ -391,56 +460,1335 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                             valueColor: Colors.blue,
                           ),
                           Divider(),
-                          
+
                           _buildDetailRow(
                             context,
                             'Profit Margin (per unit)',
                             '${profitMargin.toStringAsFixed(1)}%',
                             icon: Icons.percent,
-                            valueColor: profitMargin >= 0 ? Colors.green : Colors.red,
+                            valueColor: profitMargin >= 0
+                                ? Colors.green
+                                : Colors.red,
                           ),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 10),
-                  
-                  // --- 3. Purchase History & Source Card ---
+
+                  // --- Total Quantity By Unit ---
+                  if (_allBatches.isNotEmpty)
+                    Card(
+                      color: cardColor,
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.inventory_outlined,
+                                      color: Colors.indigo,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Total Quantity',
+                                      style: TextStyle(
+                                        color: primaryTextColor,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Text(
+                                    _allBatches.fold(0, (sum, batch) => sum + batch.quantity).toString(),
+                                    style: TextStyle(
+                                      color: Colors.purple[700],
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            
+                            // Group by unit and show individual totals
+                            ..._allBatches
+                                .fold<Map<String, int>>({}, (map, batch) {
+                                  map[batch.unit] =
+                                      (map[batch.unit] ?? 0) + batch.quantity;
+                                  return map;
+                                })
+                                .entries
+                                .map(
+                                  (entry) => Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 6.0,
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          entry.key,
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.blue.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            entry.value.toString(),
+                                            style: TextStyle(
+                                              color: Colors.blue[700],
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                            
+                            Divider(
+                              color: Theme.of(context).brightness == Brightness.dark 
+                                  ? Colors.grey[700] 
+                                  : Colors.grey[300],
+                              height: 12,
+                            ),
+                            
+                            // Minimum Limit Section
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Minimum Limit',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    _editingMinLimit
+                                        ? SizedBox(
+                                            width: 100,
+                                            child: TextField(
+                                              controller: _minLimitController,
+                                              keyboardType: TextInputType.number,
+                                              decoration: InputDecoration(
+                                                isDense: true,
+                                                border: OutlineInputBorder(
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                contentPadding: const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 6,
+                                                ),
+                                              ),
+                                              style: TextStyle(
+                                                color: primaryTextColor,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          )
+                                        : Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.green.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(16),
+                                            ),
+                                            child: Text(
+                                              _minLimitController.text,
+                                              style: TextStyle(
+                                                color: Colors.green[700],
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                  ],
+                                ),
+                                Row(
+                                  children: [
+                                    if (_editingMinLimit)
+                                      GestureDetector(
+                                        onTap: () {
+                                          // Reload the original min limit
+                                          int minLimit = 0;
+                                          for (var batch in _allBatches) {
+                                            if (batch.minLimit > 0) {
+                                              minLimit = batch.minLimit;
+                                              break;
+                                            }
+                                          }
+                                          setState(() {
+                                            _minLimitController.text = minLimit.toString();
+                                            _editingMinLimit = false;
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Icon(
+                                            Icons.close,
+                                            color: Colors.red[600],
+                                            size: 18,
+                                          ),
+                                        ),
+                                      ),
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () {
+                                        if (_editingMinLimit) {
+                                          // Save the new min limit
+                                          final newMinLimit = int.tryParse(_minLimitController.text) ?? 0;
+                                          if (newMinLimit >= 0) {
+                                            // Find the batch that stores minLimit and update it
+                                            BoughtProduct? batchWithMinLimit;
+                                            for (var batch in _allBatches) {
+                                              if (batch.minLimit > 0) {
+                                                batchWithMinLimit = batch;
+                                                break;
+                                              }
+                                            }
+                                            
+                                            // If no batch has minLimit, use the first one
+                                            batchWithMinLimit ??= _allBatches.isNotEmpty ? _allBatches.first : null;
+                                            
+                                            if (batchWithMinLimit != null) {
+                                              FirebaseDatabase.instance
+                                                  .ref('purchased-products/${widget.userId}/${batchWithMinLimit.id}')
+                                                  .update({'minLimit': newMinLimit})
+                                                  .then((_) {
+                                                setState(() {
+                                                  _editingMinLimit = false;
+                                                });
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  const SnackBar(
+                                                    content: Text('Minimum limit updated'),
+                                                  ),
+                                                );
+                                              }).catchError((e) {
+                                                ScaffoldMessenger.of(context).showSnackBar(
+                                                  SnackBar(
+                                                    content: Text('Error: $e'),
+                                                  ),
+                                                );
+                                              });
+                                            }
+                                          } else {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Enter a valid number'),
+                                              ),
+                                            );
+                                          }
+                                        } else {
+                                          setState(() {
+                                            _editingMinLimit = true;
+                                          });
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Icon(
+                                          _editingMinLimit ? Icons.check : Icons.edit,
+                                          color: Colors.blue[600],
+                                          size: 18,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 10),
+
+                  // --- 2. All Batches Card (Always show) ---
                   Card(
                     color: cardColor,
                     child: Padding(
-                      padding: const EdgeInsets.all(12.0),
+                      padding: const EdgeInsets.only(
+                        right: 12.0,
+                        left: 12.0,
+                        top: 12.0,
+                        bottom: 0,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Purchase Source & History',
-                            style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold, fontSize: 18),
+                          // Header with title
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                _allBatches.length > 1
+                                    ? 'All Batches (FIFO Order)'
+                                    : 'Batch Details',
+                                style: TextStyle(
+                                  color: primaryTextColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 10),
-                          
-                          _buildDetailRow(
-                            context,
-                            'Initial Purchase Date',
-                            widget.product.date,
-                            icon: Icons.calendar_today,
+
+                          if (_isLoadingBatches)
+                            const Center(child: CircularProgressIndicator())
+                          else if (_allBatches.isEmpty)
+                            Center(
+                              child: Text(
+                                'No batches found',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _allBatches.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final batch = _allBatches[index];
+                                final isFirstBatch = index == 0;
+                                final isLastBatch =
+                                    index == _allBatches.length - 1;
+                                final isExpanded =
+                                    _expandedBatches[index] ?? false;
+                                final isDark =
+                                    Theme.of(context).brightness ==
+                                    Brightness.dark;
+
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.grey[800]
+                                        : Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? Colors.grey[700]!
+                                          : Colors.grey[200]!,
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      // Batch Tile (Always visible)
+                                      InkWell(
+                                        onTap: () => setState(() {
+                                          _expandedBatches[index] = !isExpanded;
+                                        }),
+                                        borderRadius:
+                                            const BorderRadius.vertical(
+                                              top: Radius.circular(10),
+                                            ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    // Batch label with FIFO indicator
+                                                    Row(
+                                                      children: [
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: isFirstBatch
+                                                                ? Colors.orange
+                                                                      .withOpacity(
+                                                                        0.15,
+                                                                      )
+                                                                : Colors.blue
+                                                                      .withOpacity(
+                                                                        0.15,
+                                                                      ),
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  6,
+                                                                ),
+                                                          ),
+                                                          child: Text(
+                                                            isFirstBatch
+                                                                ? 'OLDEST (Sell First)'
+                                                                : isLastBatch
+                                                                ? 'NEWEST'
+                                                                : 'Batch ${index + 1}',
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color:
+                                                                  isFirstBatch
+                                                                  ? Colors
+                                                                        .orange[700]
+                                                                  : Colors
+                                                                        .blue[700],
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 8),
+
+                                                    // Supplier name
+                                                    Text(
+                                                      batch.supplierName,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: primaryTextColor,
+                                                        fontSize: 13,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 2),
+
+                                                    // Quick info: Date and Quantity
+                                                    Text(
+                                                      '${batch.purchaseDate} • ${batch.quantity} ${batch.unit}',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: Colors.grey[500],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  Text(
+                                                    '₹${batch.sellingPrice.toStringAsFixed(0)}',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Colors.green[600],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Icon(
+                                                    isExpanded
+                                                        ? Icons.expand_less
+                                                        : Icons.expand_more,
+                                                    color: Colors.blue[600],
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+
+                                      // Expanded content
+                                      if (isExpanded) ...[
+                                        Divider(
+                                          color: isDark
+                                              ? Colors.grey[700]
+                                              : Colors.grey[300],
+                                          height: 1,
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              // Editable Quantity
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 4.0,
+                                                    ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons
+                                                          .inventory_2_outlined,
+                                                      color: Colors.grey,
+                                                      size: 20,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            'Quantity',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.grey,
+                                                              fontSize: 13,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 2,
+                                                          ),
+                                                          if (!(_editingBatchQuantities[batch
+                                                                  .id] ??
+                                                              false))
+                                                            GestureDetector(
+                                                              onTap: () {
+                                                                _getQuantityController(
+                                                                  batch.id,
+                                                                  batch
+                                                                      .quantity,
+                                                                );
+                                                                setState(() {
+                                                                  _editingBatchQuantities[batch
+                                                                          .id] =
+                                                                      true;
+                                                                });
+                                                              },
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .spaceBetween,
+                                                                children: [
+                                                                  Text(
+                                                                    '${batch.quantity} ${batch.unit}',
+                                                                    style: TextStyle(
+                                                                      color: Colors
+                                                                          .blue[400],
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w600,
+                                                                      fontSize:
+                                                                          16,
+                                                                    ),
+                                                                  ),
+                                                                  Icon(
+                                                                    Icons.edit,
+                                                                    color: Colors
+                                                                        .blue,
+                                                                    size: 16,
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            )
+                                                          else
+                                                            Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  child: TextField(
+                                                                    controller:
+                                                                        _getQuantityController(
+                                                                          batch
+                                                                              .id,
+                                                                          batch
+                                                                              .quantity,
+                                                                        ),
+                                                                    keyboardType:
+                                                                        TextInputType
+                                                                            .number,
+                                                                    decoration: InputDecoration(
+                                                                      hintText:
+                                                                          'Enter quantity',
+                                                                      border: OutlineInputBorder(
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(
+                                                                              6,
+                                                                            ),
+                                                                      ),
+                                                                      isDense:
+                                                                          true,
+                                                                      contentPadding: const EdgeInsets.symmetric(
+                                                                        horizontal:
+                                                                            8,
+                                                                        vertical:
+                                                                            6,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 6,
+                                                                ),
+                                                                GestureDetector(
+                                                                  onTap: () {
+                                                                    final newQuantity = int.tryParse(
+                                                                      _getQuantityController(
+                                                                        batch
+                                                                            .id,
+                                                                        batch
+                                                                            .quantity,
+                                                                      ).text,
+                                                                    );
+                                                                    if (newQuantity !=
+                                                                            null &&
+                                                                        newQuantity >
+                                                                            0) {
+                                                                      _saveBatchQuantity(
+                                                                        batch
+                                                                            .id,
+                                                                        newQuantity,
+                                                                      );
+                                                                    } else {
+                                                                      ScaffoldMessenger.of(
+                                                                        context,
+                                                                      ).showSnackBar(
+                                                                        const SnackBar(
+                                                                          content: Text(
+                                                                            'Enter valid quantity',
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    }
+                                                                  },
+                                                                  child: Container(
+                                                                    padding:
+                                                                        const EdgeInsets.all(
+                                                                          6,
+                                                                        ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: Colors
+                                                                          .green,
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            6,
+                                                                          ),
+                                                                    ),
+                                                                    child: const Icon(
+                                                                      Icons
+                                                                          .check,
+                                                                      color: Colors
+                                                                          .white,
+                                                                      size: 16,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 6,
+                                                                ),
+                                                                GestureDetector(
+                                                                  onTap: () {
+                                                                    setState(() {
+                                                                      _editingBatchQuantities[batch
+                                                                              .id] =
+                                                                          false;
+                                                                    });
+                                                                  },
+                                                                  child: Container(
+                                                                    padding:
+                                                                        const EdgeInsets.all(
+                                                                          6,
+                                                                        ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: Colors
+                                                                          .grey,
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            6,
+                                                                          ),
+                                                                    ),
+                                                                    child: const Icon(
+                                                                      Icons
+                                                                          .close,
+                                                                      color: Colors
+                                                                          .white,
+                                                                      size: 16,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              _buildDetailRow(
+                                                context,
+                                                'Buy Price',
+                                                '₹${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                icon: Icons.shopping_cart,
+                                                valueColor: Colors.red[400],
+                                              ),
+                                              const SizedBox(height: 8),
+
+                                              // Editable Sell Price
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      vertical: 4.0,
+                                                    ),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.sell_outlined,
+                                                      color: Colors.grey,
+                                                      size: 20,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            'Sell Price',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.grey,
+                                                              fontSize: 13,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 2,
+                                                          ),
+                                                          if (!(_editingBatchPrices[batch
+                                                                  .id] ??
+                                                              false))
+                                                            GestureDetector(
+                                                              onTap: () {
+                                                                _getPriceController(
+                                                                  batch.id,
+                                                                  batch
+                                                                      .sellingPrice,
+                                                                );
+                                                                setState(() {
+                                                                  _editingBatchPrices[batch
+                                                                          .id] =
+                                                                      true;
+                                                                });
+                                                              },
+                                                              child: Row(
+                                                                mainAxisAlignment:
+                                                                    MainAxisAlignment
+                                                                        .spaceBetween,
+                                                                children: [
+                                                                  Text(
+                                                                    '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                                    style: TextStyle(
+                                                                      color: Colors
+                                                                          .green[400],
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w600,
+                                                                      fontSize:
+                                                                          16,
+                                                                    ),
+                                                                  ),
+                                                                  Icon(
+                                                                    Icons.edit,
+                                                                    color: Colors
+                                                                        .blue,
+                                                                    size: 16,
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            )
+                                                          else
+                                                            Row(
+                                                              children: [
+                                                                Expanded(
+                                                                  child: TextField(
+                                                                    controller:
+                                                                        _getPriceController(
+                                                                          batch
+                                                                              .id,
+                                                                          batch
+                                                                              .sellingPrice,
+                                                                        ),
+                                                                    keyboardType:
+                                                                        const TextInputType.numberWithOptions(
+                                                                          decimal:
+                                                                              true,
+                                                                        ),
+                                                                    decoration: InputDecoration(
+                                                                      hintText:
+                                                                          'Enter price',
+                                                                      border: OutlineInputBorder(
+                                                                        borderRadius:
+                                                                            BorderRadius.circular(
+                                                                              6,
+                                                                            ),
+                                                                      ),
+                                                                      isDense:
+                                                                          true,
+                                                                      contentPadding: const EdgeInsets.symmetric(
+                                                                        horizontal:
+                                                                            8,
+                                                                        vertical:
+                                                                            6,
+                                                                      ),
+                                                                      prefix:
+                                                                          const Text(
+                                                                            '₹',
+                                                                          ),
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 6,
+                                                                ),
+                                                                GestureDetector(
+                                                                  onTap: () {
+                                                                    final newPrice = double.tryParse(
+                                                                      _getPriceController(
+                                                                        batch
+                                                                            .id,
+                                                                        batch
+                                                                            .sellingPrice,
+                                                                      ).text,
+                                                                    );
+                                                                    if (newPrice !=
+                                                                            null &&
+                                                                        newPrice >
+                                                                            0) {
+                                                                      _saveBatchSellingPrice(
+                                                                        batch
+                                                                            .id,
+                                                                        newPrice,
+                                                                      );
+                                                                    } else {
+                                                                      ScaffoldMessenger.of(
+                                                                        context,
+                                                                      ).showSnackBar(
+                                                                        const SnackBar(
+                                                                          content: Text(
+                                                                            'Enter valid price',
+                                                                          ),
+                                                                        ),
+                                                                      );
+                                                                    }
+                                                                  },
+                                                                  child: Container(
+                                                                    padding:
+                                                                        const EdgeInsets.all(
+                                                                          6,
+                                                                        ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: Colors
+                                                                          .green,
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            6,
+                                                                          ),
+                                                                    ),
+                                                                    child: const Icon(
+                                                                      Icons
+                                                                          .check,
+                                                                      color: Colors
+                                                                          .white,
+                                                                      size: 16,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 6,
+                                                                ),
+                                                                GestureDetector(
+                                                                  onTap: () {
+                                                                    setState(() {
+                                                                      _editingBatchPrices[batch
+                                                                              .id] =
+                                                                          false;
+                                                                    });
+                                                                  },
+                                                                  child: Container(
+                                                                    padding:
+                                                                        const EdgeInsets.all(
+                                                                          6,
+                                                                        ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: Colors
+                                                                          .grey,
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            6,
+                                                                          ),
+                                                                    ),
+                                                                    child: const Icon(
+                                                                      Icons
+                                                                          .close,
+                                                                      color: Colors
+                                                                          .white,
+                                                                      size: 16,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              _buildDetailRow(
+                                                context,
+                                                'Profit/Unit',
+                                                '₹${batch.profitMargin.toStringAsFixed(2)}',
+                                                icon: Icons.trending_up,
+                                                valueColor:
+                                                    batch.profitMargin >= 0
+                                                    ? Colors.green[400]
+                                                    : Colors.red[400],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // --- 3. Complete Purchase History Card ---
+                  Card(
+                    color: cardColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        right: 12.0,
+                        left: 12.0,
+                        top: 12.0,
+                        bottom: 0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header with title and history count
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.history,
+                                      color: Colors.blue[600],
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Purchase History',
+                                        style: TextStyle(
+                                          color: primaryTextColor,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${_purchaseHistory.length} purchases total',
+                                        style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  _purchaseHistory.length.toString(),
+                                  style: TextStyle(
+                                    color: Colors.blue[700],
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          Divider(),
-                          
-                          _buildDetailRow(
-                            context,
-                            'Supplier Name',
-                            widget.product.supplierName,
-                            icon: Icons.factory_outlined,
-                          ),
-                          Divider(),
-                          
-                          _buildDetailRow(
-                            context,
-                            'Initial Quantity Bought',
-                            '${widget.product.quantity} ${widget.product.unit}',
-                            icon: Icons.storage,
-                          ),
+                          const SizedBox(height: 16),
+
+                          // Content
+                          if (_isLoadingHistory)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(vertical: 32.0),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            )
+                          else if (_purchaseHistory.isEmpty)
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 32.0,
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(
+                                      Icons.history_outlined,
+                                      color: Colors.grey[400],
+                                      size: 48,
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'No purchase history yet',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                        fontWeight: FontWeight.w500,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          else
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: _purchaseHistory.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 8),
+                              itemBuilder: (context, index) {
+                                final purchase = _purchaseHistory[index];
+                                final profitPerUnit =
+                                    (purchase['sellingPrice'] ?? 0) -
+                                    (purchase['buyingPrice'] ?? 0);
+                                final totalProfit =
+                                    profitPerUnit * (purchase['quantity'] ?? 0);
+                                final isDark =
+                                    Theme.of(context).brightness ==
+                                    Brightness.dark;
+                                final isExpanded =
+                                    _expandedPurchaseHistory[index] ?? false;
+
+                                return Container(
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.grey[800]
+                                        : Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? Colors.grey[700]!
+                                          : Colors.grey[200]!,
+                                      width: 0.5,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      // Tile (Always visible)
+                                      InkWell(
+                                        onTap: () => setState(() {
+                                          _expandedPurchaseHistory[index] =
+                                              !isExpanded;
+                                        }),
+                                        borderRadius:
+                                            const BorderRadius.vertical(
+                                              top: Radius.circular(10),
+                                            ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Row(
+                                                  children: [
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.blue
+                                                            .withOpacity(0.15),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              6,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        '#${_purchaseHistory.length - index}',
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          color:
+                                                              Colors.blue[700],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          Text(
+                                                            purchase['supplierName'] ??
+                                                                'Unknown Supplier',
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color:
+                                                                  primaryTextColor,
+                                                              fontSize: 13,
+                                                            ),
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 2,
+                                                          ),
+                                                          Text(
+                                                            purchase['unit'] ??
+                                                                'units',
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              color: Colors
+                                                                  .grey[500],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.end,
+                                                children: [
+                                                  Text(
+                                                    purchase['date'] ?? 'N/A',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    '${purchase['quantity']} units',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Icon(
+                                                isExpanded
+                                                    ? Icons.expand_less
+                                                    : Icons.expand_more,
+                                                color: Colors.blue[600],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+
+                                      // Expanded content
+                                      if (isExpanded) ...[
+                                        Divider(
+                                          color: isDark
+                                              ? Colors.grey[700]
+                                              : Colors.grey[300],
+                                          height: 1,
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              // Pricing details grid
+                                              Column(
+                                                children: [
+                                                  // Row 1: Buying and Selling Price
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      _buildPriceInfo(
+                                                        context,
+                                                        'Buy Price',
+                                                        '₹${purchase['buyingPrice']}',
+                                                        Colors.orange[600]!,
+                                                      ),
+                                                      Container(
+                                                        width: 1,
+                                                        height: 30,
+                                                        color: Colors.grey[300],
+                                                      ),
+                                                      _buildPriceInfo(
+                                                        context,
+                                                        'Sell Price',
+                                                        '₹${purchase['sellingPrice']}',
+                                                        Colors.green[600]!,
+                                                      ),
+                                                      Container(
+                                                        width: 1,
+                                                        height: 30,
+                                                        color: Colors.grey[300],
+                                                      ),
+                                                      _buildPriceInfo(
+                                                        context,
+                                                        'Margin',
+                                                        '₹${profitPerUnit.toStringAsFixed(0)}',
+                                                        profitPerUnit >= 0
+                                                            ? Colors.green[600]!
+                                                            : Colors.red[600]!,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 16),
+
+                                                  // Row 2: Totals
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
+                                                    children: [
+                                                      _buildTotalInfo(
+                                                        context,
+                                                        'Total Cost',
+                                                        '₹${(purchase['buyingPrice'] ?? 0) * (purchase['quantity'] ?? 0)}',
+                                                        Colors.orange,
+                                                      ),
+                                                      Container(
+                                                        width: 1,
+                                                        height: 30,
+                                                        color: Colors.grey[300],
+                                                      ),
+                                                      _buildTotalInfo(
+                                                        context,
+                                                        'Total Revenue',
+                                                        '₹${purchase['total'] ?? 0}',
+                                                        Colors.green,
+                                                      ),
+                                                      Container(
+                                                        width: 1,
+                                                        height: 30,
+                                                        color: Colors.grey[300],
+                                                      ),
+                                                      _buildTotalInfo(
+                                                        context,
+                                                        'Total Profit',
+                                                        '₹${totalProfit.toStringAsFixed(0)}',
+                                                        totalProfit >= 0
+                                                            ? Colors.green
+                                                            : Colors.red,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                         ],
                       ),
                     ),
@@ -448,6 +1796,70 @@ class _AvailableProductDetailScreenState extends State<AvailableProductDetailScr
                   const SizedBox(height: 16),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build price info
+  Widget _buildPriceInfo(
+    BuildContext context,
+    String label,
+    String value,
+    Color color,
+  ) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build total info
+  Widget _buildTotalInfo(
+    BuildContext context,
+    String label,
+    String value,
+    MaterialColor color,
+  ) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: color[700],
             ),
           ),
         ],

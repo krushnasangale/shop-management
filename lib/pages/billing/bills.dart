@@ -99,6 +99,7 @@ class _BillsState extends State<Bills> {
                     amountPaid,
                     amountRemaining,
                     productsList,
+                    billData['nextPaymentDate'],
                   ),
                 );
               }
@@ -393,6 +394,7 @@ class _BillsState extends State<Bills> {
               amountPaid: bill.amountPaid,
               amountRemaining: bill.amountRemaining,
               products: bill.products,
+              nextPaymentDate: bill.nextPaymentDate,
             ),
           );
         },
@@ -460,6 +462,7 @@ class Bill {
   final int amountPaid;
   final int amountRemaining;
   final List<Map<String, dynamic>>? products;
+  final String? nextPaymentDate;
 
   Bill(
     this.billId,
@@ -475,5 +478,6 @@ class Bill {
     this.amountPaid,
     this.amountRemaining,
     this.products,
+    this.nextPaymentDate,
   );
 }
