@@ -282,10 +282,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
     final billDate = now.toString().split('.')[0];
 
-    // Fetch owner signature from Firebase
+    // Fetch owner signature and company details from Firebase
     String? ownerSignatureBase64;
     String shopName = '--';
     String ownerName = '--';
+    String shopAddress = '--';
+    String shipPhone = '--';
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -298,6 +300,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           ownerSignatureBase64 = data?['ownerSignature'];
           shopName = data?['shopName'] ?? '--';
           ownerName = data?['ownerName'] ?? '--';
+          shopAddress = data?['shopAddress'] ?? '--';
+          shipPhone = data?['shipPhone'] ?? '--';
         }
       }
     } catch (e) {
@@ -334,6 +338,24 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ),
               pw.SizedBox(height: 15),
 
+              // Company Details Section
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  if (shopAddress != '--')
+                    pw.Text(
+                      'Address: $shopAddress',
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
+                  if (shipPhone != '--')
+                    pw.Text(
+                      'Phone: $shipPhone',
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
+                ],
+              ),
+              pw.SizedBox(height: 15),
+
               // Bill ID and Date
               pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -364,44 +386,21 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               if (customerVehicle != null && customerVehicle!.isNotEmpty) pw.Text('Vehicle: $customerVehicle', style: const pw.TextStyle(fontSize: 10)),
               pw.SizedBox(height: 15),
 
-              // Payment History Section - Show as table
-              if (paymentRecords.isNotEmpty) ...[
-                pw.Text('PAYMENT HISTORY', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 8),
-                _buildPaymentHistoryTable(),
-                pw.SizedBox(height: 15),
-              ],
-
-              // Payment Status Section - Only show if not fully paid
-              if (amountRemaining != '₹ 0') ...[
-                pw.Text('PAYMENT STATUS', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 5),
-                pw.Text(paymentStatus, style: const pw.TextStyle(fontSize: 10)),
-                pw.SizedBox(height: 15),
-
-                // Pending Payment Section
-                pw.Text('PENDING PAYMENT', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 5),
-                pw.Text('Rs. ${amountRemaining.replaceAll('₹ ', '')}', style: const pw.TextStyle(fontSize: 10)),
-                pw.SizedBox(height: 15),
-
-                // Next Payment Date Section
-                if (nextPaymentDate != null && nextPaymentDate!.isNotEmpty) ...[
-                  pw.Text('NEXT PAYMENT DATE', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 5),
-                  pw.Text(nextPaymentDate!, style: const pw.TextStyle(fontSize: 10)),
-                  pw.SizedBox(height: 15),
-                ],
-              ],
-
               // Products Table
               _buildProductTable(),
-              pw.SizedBox(height: 15),
+              pw.SizedBox(height: 40),
 
-              // Rupees in words
-              pw.Text('Rupees in words: ' + _convertNumberToWords(), 
-                style: const pw.TextStyle(fontSize: 10)),
-              pw.SizedBox(height: 10),
+              // Remaining Amount Instruction (if applicable)
+              if (amountRemaining != '₹ 0') ...[pw.Text(
+                'Please arrange payment of ${amountRemaining.replaceAll('₹', 'Rs.')} on or before $nextPaymentDate to complete this transaction.',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                textAlign: pw.TextAlign.center,
+              ),
+              pw.SizedBox(height: 15),
+              ],
 
               // Terms & Conditions
               pw.Text('Terms & Conditions', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
@@ -483,7 +482,14 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     ];
 
     return pw.Table(
-      border: pw.TableBorder.all(width: 1),
+      border: pw.TableBorder(
+        top: const pw.BorderSide(width: 1),
+        bottom: const pw.BorderSide(width: 1),
+        left: const pw.BorderSide(width: 1),
+        right: const pw.BorderSide(width: 1),
+        horizontalInside: pw.BorderSide(width: 1),
+        verticalInside: const pw.BorderSide(width: 1),
+      ),
       columnWidths: {
         0: const pw.FixedColumnWidth(40),
         1: const pw.FlexColumnWidth(3),
@@ -521,6 +527,17 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             }).toList(),
           );
         }).toList(),
+        // White space below last product item
+        pw.TableRow(
+          decoration: pw.BoxDecoration(color: PdfColors.white),
+          children: [
+            pw.SizedBox(height: 50),
+            pw.SizedBox(height: 50),
+            pw.SizedBox(height: 50),
+            pw.SizedBox(height: 50),
+            pw.SizedBox(height: 50),
+          ],
+        ),
         // Total row
         pw.TableRow(
           decoration: pw.BoxDecoration(color: PdfColors.grey300),
@@ -539,7 +556,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('Total:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+              child: pw.Text('Total Amount:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
@@ -551,72 +568,18 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
           ],
         ),
-      ],
-    );
-  }
-
-  pw.Widget _buildPaymentHistoryTable() {
-    // Table headers
-    final headers = ['S.No.', 'Amount', 'Method', 'Date'];
-    
-    // Table rows - payment records
-    final rows = <List<String>>[
-      ...paymentRecords.asMap().entries.map(
-        (entry) {
-          final index = entry.key + 1;
-          final payment = entry.value;
-          return [
-            '$index',
-            'Rs. ${payment.amount}',
-            payment.paymentMethod == 'cash' ? 'Cash' : 'Online',
-            payment.date,
-          ];
-        },
-      ),
-    ];
-
-    return pw.Table(
-      border: pw.TableBorder.all(width: 1),
-      columnWidths: {
-        0: const pw.FixedColumnWidth(40),
-        1: const pw.FlexColumnWidth(1.5),
-        2: const pw.FlexColumnWidth(1.5),
-        3: const pw.FlexColumnWidth(2),
-      },
-      children: [
-        // Header row
-        pw.TableRow(
-          decoration: pw.BoxDecoration(color: PdfColors.grey300),
-          children: headers.map((header) {
-            return pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
-              child: pw.Text(
-                header,
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-                textAlign: pw.TextAlign.center,
-              ),
-            );
-          }).toList(),
-        ),
-        // Data rows
-        ...rows.map((row) {
-          return pw.TableRow(
-            children: row.asMap().entries.map((entry) {
-              return pw.Padding(
-                padding: const pw.EdgeInsets.all(5),
-                child: pw.Text(
-                  entry.value,
-                  style: const pw.TextStyle(fontSize: 9),
-                  textAlign: entry.key == 0 ? pw.TextAlign.center : pw.TextAlign.left,
-                ),
-              );
-            }).toList(),
-          );
-        }).toList(),
-        // Total paid row
+        // Total Amount Paid row
         pw.TableRow(
           decoration: pw.BoxDecoration(color: PdfColors.grey300),
           children: [
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+            ),
+            pw.Padding(
+              padding: const pw.EdgeInsets.all(5),
+              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+            ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
               child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
@@ -627,52 +590,47 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
-            ),
-            pw.Padding(
-              padding: const pw.EdgeInsets.all(5),
               child: pw.Text(
-                'Rs. ${amountPaid.replaceAll('₹ ', '')}',
+                amountPaid.replaceAll('₹', 'Rs.'),
                 style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
                 textAlign: pw.TextAlign.right,
               ),
             ),
           ],
         ),
+        // Remaining Amount row (if amounts don't match)
+        if (amountRemaining != '₹ 0')
+          pw.TableRow(
+            decoration: pw.BoxDecoration(color: PdfColors.grey300),
+            children: [
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('Remaining:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text(
+                  amountRemaining.replaceAll('₹', 'Rs.'),
+                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+            ],
+          ),
       ],
     );
-  }
-
-  String _convertNumberToWords() {
-    try {
-      final totalAmountInt = int.parse(totalAmount.replaceAll('₹ ', '').replaceAll(',', ''));
-      
-      return _numberToWords(totalAmountInt);
-    } catch (e) {
-      return 'Unable to convert';
-    }
-  }
-
-  String _numberToWords(int number) {
-    final ones = [
-      '', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine',
-      'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen',
-      'seventeen', 'eighteen', 'nineteen'
-    ];
-    final tens = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
-
-    if (number == 0) return 'Zero';
-    if (number < 20) return ones[number].toUpperCase();
-    if (number < 100) {
-      return (tens[number ~/ 10] + (number % 10 != 0 ? ' ' + ones[number % 10] : '')).toUpperCase();
-    }
-    if (number < 1000) {
-      return (ones[number ~/ 100] + ' Hundred' + (number % 100 != 0 ? ' ' + _numberToWords(number % 100) : '')).toUpperCase();
-    }
-    if (number < 1000000) {
-      return (_numberToWords(number ~/ 1000) + ' Thousand' + (number % 1000 != 0 ? ' ' + _numberToWords(number % 1000) : '')).toUpperCase();
-    }
-    return number.toString();
   }
 
   Future<void> _saveAmountPaid(String paymentAmountStr, String selectedPaymentMethod) async {

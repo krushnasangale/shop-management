@@ -334,10 +334,12 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     final billId = 'BILL-${now.millisecondsSinceEpoch}';
     final billDate = now.toString().split('.')[0];
 
-    // Fetch owner signature from Firebase
+    // Fetch owner signature and company details from Firebase
     String? ownerSignatureBase64;
     String shopName = '--';
     String ownerName = '--';
+    String shopAddress = '--';
+    String shipPhone = '--';
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -350,6 +352,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
           ownerSignatureBase64 = data['ownerSignature'];
           shopName = data['shopName'] ?? '--';
           ownerName = data['ownerName'] ?? '--';
+          shopAddress = data['shopAddress'] ?? '--';
+          shipPhone = data['shipPhone'] ?? '--';
         }
       }
     } catch (e) {
@@ -382,6 +386,24 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                       fontWeight: pw.FontWeight.bold,
                     ),
                   ),
+                ],
+              ),
+              pw.SizedBox(height: 15),
+
+              // Company Details Section
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  if (shopAddress != '--')
+                    pw.Text(
+                      'Address: $shopAddress',
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
+                  if (shipPhone != '--')
+                    pw.Text(
+                      'Phone: $shipPhone',
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
                 ],
               ),
               pw.SizedBox(height: 15),
@@ -447,65 +469,21 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 ),
               pw.SizedBox(height: 15),
 
-              // Payment Status Section - Only show if not fully paid
-              if (amountRemaining > 0) ...[
-                pw.Text(
-                  'PAYMENT STATUS',
-                  style: pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  amountPaid > 0 ? 'Partially Paid' : 'Unpaid',
-                  style: const pw.TextStyle(fontSize: 10),
-                ),
-                pw.SizedBox(height: 15),
-
-                // Pending Payment Section
-                pw.Text(
-                  'PENDING PAYMENT',
-                  style: pw.TextStyle(
-                    fontSize: 11,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 5),
-                pw.Text(
-                  'Rs. $amountRemaining',
-                  style: const pw.TextStyle(fontSize: 10),
-                ),
-                pw.SizedBox(height: 15),
-
-                // Next Payment Date Section
-                if (nextPaymentDate.isNotEmpty) ...[
-                  pw.Text(
-                    'NEXT PAYMENT DATE',
-                    style: pw.TextStyle(
-                      fontSize: 11,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                  pw.SizedBox(height: 5),
-                  pw.Text(
-                    nextPaymentDate,
-                    style: const pw.TextStyle(fontSize: 10),
-                  ),
-                  pw.SizedBox(height: 15),
-                ],
-              ],
-
               // Products Table
               _buildProductTable(),
-              pw.SizedBox(height: 15),
+              pw.SizedBox(height: 40),
 
-              // Rupees in words
-              pw.Text(
-                'Rupees in words: ' + _convertNumberToWords(totalAmount),
-                style: const pw.TextStyle(fontSize: 10),
+              // Remaining Amount Instruction (if applicable)
+              if (amountRemaining > 0) ...[pw.Text(
+                'Please arrange payment of Rs. $amountRemaining on or before $nextPaymentDate to complete this transaction.',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                textAlign: pw.TextAlign.center,
               ),
-              pw.SizedBox(height: 10),
+              pw.SizedBox(height: 15),
+              ],
 
               // Terms & Conditions
               pw.Text(
@@ -591,11 +569,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   }
 
   pw.Widget _buildProductTable() {
-    // Calculate total profit
-    double totalProfit = products.fold(0, (sum, product) => sum + product.profitTotal);
-    
-    // Table headers with profit column
-    final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount', 'Profit'];
+    // Table headers WITHOUT profit column (customer-facing)
+    final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
 
     // Table rows - format prices with 'Rs.' prefix
     final rows = <List<String>>[
@@ -606,7 +581,6 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
           '${entry.value.quantity} ${entry.value.unit}',
           'Rs. ${entry.value.price}',
           'Rs. ${entry.value.total.toStringAsFixed(0)}',
-          'Rs. ${entry.value.profitTotal.toStringAsFixed(0)}',
         ],
       ),
     ];
@@ -615,14 +589,20 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Table(
-          border: pw.TableBorder.all(width: 1),
+          border: pw.TableBorder(
+            top: const pw.BorderSide(width: 1),
+            bottom: const pw.BorderSide(width: 1),
+            left: const pw.BorderSide(width: 1),
+            right: const pw.BorderSide(width: 1),
+            horizontalInside: pw.BorderSide(width: 1),
+            verticalInside: const pw.BorderSide(width: 1),
+          ),
           columnWidths: {
             0: const pw.FixedColumnWidth(30),
             1: const pw.FlexColumnWidth(2.5),
             2: const pw.FlexColumnWidth(1.2),
             3: const pw.FlexColumnWidth(1.2),
             4: const pw.FlexColumnWidth(1.2),
-            5: const pw.FlexColumnWidth(1.2),
           },
           children: [
             // Header row
@@ -659,6 +639,17 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 }).toList(),
               );
             }).toList(),
+            // White space below last product item
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: PdfColors.white),
+              children: [
+                pw.SizedBox(height: 50),
+                pw.SizedBox(height: 50),
+                pw.SizedBox(height: 50),
+                pw.SizedBox(height: 50),
+                pw.SizedBox(height: 50),
+              ],
+            ),
             // Total row
             pw.TableRow(
               decoration: pw.BoxDecoration(color: PdfColors.grey300),
@@ -678,7 +669,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(5),
                   child: pw.Text(
-                    'Total:',
+                    'Total Amount:',
                     style: pw.TextStyle(
                       fontSize: 9,
                       fontWeight: pw.FontWeight.bold,
@@ -697,10 +688,39 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                     textAlign: pw.TextAlign.right,
                   ),
                 ),
+              ],
+            ),
+            // Total Amount Paid row
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: PdfColors.grey300),
+              children: [
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                ),
                 pw.Padding(
                   padding: const pw.EdgeInsets.all(5),
                   child: pw.Text(
-                    'Rs. ${totalProfit.toStringAsFixed(0)}',
+                    'Total Paid:',
+                    style: pw.TextStyle(
+                      fontSize: 9,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.right,
+                  ),
+                ),
+                pw.Padding(
+                  padding: const pw.EdgeInsets.all(5),
+                  child: pw.Text(
+                    'Rs. $amountPaid',
                     style: pw.TextStyle(
                       fontSize: 9,
                       fontWeight: pw.FontWeight.bold,
@@ -710,120 +730,51 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 ),
               ],
             ),
+            // Remaining Amount row (if amounts don't match)
+            if (amountRemaining > 0)
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(
+                      'Remaining:',
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.right,
+                    ),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(
+                      'Rs. $amountRemaining',
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
           ],
-        ),
-        pw.SizedBox(height: 8),
-        // Profit breakdown section
-        pw.Container(
-          padding: const pw.EdgeInsets.all(8),
-          decoration: pw.BoxDecoration(
-            border: pw.Border.all(width: 1),
-            color: PdfColors.grey100,
-          ),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                'Profit Breakdown by Batch:',
-                style: pw.TextStyle(
-                  fontSize: 9,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 5),
-              ...products.map((product) => pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    '${product.productName} (Batch: ${product.batchId.substring(0, 8)}): ',
-                    style: const pw.TextStyle(fontSize: 8),
-                  ),
-                  pw.Text(
-                    'Rs. ${product.profitTotal.toStringAsFixed(0)}',
-                    style: const pw.TextStyle(fontSize: 8),
-                  ),
-                ],
-              )),
-              pw.SizedBox(height: 5),
-              pw.Divider(),
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    'Total Profit: ',
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                  pw.Text(
-                    'Rs. ${totalProfit.toStringAsFixed(0)}',
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
         ),
       ],
     );
-  }
-
-  String _convertNumberToWords(int number) {
-    final ones = [
-      '',
-      'one',
-      'two',
-      'three',
-      'four',
-      'five',
-      'six',
-      'seven',
-      'eight',
-      'nine',
-      'ten',
-      'eleven',
-      'twelve',
-      'thirteen',
-      'fourteen',
-      'fifteen',
-      'sixteen',
-      'seventeen',
-      'eighteen',
-      'nineteen',
-    ];
-    final tens = [
-      '',
-      '',
-      'twenty',
-      'thirty',
-      'forty',
-      'fifty',
-      'sixty',
-      'seventy',
-      'eighty',
-      'ninety',
-    ];
-
-    if (number == 0) return 'Zero';
-    if (number < 20) return ones[number].toUpperCase();
-    if (number < 100) {
-      return (tens[number ~/ 10] +
-              (number % 10 != 0 ? ' ' + ones[number % 10] : ''))
-          .toUpperCase();
-    }
-    if (number < 1000) {
-      return (ones[number ~/ 100] +
-              ' Hundred' +
-              (number % 100 != 0
-                  ? ' ' + _convertNumberToWords(number % 100)
-                  : ''))
-          .toUpperCase();
-    }
-    return number.toString();
   }
 
   Widget _buildStatusRow(
