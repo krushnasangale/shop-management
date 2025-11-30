@@ -407,8 +407,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
+          // Use the live list from state (_allProducts or _allUnits) instead of the parameter
+          // This ensures the modal always shows the latest items from Firestore listener
+          List<Map<String, dynamic>> liveItems = 
+              title == 'Products' ? _allProducts : _allUnits;
+          
           // Get current filtered items based on search and current items list
-          List<Map<String, dynamic>> filteredItems = items.where((item) {
+          List<Map<String, dynamic>> filteredItems = liveItems.where((item) {
             final itemName = item['productName'] ?? item['name'] ?? '';
             return itemName.toString().toLowerCase().contains(
               searchController.text.toLowerCase(),
@@ -551,7 +556,15 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   children: [
                     TextField(
                       controller: productNameController,
+                      textCapitalization: TextCapitalization.characters,
                       onChanged: (value) {
+                        // Convert to uppercase in real-time
+                        if (value != value.toUpperCase()) {
+                          productNameController.text = value.toUpperCase();
+                          productNameController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: value.toUpperCase().length),
+                          );
+                        }
                         setDialogState(() {
                           productNameError = value.trim().isEmpty
                               ? 'Product name required'
@@ -560,7 +573,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Product Name',
-                        hintText: 'Enter product name',
+                        hintText: 'Enter Product Name',
                         errorText: productNameError.isNotEmpty
                             ? productNameError
                             : null,
@@ -606,16 +619,15 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
                               await productsRef.add(newProduct);
 
-                              // Update local list
-                              setState(() {
-                                _allProducts.add({
-                                  'id': '',
-                                  'name': productName,
-                                });
+                              // Don't manually add - let the Firestore listener handle it
+                              // This prevents duplicates when the listener fires
+                              
+                              // Small delay to allow listener to update, then refresh modal
+                              await Future.delayed(const Duration(milliseconds: 200));
+                              
+                              setModalState(() {
+                                // This will trigger a rebuild of the modal sheet with updated items
                               });
-
-                              // Refresh modal state to show updated list
-                              setModalState(() {});
 
                               if (mounted) {
                                 Navigator.pop(context);
@@ -659,6 +671,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   void _showAddUnitDialog(BuildContext context, StateSetter setModalState) {
     final unitNameController = TextEditingController();
     String unitNameError = '';
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
@@ -666,14 +679,22 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Add New Unit'),
+              title: Text('Add New Unit', style: TextStyle(color: primaryTextColor),),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: unitNameController,
+                      textCapitalization: TextCapitalization.characters,
                       onChanged: (value) {
+                        // Convert to uppercase in real-time
+                        if (value != value.toUpperCase()) {
+                          unitNameController.text = value.toUpperCase();
+                          unitNameController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: value.toUpperCase().length),
+                          );
+                        }
                         setDialogState(() {
                           unitNameError = value.trim().isEmpty
                               ? 'Unit name required'
@@ -682,7 +703,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Unit Name',
-                        hintText: 'Enter unit name',
+                        hintText: 'Enter Unit Name',
                         errorText: unitNameError.isNotEmpty
                             ? unitNameError
                             : null,
@@ -722,13 +743,15 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
                               await unitsRef.add(newUnit);
 
-                              // Update local list
-                              setState(() {
-                                _allUnits.add({'id': '', 'name': unitName});
+                              // Don't manually add - let the Firestore listener handle it
+                              // This prevents duplicates when the listener fires
+                              
+                              // Small delay to allow listener to update, then refresh modal
+                              await Future.delayed(const Duration(milliseconds: 200));
+                              
+                              setModalState(() {
+                                // This will trigger a rebuild of the modal sheet with updated items
                               });
-
-                              // Refresh modal state to show updated list
-                              setModalState(() {});
 
                               if (mounted) {
                                 Navigator.pop(context);
