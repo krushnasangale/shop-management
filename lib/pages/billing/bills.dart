@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'package:share_plus/share_plus.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 
@@ -21,6 +26,7 @@ class _BillsState extends State<Bills> {
   bool _isLoading = true;
   bool _showSearchBar = false;
   late TextEditingController _searchController;
+  String _shopName = '--';
 
   @override
   void initState() {
@@ -46,6 +52,7 @@ class _BillsState extends State<Bills> {
 
     _userId = user.uid;
 
+    _loadShopName();
     _billsSubscription = FirebaseFirestore.instance
         .collection('bills')
         .doc(_userId)
@@ -169,6 +176,331 @@ class _BillsState extends State<Bills> {
     }
   }
 
+  Future<void> _loadShopName() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('shop-profile')
+            .doc(user.uid)
+            .get();
+        if (snapshot.exists) {
+          if (mounted) {
+            setState(() {
+              _shopName = (snapshot.data()?['shopName'] as String?) ?? '--';
+            });
+          }
+        }
+      }
+    } catch (e) {
+      print('Error loading shop name: $e');
+    }
+  }
+
+  void _showReportOptionsDialog(BuildContext context) {
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Generate Report',
+            style: TextStyle(color: primaryTextColor),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('Select format to export bills data:'),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.maxFinite,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.picture_as_pdf),
+                  label: const Text('Export as PDF'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _generateAndSharePDF();
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.maxFinite,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.table_chart),
+                  label: const Text('Export as CSV (Excel)'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _generateAndShareCSV();
+                  },
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _generateAndSharePDF() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Generating PDF...',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
+      final pdfFile = await _generateBillsPDF();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+
+        await Share.shareXFiles(
+          [XFile(pdfFile.path)],
+          text: 'Bills Report from $_shopName',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _generateAndShareCSV() async {
+    try {
+      final csvFile = await _generateBillsCSV();
+
+      if (mounted) {
+        await Share.shareXFiles(
+          [XFile(csvFile.path)],
+          text: 'Bills Report (CSV) from $_shopName',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating CSV: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<File> _generateBillsPDF() async {
+    final pdf = pw.Document();
+    final dir = await getTemporaryDirectory();
+    final now = DateTime.now();
+    final dateTimeString =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    final file = File('${dir.path}/bills_report_$dateTimeString.pdf');
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          return pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              // Header
+              pw.Text(
+                '$_shopName - Bills Report',
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.SizedBox(height: 10),
+              pw.Text(
+                'Generated on: ${now.toString().split('.')[0]} | Filter: ${_getStatusText(_selectedFilter)}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              pw.SizedBox(height: 20),
+
+              // Bills Table
+              pw.Table(
+                border: pw.TableBorder.all(width: 1),
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(30),
+                  1: const pw.FlexColumnWidth(2),
+                  2: const pw.FlexColumnWidth(1.5),
+                  3: const pw.FlexColumnWidth(1.2),
+                  4: const pw.FlexColumnWidth(1.2),
+                  5: const pw.FlexColumnWidth(1),
+                },
+                children: [
+                  // Header row
+                  pw.TableRow(
+                    decoration: pw.BoxDecoration(color: PdfColors.grey300),
+                    children: [
+                      'S.No.',
+                      'Customer',
+                      'Mobile',
+                      'Date',
+                      'Amount',
+                      'Status',
+                    ]
+                        .map((header) => pw.Padding(
+                              padding: const pw.EdgeInsets.all(5),
+                              child: pw.Text(
+                                header,
+                                style: pw.TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                                textAlign: pw.TextAlign.center,
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                  // Data rows
+                  ..._filteredBills.asMap().entries.map((entry) {
+                    final bill = entry.value;
+                    final index = entry.key + 1;
+                    return pw.TableRow(
+                      children: [
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            index.toString(),
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            bill.customerName,
+                            style: const pw.TextStyle(fontSize: 8),
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            bill.customerMobile,
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            bill.date,
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            'Rs.${bill.totalAmount}',
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            _getStatusText(bill.status),
+                            style: const pw.TextStyle(fontSize: 8),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ),
+                      ],
+                    );
+                  }).toList(),
+                ],
+              ),
+              pw.SizedBox(height: 20),
+              pw.Text(
+                'Total Bills: ${_filteredBills.length}',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    await file.writeAsBytes(await pdf.save());
+    return file;
+  }
+
+  Future<File> _generateBillsCSV() async {
+    final dir = await getTemporaryDirectory();
+    final now = DateTime.now();
+    final dateTimeString =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    final file = File('${dir.path}/bills_report_$dateTimeString.csv');
+
+    // Create CSV header
+    final csv = StringBuffer();
+    csv.writeln(
+        'S.No.,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getStatusText(_selectedFilter)}');
+
+    // Add bill rows
+    for (var i = 0; i < _filteredBills.length; i++) {
+      final bill = _filteredBills[i];
+      csv.writeln(
+          '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getStatusText(bill.status)}"');
+    }
+
+    await file.writeAsString(csv.toString());
+    return file;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -190,9 +522,9 @@ class _BillsState extends State<Bills> {
               },
             ),
           ),
-          const Padding(
-            padding: EdgeInsets.only(right: 8.0),
-            child: Icon(Icons.more_vert),
+          IconButton(
+            icon: const Icon(Icons.more_vert),
+            onPressed: () => _showReportOptionsDialog(context),
           ),
         ],
       ),
