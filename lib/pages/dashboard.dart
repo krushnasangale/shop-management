@@ -237,9 +237,10 @@ class _DashboardState extends State<Dashboard> {
       for (var billDoc in billsSnapshot.docs) {
         final billData = billDoc.data();
         final nextPaymentDate = billData['nextPaymentDate'] as String?;
+        final amountRemaining = (billData['amountRemaining'] as num?)?.toInt() ?? 0;
 
-        // Show upcoming payments where nextPaymentDate is set (regardless of remaining amount)
-        if (nextPaymentDate != null && nextPaymentDate.isNotEmpty) {
+        // Show upcoming payments where nextPaymentDate is set AND amountRemaining > 0
+        if (nextPaymentDate != null && nextPaymentDate.isNotEmpty && amountRemaining > 0) {
           try {
             // Parse date in dd/MM/yyyy format
             final dateParts = nextPaymentDate.split('/');
@@ -258,7 +259,7 @@ class _DashboardState extends State<Dashboard> {
                   'nextPaymentDate': nextPaymentDate,
                   'totalAmount': billData['totalAmount'] ?? 0,
                   'amountPaid': billData['amountPaid'] ?? 0,
-                  'amountRemaining': billData['amountRemaining'] ?? 0,
+                  'amountRemaining': amountRemaining,
                   'products': billData['products'],
                 });
               }

@@ -113,7 +113,15 @@ class _MyHomePageState extends State<MyHomePage> {
             .snapshots()
             .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
           if (mounted) {
-            setState(() => _productsCount = snapshot.size);
+            // Group by product name to get unique count
+            final uniqueProducts = <String>{};
+            for (var doc in snapshot.docs) {
+              final productName = doc.data()['productName'] as String?;
+              if (productName != null) {
+                uniqueProducts.add(productName);
+              }
+            }
+            setState(() => _productsCount = uniqueProducts.length);
           }
         });
       }
