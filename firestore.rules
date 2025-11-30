@@ -2,17 +2,59 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      // This rule allows anyone with your database reference to view, edit,
-      // and delete all data in your database. It is useful for getting
-      // started, but it is configured to expire after 30 days because it
-      // leaves your app open to attackers. At that time, all client
-      // requests to your database will be denied.
-      //
-      // Make sure to write security rules for your app before that time, or
-      // else all client requests to your database will be denied until you
-      // update your rules.
-      allow read, write: if request.time < timestamp.date(2025, 12, 16);
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user owns the resource
+    function isOwnResource(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Shop Profile collection - user can only read/write their own
+    match /shop-profile/{userId} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
+    }
+
+    // Purchased Products collection - user can only access their own
+    match /purchased-products/{userId}/{document=**} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
+    }
+
+    // Bills collection - user can only access their own
+    match /bills/{userId}/{document=**} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
+    }
+
+    // Purchases collection - user can only access their own
+    match /purchases/{userId}/{document=**} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
+    }
+
+    // Customers collection - user can only access their own
+    match /customers/{userId}/{document=**} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
+    }
+
+    // Units collection - user can only access their own
+    match /units/{userId}/{document=**} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
+    }
+
+    // Suppliers collection - user can only access their own
+    match /suppliers/{userId}/{document=**} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
+    }
+
+    // Product Names collection - user can only access their own
+    match /product-names/{userId}/{document=**} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
+    }
+
+    // Product Purchase History collection - user can only access their own
+    match /product-purchase-history/{userId}/{document=**} {
+      allow read, write: if isAuthenticated() && isOwnResource(userId);
     }
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/login/login.dart';
@@ -22,7 +22,7 @@ class MyProfile extends StatefulWidget {
 class _MyProfileState extends State<MyProfile> {
   bool _isLoggingOut = false;
   String _shopName = '----';
-  StreamSubscription<DatabaseEvent>? _shopNameSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _shopNameSubscription;
 
   @override
   void initState() {
@@ -35,13 +35,13 @@ class _MyProfileState extends State<MyProfile> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final database = FirebaseDatabase.instance;
-      _shopNameSubscription = database
-          .ref('shop-profile/${user.uid}/shopName')
-          .onValue
-          .listen((DatabaseEvent event) {
-        if (mounted && event.snapshot.exists) {
-          final shopName = event.snapshot.value as String?;
+      _shopNameSubscription = FirebaseFirestore.instance
+          .collection('shop-profile')
+          .doc(user.uid)
+          .snapshots()
+          .listen((DocumentSnapshot<Map<String, dynamic>> snapshot) {
+        if (mounted && snapshot.exists) {
+          final shopName = snapshot.data()?['shopName'] as String?;
           if (shopName != null && shopName.isNotEmpty) {
             setState(() => _shopName = shopName);
           }

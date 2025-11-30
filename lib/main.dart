@@ -12,7 +12,7 @@ import 'package:flashbill/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'firebase_options.dart';
 
@@ -68,8 +68,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
   String _shopName = '----';
-  StreamSubscription<DatabaseEvent>? _shopNameSubscription;
-  StreamSubscription<DatabaseEvent>? _productsSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _shopNameSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
   int _productsCount = 0;
 
   @override
@@ -83,13 +83,13 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final database = FirebaseDatabase.instance;
-        _shopNameSubscription = database
-            .ref('shop-profile/${user.uid}/shopName')
-            .onValue
-            .listen((DatabaseEvent event) {
-          if (mounted && event.snapshot.exists) {
-            final shopName = event.snapshot.value as String?;
+        _shopNameSubscription = FirebaseFirestore.instance
+            .collection('shop-profile')
+            .doc(user.uid)
+            .snapshots()
+            .listen((DocumentSnapshot<Map<String, dynamic>> snapshot) {
+          if (mounted && snapshot.exists) {
+            final shopName = snapshot.data()?['shopName'] as String?;
             if (shopName != null && shopName.isNotEmpty) {
               setState(() => _shopName = shopName);
             }
@@ -105,26 +105,15 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final database = FirebaseDatabase.instance;
-        _productsSubscription = database
-            .ref('purchased-products/${user.uid}')
-            .onValue
-            .listen((DatabaseEvent event) {
-          if (mounted && event.snapshot.exists) {
-            final data = event.snapshot.value as Map<dynamic, dynamic>;
-            // Count only products with quantity > 0
-            int count = 0;
-            data.forEach((key, value) {
-              if (value is Map) {
-                final quantity = value['quantity'] as int? ?? 0;
-                if (quantity > 0) {
-                  count++;
-                }
-              }
-            });
-            setState(() => _productsCount = count);
-          } else {
-            setState(() => _productsCount = 0);
+        _productsSubscription = FirebaseFirestore.instance
+            .collection('purchased-products')
+            .doc(user.uid)
+            .collection('items')
+            .where('quantity', isGreaterThan: 0)
+            .snapshots()
+            .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
+          if (mounted) {
+            setState(() => _productsCount = snapshot.size);
           }
         });
       }

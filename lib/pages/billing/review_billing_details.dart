@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
 
@@ -667,18 +667,20 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('User not authenticated');
 
-    final database = FirebaseDatabase.instance;
+    final firestore = FirebaseFirestore.instance;
     final userId = user.uid;
-    final billId = database.ref('bills/$userId').push().key;
-
-    if (billId == null) throw Exception('Failed to generate bill ID');
+    
+    // Generate document ID using Firestore auto-generated ID format
+    final billDocRef = firestore
+        .collection('bills')
+        .doc(userId)
+        .collection('items');
 
     // Prepare bill data
     final actualAmountPaid = widget.totalAmountPaid ? widget.totalAmount : (widget.amountPaid ?? 0);
     final actualAmountRemaining = widget.totalAmountPaid ? 0 : (widget.amountRemaining ?? 0);
     
     final billData = {
-      'billId': billId,
       'customerId': widget.customerId, // Add customerId for efficient customer history fetching
       'billDate': widget.billDate,
       'customerName': widget.customerName,
@@ -715,31 +717,35 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       ],
     };
 
-    // Save bill to bills table only (with customerId for efficient querying)
-    await database.ref('bills/$userId/$billId').set(billData);
+    // Save bill to bills table (auto-generated ID)
+    await billDocRef.add(billData);
 
     // Update product quantities in purchased-products
     for (final product in widget.products) {
-      final productsRef = database.ref('purchased-products/$userId');
-      final snapshot = await productsRef.get();
+      final productsSnapshot = await firestore
+          .collection('purchased-products')
+          .doc(userId)
+          .collection('items')
+          .get();
 
-      if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
-        for (final entry in data.entries) {
-          final productData = entry.value as Map<dynamic, dynamic>;
-          final productName = productData['productName'] as String?;
-          final supplierName = productData['supplierName'] as String?;
+      for (final productDoc in productsSnapshot.docs) {
+        final productData = productDoc.data();
+        final productName = productData['productName'] as String?;
+        final supplierName = productData['supplierName'] as String?;
 
-          // Match by both product name and supplier name
-          if (productName == product.productName && supplierName == product.supplierName) {
-            final productId = entry.key as String;
-            final currentQty = productData['quantity'] as int? ?? 0;
-            final newQty = (currentQty - product.quantity.toInt()).toInt();
-            
-            // Update quantity (set to 0 if it goes below 0, don't delete)
-            await database.ref('purchased-products/$userId/$productId/quantity').set(newQty.clamp(0, double.infinity).toInt());
-            break; // Found and updated, move to next product
-          }
+        // Match by both product name and supplier name
+        if (productName == product.productName && supplierName == product.supplierName) {
+          final currentQty = productData['quantity'] as int? ?? 0;
+          final newQty = (currentQty - product.quantity.toInt()).toInt();
+          
+          // Update quantity (set to 0 if it goes below 0, don't delete)
+          await firestore
+              .collection('purchased-products')
+              .doc(userId)
+              .collection('items')
+              .doc(productDoc.id)
+              .update({'quantity': newQty.clamp(0, double.infinity).toInt()});
+          break; // Found and updated, move to next product
         }
       }
     }

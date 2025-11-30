@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
@@ -100,20 +100,19 @@ class BillItem {
 class _CreateNewBillState extends State<CreateNewBill> {
   bool totalAmountPaid = true;
   String paymentMethod = 'cash'; // 'cash' or 'online'
-  late DatabaseReference _boughtProductsRef;
   late String _userId;
   List<BoughtProduct> _availableProducts = [];
   List<BillItem> _billItems = [];
   bool _productsLoading = true;
   List<Map<String, dynamic>> _customers = [];
   bool _customersLoading = true;
-  StreamSubscription<DatabaseEvent>? _customersSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _customersSubscription;
   late TextEditingController _searchController;
   late TextEditingController _dateController;
   late TextEditingController _customerNameController;
   late TextEditingController _customerMobileController;
   late TextEditingController _customerVehicleController;
-  StreamSubscription<DatabaseEvent>? _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
   String _customerNameError = '';
   String _customerMobileError = '';
   String _customerVehicleError = '';
@@ -188,27 +187,17 @@ class _CreateNewBillState extends State<CreateNewBill> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _userId = user.uid;
-      _boughtProductsRef = FirebaseDatabase.instance.ref(
-        'purchased-products/$_userId',
-      );
-      _productsSubscription = _boughtProductsRef.onValue.listen((
-        DatabaseEvent event,
-      ) {
+      _productsSubscription = FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(_userId)
+          .collection('items')
+          .snapshots()
+          .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
         if (!mounted) return;
 
-        final data = event.snapshot.value as Map<dynamic, dynamic>?;
-        final loadedProducts = <BoughtProduct>[];
-
-        if (data != null) {
-          for (var entry in data.entries) {
-            loadedProducts.add(
-              BoughtProduct.fromMap(
-                entry.key as String,
-                entry.value as Map<dynamic, dynamic>,
-              ),
-            );
-          }
-        }
+        final loadedProducts = snapshot.docs
+            .map((doc) => BoughtProduct.fromMap(doc.id, doc.data()))
+            .toList();
 
         if (mounted) {
           setState(() {
@@ -224,32 +213,27 @@ class _CreateNewBillState extends State<CreateNewBill> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final database = FirebaseDatabase.instance;
-    final customersRef = database.ref('customers/${user.uid}');
-
-    _customersSubscription = customersRef.onValue.listen((event) {
+    _customersSubscription = FirebaseFirestore.instance
+        .collection('customers')
+        .doc(user.uid)
+        .collection('items')
+        .snapshots()
+        .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
       if (!mounted) return;
 
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data != null) {
-        final customers = data.entries.map((e) {
-          return {
-            'id': e.key,
-            'name': e.value['name'] ?? '',
-            'mobileNumber': e.value['mobileNumber'] ?? '',
-            'vehicleNumber': e.value['vehicleNumber'] ?? '',
-          };
-        }).toList();
-        setState(() {
-          _customers = customers;
-          _customersLoading = false;
-        });
-      } else {
-        setState(() {
-          _customers = [];
-          _customersLoading = false;
-        });
-      }
+      final customers = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          'name': data['name'] ?? '',
+          'mobileNumber': data['mobileNumber'] ?? '',
+          'vehicleNumber': data['vehicleNumber'] ?? '',
+        };
+      }).toList();
+      setState(() {
+        _customers = customers;
+        _customersLoading = false;
+      });
     });
   }
 
@@ -1136,29 +1120,20 @@ class _CreateNewBillState extends State<CreateNewBill> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return null;
 
-      final database = FirebaseDatabase.instance;
       final customerData = {
         'name': _customerNameController.text.trim(),
         'mobileNumber': _customerMobileController.text.trim(),
         'vehicleNumber': _customerVehicleController.text.trim(),
-        'createdAt': DateTime.now().toString(),
+        'createdAt': DateTime.now().toIso8601String(),
       };
 
-      await database.ref('customers/${user.uid}').push().set(customerData);
+      final docRef = await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(user.uid)
+          .collection('items')
+          .add(customerData);
 
-      // Get the key of the newly added customer
-      final snapshot = await database
-          .ref('customers/${user.uid}')
-          .orderByChild('createdAt')
-          .limitToLast(1)
-          .get();
-
-      if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
-        final customerId = data.keys.first as String;
-        return customerId;
-      }
-      return null;
+      return docRef.id;
     } catch (e) {
       print('Error adding customer: $e');
       return null;

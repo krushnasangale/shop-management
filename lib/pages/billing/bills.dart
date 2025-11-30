@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 
@@ -13,7 +14,7 @@ class Bills extends StatefulWidget {
 
 class _BillsState extends State<Bills> {
   PaymentFilter _selectedFilter = PaymentFilter.all;
-  late DatabaseReference _billsRef;
+  late StreamSubscription<QuerySnapshot<Map<String, dynamic>>> _billsSubscription;
   late String _userId;
   List<Bill> _allBills = [];
   List<Bill> _filteredBills = [];
@@ -32,6 +33,7 @@ class _BillsState extends State<Bills> {
   @override
   void dispose() {
     _searchController.dispose();
+    _billsSubscription.cancel();
     super.dispose();
   }
 
@@ -43,67 +45,60 @@ class _BillsState extends State<Bills> {
     }
 
     _userId = user.uid;
-    _billsRef = FirebaseDatabase.instance.ref('bills/$_userId');
 
-    _billsRef.onValue.listen(
-      (DatabaseEvent event) {
+    _billsSubscription = FirebaseFirestore.instance
+        .collection('bills')
+        .doc(_userId)
+        .collection('items')
+        .snapshots()
+        .listen(
+      (QuerySnapshot<Map<String, dynamic>> snapshot) {
         try {
           final bills = <Bill>[];
 
-          if (event.snapshot.exists) {
-            final data = event.snapshot.value as Map<dynamic, dynamic>;
+          for (var billDoc in snapshot.docs) {
+            final billData = billDoc.data();
+            final totalAmount = (billData['totalAmount'] as num?)?.toInt() ?? 0;
+            final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? true;
+            final amountRemaining = (billData['amountRemaining'] as num?)?.toInt() ?? 0;
+            final amountPaid = (billData['amountPaid'] as num?)?.toInt() ?? 0;
 
-            data.forEach((key, value) {
-              if (value is Map) {
-                final billData = Map<String, dynamic>.from(value);
-                final totalAmount = billData['totalAmount'] ?? 0;
-                final totalAmountPaid = billData['totalAmountPaid'] ?? true;
-                final amountRemaining = billData['amountRemaining'] ?? 0;
-                final amountPaid = billData['amountPaid'] ?? 0;
+            // Determine payment status
+            PaymentFilter status;
+            if (amountPaid == 0 && amountRemaining != 0) {
+              status = PaymentFilter.unpaid;
+            } else if (totalAmountPaid) {
+              status = PaymentFilter.paid;
+            } else if (amountRemaining == 0) {
+              status = PaymentFilter.paid;
+            } else {
+              status = PaymentFilter.partial;
+            }
 
-                // Determine payment status
-                PaymentFilter status;
-                if (amountPaid == 0 && amountRemaining != 0) {
-                  status = PaymentFilter.unpaid;
-                } else if (totalAmountPaid) {
-                  status = PaymentFilter.paid;
-                } else if (amountRemaining == 0) {
-                  status = PaymentFilter.paid;
-                } else {
-                  status = PaymentFilter.partial;
-                }
+            final productsMap = billData['products'] as Map<String, dynamic>?;
+            final productsList = <Map<String, dynamic>>[];
+            if (productsMap != null) {
+              productsList.addAll(productsMap.values.cast<Map<String, dynamic>>());
+            }
 
-                final productsMap =
-                    billData['products'] as Map<dynamic, dynamic>?;
-                final productsList = <Map<String, dynamic>>[];
-                if (productsMap != null) {
-                  productsMap.forEach((key, value) {
-                    if (value is Map) {
-                      productsList.add(Map<String, dynamic>.from(value));
-                    }
-                  });
-                }
-
-                bills.add(
-                  Bill(
-                    key.toString(),
-                    billData['billDate'] ?? '',
-                    billData['customerName'] ?? 'Unknown',
-                    billData['customerMobile'] ?? '',
-                    billData['customerVehicle'],
-                    '₹${totalAmount}',
-                    status,
-                    billData['timestamp'] ?? '',
-                    totalAmount,
-                    totalAmountPaid,
-                    amountPaid,
-                    amountRemaining,
-                    productsList,
-                    billData['nextPaymentDate'],
-                  ),
-                );
-              }
-            });
+            bills.add(
+              Bill(
+                billDoc.id,
+                billData['billDate'] ?? '',
+                billData['customerName'] ?? 'Unknown',
+                billData['customerMobile'] ?? '',
+                billData['customerVehicle'],
+                '₹${totalAmount}',
+                status,
+                billData['timestamp'] ?? '',
+                totalAmount,
+                totalAmountPaid,
+                amountPaid,
+                amountRemaining,
+                productsList,
+                billData['nextPaymentDate'],
+              ),
+            );
           }
 
           // Sort bills by timestamp (newest first)

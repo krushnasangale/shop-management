@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
@@ -15,7 +15,7 @@ class Product {
   }
 
   // Create from Map
-  factory Product.fromMap(String id, Map<dynamic, dynamic> data) {
+  factory Product.fromMap(String id, Map<String, dynamic> data) {
     return Product(id: id, name: data['name'] ?? '');
   }
 }
@@ -28,14 +28,14 @@ class ProductName extends StatefulWidget {
 }
 
 class _ProductNameState extends State<ProductName> {
-  late DatabaseReference _productsRef;
+  late CollectionReference _productsRef;
   late String _userId;
   late List<Product> _products;
   late List<Product> _filteredProducts;
   bool _isLoading = true;
   String _searchQuery = '';
   late TextEditingController _searchController;
-  StreamSubscription<DatabaseEvent>? _productsSubscription;
+  StreamSubscription<QuerySnapshot>? _productsSubscription;
 
   // Controllers for the Add Product Popup
   final TextEditingController _productNameController = TextEditingController();
@@ -60,7 +60,10 @@ class _ProductNameState extends State<ProductName> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _userId = user.uid;
-      _productsRef = FirebaseDatabase.instance.ref('product-names/$_userId/items');
+      _productsRef = FirebaseFirestore.instance
+          .collection('product-names')
+          .doc(_userId)
+          .collection('items');
       _loadProductsFromDatabase();
     } else {
       setState(() {
@@ -72,33 +75,30 @@ class _ProductNameState extends State<ProductName> {
   }
 
   void _loadProductsFromDatabase() {
-    _productsSubscription = _productsRef.onValue.listen((DatabaseEvent event) {
-      // Early return if widget is disposed
-      if (!mounted) return;
+    _productsSubscription = _productsRef.snapshots().listen(
+      (snapshot) {
+        // Early return if widget is disposed
+        if (!mounted) return;
 
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      final loadedProducts = <Product>[];
+        final loadedProducts = <Product>[];
 
-      if (data != null) {
-        for (var entry in data.entries) {
+        for (var doc in snapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
           loadedProducts.add(
-            Product.fromMap(
-              entry.key as String,
-              entry.value as Map<dynamic, dynamic>,
-            ),
+            Product.fromMap(doc.id, data),
           );
         }
-      }
 
-      // Single setState call with all updates
-      if (mounted) {
-        setState(() {
-          _products = loadedProducts;
-          _isLoading = false;
-        });
-        _filterProducts();
-      }
-    });
+        // Single setState call with all updates
+        if (mounted) {
+          setState(() {
+            _products = loadedProducts;
+            _isLoading = false;
+          });
+          _filterProducts();
+        }
+      },
+    );
   }
 
   void _filterProducts() {
@@ -248,7 +248,7 @@ class _ProductNameState extends State<ProductName> {
               onPressed: () async {
                 if (_productNameController.text.isNotEmpty) {
                   try {
-                    await _productsRef.push().set({'name': _productNameController.text.trim()});
+                    await _productsRef.add({'name': _productNameController.text.trim()});
                     if (context.mounted) {
                       Navigator.pop(context);
                     }
@@ -303,7 +303,7 @@ class _ProductNameState extends State<ProductName> {
               onPressed: () async {
                 if (nameController.text.isNotEmpty) {
                   try {
-                    await _productsRef.child(product.id).update({
+                    await _productsRef.doc(product.id).update({
                       'name': nameController.text.trim(),
                     });
                     if (context.mounted) {
@@ -341,7 +341,7 @@ class _ProductNameState extends State<ProductName> {
             TextButton(
               onPressed: () async {
                 try {
-                  await _productsRef.child(product.id).remove();
+                  await _productsRef.doc(product.id).delete();
                   if (context.mounted) {
                     Navigator.pop(context);
                   }

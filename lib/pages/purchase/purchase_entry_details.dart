@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 
@@ -18,7 +18,7 @@ class PurchaseEntryDetails extends StatefulWidget {
 class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
   late List<Map<String, dynamic>> _items = [];
   bool _isLoading = true;
-  late List<StreamSubscription<DatabaseEvent>> _subscriptions;
+  late List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>> _subscriptions;
 
   @override
   void initState() {
@@ -48,31 +48,21 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
         return;
       }
 
-      final database = FirebaseDatabase.instance;
-      
-      // Load all items for this purchase in one API call using query
-      final productsRef = database.ref('purchased-products/${user.uid}');
-      final subscription = productsRef
-          .orderByChild('purchaseId')
-          .equalTo(purchaseId)
-          .onValue
-          .listen((event) {
-        if (mounted && event.snapshot.value != null) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>;
-          final loadedItems = <Map<String, dynamic>>[];
-          
-          for (var entry in data.entries) {
-            final itemData = entry.value as Map<dynamic, dynamic>;
-            loadedItems.add(Map<String, dynamic>.from(itemData));
-          }
+      // Load all items for this purchase in real-time using Firestore query
+      final subscription = FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(user.uid)
+          .collection('items')
+          .where('purchaseId', isEqualTo: purchaseId)
+          .snapshots()
+          .listen((snapshot) {
+        if (mounted) {
+          final loadedItems = snapshot.docs
+              .map((doc) => doc.data())
+              .toList();
           
           setState(() {
             _items = loadedItems;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _items = [];
             _isLoading = false;
           });
         }

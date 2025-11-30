@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
@@ -19,7 +19,6 @@ class AvailableProducts extends StatefulWidget {
 }
 
 class _AvailableProductsState extends State<AvailableProducts> {
-  late DatabaseReference _boughtProductsRef;
   late String _userId;
   late List<BoughtProduct> _boughtProducts;
   late List<BoughtProduct> _filteredProducts;
@@ -28,7 +27,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
   String _searchQuery = '';
   String _selectedFilter = 'All'; // 'All', 'Reorder Now', 'Order Soon', 'Well Stocked'
   late TextEditingController _searchController;
-  StreamSubscription<DatabaseEvent>? _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
   String _shopName = '--';
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
 
@@ -51,9 +50,6 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _userId = user.uid;
-      _boughtProductsRef = FirebaseDatabase.instance.ref(
-        'purchased-products/$_userId',
-      );
       _loadShopName();
       _loadProductsFromDatabase();
     } else {
@@ -69,12 +65,14 @@ class _AvailableProductsState extends State<AvailableProducts> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final database = FirebaseDatabase.instance;
-        final snapshot = await database.ref('shop-profile/${user.uid}/shopName').get();
+        final snapshot = await FirebaseFirestore.instance
+            .collection('shop-profile')
+            .doc(user.uid)
+            .get();
         if (snapshot.exists) {
           if (mounted) {
             setState(() {
-              _shopName = snapshot.value.toString();
+              _shopName = (snapshot.data()?['shopName'] as String?) ?? '--';
             });
           }
         }
@@ -85,28 +83,17 @@ class _AvailableProductsState extends State<AvailableProducts> {
   }
 
   void _loadProductsFromDatabase() {
-    _productsSubscription = _boughtProductsRef.onValue.listen((
-      DatabaseEvent event,
-    ) {
+    _productsSubscription = FirebaseFirestore.instance
+        .collection('purchased-products')
+        .doc(_userId)
+        .collection('items')
+        .snapshots()
+        .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
       if (!mounted) return;
 
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      final loadedProducts = <BoughtProduct>[];
-
-      if (data != null) {
-        // Iterate through purchased products directly
-        for (var entry in data.entries) {
-          final productData = entry.value as Map<dynamic, dynamic>?;
-          if (productData != null) {
-            final product = BoughtProduct.fromMap(
-              entry.key as String,
-              productData,
-            );
-            
-            loadedProducts.add(product);
-          }
-        }
-      }
+      final loadedProducts = snapshot.docs
+          .map((doc) => BoughtProduct.fromMap(doc.id, doc.data()))
+          .toList();
 
       if (mounted) {
         setState(() {

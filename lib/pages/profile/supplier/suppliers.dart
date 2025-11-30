@@ -1,6 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/profile/supplier/supplier_history.dart';
@@ -47,14 +47,13 @@ class Suppliers extends StatefulWidget {
 }
 
 class _SuppliersState extends State<Suppliers> {
-  late DatabaseReference _suppliersRef;
   late String _userId;
   late List<Supplier> _suppliers;
   late List<Supplier> _filteredSuppliers;
   bool _isLoading = true;
   String _searchQuery = '';
   late TextEditingController _searchController;
-  StreamSubscription<DatabaseEvent>? _suppliersSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _suppliersSubscription;
 
   // --- Random Color Generator for Avatar Initials ---
   final Random _random = Random();
@@ -114,8 +113,6 @@ class _SuppliersState extends State<Suppliers> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _userId = user.uid;
-      // Reference user-specific suppliers: suppliers/{userId}/items
-      _suppliersRef = FirebaseDatabase.instance.ref('suppliers/$_userId/items');
       _loadSuppliersFromDatabase();
     } else {
       setState(() {
@@ -126,29 +123,23 @@ class _SuppliersState extends State<Suppliers> {
   }
 
   void _loadSuppliersFromDatabase() {
-    _suppliersSubscription = _suppliersRef.onValue.listen((DatabaseEvent event) {
+    _suppliersSubscription = FirebaseFirestore.instance
+        .collection('suppliers')
+        .doc(_userId)
+        .collection('items')
+        .snapshots()
+        .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
       if (!mounted) return;
       
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data != null) {
-        final loadedSuppliers = data.entries
-            .map((e) => Supplier.fromMap(e.key as String, e.value as Map<dynamic, dynamic>))
-            .toList();
-        if (mounted) {
-          setState(() {
-            _suppliers = loadedSuppliers;
-            _filterSuppliers();
-            _isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) {
-          setState(() {
-            _suppliers = [];
-            _filteredSuppliers = [];
-            _isLoading = false;
-          });
-        }
+      final loadedSuppliers = snapshot.docs
+          .map((doc) => Supplier.fromMap(doc.id, doc.data()))
+          .toList();
+      if (mounted) {
+        setState(() {
+          _suppliers = loadedSuppliers;
+          _filterSuppliers();
+          _isLoading = false;
+        });
       }
     });
   }
@@ -398,7 +389,11 @@ class _SuppliersState extends State<Suppliers> {
                     'contact': contactController.text,
                     'location': locationController.text.trim(),
                   };
-                  await _suppliersRef.push().set(newSupplier);
+                  await FirebaseFirestore.instance
+                      .collection('suppliers')
+                      .doc(_userId)
+                      .collection('items')
+                      .add(newSupplier);
                   if (mounted) Navigator.pop(context);
                 }
               },
@@ -517,7 +512,12 @@ class _SuppliersState extends State<Suppliers> {
                 if (nameController.text.isNotEmpty &&
                     contactController.text.isNotEmpty &&
                     locationController.text.isNotEmpty) {
-                  await _suppliersRef.child(supplier.id).update({
+                  await FirebaseFirestore.instance
+                      .collection('suppliers')
+                      .doc(_userId)
+                      .collection('items')
+                      .doc(supplier.id)
+                      .update({
                     'name': nameController.text,
                     'contact': contactController.text,
                     'location': locationController.text,
@@ -564,7 +564,12 @@ class _SuppliersState extends State<Suppliers> {
             ),
             ElevatedButton(
               onPressed: () async {
-                await _suppliersRef.child(supplier.id).remove();
+                await FirebaseFirestore.instance
+                    .collection('suppliers')
+                    .doc(_userId)
+                    .collection('items')
+                    .doc(supplier.id)
+                    .delete();
                 if (mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(

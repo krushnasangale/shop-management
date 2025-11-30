@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
@@ -15,7 +15,7 @@ class Customers extends StatefulWidget {
 class _CustomersState extends State<Customers> {
   List<Map<String, dynamic>> _customers = [];
   bool _isLoading = true;
-  StreamSubscription<DatabaseEvent>? _customersSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _customersSubscription;
 
   @override
   void initState() {
@@ -33,31 +33,25 @@ class _CustomersState extends State<Customers> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    final database = FirebaseDatabase.instance;
-    final customersRef = database.ref('customers/${user.uid}');
-
-    _customersSubscription = customersRef.onValue.listen((event) {
+    _customersSubscription = FirebaseFirestore.instance
+        .collection('customers')
+        .doc(user.uid)
+        .collection('items')
+        .snapshots()
+        .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
       if (mounted) {
-        final data = event.snapshot.value as Map<dynamic, dynamic>?;
-        if (data != null) {
-          final customers = data.entries.map((e) {
-            return {
-              'id': e.key,
-              'name': e.value['name'] ?? '',
-              'mobileNumber': e.value['mobileNumber'] ?? '',
-              'vehicleNumber': e.value['vehicleNumber'] ?? '',
-            };
-          }).toList();
-          setState(() {
-            _customers = customers;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _customers = [];
-            _isLoading = false;
-          });
-        }
+        final customers = snapshot.docs.map((doc) {
+          return {
+            'id': doc.id,
+            'name': doc.data()['name'] ?? '',
+            'mobileNumber': doc.data()['mobileNumber'] ?? '',
+            'vehicleNumber': doc.data()['vehicleNumber'] ?? '',
+          };
+        }).toList();
+        setState(() {
+          _customers = customers;
+          _isLoading = false;
+        });
       }
     });
   }
@@ -67,9 +61,12 @@ class _CustomersState extends State<Customers> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      await FirebaseDatabase.instance
-          .ref('customers/${user.uid}/$customerId')
-          .remove();
+      await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(user.uid)
+          .collection('items')
+          .doc(customerId)
+          .delete();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -471,18 +468,20 @@ class _CustomersState extends State<Customers> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final database = FirebaseDatabase.instance;
       final customerData = {
         'name': name,
         'mobileNumber': mobileNumber,
         'vehicleNumber': vehicleNumber,
-        'lastUpdated': DateTime.now().toString(),
+        'lastUpdated': DateTime.now().toIso8601String(),
       };
 
       if (customerId != null) {
         // Update existing customer
-        await database
-            .ref('customers/${user.uid}/$customerId')
+        await FirebaseFirestore.instance
+            .collection('customers')
+            .doc(user.uid)
+            .collection('items')
+            .doc(customerId)
             .update(customerData);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -491,7 +490,11 @@ class _CustomersState extends State<Customers> {
         }
       } else {
         // Add new customer
-        await database.ref('customers/${user.uid}').push().set(customerData);
+        await FirebaseFirestore.instance
+            .collection('customers')
+            .doc(user.uid)
+            .collection('items')
+            .add(customerData);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Customer added successfully')),

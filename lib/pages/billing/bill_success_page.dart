@@ -5,7 +5,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert' as convert;
 
 class BillProductItem {
@@ -341,10 +341,12 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final database = FirebaseDatabase.instance;
-        final snapshot = await database.ref('shop-profile/${user.uid}').get();
+        final snapshot = await FirebaseFirestore.instance
+            .collection('shop-profile')
+            .doc(user.uid)
+            .get();
         if (snapshot.exists) {
-          final data = snapshot.value as Map<dynamic, dynamic>;
+          final data = snapshot.data() as Map<String, dynamic>;
           ownerSignatureBase64 = data['ownerSignature'];
           shopName = data['shopName'] ?? '--';
           ownerName = data['ownerName'] ?? '--';

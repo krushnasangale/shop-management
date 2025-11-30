@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:flashbill/pages/products/available_products.dart';
 
@@ -23,7 +23,6 @@ class _AvailableProductDetailScreenState
   // Local state for editable fields
   late TextEditingController _quantityController;
   late TextEditingController _minLimitController;
-  late DatabaseReference _allProductsRef;
   List<BoughtProduct> _allBatches = [];
   bool _isLoadingBatches = true;
   bool _editingMinLimit = false;
@@ -45,13 +44,6 @@ class _AvailableProductDetailScreenState
   void initState() {
     super.initState();
 
-    // Initialize Database Reference to the specific product item
-
-    // Initialize ref to all products to load batches
-    _allProductsRef = FirebaseDatabase.instance.ref(
-      'purchased-products/${widget.userId}',
-    );
-
     // Initialize controllers with current product values
     _quantityController = TextEditingController(
       text: widget.product.quantity.toString(),
@@ -69,20 +61,21 @@ class _AvailableProductDetailScreenState
 
   Future<void> _loadAllBatches() async {
     try {
-      final snapshot = await _allProductsRef.get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(widget.userId)
+          .collection('items')
+          .get();
 
       final batches = <BoughtProduct>[];
-      if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
-        for (var entry in data.entries) {
-          final product = entry.value as Map<dynamic, dynamic>;
-          final quantity = product['quantity'] ?? 0;
+      for (var doc in snapshot.docs) {
+        final product = doc.data();
+        final quantity = product['quantity'] ?? 0;
 
-          // Only process batches with quantity > 0 and matching product name
-          if (quantity > 0 && product['productName'] == widget.product.productName) {
-            final batch = BoughtProduct.fromMap(entry.key, product);
-            batches.add(batch);
-          }
+        // Only process batches with quantity > 0 and matching product name
+        if (quantity > 0 && product['productName'] == widget.product.productName) {
+          final batch = BoughtProduct.fromMap(doc.id, product);
+          batches.add(batch);
         }
       }
 
@@ -97,7 +90,6 @@ class _AvailableProductDetailScreenState
 
       if (mounted) {
         // Calculate min limit - get it from the one batch that stores it (minLimit > 0)
-        // If multiple batches exist, find the one with minLimit > 0
         int minLimit = 0;
         for (var batch in batches) {
           if (batch.minLimit > 0) {
@@ -123,31 +115,20 @@ class _AvailableProductDetailScreenState
 
   Future<void> _loadPurchaseHistory() async {
     try {
-      final database = FirebaseDatabase.instance;
-      
-      // Read from the product-purchase-history table and aggregate by product name
-      final historyRootRef = database.ref('product-purchase-history/${widget.userId}');
-      final snapshot = await historyRootRef.get();
+      // Read from the product-purchase-history collection and aggregate by product name
+      final snapshot = await FirebaseFirestore.instance
+          .collection('product-purchase-history')
+          .doc(widget.userId)
+          .collection('items')
+          .get();
 
       final history = <Map<String, dynamic>>[];
-      if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
+      for (var doc in snapshot.docs) {
+        final item = doc.data();
         
-        // Iterate through all productIds in the history
-        for (var productEntry in data.entries) {
-          final productHistories = productEntry.value as Map<dynamic, dynamic>;
-          
-          // For each product ID, iterate through all its history entries
-          for (var historyEntry in productHistories.entries) {
-            final item = Map<String, dynamic>.from(
-              historyEntry.value as Map<dynamic, dynamic>,
-            );
-            
-            // Match by product name to aggregate across all suppliers
-            if (item['productName']?.toString() == widget.product.productName) {
-              history.add(item);
-            }
-          }
+        // Match by product name to aggregate across all suppliers
+        if (item['productName'] == widget.product.productName) {
+          history.add(item);
         }
       }
 
@@ -191,7 +172,12 @@ class _AvailableProductDetailScreenState
   // --- SAVE BATCH SELLING PRICE ---
   Future<void> _saveBatchSellingPrice(String batchId, double newPrice) async {
     try {
-      await _allProductsRef.child(batchId).update({'sellingPrice': newPrice});
+      await FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(widget.userId)
+          .collection('items')
+          .doc(batchId)
+          .update({'sellingPrice': newPrice});
 
       // Reload batches to reflect changes
       await _loadAllBatches();
@@ -216,10 +202,15 @@ class _AvailableProductDetailScreenState
   // --- SAVE BATCH QUANTITY ---
   Future<void> _saveBatchQuantity(String batchId, int newQuantity) async {
     try {
-      await _allProductsRef.child(batchId).update({
-        'quantity': newQuantity,
-        'initialQuantity': newQuantity,
-      });
+      await FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(widget.userId)
+          .collection('items')
+          .doc(batchId)
+          .update({
+            'quantity': newQuantity,
+            'initialQuantity': newQuantity,
+          });
 
       // Reload batches to reflect changes
       await _loadAllBatches();
@@ -693,8 +684,11 @@ class _AvailableProductDetailScreenState
                                             batchWithMinLimit ??= _allBatches.isNotEmpty ? _allBatches.first : null;
                                             
                                             if (batchWithMinLimit != null) {
-                                              FirebaseDatabase.instance
-                                                  .ref('purchased-products/${widget.userId}/${batchWithMinLimit.id}')
+                                              FirebaseFirestore.instance
+                                                  .collection('purchased-products')
+                                                  .doc(widget.userId)
+                                                  .collection('items')
+                                                  .doc(batchWithMinLimit.id)
                                                   .update({'minLimit': newMinLimit})
                                                   .then((_) {
                                                 setState(() {

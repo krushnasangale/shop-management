@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -185,16 +185,19 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final database = FirebaseDatabase.instance;
-      final snapshot = await database
-          .ref('bills/${user.uid}/$billId/payments')
+      final snapshot = await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId)
           .get();
 
       if (snapshot.exists) {
-        final data = snapshot.value as List<dynamic>?;
-        if (data != null) {
+        final data = snapshot.data();
+        final payments = data?['payments'] as List<dynamic>? ?? [];
+        if (payments.isNotEmpty) {
           setState(() {
-            paymentRecords = data
+            paymentRecords = payments
                 .map((p) => PaymentRecord.fromMap(Map<dynamic, dynamic>.from(p as Map)))
                 .toList();
           });
@@ -286,13 +289,15 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final database = FirebaseDatabase.instance;
-        final snapshot = await database.ref('shop-profile/${user.uid}').get();
+        final snapshot = await FirebaseFirestore.instance
+            .collection('shop-profile')
+            .doc(user.uid)
+            .get();
         if (snapshot.exists) {
-          final data = snapshot.value as Map<dynamic, dynamic>;
-          ownerSignatureBase64 = data['ownerSignature'];
-          shopName = data['shopName'] ?? '--';
-          ownerName = data['ownerName'] ?? '--';
+          final data = snapshot.data();
+          ownerSignatureBase64 = data?['ownerSignature'];
+          shopName = data?['shopName'] ?? '--';
+          ownerName = data?['ownerName'] ?? '--';
         }
       }
     } catch (e) {
@@ -703,9 +708,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
-      final database = FirebaseDatabase.instance;
-      await database
-          .ref('bills/${user.uid}/$billId')
+      await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId)
           .update({
             'amountPaid': newTotalAmountPaid,
             'amountRemaining': newRemaining,
@@ -743,27 +750,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         paymentMethod: selectedPaymentMethod,
       );
 
-      final database = FirebaseDatabase.instance;
-      final paymentsRef = database.ref('bills/${user.uid}/$billId/payments');
+      final billRef = FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId);
       
-      // Get current payments
-      final snapshot = await paymentsRef.get();
-      final payments = <Map<String, dynamic>>[];
-      
-      if (snapshot.exists) {
-        final data = snapshot.value as List<dynamic>?;
-        if (data != null) {
-          for (var p in data) {
-            payments.add(Map<String, dynamic>.from(p as Map));
-          }
-        }
-      }
-      
-      // Add new payment
-      payments.add(newPayment.toMap());
-      
-      // Save back to Firebase
-      await paymentsRef.set(payments);
+      // Append new payment to payments array
+      await billRef.update({
+        'payments': FieldValue.arrayUnion([newPayment.toMap()]),
+      });
       
       // Update local state
       setState(() {
@@ -1084,9 +1080,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
-      final database = FirebaseDatabase.instance;
-      await database
-          .ref('bills/${user.uid}/$billId')
+      await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId)
           .update({
             'nextPaymentDate': newDate,
           });

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/helpers/utils.dart';
@@ -23,9 +23,9 @@ class _DashboardState extends State<Dashboard> {
   int _totalItemsSold = 0; // Total items sold
   int _totalBuyingCount = 0; // Number of purchase transactions
   int _totalQuantityBought = 0;
-  StreamSubscription<DatabaseEvent>? _billsSubscription;
-  StreamSubscription<DatabaseEvent>? _purchasesSubscription;
-  StreamSubscription<DatabaseEvent>? _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _billsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _purchasesSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
 
   // Top Selling Products
   List<Map<String, dynamic>> _topSellingProducts = [];
@@ -67,80 +67,85 @@ class _DashboardState extends State<Dashboard> {
       return;
     }
 
-    final database = FirebaseDatabase.instance;
     final userId = user.uid;
+    final firestore = FirebaseFirestore.instance;
 
     // Listen to bills changes
-    _billsSubscription = database.ref('bills/$userId').onValue.listen((_) {
-      _calculateAndUpdateDashboard(user.uid);
+    _billsSubscription = firestore
+        .collection('bills')
+        .doc(userId)
+        .collection('items')
+        .snapshots()
+        .listen((_) {
+      _calculateAndUpdateDashboard(userId);
       _loadTopSellingProducts(userId);
       _loadPendingPayments(userId);
       _loadUpcomingPayments(userId);
       _loadOrderNowProducts(userId);
     });
 
-    // Listen to purchases changes (purchase entries)
-    _purchasesSubscription = database
-        .ref('purchases/$userId')
-        .onValue
+    // Listen to purchases changes
+    _purchasesSubscription = firestore
+        .collection('purchases')
+        .doc(userId)
+        .collection('items')
+        .snapshots()
         .listen((_) {
-          _calculateAndUpdateDashboard(user.uid);
-        });
+      _calculateAndUpdateDashboard(userId);
+    });
 
-    // Listen to purchased products changes (for inventory)
-    _productsSubscription = database
-        .ref('purchased-products/$userId')
-        .onValue
+    // Listen to purchased products changes
+    _productsSubscription = firestore
+        .collection('purchased-products')
+        .doc(userId)
+        .collection('items')
+        .snapshots()
         .listen((_) {
-          _calculateAndUpdateDashboard(user.uid);
-          _loadOrderNowProducts(userId);
-        });
+      _calculateAndUpdateDashboard(userId);
+      _loadOrderNowProducts(userId);
+    });
   }
 
   Future<void> _loadTopSellingProducts(String userId) async {
     try {
-      final database = FirebaseDatabase.instance;
-      final billsSnapshot = await database.ref('bills/$userId').get();
+      final firestore = FirebaseFirestore.instance;
+      final billsSnapshot = await firestore
+          .collection('bills')
+          .doc(userId)
+          .collection('items')
+          .get();
 
       final productSales = <String, Map<String, dynamic>>{};
 
-      if (billsSnapshot.exists) {
-        final data = billsSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, value) {
-          if (value is Map) {
-            final billData = Map<String, dynamic>.from(value);
-            final products = billData['products'] as Map<dynamic, dynamic>?;
+      for (var billDoc in billsSnapshot.docs) {
+        final billData = billDoc.data();
+        final products = billData['products'] as Map<String, dynamic>?;
 
-            if (products != null) {
-              products.forEach((pKey, pValue) {
-                if (pValue is Map) {
-                  final productData = Map<String, dynamic>.from(pValue);
-                  final productName =
-                      productData['productName'] as String? ?? 'Unknown';
-                  final quantity = productData['quantity'] as num? ?? 0;
-                  final price = productData['price'] as num? ?? 0;
-                  final boughtPrice = productData['boughtPrice'] as num? ?? 0;
-                  final profitMargin = (price - boughtPrice).toDouble();
-                  final totalProfit = (profitMargin * quantity).toInt();
+        if (products != null) {
+          products.forEach((pKey, pValue) {
+            if (pValue is Map<String, dynamic>) {
+              final productName = pValue['productName'] as String? ?? 'Unknown';
+              final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
+              final price = (pValue['price'] as num?)?.toInt() ?? 0;
+              final boughtPrice = (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
+              final profitMargin = price - boughtPrice;
+              final totalProfit = profitMargin * quantity;
 
-                  if (productSales.containsKey(productName)) {
-                    productSales[productName]!['quantity'] += quantity.toInt();
-                    productSales[productName]!['revenue'] += (quantity * price)
-                        .toInt();
-                    productSales[productName]!['totalProfit'] += totalProfit;
-                  } else {
-                    productSales[productName] = {
-                      'quantity': quantity.toInt(),
-                      'revenue': (quantity * price).toInt(),
-                      'totalProfit': totalProfit,
-                      'name': productName,
-                    };
-                  }
-                }
-              });
+              if (productSales.containsKey(productName)) {
+                productSales[productName]!['quantity'] += quantity;
+                productSales[productName]!['revenue'] += (quantity * price);
+                productSales[productName]!['totalProfit'] += totalProfit;
+              } else {
+                productSales[productName] = {
+                  'quantity': quantity,
+                  'revenue': (quantity * price),
+                  'totalProfit': totalProfit,
+                  'name': productName,
+                };
+              }
             }
-          }
-        });
+          });
+        }
       }
 
       // Convert to list and sort by revenue
@@ -159,45 +164,42 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _loadPendingPayments(String userId) async {
     try {
-      final database = FirebaseDatabase.instance;
-      final billsSnapshot = await database.ref('bills/$userId').get();
+      final firestore = FirebaseFirestore.instance;
+      final billsSnapshot = await firestore
+          .collection('bills')
+          .doc(userId)
+          .collection('items')
+          .get();
 
       final pendingBills = <Map<String, dynamic>>[];
       int totalPending = 0;
 
-      if (billsSnapshot.exists) {
-        final data = billsSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, value) {
-          if (value is Map) {
-            final billData = Map<String, dynamic>.from(value);
-            final totalAmountPaid =
-                billData['totalAmountPaid'] as bool? ?? false;
+      for (var billDoc in billsSnapshot.docs) {
+        final billData = billDoc.data();
+        final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? false;
 
-            // Only process unpaid bills
-            if (!totalAmountPaid) {
-              final amountRemaining = billData['amountRemaining'] as num? ?? 0;
-              final amountRemainingInt = amountRemaining.toInt();
+        // Only process unpaid bills
+        if (!totalAmountPaid) {
+          final amountRemaining = (billData['amountRemaining'] as num?)?.toInt() ?? 0;
 
-              // Only add if there's an actual amount remaining
-              if (amountRemainingInt > 0) {
-                pendingBills.add({
-                  'id': key,
-                  'customerName': billData['customerName'] ?? 'Unknown',
-                  'customerMobile': billData['customerMobile'] ?? 'N/A',
-                  'customerVehicle': billData['customerVehicle'],
-                  'billDate': billData['billDate'] ?? 'N/A',
-                  'amountRemaining': amountRemainingInt,
-                  'totalAmount': billData['totalAmount'] ?? 0,
-                  'totalAmountPaid': false,
-                  'amountPaid': billData['amountPaid'] ?? 0,
-                  'products': billData['products'],
-                  'paymentMethod': billData['paymentMethod'] ?? 'cash',
-                });
-                totalPending += amountRemainingInt;
-              }
-            }
+          // Only add if there's an actual amount remaining
+          if (amountRemaining > 0) {
+            pendingBills.add({
+              'id': billDoc.id,
+              'customerName': billData['customerName'] ?? 'Unknown',
+              'customerMobile': billData['customerMobile'] ?? 'N/A',
+              'customerVehicle': billData['customerVehicle'],
+              'billDate': billData['billDate'] ?? 'N/A',
+              'amountRemaining': amountRemaining,
+              'totalAmount': billData['totalAmount'] ?? 0,
+              'totalAmountPaid': false,
+              'amountPaid': billData['amountPaid'] ?? 0,
+              'products': billData['products'],
+              'paymentMethod': billData['paymentMethod'] ?? 'cash',
+            });
+            totalPending += amountRemaining;
           }
-        });
+        }
       }
 
       // Sort by amount remaining (highest first) and take top 5
@@ -220,52 +222,51 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _loadUpcomingPayments(String userId) async {
     try {
-      final database = FirebaseDatabase.instance;
-      final billsSnapshot = await database.ref('bills/$userId').get();
+      final firestore = FirebaseFirestore.instance;
+      final billsSnapshot = await firestore
+          .collection('bills')
+          .doc(userId)
+          .collection('items')
+          .get();
 
       final upcomingBills = <Map<String, dynamic>>[];
       final now = DateTime.now();
       final currentMonth = now.month;
       final currentYear = now.year;
 
-      if (billsSnapshot.exists) {
-        final data = billsSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, value) {
-          if (value is Map) {
-            final billData = Map<String, dynamic>.from(value);
-            final nextPaymentDate = billData['nextPaymentDate'] as String?;
+      for (var billDoc in billsSnapshot.docs) {
+        final billData = billDoc.data();
+        final nextPaymentDate = billData['nextPaymentDate'] as String?;
 
-            // Show upcoming payments where nextPaymentDate is set (regardless of remaining amount)
-            if (nextPaymentDate != null && nextPaymentDate.isNotEmpty) {
-              try {
-                // Parse date in dd/MM/yyyy format
-                final dateParts = nextPaymentDate.split('/');
-                if (dateParts.length == 3) {
-                  final month = int.parse(dateParts[1]);
-                  final year = int.parse(dateParts[2]);
+        // Show upcoming payments where nextPaymentDate is set (regardless of remaining amount)
+        if (nextPaymentDate != null && nextPaymentDate.isNotEmpty) {
+          try {
+            // Parse date in dd/MM/yyyy format
+            final dateParts = nextPaymentDate.split('/');
+            if (dateParts.length == 3) {
+              final month = int.parse(dateParts[1]);
+              final year = int.parse(dateParts[2]);
 
-                  // Only include if it's in the current month and year
-                  if (month == currentMonth && year == currentYear) {
-                    upcomingBills.add({
-                      'id': key,
-                      'customerName': billData['customerName'] ?? 'Unknown',
-                      'customerMobile': billData['customerMobile'] ?? 'N/A',
-                      'customerVehicle': billData['customerVehicle'],
-                      'billDate': billData['billDate'] ?? 'N/A',
-                      'nextPaymentDate': nextPaymentDate,
-                      'totalAmount': billData['totalAmount'] ?? 0,
-                      'amountPaid': billData['amountPaid'] ?? 0,
-                      'amountRemaining': billData['amountRemaining'] ?? 0,
-                      'products': billData['products'],
-                    });
-                  }
-                }
-              } catch (e) {
-                print('Error parsing date $nextPaymentDate: $e');
+              // Only include if it's in the current month and year
+              if (month == currentMonth && year == currentYear) {
+                upcomingBills.add({
+                  'id': billDoc.id,
+                  'customerName': billData['customerName'] ?? 'Unknown',
+                  'customerMobile': billData['customerMobile'] ?? 'N/A',
+                  'customerVehicle': billData['customerVehicle'],
+                  'billDate': billData['billDate'] ?? 'N/A',
+                  'nextPaymentDate': nextPaymentDate,
+                  'totalAmount': billData['totalAmount'] ?? 0,
+                  'amountPaid': billData['amountPaid'] ?? 0,
+                  'amountRemaining': billData['amountRemaining'] ?? 0,
+                  'products': billData['products'],
+                });
               }
             }
+          } catch (e) {
+            print('Error parsing date $nextPaymentDate: $e');
           }
-        });
+        }
       }
 
       // Sort by next payment date (upcoming first)
@@ -295,32 +296,28 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _loadOrderNowProducts(String userId) async {
     try {
-      final database = FirebaseDatabase.instance;
-      final productsSnapshot = await database
-          .ref('purchased-products/$userId')
+      final firestore = FirebaseFirestore.instance;
+      final productsSnapshot = await firestore
+          .collection('purchased-products')
+          .doc(userId)
+          .collection('items')
           .get();
 
       final orderNowList = <Map<String, dynamic>>[];
 
-      if (productsSnapshot.exists) {
-        final data = productsSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, productValue) {
-          if (productValue is Map) {
-            final productData = Map<String, dynamic>.from(productValue);
-            final quantity = productData['quantity'] as num? ?? 0;
+      for (var productDoc in productsSnapshot.docs) {
+        final productData = productDoc.data();
+        final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
 
-            // Only process products with zero quantity (out of stock)
-            if (quantity.toInt() == 0) {
-              orderNowList.add({
-                'productName': productData['productName'] ?? 'Unknown',
-                'supplierName':
-                    productData['supplierName'] ?? 'Unknown Supplier',
-                'unit': productData['unit'] ?? 'N/A',
-                'quantity': 0,
-              });
-            }
-          }
-        });
+        // Only process products with zero quantity (out of stock)
+        if (quantity == 0) {
+          orderNowList.add({
+            'productName': productData['productName'] ?? 'Unknown',
+            'supplierName': productData['supplierName'] ?? 'Unknown Supplier',
+            'unit': productData['unit'] ?? 'N/A',
+            'quantity': 0,
+          });
+        }
       }
 
       if (mounted) {
@@ -335,7 +332,7 @@ class _DashboardState extends State<Dashboard> {
 
   Future<void> _calculateAndUpdateDashboard(String userId) async {
     try {
-      final database = FirebaseDatabase.instance;
+      final firestore = FirebaseFirestore.instance;
 
       // Load bills data and calculate sales + profit
       int totalSales = 0;
@@ -344,56 +341,53 @@ class _DashboardState extends State<Dashboard> {
       int salesCount = 0;
       int itemsSold = 0;
 
-      final billsSnapshot = await database.ref('bills/$userId').get();
+      final billsSnapshot = await firestore
+          .collection('bills')
+          .doc(userId)
+          .collection('items')
+          .get();
 
-      if (billsSnapshot.exists) {
-        final data = billsSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, value) {
-          if (value is Map) {
-            final billData = Map<String, dynamic>.from(value);
-            final billDate = billData['billDate'] as String? ?? '';
-            final totalAmount = billData['totalAmount'] ?? 0;
-            final products = billData['products'] as Map<dynamic, dynamic>?;
+      for (var billDoc in billsSnapshot.docs) {
+        final billData = billDoc.data();
+        final billDate = billData['billDate'] as String? ?? '';
+        final totalAmount = (billData['totalAmount'] as num?)?.toInt() ?? 0;
+        final products = billData['products'] as Map<String, dynamic>?;
 
-            // Check if bill is from selected month
-            if (_isFromSelectedMonth(billDate)) {
-              totalSales += (totalAmount as num).toInt();
-              salesCount++; // Increment sales count
+        // Check if bill is from selected month
+        if (_isFromSelectedMonth(billDate)) {
+          totalSales += totalAmount;
+          salesCount++; // Increment sales count
 
-              // Calculate profit for this bill using profitMargin if available, else calculate
-              if (products != null) {
-                products.forEach((pKey, pValue) {
-                  if (pValue is Map) {
-                    final productData = Map<String, dynamic>.from(pValue);
-                    final quantity = productData['quantity'] as num? ?? 0;
-                    final sellingPrice = productData['price'] as num? ?? 0;
-                    final boughtPrice = productData['boughtPrice'] as num? ?? 0;
-                    final profitMargin = productData['profitMargin'] as num?;
+          // Calculate profit for this bill using profitMargin if available, else calculate
+          if (products != null) {
+            products.forEach((pKey, pValue) {
+              if (pValue is Map<String, dynamic>) {
+                final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
+                final sellingPrice = (pValue['price'] as num?)?.toInt() ?? 0;
+                final boughtPrice = (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
+                final profitMargin = pValue['profitMargin'] as num?;
 
-                    itemsSold += quantity.toInt();
+                itemsSold += quantity;
 
-                    // Use stored profitTotal if available (new batch system), else calculate
-                    final profitTotal = productData['profitTotal'] as num?;
-                    if (profitTotal != null) {
-                      // Use stored profit from batch system (accurate per batch)
-                      totalProfit += profitTotal.toInt();
-                    } else if (profitMargin != null) {
-                      // Use profitMargin if available (backward compatible)
-                      final productProfit = (profitMargin * quantity).toInt();
-                      totalProfit += productProfit;
-                    } else {
-                      // Fallback: calculate from prices (legacy bills)
-                      final profitPerUnit = (sellingPrice - boughtPrice)
-                          .toInt();
-                      final productProfit = (profitPerUnit * quantity).toInt();
-                      totalProfit += productProfit;
-                    }
-                  }
-                });
+                // Use stored profitTotal if available (new batch system), else calculate
+                final profitTotal = (pValue['profitTotal'] as num?)?.toInt();
+                if (profitTotal != null) {
+                  // Use stored profit from batch system (accurate per batch)
+                  totalProfit += profitTotal;
+                } else if (profitMargin != null) {
+                  // Use profitMargin if available (backward compatible)
+                  final productProfit = (profitMargin * quantity).toInt();
+                  totalProfit += productProfit;
+                } else {
+                  // Fallback: calculate from prices (legacy bills)
+                  final profitPerUnit = sellingPrice - boughtPrice;
+                  final productProfit = profitPerUnit * quantity;
+                  totalProfit += productProfit;
+                }
               }
-            }
+            });
           }
-        });
+        }
       }
 
       // Load bought products data for the selected month
@@ -401,65 +395,64 @@ class _DashboardState extends State<Dashboard> {
       int totalQuantityBoughtThisMonth = 0;
 
       // Try to get data from purchases (purchase entry headers)
-      final purchasesSnapshot = await database.ref('purchases/$userId').get();
+      final purchasesSnapshot = await firestore
+          .collection('purchases')
+          .doc(userId)
+          .collection('items')
+          .get();
 
-      if (purchasesSnapshot.exists) {
-        final data = purchasesSnapshot.value as Map<dynamic, dynamic>;
-        data.forEach((key, value) {
-          if (value is Map) {
-            final purchaseData = Map<String, dynamic>.from(value);
-            final purchaseDate = purchaseData['date'] as String? ?? '';
+      if (purchasesSnapshot.docs.isNotEmpty) {
+        for (var purchaseDoc in purchasesSnapshot.docs) {
+          final purchaseData = purchaseDoc.data();
+          final purchaseDate = purchaseData['date'] as String? ?? '';
 
-            // Check if purchase is from selected month
-            if (_isFromSelectedMonth(purchaseDate)) {
-              final amount = purchaseData['totalAmount'] ?? 0;
-              totalBuying += (amount as num).toInt();
-              buyingCount++;
+          // Check if purchase is from selected month
+          if (_isFromSelectedMonth(purchaseDate)) {
+            final amount = (purchaseData['totalAmount'] as num?)?.toInt() ?? 0;
+            totalBuying += amount;
+            buyingCount++;
 
-              // Get total units for this purchase
-              final totalUnits = purchaseData['totalUnits'] as num? ?? 0;
-              totalQuantityBoughtThisMonth += totalUnits.toInt();
-            }
+            // Get total units for this purchase
+            final totalUnits = (purchaseData['totalUnits'] as num?)?.toInt() ?? 0;
+            totalQuantityBoughtThisMonth += totalUnits;
           }
-        });
+        }
       } else {
         // Fallback: Calculate from purchased-products if purchases doesn't exist
-        final productsSnapshot = await database
-            .ref('purchased-products/$userId')
+        final productsSnapshot = await firestore
+            .collection('purchased-products')
+            .doc(userId)
+            .collection('items')
             .get();
-        if (productsSnapshot.exists) {
-          final data = productsSnapshot.value as Map<dynamic, dynamic>;
-          data.forEach((key, value) {
-            if (value is Map) {
-              final productData = Map<String, dynamic>.from(value);
-              final productDate = productData['date'] as String? ?? '';
 
-              // Check if product purchase is from selected month
-              if (_isFromSelectedMonth(productDate)) {
-                final quantity = productData['quantity'] as num? ?? 0;
-                final buyingPrice = productData['buyingPrice'] as num? ?? 0;
-                final amount = (quantity * buyingPrice).toInt();
+        if (productsSnapshot.docs.isNotEmpty) {
+          for (var productDoc in productsSnapshot.docs) {
+            final productData = productDoc.data();
+            final productDate = productData['date'] as String? ?? '';
 
-                totalBuying += amount;
-                totalQuantityBoughtThisMonth += quantity.toInt();
-              }
+            // Check if product purchase is from selected month
+            if (_isFromSelectedMonth(productDate)) {
+              final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
+              final buyingPrice = (productData['buyingPrice'] as num?)?.toInt() ?? 0;
+              final amount = quantity * buyingPrice;
+
+              totalBuying += amount;
+              totalQuantityBoughtThisMonth += quantity;
             }
-          });
+          }
 
           // Count distinct purchases from the products
           final purchasesFromProducts = <String>{};
-          data.forEach((key, value) {
-            if (value is Map) {
-              final productData = Map<String, dynamic>.from(value);
-              final productDate = productData['date'] as String? ?? '';
-              if (_isFromSelectedMonth(productDate)) {
-                final purchaseId = productData['purchaseId'] as String?;
-                if (purchaseId != null) {
-                  purchasesFromProducts.add(purchaseId);
-                }
+          for (var productDoc in productsSnapshot.docs) {
+            final productData = productDoc.data();
+            final productDate = productData['date'] as String? ?? '';
+            if (_isFromSelectedMonth(productDate)) {
+              final purchaseId = productData['purchaseId'] as String?;
+              if (purchaseId != null) {
+                purchasesFromProducts.add(purchaseId);
               }
             }
-          });
+          }
           buyingCount = purchasesFromProducts.length;
         }
       }

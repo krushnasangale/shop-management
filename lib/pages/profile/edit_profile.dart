@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:convert';
 import 'dart:ui' as ui;
@@ -49,11 +49,13 @@ class _EditProfileState extends State<EditProfile> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final database = FirebaseDatabase.instance;
-      final snapshot = await database.ref('shop-profile/${user.uid}').get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('shop-profile')
+          .doc(user.uid)
+          .get();
 
       if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
+        final data = snapshot.data() ?? {};
         setState(() {
           _shopNameController.text = data['shopName'] ?? '';
           _ownerNameController.text = data['ownerName'] ?? '';
@@ -81,7 +83,6 @@ class _EditProfileState extends State<EditProfile> {
         throw Exception('User not logged in');
       }
 
-      final database = FirebaseDatabase.instance;
       final shopData = {
         'shopName': _shopNameController.text,
         'ownerName': _ownerNameController.text,
@@ -90,10 +91,13 @@ class _EditProfileState extends State<EditProfile> {
         'shopEmail': _shopEmailController.text,
         'licenseNumber': _licenseNumberController.text,
         'ownerSignature': _ownerSignatureBase64 ?? '',
-        'lastUpdated': DateTime.now().toString(),
+        'lastUpdated': DateTime.now().toIso8601String(),
       };
 
-      await database.ref('shop-profile/${user.uid}').set(shopData);
+      await FirebaseFirestore.instance
+          .collection('shop-profile')
+          .doc(user.uid)
+          .set(shopData);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

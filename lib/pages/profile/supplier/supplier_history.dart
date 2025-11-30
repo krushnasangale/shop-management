@@ -1,5 +1,5 @@
 // --- Supplier History Screen ---
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class SupplierHistoryScreen extends StatefulWidget {
@@ -18,7 +18,6 @@ class SupplierHistoryScreen extends StatefulWidget {
 }
 
 class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
-  late DatabaseReference _boughtProductsRef;
   late List<Map<String, dynamic>> _supplierHistory;
   bool _isLoading = true;
   double _totalSpent = 0;
@@ -32,36 +31,36 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
 
   Future<void> _loadSupplierHistory() async {
     try {
-      _boughtProductsRef = FirebaseDatabase.instance.ref('purchased-products/${widget.userId}');
-      final snapshot = await _boughtProductsRef.get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(widget.userId)
+          .collection('items')
+          .get();
 
       final history = <Map<String, dynamic>>[];
       double totalSpent = 0;
 
-      if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
-        for (var entry in data.entries) {
-          final product = entry.value as Map<dynamic, dynamic>;
-          
-          // Filter by supplier ID
-          if (product['supplierId'] == widget.supplierId) {
-            final quantity = product['initialQuantity'] ?? 0;
-            final buyingPrice = (product['buyingPrice'] ?? 0).toDouble();
-            final amount = quantity * buyingPrice;
-            totalSpent += amount;
+      for (var doc in snapshot.docs) {
+        final product = doc.data();
+        
+        // Filter by supplier ID
+        if (product['supplierId'] == widget.supplierId) {
+          final quantity = product['initialQuantity'] ?? 0;
+          final buyingPrice = (product['buyingPrice'] ?? 0).toDouble();
+          final amount = quantity * buyingPrice;
+          totalSpent += amount;
 
-            history.add({
-              'id': entry.key,
-              'date': product['date'] ?? 'N/A',
-              'productName': product['productName'] ?? 'Unknown',
-              'quantity': quantity,
-              'buyingPrice': buyingPrice,
-              'amount': amount,
-              'unit': product['unit'] ?? '',
-              'batchId': product['batchId'] ?? '',
-              'profitMargin': (product['profitMargin'] ?? 0).toDouble(),
-            });
-          }
+          history.add({
+            'id': doc.id,
+            'date': product['date'] ?? 'N/A',
+            'productName': product['productName'] ?? 'Unknown',
+            'quantity': quantity,
+            'buyingPrice': buyingPrice,
+            'amount': amount,
+            'unit': product['unit'] ?? '',
+            'batchId': product['batchId'] ?? '',
+            'profitMargin': (product['profitMargin'] ?? 0).toDouble(),
+          });
         }
       }
 

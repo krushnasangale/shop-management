@@ -1,5 +1,5 @@
 // --- Customer History Screen ---
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
@@ -23,7 +23,6 @@ class CustomerHistoryScreen extends StatefulWidget {
 }
 
 class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
-  late DatabaseReference _billsRef;
   late List<Map<String, dynamic>> _customerBills;
   bool _isLoading = true;
   double _totalBilledAmount = 0;
@@ -38,45 +37,44 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
 
   Future<void> _loadCustomerBills() async {
     try {
-      _billsRef = FirebaseDatabase.instance.ref('bills/${widget.userId}');
-      final snapshot = await _billsRef.get();
+      final snapshot = await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(widget.userId)
+          .collection('items')
+          .get();
 
       final bills = <Map<String, dynamic>>[];
       double totalBilled = 0;
       double totalPaid = 0;
 
-      if (snapshot.exists) {
-        final data = snapshot.value as Map<dynamic, dynamic>;
-        for (var entry in data.entries) {
-          final bill = entry.value as Map<dynamic, dynamic>;
+      for (var doc in snapshot.docs) {
+        final bill = doc.data();
 
-          // Filter by customerId
-          if (bill['customerId'] == widget.customerId) {
-            final billId = bill['billId'] as String?;
-            final billDate = bill['billDate'] as String? ?? 'N/A';
-            final totalAmount = (bill['totalAmount'] ?? 0) as int;
-            final amountPaid = (bill['amountPaid'] ?? 0) as int;
-            final amountRemaining = (bill['amountRemaining'] ?? 0) as int;
-            final totalAmountPaid = (bill['totalAmountPaid'] ?? false) as bool;
+        // Filter by customerId
+        if (bill['customerId'] == widget.customerId) {
+          final billDate = bill['billDate'] as String? ?? 'N/A';
+          final totalAmount = (bill['totalAmount'] ?? 0) as int;
+          final amountPaid = (bill['amountPaid'] ?? 0) as int;
+          final amountRemaining = (bill['amountRemaining'] ?? 0) as int;
+          final totalAmountPaid = (bill['totalAmountPaid'] ?? false) as bool;
 
-            totalBilled += totalAmount;
-            totalPaid += amountPaid;
+          totalBilled += totalAmount;
+          totalPaid += amountPaid;
 
-            bills.add({
-              'id': entry.key,
-              'billId': billId,
-              'date': billDate,
-              'billDate': billDate,
-              'customerName': widget.customerName,
-              'customerMobile': widget.customerMobile,
-              'customerVehicle': bill['customerVehicle'] ?? '',
-              'totalAmount': totalAmount,
-              'amountPaid': amountPaid,
-              'amountRemaining': amountRemaining,
-              'totalAmountPaid': totalAmountPaid,
-              'products': bill['products'] as Map<dynamic, dynamic>? ?? {},
-            });
-          }
+          bills.add({
+            'id': doc.id,
+            'billId': doc.id,
+            'date': billDate,
+            'billDate': billDate,
+            'customerName': widget.customerName,
+            'customerMobile': widget.customerMobile,
+            'customerVehicle': bill['customerVehicle'] ?? '',
+            'totalAmount': totalAmount,
+            'amountPaid': amountPaid,
+            'amountRemaining': amountRemaining,
+            'totalAmountPaid': totalAmountPaid,
+            'products': bill['products'] as Map<dynamic, dynamic>? ?? {},
+          });
         }
       }
 

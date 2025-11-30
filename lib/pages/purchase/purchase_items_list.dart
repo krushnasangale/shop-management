@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
@@ -12,11 +12,11 @@ class PurchaseItemsList extends StatefulWidget {
 }
 
 class _PurchaseItemsListState extends State<PurchaseItemsList> {
-  late DatabaseReference _boughtRef;
+  late CollectionReference _boughtRef;
   List<Map<String, dynamic>> _boughtEntries = [];
   List<Map<String, dynamic>> _filteredEntries = [];
   bool _isLoading = true;
-  StreamSubscription<DatabaseEvent>? _streamSubscription;
+  StreamSubscription<QuerySnapshot>? _streamSubscription;
   late TextEditingController _searchController;
 
   @override
@@ -26,44 +26,32 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
     _searchController.addListener(_filterEntries);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      _boughtRef = FirebaseDatabase.instance.ref('purchases/${user.uid}');
+      _boughtRef = FirebaseFirestore.instance
+          .collection('purchases')
+          .doc(user.uid)
+          .collection('items');
       _loadBoughtEntriesRealtime();
     }
   }
 
   void _loadBoughtEntriesRealtime() {
-    _streamSubscription = _boughtRef.onValue.listen(
-      (event) {
+    _streamSubscription = _boughtRef
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .listen(
+      (snapshot) {
         if (mounted) {
-          if (event.snapshot.exists) {
-            final data = event.snapshot.value as Map<dynamic, dynamic>;
-            final entries = data.entries.map((e) {
-              final entryData = Map<String, dynamic>.from(e.value as Map);
-              entryData['id'] = e.key;
-              return entryData;
-            }).toList();
+          final entries = snapshot.docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            data['id'] = doc.id;
+            return data;
+          }).toList();
 
-            // Sort by date (newest first)
-            entries.sort((a, b) {
-              final dateA =
-                  DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime.now();
-              final dateB =
-                  DateTime.tryParse(b['timestamp'] ?? '') ?? DateTime.now();
-              return dateB.compareTo(dateA);
-            });
-
-            setState(() {
-              _boughtEntries = entries;
-              _filteredEntries = entries;
-              _isLoading = false;
-            });
-          } else {
-            setState(() {
-              _boughtEntries = [];
-              _filteredEntries = [];
-              _isLoading = false;
-            });
-          }
+          setState(() {
+            _boughtEntries = entries;
+            _filteredEntries = entries;
+            _isLoading = false;
+          });
         }
       },
       onError: (error) {

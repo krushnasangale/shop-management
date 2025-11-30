@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
@@ -38,14 +38,13 @@ class MeasurementUnitsScreen extends StatefulWidget {
 }
 
 class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
-  late DatabaseReference _unitsRef;
   late String _userId;
   late List<UnitOfMeasure> _units;
   late List<UnitOfMeasure> _filteredUnits;
   bool _isLoading = true;
   String _searchQuery = '';
   late TextEditingController _searchController;
-  StreamSubscription<DatabaseEvent>? _unitsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _unitsSubscription;
 
   // Controllers for the Add Unit Popup
   final TextEditingController _unitNameController = TextEditingController();
@@ -70,7 +69,6 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _userId = user.uid;
-      _unitsRef = FirebaseDatabase.instance.ref('units/$_userId/items');
       _loadUnitsFromDatabase();
     } else {
       setState(() {
@@ -82,20 +80,18 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   }
 
   void _loadUnitsFromDatabase() {
-    _unitsSubscription = _unitsRef.onValue.listen((DatabaseEvent event) {
+    _unitsSubscription = FirebaseFirestore.instance
+        .collection('units')
+        .doc(_userId)
+        .collection('items')
+        .snapshots()
+        .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
       // Early return if widget is disposed
       if (!mounted) return;
       
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      final loadedUnits = <UnitOfMeasure>[];
-      
-      if (data != null) {
-        for (var entry in data.entries) {
-          loadedUnits.add(
-            UnitOfMeasure.fromMap(entry.key as String, entry.value as Map<dynamic, dynamic>),
-          );
-        }
-      }
+      final loadedUnits = snapshot.docs
+          .map((doc) => UnitOfMeasure.fromMap(doc.id, doc.data()))
+          .toList();
       
       // Single setState call with all updates
       if (mounted) {
@@ -179,9 +175,13 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
               onPressed: () async {
                 if (_unitNameController.text.isNotEmpty) {
                   try {
-                    await _unitsRef.push().set({
-                      'name': _unitNameController.text.trim(),
-                    });
+                    await FirebaseFirestore.instance
+                        .collection('units')
+                        .doc(_userId)
+                        .collection('items')
+                        .add({
+                          'name': _unitNameController.text.trim(),
+                        });
                     if (context.mounted) {
                       Navigator.of(context).pop();
                     }
@@ -365,9 +365,14 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await _unitsRef.child(unit.id).update({
-                    'name': nameController.text,
-                  });
+                  await FirebaseFirestore.instance
+                      .collection('units')
+                      .doc(_userId)
+                      .collection('items')
+                      .doc(unit.id)
+                      .update({
+                        'name': nameController.text,
+                      });
                   if (context.mounted) {
                     Navigator.pop(context);
                   }
@@ -481,7 +486,12 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
             ElevatedButton(
               onPressed: () async {
                 try {
-                  await _unitsRef.child(unit.id).remove();
+                  await FirebaseFirestore.instance
+                      .collection('units')
+                      .doc(_userId)
+                      .collection('items')
+                      .doc(unit.id)
+                      .delete();
                   if (context.mounted) {
                     Navigator.pop(context);
                   }

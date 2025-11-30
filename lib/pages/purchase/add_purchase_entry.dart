@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -54,9 +54,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   late TextEditingController _quantityController;
   late TextEditingController _buyingPriceController;
   late TextEditingController _sellingPriceController;
-  StreamSubscription<DatabaseEvent>? _productsSubscription;
-  StreamSubscription<DatabaseEvent>? _supplierSubscription;
-  StreamSubscription<DatabaseEvent>? _unitsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _supplierSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _unitsSubscription;
   String _supplierNameError = '';
   String _selectedSupplierId = '';
   int _totalBoughtAmount = 0;
@@ -85,24 +85,20 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   void _loadProductNames() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final productNamesRef = FirebaseDatabase.instance.ref(
-        'product-names/${user.uid}/items',
-      );
-      _productsSubscription = productNamesRef.onValue.listen((event) {
+      _productsSubscription = FirebaseFirestore.instance
+          .collection('product-names')
+          .doc(user.uid)
+          .collection('items')
+          .snapshots()
+          .listen((snapshot) {
         if (mounted) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>?;
-          if (data != null) {
-            final products = data.entries.map((e) {
-              return {'id': e.key, 'name': e.value['name'] ?? 'Unknown'};
-            }).toList();
-            setState(() {
-              _allProducts = products;
-            });
-          } else {
-            setState(() {
-              _allProducts = [];
-            });
-          }
+          final products = snapshot.docs
+              .map((doc) =>
+                  {'id': doc.id, 'name': doc.data()['name'] ?? 'Unknown'})
+              .toList();
+          setState(() {
+            _allProducts = products;
+          });
         }
       });
     }
@@ -111,25 +107,20 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   void _loadUnits() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final unitsRef = FirebaseDatabase.instance.ref('units/${user.uid}/items');
-      _unitsSubscription = unitsRef.onValue.listen((event) {
+      _unitsSubscription = FirebaseFirestore.instance
+          .collection('units')
+          .doc(user.uid)
+          .collection('items')
+          .snapshots()
+          .listen((snapshot) {
         if (mounted) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>?;
-          if (data != null) {
-            final units = data.entries.map((e) {
-              return {
-                'id': e.key,
-                'name': e.value['name'] ?? 'Unknown',
-              };
-            }).toList();
-            setState(() {
-              _allUnits = units;
-            });
-          } else {
-            setState(() {
-              _allUnits = [];
-            });
-          }
+          final units = snapshot.docs
+              .map((doc) =>
+                  {'id': doc.id, 'name': doc.data()['name'] ?? 'Unknown'})
+              .toList();
+          setState(() {
+            _allUnits = units;
+          });
         }
       });
     }
@@ -138,29 +129,24 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   void _loadSupplierDetails() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final suppliersRef = FirebaseDatabase.instance.ref(
-        'suppliers/${user.uid}/items',
-      );
-      _supplierSubscription = suppliersRef.onValue.listen((event) {
+      _supplierSubscription = FirebaseFirestore.instance
+          .collection('suppliers')
+          .doc(user.uid)
+          .collection('items')
+          .snapshots()
+          .listen((snapshot) {
         if (mounted) {
-          final data = event.snapshot.value as Map<dynamic, dynamic>?;
-          if (data != null) {
-            final suppliers = data.entries.map((e) {
-              return {
-                'id': e.key,
-                'name': e.value['name'] ?? 'Unknown',
-                'contact': e.value['contact'] ?? '',
-                'location': e.value['location'] ?? '',
-              };
-            }).toList();
-            setState(() {
-              _supplierDetails = suppliers;
-            });
-          } else {
-            setState(() {
-              _supplierDetails = [];
-            });
-          }
+          final suppliers = snapshot.docs
+              .map((doc) => {
+                    'id': doc.id,
+                    'name': doc.data()['name'] ?? 'Unknown',
+                    'contact': doc.data()['contact'] ?? '',
+                    'location': doc.data()['location'] ?? '',
+                  })
+              .toList();
+          setState(() {
+            _supplierDetails = suppliers;
+          });
         }
       });
     }
@@ -611,13 +597,14 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           try {
                             final user = FirebaseAuth.instance.currentUser;
                             if (user != null) {
-                              final productsRef = FirebaseDatabase.instance.ref(
-                                'product-names/${user.uid}/items',
-                              );
+                              final productsRef = FirebaseFirestore.instance
+                                  .collection('product-names')
+                                  .doc(user.uid)
+                                  .collection('items');
 
                               final newProduct = {'name': productName};
 
-                              await productsRef.push().set(newProduct);
+                              await productsRef.add(newProduct);
 
                               // Update local list
                               setState(() {
@@ -726,13 +713,14 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           try {
                             final user = FirebaseAuth.instance.currentUser;
                             if (user != null) {
-                              final unitsRef = FirebaseDatabase.instance.ref(
-                                'units/${user.uid}/items',
-                              );
+                              final unitsRef = FirebaseFirestore.instance
+                                  .collection('units')
+                                  .doc(user.uid)
+                                  .collection('items');
 
                               final newUnit = {'name': unitName};
 
-                              await unitsRef.push().set(newUnit);
+                              await unitsRef.add(newUnit);
 
                               // Update local list
                               setState(() {
@@ -789,21 +777,19 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     List<Map<String, dynamic>> displaySuppliers = [];
 
     if (user != null) {
-      final suppliersRef = FirebaseDatabase.instance.ref(
-        'suppliers/${user.uid}/items',
-      );
+      final suppliersRef = FirebaseFirestore.instance
+          .collection('suppliers')
+          .doc(user.uid)
+          .collection('items');
       suppliersRef.get().then((snapshot) {
-        if (snapshot.exists) {
-          final data = snapshot.value as Map<dynamic, dynamic>;
-          final suppliers = data.entries.map((e) {
-            return {
-              'id': e.key,
-              'name': e.value['name'] ?? 'Unknown',
-              'contact': e.value['contact'] ?? '',
-              'location': e.value['location'] ?? '',
-            };
-          }).toList();
-          displaySuppliers = suppliers;
+        for (var doc in snapshot.docs) {
+          final data = doc.data();
+          displaySuppliers.add({
+            'id': doc.id,
+            'name': data['name'] ?? 'Unknown',
+            'contact': data['contact'] ?? '',
+            'location': data['location'] ?? '',
+          });
         }
       });
     }
@@ -818,24 +804,23 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         builder: (context, setModalState) {
           // Load suppliers when drawer is built
           if (user != null && displaySuppliers.isEmpty) {
-            final suppliersRef = FirebaseDatabase.instance.ref(
-              'suppliers/${user.uid}/items',
-            );
+            final suppliersRef = FirebaseFirestore.instance
+                .collection('suppliers')
+                .doc(user.uid)
+                .collection('items');
             suppliersRef.get().then((snapshot) {
-              if (snapshot.exists) {
-                final data = snapshot.value as Map<dynamic, dynamic>;
-                final suppliers = data.entries.map((e) {
-                  return {
-                    'id': e.key,
-                    'name': e.value['name'] ?? 'Unknown',
-                    'contact': e.value['contact'] ?? '',
-                    'location': e.value['location'] ?? '',
-                  };
-                }).toList();
-                setModalState(() {
-                  displaySuppliers = suppliers;
-                });
-              }
+              final suppliers = snapshot.docs.map((doc) {
+                final data = doc.data();
+                return {
+                  'id': doc.id,
+                  'name': data['name'] ?? 'Unknown',
+                  'contact': data['contact'] ?? '',
+                  'location': data['location'] ?? '',
+                };
+              }).toList();
+              setModalState(() {
+                displaySuppliers = suppliers;
+              });
             });
           }
 
@@ -881,28 +866,26 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 if (query.isEmpty) {
                                   // Reload all suppliers
                                   if (user != null) {
-                                    final suppliersRef = FirebaseDatabase
+                                    final suppliersRef = FirebaseFirestore
                                         .instance
-                                        .ref('suppliers/${user.uid}/items');
+                                        .collection('suppliers')
+                                        .doc(user.uid)
+                                        .collection('items');
                                     suppliersRef.get().then((snapshot) {
-                                      if (snapshot.exists) {
-                                        final data =
-                                            snapshot.value
-                                                as Map<dynamic, dynamic>;
-                                        displaySuppliers = data.entries.map((
-                                          e,
-                                        ) {
-                                          return {
-                                            'id': e.key,
-                                            'name':
-                                                e.value['name'] ?? 'Unknown',
-                                            'contact': e.value['contact'] ?? '',
-                                            'location':
-                                                e.value['location'] ?? '',
-                                          };
-                                        }).toList();
-                                        setModalState(() {});
-                                      }
+                                      displaySuppliers = snapshot.docs.map((
+                                        doc,
+                                      ) {
+                                        final data = doc.data();
+                                        return {
+                                          'id': doc.id,
+                                          'name':
+                                              data['name'] ?? 'Unknown',
+                                          'contact': data['contact'] ?? '',
+                                          'location':
+                                              data['location'] ?? '',
+                                        };
+                                      }).toList();
+                                      setModalState(() {});
                                     });
                                   }
                                 } else {
@@ -1177,8 +1160,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           try {
                             final user = FirebaseAuth.instance.currentUser;
                             if (user != null) {
-                              final suppliersRef = FirebaseDatabase.instance
-                                  .ref('suppliers/${user.uid}/items');
+                              final suppliersRef = FirebaseFirestore.instance
+                                  .collection('suppliers')
+                                  .doc(user.uid)
+                                  .collection('items');
 
                               // Check if supplier already exists
                               final existingSupplier = _supplierDetails
@@ -1196,7 +1181,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   'location': location,
                                 };
 
-                                await suppliersRef.push().set(newSupplier);
+                                await suppliersRef.add(newSupplier);
 
                                 // Update local list
                                 setState(() {
@@ -1286,9 +1271,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final database = FirebaseDatabase.instance;
-      final purchasesRef = database.ref('purchases/${user.uid}');
-      final productsRef = database.ref('purchased-products/${user.uid}');
+      final firestore = FirebaseFirestore.instance;
+      final purchasesCol = firestore.collection('purchases').doc(user.uid).collection('items');
+      final productsCol = firestore.collection('purchased-products').doc(user.uid).collection('items');
 
       // Calculate total products and total units
       int totalProducts = _boughtItems.length;
@@ -1307,9 +1292,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         'timestamp': DateTime.now().toIso8601String(),
       };
 
-      final newPurchaseRef = purchasesRef.push();
-      await newPurchaseRef.set(purchaseEntry);
-      final purchaseId = newPurchaseRef.key!;
+      final purchaseDoc = await purchasesCol.add(purchaseEntry);
+      final purchaseId = purchaseDoc.id;
 
       // Then, save all purchased items with the purchase reference ID
       for (var item in _boughtItems) {
@@ -1321,23 +1305,20 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
         // Check if product already exists in stock (qty > 0)
         // Get all existing batches for this product
-        final existingSnapshot = await productsRef.get();
+        final existingSnapshot = await productsCol.get();
         int existingTotalQty = 0;
         int existingMinLimit = 0;
         String? existingMinLimitBatchId;
         
-        if (existingSnapshot.exists) {
-          final allProducts = existingSnapshot.value as Map<dynamic, dynamic>;
-          for (var entry in allProducts.entries) {
-            final product = entry.value as Map<dynamic, dynamic>;
-            if (product['productName'] == item.productName) {
-              existingTotalQty += (product['quantity'] ?? 0) as int;
-              // Find the batch that holds the minLimit (minLimit > 0)
-              final batchMinLimit = (product['minLimit'] ?? 0) as int;
-              if (batchMinLimit > 0 && existingMinLimitBatchId == null) {
-                existingMinLimit = batchMinLimit;
-                existingMinLimitBatchId = entry.key.toString();
-              }
+        for (var doc in existingSnapshot.docs) {
+          final product = doc.data();
+          if (product['productName'] == item.productName) {
+            existingTotalQty += (product['quantity'] ?? 0) as int;
+            // Find the batch that holds the minLimit (minLimit > 0)
+            final batchMinLimit = (product['minLimit'] ?? 0) as int;
+            if (batchMinLimit > 0 && existingMinLimitBatchId == null) {
+              existingMinLimit = batchMinLimit;
+              existingMinLimitBatchId = doc.id;
             }
           }
         }
@@ -1372,13 +1353,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         };
         
         // Save to purchased-products and capture the generated product ID
-        final newProductRef = productsRef.push();
-        await newProductRef.set(productEntry);
-        final productId = newProductRef.key!; // Get the unique product ID
+        final productDoc = await productsCol.add(productEntry);
+        final productId = productDoc.id; // Get the unique product ID
 
         // Also save to permanent purchase history using productId (not productName)
         // This ensures history is not affected if product name changes in future
-        final purchaseHistoryRef = database.ref('product-purchase-history/${user.uid}/$productId');
+        final historyCol = firestore.collection('product-purchase-history').doc(user.uid).collection('items');
         final historyEntry = {
           'purchaseId': purchaseId,
           'productId': productId, // Store the unique product ID
@@ -1394,13 +1374,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'timestamp': DateTime.now().toIso8601String(),
           'batchId': batchId,
         };
-        await purchaseHistoryRef.push().set(historyEntry);
+        await historyCol.add(historyEntry);
         
         // If product already exists and we need to update minLimit
         if (existingTotalQty > 0 && existingMinLimitBatchId != null) {
           // Update the existing batch that holds the minLimit
           final updatedMinLimit = existingMinLimit + item.minLimit;
-          await productsRef.child(existingMinLimitBatchId).update({
+          await productsCol.doc(existingMinLimitBatchId).update({
             'minLimit': updatedMinLimit,
           });
         }
