@@ -2268,7 +2268,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            phoneNumber,
+                                            cleanedPhoneNumber,
                                             style: TextStyle(
                                               fontSize: 12,
                                               color: cleanedPhoneNumber.length ==
