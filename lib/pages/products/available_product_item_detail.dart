@@ -772,7 +772,7 @@ class _AvailableProductDetailScreenState
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 6),
 
                           if (_isLoadingBatches)
                             const Center(child: CircularProgressIndicator())
@@ -789,7 +789,7 @@ class _AvailableProductDetailScreenState
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: _allBatches.length,
                               separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 10),
+                                  const SizedBox(height: 6),
                               itemBuilder: (context, index) {
                                 final batch = _allBatches[index];
                                 final isFirstBatch = index == 0;
@@ -826,7 +826,7 @@ class _AvailableProductDetailScreenState
                                               top: Radius.circular(10),
                                             ),
                                         child: Padding(
-                                          padding: const EdgeInsets.all(12.0),
+                                          padding: const EdgeInsets.all(8.0),
                                           child: Row(
                                             mainAxisAlignment:
                                                 MainAxisAlignment.spaceBetween,
@@ -946,7 +946,7 @@ class _AvailableProductDetailScreenState
                                           height: 1,
                                         ),
                                         Padding(
-                                          padding: const EdgeInsets.all(12.0),
+                                          padding: const EdgeInsets.all(8.0),
                                           child: Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
@@ -999,30 +999,43 @@ class _AvailableProductDetailScreenState
                                                                       true;
                                                                 });
                                                               },
-                                                              child: Row(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .spaceBetween,
-                                                                children: [
-                                                                  Text(
-                                                                    '${batch.quantity} ${batch.unit}',
-                                                                    style: TextStyle(
-                                                                      color: Colors
-                                                                          .blue[400],
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                      fontSize:
-                                                                          16,
+                                                              child: Container(
+                                                                padding: const EdgeInsets.symmetric(
+                                                                  horizontal: 12,
+                                                                  vertical: 8,
+                                                                ),
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors.blue.withOpacity(0.1),
+                                                                  border: Border.all(
+                                                                    color: Colors.blue,
+                                                                    width: 1.5,
+                                                                  ),
+                                                                  borderRadius: BorderRadius.circular(6),
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  children: [
+                                                                    Text(
+                                                                      '${batch.quantity} ${batch.unit}',
+                                                                      style: TextStyle(
+                                                                        color: Colors
+                                                                            .blue[400],
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .w600,
+                                                                        fontSize:
+                                                                            16,
+                                                                      ),
                                                                     ),
-                                                                  ),
-                                                                  Icon(
-                                                                    Icons.edit,
-                                                                    color: Colors
-                                                                        .blue,
-                                                                    size: 16,
-                                                                  ),
-                                                                ],
+                                                                    const SizedBox(width: 8),
+                                                                    Icon(
+                                                                      Icons.edit,
+                                                                      color: Colors
+                                                                          .blue,
+                                                                      size: 20,
+                                                                    ),
+                                                                  ],
+                                                                ),
                                                               ),
                                                             )
                                                           else
@@ -1214,30 +1227,43 @@ class _AvailableProductDetailScreenState
                                                                       true;
                                                                 });
                                                               },
-                                                              child: Row(
-                                                                mainAxisAlignment:
-                                                                    MainAxisAlignment
-                                                                        .spaceBetween,
-                                                                children: [
-                                                                  Text(
-                                                                    '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
-                                                                    style: TextStyle(
-                                                                      color: Colors
-                                                                          .green[400],
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                      fontSize:
-                                                                          16,
+                                                              child: Container(
+                                                                padding: const EdgeInsets.symmetric(
+                                                                  horizontal: 12,
+                                                                  vertical: 8,
+                                                                ),
+                                                                decoration: BoxDecoration(
+                                                                  color: Colors.blue.withOpacity(0.1),
+                                                                  border: Border.all(
+                                                                    color: Colors.blue,
+                                                                    width: 1.5,
+                                                                  ),
+                                                                  borderRadius: BorderRadius.circular(6),
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  children: [
+                                                                    Text(
+                                                                      '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                                      style: TextStyle(
+                                                                        color: Colors
+                                                                            .green[400],
+                                                                        fontWeight:
+                                                                            FontWeight
+                                                                                .w600,
+                                                                        fontSize:
+                                                                            16,
+                                                                      ),
                                                                     ),
-                                                                  ),
-                                                                  Icon(
-                                                                    Icons.edit,
-                                                                    color: Colors
-                                                                        .blue,
-                                                                    size: 16,
-                                                                  ),
-                                                                ],
+                                                                    const SizedBox(width: 8),
+                                                                    Icon(
+                                                                      Icons.edit,
+                                                                      color: Colors
+                                                                          .blue,
+                                                                      size: 20,
+                                                                    ),
+                                                                  ],
+                                                                ),
                                                               ),
                                                             )
                                                           else
