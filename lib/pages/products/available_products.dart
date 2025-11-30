@@ -316,7 +316,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               ),
               pw.SizedBox(height: 10),
               pw.Text(
-                'Generated on: ${now.toString().split('.')[0]}',
+                'Generated on: ${now.toString().split('.')[0]} | Filter: $_selectedFilter',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.SizedBox(height: 20),
@@ -359,8 +359,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
                             ))
                         .toList(),
                   ),
-                  // Data rows
-                  ..._boughtProducts.asMap().entries.map((entry) {
+                  // Data rows - use filtered products
+                  ..._filteredProducts.asMap().entries.map((entry) {
                     final product = entry.value;
                     final index = entry.key + 1;
                     return pw.TableRow(
@@ -406,7 +406,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            '₹${product.buyingPrice.toStringAsFixed(2)}',
+                            'Rs.${product.buyingPrice.toStringAsFixed(2)}',
                             style: const pw.TextStyle(fontSize: 8),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -414,7 +414,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            '₹${product.sellingPrice.toStringAsFixed(2)}',
+                            'Rs.${product.sellingPrice.toStringAsFixed(2)}',
                             style: const pw.TextStyle(fontSize: 8),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -426,7 +426,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                'Total Products: ${_boughtProducts.length}',
+                'Total Products: ${_filteredProducts.length}',
                 style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
               ),
             ],
@@ -447,13 +447,13 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     // Create CSV header
     final csv = StringBuffer();
-    csv.writeln('S.No.,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Stock Status,Min Limit');
+    csv.writeln('S.No.,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Stock Status,Min Limit,Filter Applied: $_selectedFilter');
 
-    // Add product rows
-    for (var i = 0; i < _boughtProducts.length; i++) {
-      final product = _boughtProducts[i];
+    // Add product rows - use filtered products
+    for (var i = 0; i < _filteredProducts.length; i++) {
+      final product = _filteredProducts[i];
       final status = _getStockStatus(product.quantity, product.minLimit);
-      csv.writeln('${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},${product.buyingPrice.toStringAsFixed(2)},${product.sellingPrice.toStringAsFixed(2)},"$status",${product.minLimit}');
+      csv.writeln('${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},Rs.${product.buyingPrice.toStringAsFixed(2)},Rs.${product.sellingPrice.toStringAsFixed(2)},"$status",${product.minLimit}');
     }
 
     await file.writeAsString(csv.toString());
