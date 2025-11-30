@@ -1051,7 +1051,15 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   children: [
                     TextField(
                       controller: newSupplierController,
+                      textCapitalization: TextCapitalization.characters,
                       onChanged: (value) {
+                        // Convert to uppercase in real-time
+                        if (value != value.toUpperCase()) {
+                          newSupplierController.text = value.toUpperCase();
+                          newSupplierController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: value.toUpperCase().length),
+                          );
+                        }
                         setDialogState(() {
                           nameError = value.trim().isEmpty
                               ? 'Supplier name required'
@@ -1060,7 +1068,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Supplier Name',
-                        hintText: 'Enter supplier name',
+                        hintText: 'Enter Supplier Name',
                         errorText: nameError.isNotEmpty ? nameError : null,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1088,7 +1096,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Contact Number',
-                        hintText: 'Enter contact number',
+                        hintText: 'Enter Contact Number',
                         errorText: contactError.isNotEmpty
                             ? contactError
                             : null,
@@ -1104,7 +1112,15 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     const SizedBox(height: 12),
                     TextField(
                       controller: locationController,
+                      textCapitalization: TextCapitalization.characters,
                       onChanged: (value) {
+                        // Convert to uppercase in real-time
+                        if (value != value.toUpperCase()) {
+                          locationController.text = value.toUpperCase();
+                          locationController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: value.toUpperCase().length),
+                          );
+                        }
                         setDialogState(() {
                           locationError = value.trim().isEmpty
                               ? 'Location required'
@@ -1113,7 +1129,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       },
                       decoration: InputDecoration(
                         labelText: 'Location',
-                        hintText: 'Enter location',
+                        hintText: 'Enter Location',
                         errorText: locationError.isNotEmpty
                             ? locationError
                             : null,
@@ -1193,8 +1209,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   });
                                 });
 
-                                // Update modal display
-                                setDialogState(() {
+                                // Update the parent drawer state only (not dialog state)
+                                setModalState(() {
                                   displaySuppliers.add({
                                     'id': '',
                                     'name': supplierName,

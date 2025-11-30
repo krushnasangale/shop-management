@@ -369,9 +369,9 @@ class _SuppliersState extends State<Suppliers> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              buildFormField('Supplier Name', 'Enter supplier name', nameController),
-              buildFormField('Supplier Contact', 'Enter contact number', contactController, keyboardType: TextInputType.phone),
-              buildFormField('Supplier Location', 'Enter location', locationController),
+              buildFormField('Supplier Name', 'Enter Supplier Name', nameController),
+              buildFormField('Supplier Contact', 'Enter Contact Number', contactController, keyboardType: TextInputType.phone),
+              buildFormField('Supplier Location', 'Enter Location', locationController),
             ],
           ),
           actions: [
@@ -497,9 +497,9 @@ class _SuppliersState extends State<Suppliers> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              buildFormField('Supplier Name', 'Enter supplier name', nameController),
-              buildFormField('Supplier Contact', 'Enter contact number', contactController, keyboardType: TextInputType.phone),
-              buildFormField('Supplier Location', 'Enter location', locationController),
+              buildFormField('Supplier Name', 'Enter Supplier Name', nameController),
+              buildFormField('Supplier Contact', 'Enter Contact Number', contactController, keyboardType: TextInputType.phone),
+              buildFormField('Supplier Location', 'Enter Location', locationController),
             ],
           ),
           actions: [
