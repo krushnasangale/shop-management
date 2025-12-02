@@ -153,107 +153,105 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(_shopName),
-          automaticallyImplyLeading: false,
-          actions: [
-            Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: Colors.grey.withOpacity(0.2),
-              ),
-              height: 40,
-              width: 40,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: const Icon(Icons.account_circle, size: 35,),
-                onPressed: () async {
-                  AppNavigator.push(context, const MyProfile());
-                },
-                tooltip: 'Logout',
-              ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_shopName),
+        automaticallyImplyLeading: false,
+        actions: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.grey.withOpacity(0.2),
             ),
-            const SizedBox(width: 14),
-          ],
-        ),
-        body: IndexedStack(index: _selectedIndex, children: _screens),
-
-        floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3
-            ? FloatingActionButton(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                onPressed: () {
-                  if (_selectedIndex == 2) {
-                    AppNavigator.push(context, const CreateNewBill());
-                  } else if (_selectedIndex == 3) {
-                    AppNavigator.push(context, const AddPurchaseEntry());
-                  }
-                },
-                backgroundColor: const Color(0xFF2196F3),
-                tooltip: 'Add Item',
-                child: const Icon(Icons.add, color: Colors.white, size: 45),
-              )
-            : null,
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.blue,
-          unselectedItemColor: Colors.grey,
-          showUnselectedLabels: true,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard),
-              label: 'Dashboard',
+            height: 40,
+            width: 40,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.account_circle, size: 35,),
+              onPressed: () async {
+                AppNavigator.push(context, const MyProfile());
+              },
+              tooltip: 'Logout',
             ),
-            BottomNavigationBarItem(
-              icon: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  const Icon(Icons.inventory_2),
-                  if (_productsCount > 0)
-                    Positioned(
-                      right: -10,
-                      top: -10,
-                      child: Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: Colors.red,
-                          borderRadius: BorderRadius.circular(12),
+          ),
+          const SizedBox(width: 14),
+        ],
+      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
+    
+      floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3
+          ? FloatingActionButton(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              onPressed: () {
+                if (_selectedIndex == 2) {
+                  AppNavigator.push(context, const CreateNewBill());
+                } else if (_selectedIndex == 3) {
+                  AppNavigator.push(context, const AddPurchaseEntry());
+                }
+              },
+              backgroundColor: const Color(0xFF2196F3),
+              tooltip: 'Add Item',
+              child: const Icon(Icons.add, color: Colors.white, size: 45),
+            )
+          : null,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+        items: [
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Dashboard',
+          ),
+          BottomNavigationBarItem(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.center,
+              children: [
+                const Icon(Icons.inventory_2),
+                if (_productsCount > 0)
+                  Positioned(
+                    right: -10,
+                    top: -10,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        _productsCount.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                         ),
-                        constraints: const BoxConstraints(
-                          minWidth: 20,
-                          minHeight: 20,
-                        ),
-                        child: Text(
-                          _productsCount.toString(),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ),
-                ],
-              ),
-              label: 'Products',
+                  ),
+              ],
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.receipt_long),
-              label: 'Bills',
-            ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.shopping_bag),
-              label: 'Purchases',
-            ),
-          ],
-        ),
+            label: 'Products',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.receipt_long),
+            label: 'Bills',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.shopping_bag),
+            label: 'Purchases',
+          ),
+        ],
       ),
     );
   }

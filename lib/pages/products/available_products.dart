@@ -467,6 +467,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         appBar: AppBar(
           title: const Text('Available Products'),
           centerTitle: false,
+          automaticallyImplyLeading: false,
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -480,6 +481,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
       appBar: AppBar(
         title: const Text('Available Products'),
         centerTitle: false,
+        automaticallyImplyLeading: false,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),

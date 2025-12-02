@@ -507,6 +507,7 @@ class _BillsState extends State<Bills> {
       appBar: AppBar(
         title: const Text('Recent Bills'),
         centerTitle: false,
+        automaticallyImplyLeading: false,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),

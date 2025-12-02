@@ -120,7 +120,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   Widget build(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     return Scaffold(
-      appBar: AppBar(title: const Text('Purchased Entries'), centerTitle: false),
+      appBar: AppBar(title: const Text('Purchased Entries'), centerTitle: false, automaticallyImplyLeading: false),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _boughtEntries.isEmpty
