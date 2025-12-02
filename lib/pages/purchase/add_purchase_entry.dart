@@ -1352,9 +1352,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         for (var doc in existingSnapshot.docs) {
           final product = doc.data();
           if (product['productName'] == item.productName) {
-            existingTotalQty += (product['quantity'] ?? 0) as int;
+            existingTotalQty += ((product['quantity'] ?? 0) as num).toInt();
             // Find the batch that holds the minLimit (minLimit > 0)
-            final batchMinLimit = (product['minLimit'] ?? 0) as int;
+            final batchMinLimit = ((product['minLimit'] ?? 0) as num).toInt();
             if (batchMinLimit > 0 && existingMinLimitBatchId == null) {
               existingMinLimit = batchMinLimit;
               existingMinLimitBatchId = doc.id;

@@ -735,7 +735,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
 
         // Match by both product name and supplier name
         if (productName == product.productName && supplierName == product.supplierName) {
-          final currentQty = productData['quantity'] as int? ?? 0;
+          final currentQty = (productData['quantity'] as num?)?.toInt() ?? 0;
           final newQty = (currentQty - product.quantity.toInt()).toInt();
           
           // Update quantity (set to 0 if it goes below 0, don't delete)

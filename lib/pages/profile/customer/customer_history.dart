@@ -53,9 +53,9 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
         // Filter by customerId
         if (bill['customerId'] == widget.customerId) {
           final billDate = bill['billDate'] as String? ?? 'N/A';
-          final totalAmount = (bill['totalAmount'] ?? 0) as int;
-          final amountPaid = (bill['amountPaid'] ?? 0) as int;
-          final amountRemaining = (bill['amountRemaining'] ?? 0) as int;
+          final totalAmount = ((bill['totalAmount'] ?? 0) as num).toInt();
+          final amountPaid = ((bill['amountPaid'] ?? 0) as num).toInt();
+          final amountRemaining = ((bill['amountRemaining'] ?? 0) as num).toInt();
           final totalAmountPaid = (bill['totalAmountPaid'] ?? false) as bool;
 
           totalBilled += totalAmount;
@@ -310,9 +310,9 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           itemBuilder: (context, index) {
                             final bill = _customerBills[index];
-                            final totalAmount = bill['totalAmount'] as int;
-                            final amountPaid = bill['amountPaid'] as int;
-                            final amountRemaining = bill['amountRemaining'] as int;
+                            final totalAmount = (bill['totalAmount'] as num?)?.toInt() ?? 0;
+                            final amountPaid = (bill['amountPaid'] as num?)?.toInt() ?? 0;
+                            final amountRemaining = (bill['amountRemaining'] as num?)?.toInt() ?? 0;
                             final isFullyPaid = bill['totalAmountPaid'] as bool;
 
                             return Card(

@@ -91,7 +91,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 
   Widget _buildTotalQuantityBadge(Map<String, dynamic> entry) {
     // Get total quantity from entry
-    final totalQuantity = entry['totalUnits'] as int? ?? 0;
+    final totalQuantity = (entry['totalUnits'] as num?)?.toInt() ?? 0;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

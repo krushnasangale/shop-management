@@ -150,7 +150,7 @@ class _DashboardState extends State<Dashboard> {
 
       // Convert to list and sort by revenue
       final topProducts = productSales.values.toList()
-        ..sort((a, b) => (b['revenue'] as int).compareTo(a['revenue'] as int));
+        ..sort((a, b) => ((b['revenue'] as num?)?.toInt() ?? 0).compareTo((a['revenue'] as num?)?.toInt() ?? 0));
 
       if (mounted) {
         setState(() {
@@ -204,8 +204,8 @@ class _DashboardState extends State<Dashboard> {
 
       // Sort by amount remaining (highest first) and take top 5
       pendingBills.sort(
-        (a, b) => (b['amountRemaining'] as int).compareTo(
-          a['amountRemaining'] as int,
+        (a, b) => ((b['amountRemaining'] as num?)?.toInt() ?? 0).compareTo(
+          (a['amountRemaining'] as num?)?.toInt() ?? 0,
         ),
       );
 
@@ -595,7 +595,7 @@ class _DashboardState extends State<Dashboard> {
                       ),
                       itemBuilder: (context, index) {
                         final product = _topSellingProducts[index];
-                        final profit = product['totalProfit'] as int? ?? 0;
+                        final profit = (product['totalProfit'] as num?)?.toInt() ?? 0;
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -1685,20 +1685,20 @@ class _DashboardState extends State<Dashboard> {
             customerName: bill['customerName'] as String,
             customerMobile: (bill['customerMobile'] ?? 'N/A') as String,
             customerVehicle: bill['customerVehicle'] as String?,
-            totalAmount: (bill['totalAmount'] ?? 0) as int,
+            totalAmount: ((bill['totalAmount'] ?? 0) as num).toInt(),
             totalAmountPaid: (bill['totalAmountPaid'] as bool?) ?? false,
-            amountPaid: (bill['amountPaid'] ?? 0) as int,
+            amountPaid: ((bill['amountPaid'] ?? 0) as num).toInt(),
             amountRemaining:
-                (bill['amountRemaining'] ?? bill['totalAmount'] ?? 0) as int,
+                (((bill['amountRemaining'] ?? bill['totalAmount'] ?? 0) as num).toInt()),
             products: bill['products'] != null
                 ? (bill['products'] as Map).entries
                       .map(
                         (e) => {
                           'productName':
                               (e.value['productName'] ?? 'Unknown') as String,
-                          'quantity': (e.value['quantity'] ?? 0) as int,
-                          'price': (e.value['price'] ?? 0) as int,
-                          'boughtPrice': (e.value['boughtPrice'] ?? 0) as int,
+                          'quantity': ((e.value['quantity'] ?? 0) as num).toInt(),
+                          'price': ((e.value['price'] ?? 0) as num).toInt(),
+                          'boughtPrice': ((e.value['boughtPrice'] ?? 0) as num).toInt(),
                         },
                       )
                       .toList()

@@ -157,6 +157,7 @@ class _MyHomePageState extends State<MyHomePage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(_shopName),
+          automaticallyImplyLeading: false,
           actions: [
             Container(
               decoration: BoxDecoration(
