@@ -1290,7 +1290,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     );
   }
 
-  void _saveBoughtEntry() async {
+  Future<void> _saveBoughtEntry() async {
     // Validate form
     if (_supplierNameController.text.isEmpty) {
       setState(() {
