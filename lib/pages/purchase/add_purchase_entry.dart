@@ -54,8 +54,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   late TextEditingController _quantityController;
   late TextEditingController _buyingPriceController;
   late TextEditingController _sellingPriceController;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _supplierSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _supplierSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _unitsSubscription;
   String _supplierNameError = '';
   String _selectedSupplierId = '';
@@ -91,16 +93,20 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           .collection('items')
           .snapshots()
           .listen((snapshot) {
-        if (mounted) {
-          final products = snapshot.docs
-              .map((doc) =>
-                  {'id': doc.id, 'name': doc.data()['name'] ?? 'Unknown'})
-              .toList();
-          setState(() {
-            _allProducts = products;
+            if (mounted) {
+              final products = snapshot.docs
+                  .map(
+                    (doc) => {
+                      'id': doc.id,
+                      'name': doc.data()['name'] ?? 'Unknown',
+                    },
+                  )
+                  .toList();
+              setState(() {
+                _allProducts = products;
+              });
+            }
           });
-        }
-      });
     }
   }
 
@@ -113,16 +119,20 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           .collection('items')
           .snapshots()
           .listen((snapshot) {
-        if (mounted) {
-          final units = snapshot.docs
-              .map((doc) =>
-                  {'id': doc.id, 'name': doc.data()['name'] ?? 'Unknown'})
-              .toList();
-          setState(() {
-            _allUnits = units;
+            if (mounted) {
+              final units = snapshot.docs
+                  .map(
+                    (doc) => {
+                      'id': doc.id,
+                      'name': doc.data()['name'] ?? 'Unknown',
+                    },
+                  )
+                  .toList();
+              setState(() {
+                _allUnits = units;
+              });
+            }
           });
-        }
-      });
     }
   }
 
@@ -135,20 +145,22 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           .collection('items')
           .snapshots()
           .listen((snapshot) {
-        if (mounted) {
-          final suppliers = snapshot.docs
-              .map((doc) => {
-                    'id': doc.id,
-                    'name': doc.data()['name'] ?? 'Unknown',
-                    'contact': doc.data()['contact'] ?? '',
-                    'location': doc.data()['location'] ?? '',
-                  })
-              .toList();
-          setState(() {
-            _supplierDetails = suppliers;
+            if (mounted) {
+              final suppliers = snapshot.docs
+                  .map(
+                    (doc) => {
+                      'id': doc.id,
+                      'name': doc.data()['name'] ?? 'Unknown',
+                      'contact': doc.data()['contact'] ?? '',
+                      'location': doc.data()['location'] ?? '',
+                    },
+                  )
+                  .toList();
+              setState(() {
+                _supplierDetails = suppliers;
+              });
+            }
           });
-        }
-      });
     }
   }
 
@@ -290,9 +302,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   void _addProductToList() {
     // Validate all fields
     if (_supplierNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a supplier')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a supplier')));
       return;
     }
 
@@ -409,9 +421,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         builder: (context, setModalState) {
           // Use the live list from state (_allProducts or _allUnits) instead of the parameter
           // This ensures the modal always shows the latest items from Firestore listener
-          List<Map<String, dynamic>> liveItems = 
-              title == 'Products' ? _allProducts : _allUnits;
-          
+          List<Map<String, dynamic>> liveItems = title == 'Products'
+              ? _allProducts
+              : _allUnits;
+
           // Get current filtered items based on search and current items list
           List<Map<String, dynamic>> filteredItems = liveItems.where((item) {
             final itemName = item['productName'] ?? item['name'] ?? '';
@@ -561,7 +574,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         // Convert to uppercase in real-time
                         if (value != value.toUpperCase()) {
                           productNameController.text = value.toUpperCase();
-                          productNameController.selection = TextSelection.fromPosition(
+                          productNameController
+                              .selection = TextSelection.fromPosition(
                             TextPosition(offset: value.toUpperCase().length),
                           );
                         }
@@ -621,10 +635,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
                               // Don't manually add - let the Firestore listener handle it
                               // This prevents duplicates when the listener fires
-                              
+
                               // Small delay to allow listener to update, then refresh modal
-                              await Future.delayed(const Duration(milliseconds: 200));
-                              
+                              await Future.delayed(
+                                const Duration(milliseconds: 200),
+                              );
+
                               setModalState(() {
                                 // This will trigger a rebuild of the modal sheet with updated items
                               });
@@ -679,7 +695,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Add New Unit', style: TextStyle(color: primaryTextColor),),
+              title: Text(
+                'Add New Unit',
+                style: TextStyle(color: primaryTextColor),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -691,7 +710,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         // Convert to uppercase in real-time
                         if (value != value.toUpperCase()) {
                           unitNameController.text = value.toUpperCase();
-                          unitNameController.selection = TextSelection.fromPosition(
+                          unitNameController
+                              .selection = TextSelection.fromPosition(
                             TextPosition(offset: value.toUpperCase().length),
                           );
                         }
@@ -745,10 +765,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
                               // Don't manually add - let the Firestore listener handle it
                               // This prevents duplicates when the listener fires
-                              
+
                               // Small delay to allow listener to update, then refresh modal
-                              await Future.delayed(const Duration(milliseconds: 200));
-                              
+                              await Future.delayed(
+                                const Duration(milliseconds: 200),
+                              );
+
                               setModalState(() {
                                 // This will trigger a rebuild of the modal sheet with updated items
                               });
@@ -901,11 +923,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                         final data = doc.data();
                                         return {
                                           'id': doc.id,
-                                          'name':
-                                              data['name'] ?? 'Unknown',
+                                          'name': data['name'] ?? 'Unknown',
                                           'contact': data['contact'] ?? '',
-                                          'location':
-                                              data['location'] ?? '',
+                                          'location': data['location'] ?? '',
                                         };
                                       }).toList();
                                       setModalState(() {});
@@ -1079,7 +1099,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         // Convert to uppercase in real-time
                         if (value != value.toUpperCase()) {
                           newSupplierController.text = value.toUpperCase();
-                          newSupplierController.selection = TextSelection.fromPosition(
+                          newSupplierController
+                              .selection = TextSelection.fromPosition(
                             TextPosition(offset: value.toUpperCase().length),
                           );
                         }
@@ -1140,7 +1161,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         // Convert to uppercase in real-time
                         if (value != value.toUpperCase()) {
                           locationController.text = value.toUpperCase();
-                          locationController.selection = TextSelection.fromPosition(
+                          locationController
+                              .selection = TextSelection.fromPosition(
                             TextPosition(offset: value.toUpperCase().length),
                           );
                         }
@@ -1311,8 +1333,14 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       if (user == null) return;
 
       final firestore = FirebaseFirestore.instance;
-      final purchasesCol = firestore.collection('purchases').doc(user.uid).collection('items');
-      final productsCol = firestore.collection('purchased-products').doc(user.uid).collection('items');
+      final purchasesCol = firestore
+          .collection('purchases')
+          .doc(user.uid)
+          .collection('items');
+      final productsCol = firestore
+          .collection('purchased-products')
+          .doc(user.uid)
+          .collection('items');
 
       // Calculate total products and total units
       int totalProducts = _boughtItems.length;
@@ -1337,9 +1365,14 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       // Then, save all purchased items with the purchase reference ID
       for (var item in _boughtItems) {
         // Generate unique batch ID based on product name + supplier name + buying price
-        final batchHash = md5.convert(
-          utf8.encode('${item.productName}_${item.supplierName}_${item.buyingPrice}'),
-        ).toString().substring(0, 8);
+        final batchHash = md5
+            .convert(
+              utf8.encode(
+                '${item.productName}_${item.supplierName}_${item.buyingPrice}',
+              ),
+            )
+            .toString()
+            .substring(0, 8);
         final batchId = '${item.productName}_${item.supplierId}_$batchHash';
 
         // Check if product already exists in stock (qty > 0)
@@ -1348,7 +1381,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         int existingTotalQty = 0;
         int existingMinLimit = 0;
         String? existingMinLimitBatchId;
-        
+
         for (var doc in existingSnapshot.docs) {
           final product = doc.data();
           if (product['productName'] == item.productName) {
@@ -1390,14 +1423,17 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'purchaseDate': _dateController.text,
           'profitMargin': (item.sellingPrice - item.buyingPrice).toDouble(),
         };
-        
+
         // Save to purchased-products and capture the generated product ID
         final productDoc = await productsCol.add(productEntry);
         final productId = productDoc.id; // Get the unique product ID
 
         // Also save to permanent purchase history using productId (not productName)
         // This ensures history is not affected if product name changes in future
-        final historyCol = firestore.collection('product-purchase-history').doc(user.uid).collection('items');
+        final historyCol = firestore
+            .collection('product-purchase-history')
+            .doc(user.uid)
+            .collection('items');
         final historyEntry = {
           'purchaseId': purchaseId,
           'productId': productId, // Store the unique product ID
@@ -1414,7 +1450,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'batchId': batchId,
         };
         await historyCol.add(historyEntry);
-        
+
         // If product already exists and we need to update minLimit
         if (existingTotalQty > 0 && existingMinLimitBatchId != null) {
           // Update the existing batch that holds the minLimit
@@ -1865,6 +1901,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     Function(String)? onChanged,
     bool enabled = true,
   }) {
+    bool fontSizeSmall = hint == 'Buying Price Per Item' ||
+        hint == 'Selling Price Per Item';
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Column(
@@ -1892,6 +1930,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       hintText: hint,
                       hintStyle: TextStyle(
                         color: isDarkMode ? Colors.white : Colors.grey[800],
+                        fontSize: fontSizeSmall ? 12 : 14,
                       ),
                       filled: false,
                       contentPadding: EdgeInsets.symmetric(
