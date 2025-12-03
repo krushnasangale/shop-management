@@ -6,10 +6,7 @@ import 'dart:async';
 class PurchaseEntryDetails extends StatefulWidget {
   final Map<String, dynamic> entry;
 
-  const PurchaseEntryDetails({
-    super.key,
-    required this.entry,
-  });
+  const PurchaseEntryDetails({super.key, required this.entry});
 
   @override
   State<PurchaseEntryDetails> createState() => _PurchaseEntryDetailsState();
@@ -18,7 +15,8 @@ class PurchaseEntryDetails extends StatefulWidget {
 class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
   late List<Map<String, dynamic>> _items = [];
   bool _isLoading = true;
-  late List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>> _subscriptions;
+  late List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>
+  _subscriptions;
 
   @override
   void initState() {
@@ -56,18 +54,18 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
           .where('purchaseId', isEqualTo: purchaseId)
           .snapshots()
           .listen((snapshot) {
-        if (mounted) {
-          final loadedItems = snapshot.docs
-              .map((doc) => doc.data())
-              .toList();
-          
-          setState(() {
-            _items = loadedItems;
-            _isLoading = false;
+            if (mounted) {
+              final loadedItems = snapshot.docs
+                  .map((doc) => {'id': doc.id, ...doc.data()})
+                  .toList();
+
+              setState(() {
+                _items = loadedItems;
+                _isLoading = false;
+              });
+            }
           });
-        }
-      });
-      
+
       _subscriptions.add(subscription);
     } catch (e) {
       print('Error loading items: $e');
@@ -77,11 +75,147 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
     }
   }
 
+  Future<void> _removeProduct(String itemId) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final purchaseId = widget.entry['id'] as String?;
+      if (purchaseId == null || purchaseId.isEmpty) return;
+
+      // Delete the product from purchased-products collection
+      await FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(user.uid)
+          .collection('items')
+          .doc(itemId)
+          .delete();
+
+      // Check how many products remain in Firestore for this purchase
+      final remainingItems = await FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(user.uid)
+          .collection('items')
+          .where('purchaseId', isEqualTo: purchaseId)
+          .get();
+
+      // If no products remain, delete the purchase entry
+      if (remainingItems.docs.isEmpty) {
+        await FirebaseFirestore.instance
+            .collection('purchases')
+            .doc(user.uid)
+            .collection('items')
+            .doc(purchaseId)
+            .delete();
+
+        if (mounted) {
+          // Navigate back after deletion
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Purchase entry removed (last product deleted)'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          Navigator.of(context).pop();
+        }
+      } else {
+        // Calculate new total amount, total units, and total products from remaining items
+        double newTotalAmount = 0;
+        int newTotalUnits = 0;
+        int newTotalProducts = remainingItems.docs.length;
+        
+        for (var doc in remainingItems.docs) {
+          final total = (doc['total'] ?? 0) as num;
+          final quantity = (doc['initialQuantity'] ?? 0) as num;
+          newTotalAmount += total.toDouble();
+          newTotalUnits += quantity.toInt();
+        }
+
+        // Update the purchase entry with new total amount, units, and product count
+        await FirebaseFirestore.instance
+            .collection('purchases')
+            .doc(user.uid)
+            .collection('items')
+            .doc(purchaseId)
+            .update({
+              'totalAmount': newTotalAmount,
+              'totalUnits': newTotalUnits,
+              'totalProducts': newTotalProducts,
+              'itemsCount': remainingItems.docs.length,
+            });
+
+        // Update the widget entry data to reflect changes
+        widget.entry['totalAmount'] = newTotalAmount;
+        widget.entry['totalUnits'] = newTotalUnits;
+        widget.entry['totalProducts'] = newTotalProducts;
+
+        // If there are more products, show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Product removed successfully'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error removing product: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error removing product: $e'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showRemoveConfirmation(String itemId, String productName) {
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            'Remove Product',
+            style: TextStyle(color: primaryTextColor),
+          ),
+          content: Text(
+            _items.length <= 1
+                ? 'This is the last product. Removing it will delete the entire purchase entry. Continue?'
+                : 'Remove "$productName" from this purchase?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _removeProduct(itemId);
+              },
+              child: Text('Remove', style: TextStyle(color: Colors.red[600])),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-    final totalAmount = widget.entry['totalAmount'] ?? 0;
+    
+    // Calculate total amount dynamically from items
+    double totalAmount = 0;
+    for (var item in _items) {
+      final itemTotal = (item['total'] ?? 0) as num;
+      totalAmount += itemTotal.toDouble();
+    }
 
     if (_isLoading) {
       return Scaffold(
@@ -89,17 +223,12 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
           title: const Text('Purchase Details'),
           centerTitle: false,
         ),
-        body: const Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Purchase Details'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('Purchase Details'), centerTitle: false),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12.0),
         child: Column(
@@ -194,12 +323,16 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               final item = mapEntry.value;
               final productName = item['productName'] ?? 'Unknown';
               final quantity = item['initialQuantity'] ?? 0;
-              final buyingPrice = item['buyingPrice'] ?? 0; // Buying price never changes
-              final sellingPrice = item['sellingPrice'] ?? 0; // Selling price at time of purchase
+              final buyingPrice =
+                  item['buyingPrice'] ?? 0; // Buying price never changes
+              final sellingPrice =
+                  item['sellingPrice'] ??
+                  0; // Selling price at time of purchase
               final unit = item['unit'] ?? '';
               final total = item['total'] ?? 0;
               final batchId = item['batchId'] as String?;
-              final profitMargin = (sellingPrice - buyingPrice).toDouble(); // Calculate from prices
+              final profitMargin = (sellingPrice - buyingPrice)
+                  .toDouble(); // Calculate from prices
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
@@ -213,7 +346,9 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.all(10.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -250,16 +385,29 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
+                            // Remove button
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline),
+                              color: Colors.red[600],
+                              onPressed: (item['id'] as String?) != null
+                                  ? () => _showRemoveConfirmation(
+                                      item['id'] as String,
+                                      productName,
+                                    )
+                                  : null,
+                              tooltip: 'Remove product',
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        // Batch Information (if available)
-                        if (batchId != null && batchId.isNotEmpty)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            if (batchId != null && batchId.isNotEmpty)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.purple.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(4),
@@ -277,19 +425,22 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 6),
-                            ],
-                          ),
-                        Row(
-                          children: [
-                            Icon(Icons.straighten, size: 16, color: secondaryTextColor),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Unit: $unit',
-                              style: TextStyle(
-                                color: secondaryTextColor,
-                                fontSize: 12,
-                              ),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.straighten,
+                                  size: 16,
+                                  color: secondaryTextColor,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Unit: $unit',
+                                  style: TextStyle(
+                                    color: secondaryTextColor,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -376,16 +527,16 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                     fontSize: 11,
                                   ),
                                 ),
-                              Text(
-                                '₹${profitMargin.toStringAsFixed(2)}',
-                                style: TextStyle(
-                                  color: profitMargin >= 0 
-                                    ? Colors.green[600] 
-                                    : Colors.red[600],
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                Text(
+                                  '₹${profitMargin.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: profitMargin >= 0
+                                        ? Colors.green[600]
+                                        : Colors.red[600],
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
-                              ),
                               ],
                             ),
                           ],
@@ -414,6 +565,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 8),
                       ],
                     ),
                   ),
