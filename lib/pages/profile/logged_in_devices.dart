@@ -78,13 +78,13 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
 
       if (Platform.isAndroid) {
         final androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id ?? '';
+        deviceId = androidInfo.id;
       } else if (Platform.isIOS) {
         final iosInfo = await deviceInfo.iosInfo;
         deviceId = iosInfo.identifierForVendor ?? '';
       } else if (Platform.isWindows) {
         final windowsInfo = await deviceInfo.windowsInfo;
-        deviceId = windowsInfo.deviceId ?? '';
+        deviceId = windowsInfo.deviceId;
       } else if (Platform.isMacOS) {
         final macInfo = await deviceInfo.macOsInfo;
         deviceId = macInfo.systemGUID ?? '';

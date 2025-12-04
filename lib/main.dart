@@ -63,34 +63,6 @@ class MyApp extends StatelessWidget {
     }
   }
 
-  Future<bool> _checkDeviceStatus(String userId, String deviceId) async {
-    try {
-      final deviceDoc = await FirebaseFirestore.instance
-          .collection('user-devices')
-          .doc(userId)
-          .collection('devices')
-          .doc(deviceId)
-          .get();
-
-      if (!deviceDoc.exists) {
-        return true; // Device not tracked yet, allow
-      }
-
-      final data = deviceDoc.data();
-      if (data == null) return true;
-
-      // Check if device has been revoked
-      if (data.containsKey('revokedAt') && data['revokedAt'] != null) {
-        return false; // Device revoked, logout
-      }
-
-      return true; // Device is valid
-    } catch (e) {
-      debugPrint('Error checking device status: $e');
-      return true; // Allow on error
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
