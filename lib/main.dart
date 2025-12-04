@@ -14,6 +14,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:device_info_plus/device_info_plus.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -30,6 +32,65 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  Future<String> _getCurrentDeviceId() async {
+    try {
+      final deviceInfo = DeviceInfoPlugin();
+      String deviceId = '';
+
+      if (Platform.isAndroid) {
+        final androidInfo = await deviceInfo.androidInfo;
+        deviceId = androidInfo.id;
+      } else if (Platform.isIOS) {
+        final iosInfo = await deviceInfo.iosInfo;
+        deviceId = iosInfo.identifierForVendor ?? 'unknown';
+      } else if (Platform.isWindows) {
+        final windowsInfo = await deviceInfo.windowsInfo;
+        deviceId = windowsInfo.deviceId;
+      } else if (Platform.isMacOS) {
+        final macInfo = await deviceInfo.macOsInfo;
+        deviceId = macInfo.systemGUID ?? 'unknown';
+      } else if (Platform.isLinux) {
+        final linuxInfo = await deviceInfo.linuxInfo;
+        deviceId = linuxInfo.machineId ?? 'unknown';
+      } else {
+        deviceId = 'web_${DateTime.now().millisecondsSinceEpoch}';
+      }
+
+      return deviceId;
+    } catch (e) {
+      debugPrint('Error getting device ID: $e');
+      return 'unknown';
+    }
+  }
+
+  Future<bool> _checkDeviceStatus(String userId, String deviceId) async {
+    try {
+      final deviceDoc = await FirebaseFirestore.instance
+          .collection('user-devices')
+          .doc(userId)
+          .collection('devices')
+          .doc(deviceId)
+          .get();
+
+      if (!deviceDoc.exists) {
+        return true; // Device not tracked yet, allow
+      }
+
+      final data = deviceDoc.data();
+      if (data == null) return true;
+
+      // Check if device has been revoked
+      if (data.containsKey('revokedAt') && data['revokedAt'] != null) {
+        return false; // Device revoked, logout
+      }
+
+      return true; // Device is valid
+    } catch (e) {
+      debugPrint('Error checking device status: $e');
+      return true; // Allow on error
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<ThemeProvider>(
@@ -45,8 +106,131 @@ class MyApp extends StatelessWidget {
                   body: Center(child: CircularProgressIndicator()),
                 );
               }
-              if (snapshot.hasData) {
-                return const MyHomePage(title: '');
+              if (snapshot.hasData && snapshot.data != null) {
+                // Listen to device revocation status in real-time
+                return FutureBuilder<String>(
+                  future: _getCurrentDeviceId(),
+                  builder: (context, deviceIdSnapshot) {
+                    if (deviceIdSnapshot.connectionState ==
+                        ConnectionState.waiting) {
+                      return const Scaffold(
+                        body: Center(child: CircularProgressIndicator()),
+                      );
+                    }
+
+                    final deviceId = deviceIdSnapshot.data ?? 'unknown';
+
+                    // Stream for device document with error handling to avoid
+                    // permission-denied crashes when auth state changes rapidly.
+                    final deviceStream = FirebaseFirestore.instance
+                        .collection('user-devices')
+                        .doc(snapshot.data!.uid)
+                        .collection('devices')
+                        .doc(deviceId)
+                        .snapshots()
+                        .handleError((e) {
+                          // Swallow permission errors (user signed out) to avoid
+                          // unhandled exceptions coming from the native plugin.
+                          if (e is FirebaseException &&
+                              e.code == 'permission-denied') {
+                            debugPrint(
+                              'Ignored permission error on device snapshot: $e',
+                            );
+                            return;
+                          }
+                          // Re-throw other errors so they surface normally.
+                          throw e;
+                        });
+
+                    return StreamBuilder<DocumentSnapshot>(
+                      stream: deviceStream,
+                      builder: (context, deviceSnapshot) {
+                        if (deviceSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Scaffold(
+                            body: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+
+                        if (deviceSnapshot.hasError) {
+                          debugPrint(
+                            'Device snapshot error: ${deviceSnapshot.error}',
+                          );
+                          // If there's an auth/permission error, ensure user is
+                          // signed out and show login screen to recover.
+                          try {
+                            FirebaseAuth.instance.signOut();
+                          } catch (_) {}
+                          return const LoginScreen();
+                        }
+
+                        // Check if device is revoked
+                        if (deviceSnapshot.hasData &&
+                            deviceSnapshot.data!.exists) {
+                          final data =
+                              deviceSnapshot.data!.data()
+                                  as Map<String, dynamic>?;
+                          if (data != null &&
+                              data.containsKey('revokedAt') &&
+                              data['revokedAt'] != null) {
+                            try {
+                              final revokedTs = data['revokedAt'];
+                              DateTime revokedAt;
+                              if (revokedTs is Timestamp) {
+                                revokedAt = revokedTs.toDate();
+                              } else if (revokedTs is DateTime) {
+                                revokedAt = revokedTs;
+                              } else {
+                                revokedAt = DateTime.now();
+                              }
+
+                              final user = FirebaseAuth.instance.currentUser;
+                              final lastSignIn = user?.metadata.lastSignInTime;
+
+                              // If the user just signed in after revocation was set
+                              // (race condition), allow the session. Add a small
+                              // grace window to account for server timestamp delays.
+                              if (lastSignIn != null &&
+                                  lastSignIn.isAfter(
+                                    revokedAt.subtract(
+                                      const Duration(seconds: 3),
+                                    ),
+                                  )) {
+                                // Recent login — treat as valid, don't force sign-out.
+                              } else {
+                                // Device is revoked and not a fresh login — sign out.
+                                FirebaseAuth.instance.signOut();
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'This device has been logged out remotely',
+                                        ),
+                                        duration: Duration(seconds: 3),
+                                      ),
+                                    );
+                                  }
+                                });
+                                return const LoginScreen();
+                              }
+                            } catch (e) {
+                              debugPrint('Error parsing revokedAt: $e');
+                              try {
+                                FirebaseAuth.instance.signOut();
+                              } catch (_) {}
+                              return const LoginScreen();
+                            }
+                          }
+                        }
+
+                        return const MyHomePage(title: '');
+                      },
+                    );
+                  },
+                );
               }
               return const LoginScreen();
             },
@@ -68,8 +252,10 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
   String _shopName = '----';
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _shopNameSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _shopNameSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _productsSubscription;
   int _productsCount = 0;
 
   @override
@@ -88,13 +274,13 @@ class _MyHomePageState extends State<MyHomePage> {
             .doc(user.uid)
             .snapshots()
             .listen((DocumentSnapshot<Map<String, dynamic>> snapshot) {
-          if (mounted && snapshot.exists) {
-            final shopName = snapshot.data()?['shopName'] as String?;
-            if (shopName != null && shopName.isNotEmpty) {
-              setState(() => _shopName = shopName);
-            }
-          }
-        });
+              if (mounted && snapshot.exists) {
+                final shopName = snapshot.data()?['shopName'] as String?;
+                if (shopName != null && shopName.isNotEmpty) {
+                  setState(() => _shopName = shopName);
+                }
+              }
+            });
       }
     } catch (e) {
       print('Error listening to shop name: $e');
@@ -112,18 +298,18 @@ class _MyHomePageState extends State<MyHomePage> {
             .where('quantity', isGreaterThan: 0)
             .snapshots()
             .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
-          if (mounted) {
-            // Group by product name to get unique count
-            final uniqueProducts = <String>{};
-            for (var doc in snapshot.docs) {
-              final productName = doc.data()['productName'] as String?;
-              if (productName != null) {
-                uniqueProducts.add(productName);
+              if (mounted) {
+                // Group by product name to get unique count
+                final uniqueProducts = <String>{};
+                for (var doc in snapshot.docs) {
+                  final productName = doc.data()['productName'] as String?;
+                  if (productName != null) {
+                    uniqueProducts.add(productName);
+                  }
+                }
+                setState(() => _productsCount = uniqueProducts.length);
               }
-            }
-            setState(() => _productsCount = uniqueProducts.length);
-          }
-        });
+            });
       }
     } catch (e) {
       print('Error listening to products count: $e');
@@ -167,18 +353,18 @@ class _MyHomePageState extends State<MyHomePage> {
             width: 40,
             child: IconButton(
               padding: EdgeInsets.zero,
-              icon: const Icon(Icons.account_circle, size: 35,),
+              icon: const Icon(Icons.account_circle, size: 35),
               onPressed: () async {
                 AppNavigator.push(context, const MyProfile());
               },
-              tooltip: 'Logout',
+              tooltip: 'My Profile',
             ),
           ),
           const SizedBox(width: 14),
         ],
       ),
       body: IndexedStack(index: _selectedIndex, children: _screens),
-    
+
       floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3
           ? FloatingActionButton(
               shape: RoundedRectangleBorder(

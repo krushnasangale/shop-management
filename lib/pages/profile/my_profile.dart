@@ -1,3 +1,4 @@
+import 'package:flashbill/pages/profile/logged_in_devices.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,7 +23,8 @@ class MyProfile extends StatefulWidget {
 class _MyProfileState extends State<MyProfile> {
   bool _isLoggingOut = false;
   String _shopName = '----';
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _shopNameSubscription;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _shopNameSubscription;
 
   @override
   void initState() {
@@ -40,13 +42,13 @@ class _MyProfileState extends State<MyProfile> {
           .doc(user.uid)
           .snapshots()
           .listen((DocumentSnapshot<Map<String, dynamic>> snapshot) {
-        if (mounted && snapshot.exists) {
-          final shopName = snapshot.data()?['shopName'] as String?;
-          if (shopName != null && shopName.isNotEmpty) {
-            setState(() => _shopName = shopName);
-          }
-        }
-      });
+            if (mounted && snapshot.exists) {
+              final shopName = snapshot.data()?['shopName'] as String?;
+              if (shopName != null && shopName.isNotEmpty) {
+                setState(() => _shopName = shopName);
+              }
+            }
+          });
     } catch (e) {
       print('Error listening to shop name: $e');
     }
@@ -68,9 +70,9 @@ class _MyProfileState extends State<MyProfile> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Logout failed: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
       }
     } finally {
       if (mounted) setState(() => _isLoggingOut = false);
@@ -95,7 +97,10 @@ class _MyProfileState extends State<MyProfile> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Change Password', style: TextStyle(color: primaryTextColor),),
+              title: Text(
+                'Change Password',
+                style: TextStyle(color: primaryTextColor),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -110,7 +115,9 @@ class _MyProfileState extends State<MyProfile> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            showCurrentPassword ? Icons.visibility : Icons.visibility_off,
+                            showCurrentPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: Colors.grey,
                           ),
                           onPressed: () {
@@ -125,7 +132,9 @@ class _MyProfileState extends State<MyProfile> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(
-                            color: currentPasswordError != null ? Colors.red : Colors.blue,
+                            color: currentPasswordError != null
+                                ? Colors.red
+                                : Colors.blue,
                             width: 2,
                           ),
                         ),
@@ -140,7 +149,11 @@ class _MyProfileState extends State<MyProfile> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.error_outline, color: Colors.red, size: 18),
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -166,7 +179,9 @@ class _MyProfileState extends State<MyProfile> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            showNewPassword ? Icons.visibility : Icons.visibility_off,
+                            showNewPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: Colors.grey,
                           ),
                           onPressed: () {
@@ -181,7 +196,9 @@ class _MyProfileState extends State<MyProfile> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(
-                            color: newPasswordError != null ? Colors.red : Colors.blue,
+                            color: newPasswordError != null
+                                ? Colors.red
+                                : Colors.blue,
                             width: 2,
                           ),
                         ),
@@ -197,7 +214,11 @@ class _MyProfileState extends State<MyProfile> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.error_outline, color: Colors.red, size: 18),
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -223,7 +244,9 @@ class _MyProfileState extends State<MyProfile> {
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
-                            showConfirmPassword ? Icons.visibility : Icons.visibility_off,
+                            showConfirmPassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: Colors.grey,
                           ),
                           onPressed: () {
@@ -238,7 +261,9 @@ class _MyProfileState extends State<MyProfile> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(
-                            color: confirmPasswordError != null ? Colors.red : Colors.blue,
+                            color: confirmPasswordError != null
+                                ? Colors.red
+                                : Colors.blue,
                             width: 2,
                           ),
                         ),
@@ -253,7 +278,11 @@ class _MyProfileState extends State<MyProfile> {
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.error_outline, color: Colors.red, size: 18),
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 18,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -294,14 +323,16 @@ class _MyProfileState extends State<MyProfile> {
                         newPasswordError = 'New password is required';
                         hasError = true;
                       } else if (newPasswordController.text.length < 6) {
-                        newPasswordError = 'Password must be at least 6 characters';
+                        newPasswordError =
+                            'Password must be at least 6 characters';
                         hasError = true;
                       }
 
                       if (confirmPasswordController.text.isEmpty) {
                         confirmPasswordError = 'Please confirm your password';
                         hasError = true;
-                      } else if (newPasswordController.text != confirmPasswordController.text) {
+                      } else if (newPasswordController.text !=
+                          confirmPasswordController.text) {
                         confirmPasswordError = 'Passwords do not match';
                         hasError = true;
                       }
@@ -336,7 +367,9 @@ class _MyProfileState extends State<MyProfile> {
                         Navigator.pop(context); // Close loading
                         Navigator.pop(dialogContext); // Close dialog
                         ScaffoldMessenger.of(this.context).showSnackBar(
-                          const SnackBar(content: Text('User not authenticated')),
+                          const SnackBar(
+                            content: Text('User not authenticated'),
+                          ),
                         );
                         return;
                       }
@@ -371,8 +404,11 @@ class _MyProfileState extends State<MyProfile> {
                         errorMessage = 'Current password is incorrect';
                       } else if (e.toString().contains('weak-password')) {
                         errorMessage = 'New password is too weak';
-                      } else if (e.toString().contains('requires-recent-login')) {
-                        errorMessage = 'Please log out and log in again for security';
+                      } else if (e.toString().contains(
+                        'requires-recent-login',
+                      )) {
+                        errorMessage =
+                            'Please log out and log in again for security';
                       }
 
                       setDialogState(() {
@@ -389,10 +425,11 @@ class _MyProfileState extends State<MyProfile> {
                       }
                     }
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                  child: Text(
+                    'Change Password',
+                    style: TextStyle(color: Colors.white),
                   ),
-                  child: Text('Change Password', style: TextStyle(color: Colors.white)),
                 ),
               ],
             );
@@ -404,214 +441,216 @@ class _MyProfileState extends State<MyProfile> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('My Profile'),
-        ),
-        body: Column(
-          children: [
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    // Profile Header
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+    return Scaffold(
+      appBar: AppBar(title: const Text('My Profile')),
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Profile Header
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                      child: ListTile(
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                      leading: CircleAvatar(
+                        radius: 30,
+                        backgroundColor: const Color(0xFF2196F3),
+                        child: const Icon(
+                          Icons.person,
+                          color: Colors.white,
+                          size: 30,
                         ),
-                        leading: CircleAvatar(
-                          radius: 30,
-                          backgroundColor: const Color(0xFF2196F3),
-                          child: const Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: 30,
-                          ),
+                      ),
+                      title: Text(
+                        _shopName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
-                        title: Text(
-                          _shopName,
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                      ),
+                      subtitle: Text(
+                        'View and edit profile',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.6),
                         ),
-                        subtitle: Text(
-                          'View and edit profile',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        AppNavigator.push(context, const EditProfile());
+                      },
+                    ),
+                  ),
+
+                  // Add
+                  _buildSectionHeader('Add', context),
+                  _buildMenuItem(
+                    Icons.person_add_outlined,
+                    'Supplier',
+                    context,
+                    onTap: () {
+                      AppNavigator.push(context, const Suppliers());
+                    },
+                  ),
+                  _buildMenuItem(
+                    Icons.scale_outlined,
+                    'Unit',
+                    context,
+                    onTap: () {
+                      AppNavigator.push(
+                        context,
+                        const MeasurementUnitsScreen(),
+                      );
+                    },
+                  ),
+                  _buildMenuItem(
+                    Icons.shopping_bag_outlined,
+                    'Product Name',
+                    context,
+                    onTap: () {
+                      AppNavigator.push(context, const ProductName());
+                    },
+                  ),
+                  _buildMenuItem(
+                    Icons.people_alt_outlined,
+                    'Customer',
+                    context,
+                    onTap: () {
+                      AppNavigator.push(context, const Customers());
+                    },
+                  ),
+
+                  // Privacy Section
+                  _buildSectionHeader('PRIVACY', context),
+                  _buildLoggedInDevicesMenuItem(context),
+                  _buildMenuItem(
+                    Icons.lock_outline,
+                    'Change Password',
+                    context,
+                    onTap: () => _showChangePasswordDialog(context),
+                  ),
+                  _buildMenuItem(
+                    Icons.policy_outlined,
+                    'Privacy Policy',
+                    context,
+                  ),
+
+                  // General Section
+                  _buildSectionHeader('GENERAL', context),
+                  _buildMenuItem(
+                    Icons.language,
+                    'Language',
+                    context,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'English',
                           style: TextStyle(
                             color: Theme.of(
                               context,
                             ).colorScheme.onSurface.withOpacity(0.6),
                           ),
                         ),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          AppNavigator.push(context, const EditProfile());
-                        },
-                      ),
+                        const Icon(Icons.chevron_right, color: Colors.grey),
+                      ],
                     ),
-
-                    // Add
-                    _buildSectionHeader('Add', context),
-                    _buildMenuItem(
-                      Icons.person_add_outlined,
-                      'Supplier',
-                      context,
-                      onTap: () {
-                        AppNavigator.push(context, const Suppliers());
-                      },
-                    ),
-                    _buildMenuItem(
-                      Icons.scale_outlined,
-                      'Unit',
-                      context,
-                      onTap: () {
-                        AppNavigator.push(context, const MeasurementUnitsScreen());
-                      },
-                    ),
-                    _buildMenuItem(
-                      Icons.shopping_bag_outlined,
-                      'Product Name',
-                      context,
-                      onTap: () {
-                        AppNavigator.push(context, const ProductName());
-                      },
-                    ),
-                    _buildMenuItem(
-                      Icons.people_alt_outlined,
-                      'Customer',
-                      context,
-                      onTap: () {
-                        AppNavigator.push(context, const Customers());
-                      },
-                    ),
-
-                    // Privacy Section
-                    _buildSectionHeader('PRIVACY', context),
-                    _buildMenuItem(
-                      Icons.lock_outline,
-                      'Change Password',
-                      context,
-                      onTap: () => _showChangePasswordDialog(context),
-                    ),
-                    _buildMenuItem(
-                      Icons.policy_outlined,
-                      'Privacy Policy',
-                      context,
-                    ),
-
-                    // General Section
-                    _buildSectionHeader('GENERAL', context),
-                    _buildMenuItem(
-                      Icons.language,
-                      'Language',
-                      context,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'English',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
-                            ),
+                  ),
+                  _buildMenuItem(
+                    Icons.brightness_6_outlined,
+                    'Theme',
+                    context,
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Dark',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
                           ),
-                          const Icon(Icons.chevron_right, color: Colors.grey),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        Transform.scale(
+                          scale: 0.75,
+                          child: Consumer<ThemeProvider>(
+                            builder: (context, themeProvider, _) {
+                              return Switch(
+                                value: themeProvider.isLightTheme,
+                                onChanged: (value) {
+                                  themeProvider.toggleTheme();
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Light',
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
                     ),
-                    _buildMenuItem(
-                      Icons.brightness_6_outlined,
-                      'Theme',
-                      context,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Dark',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Transform.scale(
-                            scale: 0.75,
-                            child: Consumer<ThemeProvider>(
-                              builder: (context, themeProvider, _) {
-                                return Switch(
-                                  value: themeProvider.isLightTheme,
-                                  onChanged: (value) {
-                                    themeProvider.toggleTheme();
-                                  },
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Light',
-                            style: TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withOpacity(0.6),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  ),
 
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoggingOut ? null : _logout,
-                        icon: _isLoggingOut
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoggingOut ? null : _logout,
+                      icon: _isLoggingOut
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.redAccent,
                                 ),
-                              )
-                            : const Icon(Icons.logout, color: Colors.redAccent),
-                        label: Text(
-                          _isLoggingOut ? 'Logging Out...' : 'Log Out',
-                          style: const TextStyle(color: Colors.redAccent),
+                              ),
+                            )
+                          : const Icon(Icons.logout, color: Colors.redAccent),
+                      label: Text(
+                        _isLoggingOut ? 'Logging Out...' : 'Log Out',
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.redAccent.withOpacity(0.1),
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 20,
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.redAccent.withOpacity(0.1),
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 12,
-                            horizontal: 20,
-                          ),
-                          minimumSize: const Size.fromHeight(50),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
+          ),
 
-            // Logout Button (fixed at bottom)
-          ],
-        ),
+          // Logout Button (fixed at bottom)
+        ],
       ),
     );
   }
@@ -627,6 +666,81 @@ class _MyProfileState extends State<MyProfile> {
           fontSize: 13,
         ),
       ),
+    );
+  }
+
+  Widget _buildLoggedInDevicesMenuItem(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return _buildMenuItem(
+        Icons.device_unknown,
+        'Logged In Devices',
+        context,
+        onTap: () {
+          AppNavigator.push(context, const LoggedInDevicesScreen());
+        },
+      );
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('user-devices')
+          .doc(user.uid)
+          .collection('devices')
+          .snapshots(),
+      builder: (context, snapshot) {
+        int deviceCount = 0;
+
+        if (snapshot.hasData) {
+          // Filter out revoked devices
+          deviceCount = snapshot.data!.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            return data['revokedAt'] == null;
+          }).length;
+        }
+
+        return _buildMenuItem(
+          Icons.device_unknown,
+          'Logged In Devices',
+          context,
+          onTap: () {
+            AppNavigator.push(context, const LoggedInDevicesScreen());
+          },
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$deviceCount',
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        );
+      },
     );
   }
 
