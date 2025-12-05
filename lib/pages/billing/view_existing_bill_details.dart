@@ -1235,6 +1235,213 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     }
   }
 
+  void _showEditMobileDialog() {
+    final TextEditingController mobileController = TextEditingController(
+      text: customerMobile,
+    );
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                'Edit Mobile Number',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor,
+                ),
+              ),
+              content: TextField(
+                controller: mobileController,
+                keyboardType: TextInputType.phone,
+                maxLength: 10,
+                onChanged: (value) {
+                  setState(() {
+                    errorText = null;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: 'Mobile Number',
+                  hintText: '10 digit mobile number',
+                  prefixIcon: const Icon(Icons.phone),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  errorText: errorText,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newMobile = mobileController.text.trim();
+                    if (newMobile.isEmpty) {
+                      setState(() {
+                        errorText = 'Mobile number is required';
+                      });
+                      return;
+                    }
+                    if (!RegExp(r'^[0-9]{10}$').hasMatch(newMobile)) {
+                      setState(() {
+                        errorText = 'Mobile number must be 10 digits';
+                      });
+                      return;
+                    }
+                    Navigator.of(context).pop();
+                    _updateMobileNumber(newMobile);
+                  },
+                  child: const Text('Update'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateMobileNumber(String newMobile) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId)
+          .update({'customerMobile': newMobile});
+
+      setState(() {
+        customerMobile = newMobile;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Mobile number updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  void _showEditVehicleDialog() {
+    final TextEditingController vehicleController = TextEditingController(
+      text: customerVehicle ?? '',
+    );
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    String? errorText;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                'Edit Vehicle Number',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor,
+                ),
+              ),
+              content: TextField(
+                controller: vehicleController,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (value) {
+                  // Convert to uppercase and update controller
+                  final upperValue = value.toUpperCase();
+                  if (value != upperValue) {
+                    vehicleController.value = vehicleController.value.copyWith(
+                      text: upperValue,
+                      selection: TextSelection.collapsed(
+                        offset: upperValue.length,
+                      ),
+                    );
+                  }
+                  setState(() {
+                    errorText = null;
+                  });
+                },
+                decoration: InputDecoration(
+                  labelText: 'Vehicle Number',
+                  hintText: 'e.g., KA01AB1234 (optional)',
+                  prefixIcon: const Icon(Icons.directions_car),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  errorText: errorText,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newVehicle = vehicleController.text
+                        .trim()
+                        .toUpperCase();
+                    // Vehicle is optional, but if provided should match format
+                    if (newVehicle.isNotEmpty &&
+                        !RegExp(
+                          r'^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$',
+                        ).hasMatch(newVehicle)) {
+                      setState(() {
+                        errorText = 'Invalid format (e.g., KA01AB1234)';
+                      });
+                      return;
+                    }
+                    Navigator.of(context).pop();
+                    _updateVehicleNumber(
+                      newVehicle.isEmpty ? null : newVehicle,
+                    );
+                  },
+                  child: const Text('Update'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateVehicleNumber(String? newVehicle) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId)
+          .update({'customerVehicle': newVehicle ?? ''});
+
+      setState(() {
+        customerVehicle = newVehicle;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vehicle number updated successfully')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
   // --- Helper 5: Payment History Card ---
   Widget _buildPaymentHistoryCard(
     BuildContext context,
@@ -1479,12 +1686,29 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               'Customer Mobile Number',
               style: TextStyle(color: secondaryTextColor, fontSize: 14),
             ),
-            Text(
-              customerMobile,
-              style: TextStyle(
-                color: primaryTextColor,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
+            GestureDetector(
+              onTap: _showEditMobileDialog,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      customerMobile,
+                      style: TextStyle(
+                        color: primaryTextColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Icon(Icons.edit, size: 16, color: Colors.blue[600]),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -1492,12 +1716,29 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               'Customer Vehicle Number',
               style: TextStyle(color: secondaryTextColor, fontSize: 14),
             ),
-            Text(
-              customerVehicle ?? 'N/A',
-              style: TextStyle(
-                color: primaryTextColor,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
+            GestureDetector(
+              onTap: _showEditVehicleDialog,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      customerVehicle ?? 'N/A',
+                      style: TextStyle(
+                        color: primaryTextColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 18,
+                      ),
+                    ),
+                    Icon(Icons.edit, size: 16, color: Colors.blue[600]),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
