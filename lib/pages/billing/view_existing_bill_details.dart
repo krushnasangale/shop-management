@@ -8,6 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:convert' as convert;
+import 'package:flashbill/pages/billing/create_new_bill.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -30,11 +31,7 @@ class PaymentRecord {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'amount': amount,
-      'date': date,
-      'paymentMethod': paymentMethod,
-    };
+    return {'amount': amount, 'date': date, 'paymentMethod': paymentMethod};
   }
 }
 
@@ -94,16 +91,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
   // New state variable for the boolean status
   bool isTotalAmountPaid = false;
-  
+
   // Payment records
   List<PaymentRecord> paymentRecords = [];
-  
+
   // Profit calculation
   double totalProfit = 0;
-  
+
   // Payment method
   late String paymentMethod;
-  
+
   // Next payment date for partial payments
   String? nextPaymentDate;
   late TextEditingController _nextPaymentDateController;
@@ -119,31 +116,38 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     customerVehicle = widget.customerVehicle;
     paymentMethod = widget.paymentMethod;
     nextPaymentDate = widget.nextPaymentDate;
-    _nextPaymentDateController = TextEditingController(text: nextPaymentDate ?? '');
+    _nextPaymentDateController = TextEditingController(
+      text: nextPaymentDate ?? '',
+    );
     totalAmount = '₹ ${widget.totalAmount.toString()}';
     isTotalAmountPaid = widget.totalAmountPaid;
     amountPaid = '₹ ${widget.amountPaid.toString()}';
     amountRemaining = '₹ ${widget.amountRemaining.toString()}';
-    
+
     // Convert products if provided
     if (widget.products != null && widget.products!.isNotEmpty) {
-      products = widget.products!.map((p) => {
-        'name': (p['productName'] ?? 'Unknown').toString(),
-        'qty': (p['quantity'] ?? 0).toString(),
-        'price': '₹ ${(p['price'] ?? 0).toString()}',
-        'boughtPrice': '₹ ${(p['boughtPrice'] ?? 0).toString()}',
-        'batchId': (p['batchId'] as String?) ?? '',
-        'profitMargin': (p['profitMargin'] as num?)?.toStringAsFixed(2) ?? '0.00',
-      }).toList();
+      products = widget.products!
+          .map(
+            (p) => {
+              'name': (p['productName'] ?? 'Unknown').toString(),
+              'qty': (p['quantity'] ?? 0).toString(),
+              'price': '₹ ${(p['price'] ?? 0).toString()}',
+              'boughtPrice': '₹ ${(p['boughtPrice'] ?? 0).toString()}',
+              'batchId': (p['batchId'] as String?) ?? '',
+              'profitMargin':
+                  (p['profitMargin'] as num?)?.toStringAsFixed(2) ?? '0.00',
+            },
+          )
+          .toList();
       totalItems = widget.products!.length.toString();
-      
+
       // Calculate total profit using batch profit data if available
       totalProfit = 0;
       for (var product in widget.products!) {
         final quantity = (product['quantity'] ?? 0).toDouble();
         final sellingPrice = (product['price'] ?? 0).toDouble();
         final boughtPrice = (product['boughtPrice'] ?? 0).toDouble();
-        
+
         // Use stored profitTotal if available (new batch system), else calculate
         final profitTotal = product['profitTotal'];
         if (profitTotal != null) {
@@ -160,7 +164,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       totalItems = '0';
       totalProfit = 0;
     }
-    
+
     // Set payment status
     if (isTotalAmountPaid) {
       paymentStatus = 'Paid';
@@ -169,17 +173,17 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     } else {
       paymentStatus = 'Partially Paid';
     }
-    
+
     // Load payment records from Firebase
     _loadPaymentRecords();
   }
-  
+
   @override
   void dispose() {
     _nextPaymentDateController.dispose();
     super.dispose();
   }
-  
+
   Future<void> _loadPaymentRecords() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -198,7 +202,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         if (payments.isNotEmpty) {
           setState(() {
             paymentRecords = payments
-                .map((p) => PaymentRecord.fromMap(Map<dynamic, dynamic>.from(p as Map)))
+                .map(
+                  (p) => PaymentRecord.fromMap(
+                    Map<dynamic, dynamic>.from(p as Map),
+                  ),
+                )
                 .toList();
           });
         }
@@ -249,10 +257,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         Navigator.pop(context); // Close loading dialog
 
         // Open share dialog
-        await Share.shareXFiles(
-          [XFile(pdfFile.path)],
-          text: 'Bill from NKT Shop',
-        );
+        await Share.shareXFiles([
+          XFile(pdfFile.path),
+        ], text: 'Bill from NKT Shop');
       }
     } catch (e) {
       if (mounted) {
@@ -267,16 +274,54 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     }
   }
 
+  void _editBill() {
+    // Prepare the bill data for editing
+    final billData = {
+      'billId': billId,
+      'billDate': billDate,
+      'customerName': customerName,
+      'customerMobile': customerMobile,
+      'customerVehicle': customerVehicle,
+      'paymentMethod': paymentMethod,
+      'nextPaymentDate': nextPaymentDate,
+      'products': widget.products,
+      'totalAmount': widget.totalAmount,
+      'amountPaid': widget.amountPaid,
+      'amountRemaining': widget.amountRemaining,
+      'totalAmountPaid': isTotalAmountPaid,
+    };
+
+    // Navigate to CreateNewBill with edit mode enabled
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateNewBill(
+          isEditMode: true,
+          billId: billId,
+          existingBillData: billData,
+        ),
+      ),
+    ).then((result) {
+      // If bill was edited successfully, pop back to refresh the bills list
+      if (result == true) {
+        Navigator.pop(context, true);
+      }
+    });
+  }
+
   Future<File> _generateBillPDF() async {
     final pdf = pw.Document();
 
     // Get temporary directory
     final dir = await getTemporaryDirectory();
-    
+
     // Create filename with customer name and datetime
     final now = DateTime.now();
-    final dateTimeString = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
-    final sanitizedCustomerName = customerName.replaceAll(RegExp(r'[^\w\s-]'), '').replaceAll(' ', '_');
+    final dateTimeString =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+    final sanitizedCustomerName = customerName
+        .replaceAll(RegExp(r'[^\w\s-]'), '')
+        .replaceAll(' ', '_');
     final fileName = '${sanitizedCustomerName}_${dateTimeString}.pdf';
     final file = File('${dir.path}/$fileName');
 
@@ -363,15 +408,30 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('Invoice No.', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                      pw.Text(
+                        'Invoice No.',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
                       pw.Text(billId, style: const pw.TextStyle(fontSize: 10)),
                     ],
                   ),
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.end,
                     children: [
-                      pw.Text('Invoice Date:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                      pw.Text(billDate, style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text(
+                        'Invoice Date:',
+                        style: pw.TextStyle(
+                          fontSize: 10,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                      ),
+                      pw.Text(
+                        billDate,
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
                     ],
                   ),
                 ],
@@ -379,11 +439,27 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               pw.SizedBox(height: 15),
 
               // Customer Details Section
-              pw.Text('BILL TO', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold)),
+              pw.Text(
+                'BILL TO',
+                style: pw.TextStyle(
+                  fontSize: 11,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
               pw.SizedBox(height: 5),
-              pw.Text('Name: $customerName', style: const pw.TextStyle(fontSize: 10)),
-              pw.Text('Mobile: $customerMobile', style: const pw.TextStyle(fontSize: 10)),
-              if (customerVehicle != null && customerVehicle!.isNotEmpty) pw.Text('Vehicle: $customerVehicle', style: const pw.TextStyle(fontSize: 10)),
+              pw.Text(
+                'Name: $customerName',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              pw.Text(
+                'Mobile: $customerMobile',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              if (customerVehicle != null && customerVehicle!.isNotEmpty)
+                pw.Text(
+                  'Vehicle: $customerVehicle',
+                  style: const pw.TextStyle(fontSize: 10),
+                ),
               pw.SizedBox(height: 15),
 
               // Products Table
@@ -391,19 +467,26 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               pw.SizedBox(height: 40),
 
               // Remaining Amount Instruction (if applicable)
-              if (amountRemaining != '₹ 0') ...[pw.Text(
-                'Please arrange payment of ${amountRemaining.replaceAll('₹', 'Rs.')} on or before $nextPaymentDate to complete this transaction.',
+              if (amountRemaining != '₹ 0') ...[
+                pw.Text(
+                  'Please arrange payment of ${amountRemaining.replaceAll('₹', 'Rs.')} on or before $nextPaymentDate to complete this transaction.',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 15),
+              ],
+
+              // Terms & Conditions
+              pw.Text(
+                'Terms & Conditions',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
                 ),
-                textAlign: pw.TextAlign.center,
               ),
-              pw.SizedBox(height: 15),
-              ],
-
-              // Terms & Conditions
-              pw.Text('Terms & Conditions', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 20),
 
               // Signature Section
@@ -413,12 +496,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   pw.Column(
                     crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
-                      pw.Text('Customer Signature', style: const pw.TextStyle(fontSize: 9)),
+                      pw.Text(
+                        'Customer Signature',
+                        style: const pw.TextStyle(fontSize: 9),
+                      ),
                       pw.SizedBox(height: 30),
                       pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
                     ],
                   ),
-                  if (ownerSignatureBase64 != null && ownerSignatureBase64.isNotEmpty)
+                  if (ownerSignatureBase64 != null &&
+                      ownerSignatureBase64.isNotEmpty)
                     pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.center,
                       children: [
@@ -426,13 +513,21 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           width: 80,
                           height: 60,
                           child: pw.Image(
-                            pw.MemoryImage(convert.base64Decode(ownerSignatureBase64)),
+                            pw.MemoryImage(
+                              convert.base64Decode(ownerSignatureBase64),
+                            ),
                             fit: pw.BoxFit.contain,
                           ),
                         ),
                         pw.SizedBox(height: 5),
-                        pw.Text('Signature', style: const pw.TextStyle(fontSize: 9)),
-                        pw.Text(ownerName, style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text(
+                          'Signature',
+                          style: const pw.TextStyle(fontSize: 9),
+                        ),
+                        pw.Text(
+                          ownerName,
+                          style: const pw.TextStyle(fontSize: 8),
+                        ),
                       ],
                     )
                   else
@@ -440,10 +535,19 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       crossAxisAlignment: pw.CrossAxisAlignment.center,
                       children: [
                         pw.SizedBox(height: 30),
-                        pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text(
+                          '_' * 20,
+                          style: const pw.TextStyle(fontSize: 8),
+                        ),
                         pw.SizedBox(height: 5),
-                        pw.Text('Signature', style: const pw.TextStyle(fontSize: 9)),
-                        pw.Text(ownerName, style: const pw.TextStyle(fontSize: 8)),
+                        pw.Text(
+                          'Signature',
+                          style: const pw.TextStyle(fontSize: 9),
+                        ),
+                        pw.Text(
+                          ownerName,
+                          style: const pw.TextStyle(fontSize: 8),
+                        ),
                       ],
                     ),
                 ],
@@ -461,24 +565,22 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   pw.Widget _buildProductTable() {
     // Table headers
     final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
-    
+
     // Table rows - format prices with rupee text
     final rows = <List<String>>[
-      ...products.asMap().entries.map(
-        (entry) {
-          String price = entry.value['price']!;
-          // Remove rupee symbol and add 'Rs.' prefix for PDF
-          price = price.replaceAll('₹', '').trim();
-          price = 'Rs. $price';
-          return [
-            '${entry.key + 1}',
-            entry.value['name']!,
-            entry.value['qty']!,
-            price,
-            price,
-          ];
-        },
-      ),
+      ...products.asMap().entries.map((entry) {
+        String price = entry.value['price']!;
+        // Remove rupee symbol and add 'Rs.' prefix for PDF
+        price = price.replaceAll('₹', '').trim();
+        price = 'Rs. $price';
+        return [
+          '${entry.key + 1}',
+          entry.value['name']!,
+          entry.value['qty']!,
+          price,
+          price,
+        ];
+      }),
     ];
 
     return pw.Table(
@@ -506,7 +608,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               padding: const pw.EdgeInsets.all(5),
               child: pw.Text(
                 header,
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
                 textAlign: pw.TextAlign.center,
               ),
             );
@@ -521,7 +626,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 child: pw.Text(
                   entry.value,
                   style: const pw.TextStyle(fontSize: 9),
-                  textAlign: entry.key == 0 ? pw.TextAlign.center : pw.TextAlign.left,
+                  textAlign: entry.key == 0
+                      ? pw.TextAlign.center
+                      : pw.TextAlign.left,
                 ),
               );
             }).toList(),
@@ -556,13 +663,23 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('Total Amount:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+              child: pw.Text(
+                'Total Amount:',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                textAlign: pw.TextAlign.right,
+              ),
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
               child: pw.Text(
                 'Rs. ${totalAmount.replaceAll('₹', '').trim()}',
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
                 textAlign: pw.TextAlign.right,
               ),
             ),
@@ -586,13 +703,23 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
-              child: pw.Text('Total Paid:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+              child: pw.Text(
+                'Total Paid:',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                textAlign: pw.TextAlign.right,
+              ),
             ),
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
               child: pw.Text(
                 amountPaid.replaceAll('₹', 'Rs.'),
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
                 textAlign: pw.TextAlign.right,
               ),
             ),
@@ -617,13 +744,23 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ),
               pw.Padding(
                 padding: const pw.EdgeInsets.all(5),
-                child: pw.Text('Remaining:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold), textAlign: pw.TextAlign.right),
+                child: pw.Text(
+                  'Remaining:',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
               ),
               pw.Padding(
                 padding: const pw.EdgeInsets.all(5),
                 child: pw.Text(
                   amountRemaining.replaceAll('₹', 'Rs.'),
-                  style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
                   textAlign: pw.TextAlign.right,
                 ),
               ),
@@ -633,14 +770,19 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
-  Future<void> _saveAmountPaid(String paymentAmountStr, String selectedPaymentMethod) async {
+  Future<void> _saveAmountPaid(
+    String paymentAmountStr,
+    String selectedPaymentMethod,
+  ) async {
     try {
       final paymentAmount = int.parse(paymentAmountStr);
-      
+
       // Validate payment amount
       if (paymentAmount <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment amount must be greater than 0')),
+          const SnackBar(
+            content: Text('Payment amount must be greater than 0'),
+          ),
         );
         return;
       }
@@ -651,7 +793,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
       if (newTotalAmountPaid > totalAmountInt) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Total payment cannot exceed ₹$totalAmountInt')),
+          SnackBar(
+            content: Text('Total payment cannot exceed ₹$totalAmountInt'),
+          ),
         );
         return;
       }
@@ -691,13 +835,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         const SnackBar(content: Text('Payment recorded successfully')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
-  Future<void> _addPaymentRecord(int amount, String selectedPaymentMethod) async {
+  Future<void> _addPaymentRecord(
+    int amount,
+    String selectedPaymentMethod,
+  ) async {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not authenticated');
@@ -713,12 +860,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           .doc(user.uid)
           .collection('items')
           .doc(billId);
-      
+
       // Append new payment to payments array
       await billRef.update({
         'payments': FieldValue.arrayUnion([newPayment.toMap()]),
       });
-      
+
       // Update local state
       setState(() {
         paymentRecords.add(newPayment);
@@ -745,6 +892,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         title: const Text('Bill Details'),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: _editBill,
+            tooltip: 'Edit Bill',
+          ),
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () => _shareBill(context),
@@ -826,7 +978,13 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Record Payment', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
+              title: Text(
+                'Record Payment',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor,
+                ),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -844,7 +1002,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             'Amount Left',
                             style: TextStyle(
                               fontSize: 14,
-                              color: Theme.of(context).textTheme.bodyMedium?.color,
+                              color: Theme.of(
+                                context,
+                              ).textTheme.bodyMedium?.color,
                             ),
                           ),
                           Text(
@@ -928,7 +1088,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     final paymentAmountStr = amountController.text.trim();
                     if (paymentAmountStr.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter payment amount')),
+                        const SnackBar(
+                          content: Text('Please enter payment amount'),
+                        ),
                       );
                       return;
                     }
@@ -936,14 +1098,20 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     final paymentAmount = int.tryParse(paymentAmountStr);
                     if (paymentAmount == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter a valid number')),
+                        const SnackBar(
+                          content: Text('Please enter a valid number'),
+                        ),
                       );
                       return;
                     }
 
                     if (paymentAmount <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Payment amount must be greater than 0')),
+                        const SnackBar(
+                          content: Text(
+                            'Payment amount must be greater than 0',
+                          ),
+                        ),
                       );
                       return;
                     }
@@ -951,7 +1119,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     if (paymentAmount > remainingAmount) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Payment cannot exceed ₹ $remainingAmount'),
+                          content: Text(
+                            'Payment cannot exceed ₹ $remainingAmount',
+                          ),
                         ),
                       );
                       return;
@@ -972,14 +1142,17 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
   void _showEditNextPaymentDateDialog() {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text(
             'Edit Next Payment Date',
-            style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
           ),
           content: GestureDetector(
             onTap: () async {
@@ -990,7 +1163,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 lastDate: DateTime.now().add(const Duration(days: 365)),
               );
               if (selectedDate != null) {
-                final formattedDate = DateFormat('dd/MM/yyyy').format(selectedDate);
+                final formattedDate = DateFormat(
+                  'dd/MM/yyyy',
+                ).format(selectedDate);
                 _nextPaymentDateController.text = formattedDate;
               }
             },
@@ -1043,9 +1218,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           .doc(user.uid)
           .collection('items')
           .doc(billId)
-          .update({
-            'nextPaymentDate': newDate,
-          });
+          .update({'nextPaymentDate': newDate});
 
       setState(() {
         nextPaymentDate = newDate;
@@ -1056,9 +1229,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         const SnackBar(content: Text('Next payment date updated successfully')),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -1093,8 +1266,15 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   Flexible(
                     child: ElevatedButton.icon(
                       onPressed: _showAddPaymentDialog,
-                      icon: const Icon(Icons.add, size: 18, color: Colors.white),
-                      label: const Text('Add Payment', style: TextStyle(color: Colors.white)),
+                      icon: const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'Add Payment',
+                        style: TextStyle(color: Colors.white),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                       ),
@@ -1130,7 +1310,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     '₹ ${payment.amount}',
@@ -1142,7 +1323,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                   ),
                                   if (payment.amount > 0)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 2,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: payment.paymentMethod == 'cash'
                                             ? Colors.blue.withOpacity(0.15)
@@ -1150,7 +1334,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
-                                        payment.paymentMethod == 'cash' ? 'Cash' : 'Online',
+                                        payment.paymentMethod == 'cash'
+                                            ? 'Cash'
+                                            : 'Online',
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
@@ -1216,7 +1402,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 if (int.parse(amountPaid.replaceAll('₹ ', '')) > 0)
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: paymentMethod == 'cash'
                             ? Colors.blue.withOpacity(0.1)
@@ -1245,15 +1434,21 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
-                                color: paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                paymentMethod == 'cash'
+                                    ? Icons.money
+                                    : Icons.credit_card,
+                                color: paymentMethod == 'cash'
+                                    ? Colors.blue
+                                    : Colors.green,
                                 size: 16,
                               ),
                               const SizedBox(width: 6),
                               Text(
                                 paymentMethod == 'cash' ? 'Cash' : 'Online',
                                 style: TextStyle(
-                                  color: paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                  color: paymentMethod == 'cash'
+                                      ? Colors.blue
+                                      : Colors.green,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
@@ -1370,8 +1565,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             const SizedBox(height: 12),
             ...products.map((product) {
               final batchId = product['batchId']?.toString() ?? '';
-              final profitMargin = product['profitMargin']?.toString() ?? '0.00';
-              
+              final profitMargin =
+                  product['profitMargin']?.toString() ?? '0.00';
+
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10.0),
                 child: Column(
@@ -1421,7 +1617,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       Align(
                         alignment: Alignment.topLeft,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.purple.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(4),
@@ -1563,7 +1762,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ),
               ],
             ),
-            if ((amountRemaining != '₹ 0') && nextPaymentDate != null && nextPaymentDate!.isNotEmpty) ...[
+            if ((amountRemaining != '₹ 0') &&
+                nextPaymentDate != null &&
+                nextPaymentDate!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Divider(color: secondaryTextColor?.withOpacity(0.3), height: 16),
               Row(
@@ -1576,7 +1777,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   GestureDetector(
                     onTap: _showEditNextPaymentDateDialog,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.blue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),

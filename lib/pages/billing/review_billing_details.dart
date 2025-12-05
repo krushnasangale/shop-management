@@ -16,6 +16,8 @@ class ReviewBillingDetails extends StatefulWidget {
   final int? amountRemaining;
   final String paymentMethod;
   final String nextPaymentDate;
+  final bool isEditMode;
+  final String? billId;
 
   const ReviewBillingDetails({
     required this.billDate,
@@ -30,6 +32,8 @@ class ReviewBillingDetails extends StatefulWidget {
     this.amountRemaining,
     required this.paymentMethod,
     this.nextPaymentDate = '',
+    this.isEditMode = false,
+    this.billId,
     super.key,
   });
 
@@ -131,7 +135,10 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 if ((widget.amountPaid ?? 0) > 0)
                   Expanded(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: widget.paymentMethod == 'cash'
                             ? Colors.blue.withOpacity(0.1)
@@ -160,15 +167,23 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                widget.paymentMethod == 'cash' ? Icons.money : Icons.credit_card,
-                                color: widget.paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                widget.paymentMethod == 'cash'
+                                    ? Icons.money
+                                    : Icons.credit_card,
+                                color: widget.paymentMethod == 'cash'
+                                    ? Colors.blue
+                                    : Colors.green,
                                 size: 16,
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                widget.paymentMethod == 'cash' ? 'Cash' : 'Online',
+                                widget.paymentMethod == 'cash'
+                                    ? 'Cash'
+                                    : 'Online',
                                 style: TextStyle(
-                                  color: widget.paymentMethod == 'cash' ? Colors.blue : Colors.green,
+                                  color: widget.paymentMethod == 'cash'
+                                      ? Colors.blue
+                                      : Colors.green,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 12,
                                 ),
@@ -211,7 +226,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 fontSize: 18,
               ),
             ),
-            if (widget.customerVehicle != null && widget.customerVehicle!.isNotEmpty)
+            if (widget.customerVehicle != null &&
+                widget.customerVehicle!.isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -230,7 +246,6 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ),
                 ],
               ),
-            
           ],
         ),
       ),
@@ -413,83 +428,25 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               ],
             ),
             const SizedBox(height: 12),
-              Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Amount Paid',
-                        style: TextStyle(color: secondaryTextColor, fontSize: 14),
-                      ),
-                      Text(
-                        '₹${widget.amountPaid ?? 0}',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Divider(color: secondaryTextColor?.withOpacity(0.3)),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Amount Due',
-                        style: TextStyle(
-                          color: secondaryTextColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        '₹${widget.amountRemaining ?? 0}',
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Divider(color: secondaryTextColor?.withOpacity(0.3)),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Payment Status',
-                    style: TextStyle(color: secondaryTextColor, fontSize: 14),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: ((widget.amountRemaining ?? 0) == 0)
-                          ? Colors.green.withOpacity(0.2)
-                          : Colors.orange.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(6),
+            Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Amount Paid',
+                      style: TextStyle(color: secondaryTextColor, fontSize: 14),
                     ),
-                    child: Text(
-                      ((widget.amountRemaining ?? 0) == 0) ? 'Paid' : 'Unpaid',
+                    Text(
+                      '₹${widget.amountPaid ?? 0}',
                       style: TextStyle(
-                        color: ((widget.amountRemaining ?? 0) == 0)
-                            ? Colors.green
-                            : Colors.orange,
+                        color: Colors.green,
                         fontWeight: FontWeight.w600,
-                        fontSize: 12,
+                        fontSize: 16,
                       ),
                     ),
-                  ),
-                ],
-              ),
-              if ((widget.amountRemaining ?? 0) > 0) ...[
+                  ],
+                ),
                 const SizedBox(height: 12),
                 Divider(color: secondaryTextColor?.withOpacity(0.3)),
                 const SizedBox(height: 12),
@@ -497,22 +454,83 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Next Payment Date',
-                      style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                      'Amount Due',
+                      style: TextStyle(
+                        color: secondaryTextColor,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Text(
-                      widget.nextPaymentDate.isNotEmpty
-                          ? widget.nextPaymentDate
-                          : 'Not set',
+                      '₹${widget.amountRemaining ?? 0}',
                       style: TextStyle(
-                        color: primaryTextColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ],
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            Divider(color: secondaryTextColor?.withOpacity(0.3)),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Payment Status',
+                  style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: ((widget.amountRemaining ?? 0) == 0)
+                        ? Colors.green.withOpacity(0.2)
+                        : Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    ((widget.amountRemaining ?? 0) == 0) ? 'Paid' : 'Unpaid',
+                    style: TextStyle(
+                      color: ((widget.amountRemaining ?? 0) == 0)
+                          ? Colors.green
+                          : Colors.orange,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if ((widget.amountRemaining ?? 0) > 0) ...[
+              const SizedBox(height: 12),
+              Divider(color: secondaryTextColor?.withOpacity(0.3)),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Next Payment Date',
+                    style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                  ),
+                  Text(
+                    widget.nextPaymentDate.isNotEmpty
+                        ? widget.nextPaymentDate
+                        : 'Not set',
+                    style: TextStyle(
+                      color: primaryTextColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -554,7 +572,10 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 elevation: 0,
               ),
               onPressed: () => _showConfirmDialog(context),
-              child: const Text('Confirm Bill', style: TextStyle(fontSize: 16)),
+              child: Text(
+                widget.isEditMode ? 'Update Bill' : 'Confirm Bill',
+                style: const TextStyle(fontSize: 16),
+              ),
             ),
           ),
         ),
@@ -569,9 +590,17 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Confirm Bill', style: TextStyle(fontWeight: FontWeight.bold, color: primaryTextColor)),
-          content: const Text(
-            'Are you sure you want to create this bill?',
+          title: Text(
+            widget.isEditMode ? 'Update Bill' : 'Confirm Bill',
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
+          ),
+          content: Text(
+            widget.isEditMode
+                ? 'Are you sure you want to update this bill?'
+                : 'Are you sure you want to create this bill?',
           ),
           actions: [
             TextButton(
@@ -618,7 +647,9 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      'Creating bill...',
+                      widget.isEditMode
+                          ? 'Updating bill...'
+                          : 'Creating bill...',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -634,28 +665,50 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       await _saveBillToDatabase();
       if (mounted) {
         Navigator.pop(context); // Close loader
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (context) => BillSuccessPage(
-              customerName: widget.customerName,
-              customerMobile: widget.customerMobile,
-              customerVehicle: widget.customerVehicle ?? '',
-              totalAmount: widget.totalAmount,
-              amountPaid: widget.totalAmountPaid ? widget.totalAmount : (widget.amountPaid ?? 0),
-              amountRemaining: widget.totalAmountPaid ? 0 : (widget.amountRemaining ?? 0),
-              products: widget.products,
-              paymentMethod: widget.paymentMethod,
-              nextPaymentDate: widget.nextPaymentDate,
+
+        // If in edit mode, pop back to bills list with success result
+        if (widget.isEditMode) {
+          // Pop all the way back to the bills list (pop review page, edit page, and detail page)
+          Navigator.of(context).popUntil((route) => route.isFirst);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Bill updated successfully'),
+              backgroundColor: Colors.green,
             ),
-          ),
-        );
+          );
+        } else {
+          // For new bills, navigate to success page
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => BillSuccessPage(
+                customerName: widget.customerName,
+                customerMobile: widget.customerMobile,
+                customerVehicle: widget.customerVehicle ?? '',
+                totalAmount: widget.totalAmount,
+                amountPaid: widget.totalAmountPaid
+                    ? widget.totalAmount
+                    : (widget.amountPaid ?? 0),
+                amountRemaining: widget.totalAmountPaid
+                    ? 0
+                    : (widget.amountRemaining ?? 0),
+                products: widget.products,
+                paymentMethod: widget.paymentMethod,
+                nextPaymentDate: widget.nextPaymentDate,
+              ),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context); // Close loader
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error creating bill: $e'),
+            content: Text(
+              widget.isEditMode
+                  ? 'Error updating bill: $e'
+                  : 'Error creating bill: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -669,7 +722,12 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
 
     final firestore = FirebaseFirestore.instance;
     final userId = user.uid;
-    
+
+    // If in edit mode, delete the old bill first
+    if (widget.isEditMode && widget.billId != null) {
+      await _deleteOldBill(firestore, userId, widget.billId!);
+    }
+
     // Generate document ID using Firestore auto-generated ID format
     final billDocRef = firestore
         .collection('bills')
@@ -677,11 +735,16 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
         .collection('items');
 
     // Prepare bill data
-    final actualAmountPaid = widget.totalAmountPaid ? widget.totalAmount : (widget.amountPaid ?? 0);
-    final actualAmountRemaining = widget.totalAmountPaid ? 0 : (widget.amountRemaining ?? 0);
-    
+    final actualAmountPaid = widget.totalAmountPaid
+        ? widget.totalAmount
+        : (widget.amountPaid ?? 0);
+    final actualAmountRemaining = widget.totalAmountPaid
+        ? 0
+        : (widget.amountRemaining ?? 0);
+
     final billData = {
-      'customerId': widget.customerId, // Add customerId for efficient customer history fetching
+      'customerId': widget
+          .customerId, // Add customerId for efficient customer history fetching
       'billDate': widget.billDate,
       'customerName': widget.customerName,
       'customerMobile': widget.customerMobile,
@@ -706,19 +769,23 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             'batchId': widget.products[i].batchId,
             'profitMargin': widget.products[i].profitMargin,
             'profitTotal': widget.products[i].profitTotal,
-          }
+          },
       },
       'payments': [
         {
           'amount': actualAmountPaid,
           'date': widget.billDate,
           'method': widget.paymentMethod,
-        }
+        },
       ],
     };
 
-    // Save bill to bills table (auto-generated ID)
-    await billDocRef.add(billData);
+    // Save bill to bills table (use existing billId if editing, otherwise auto-generate)
+    if (widget.isEditMode && widget.billId != null) {
+      await billDocRef.doc(widget.billId).set(billData);
+    } else {
+      await billDocRef.add(billData);
+    }
 
     // Update product quantities in purchased-products
     for (final product in widget.products) {
@@ -734,10 +801,11 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
         final supplierName = productData['supplierName'] as String?;
 
         // Match by both product name and supplier name
-        if (productName == product.productName && supplierName == product.supplierName) {
+        if (productName == product.productName &&
+            supplierName == product.supplierName) {
           final currentQty = (productData['quantity'] as num?)?.toInt() ?? 0;
           final newQty = (currentQty - product.quantity.toInt()).toInt();
-          
+
           // Update quantity (set to 0 if it goes below 0, don't delete)
           await firestore
               .collection('purchased-products')
@@ -748,6 +816,72 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           break; // Found and updated, move to next product
         }
       }
+    }
+  }
+
+  Future<void> _deleteOldBill(
+    FirebaseFirestore firestore,
+    String userId,
+    String billId,
+  ) async {
+    // Get the old bill to restore product quantities
+    final billDoc = await firestore
+        .collection('bills')
+        .doc(userId)
+        .collection('items')
+        .doc(billId)
+        .get();
+
+    if (billDoc.exists) {
+      final billData = billDoc.data();
+      final products = billData?['products'] as Map<String, dynamic>?;
+
+      if (products != null) {
+        // Restore product quantities from the old bill
+        for (final productEntry in products.entries) {
+          final product = productEntry.value as Map<String, dynamic>;
+          final productName = product['productName'] as String?;
+          final supplierName = product['supplierName'] as String?;
+          final quantity = (product['quantity'] as num?)?.toInt() ?? 0;
+          final batchId = product['batchId'] as String?;
+
+          if (productName != null && supplierName != null && batchId != null) {
+            // Find the matching product by batchId and restore quantity
+            final productsSnapshot = await firestore
+                .collection('purchased-products')
+                .doc(userId)
+                .collection('items')
+                .get();
+
+            for (final productDoc in productsSnapshot.docs) {
+              final productData = productDoc.data();
+              final docBatchId = productData['batchId'] as String?;
+
+              if (docBatchId == batchId) {
+                final currentQty =
+                    (productData['quantity'] as num?)?.toInt() ?? 0;
+                final restoredQty = currentQty + quantity;
+
+                await firestore
+                    .collection('purchased-products')
+                    .doc(userId)
+                    .collection('items')
+                    .doc(productDoc.id)
+                    .update({'quantity': restoredQty});
+                break;
+              }
+            }
+          }
+        }
+      }
+
+      // Delete the old bill
+      await firestore
+          .collection('bills')
+          .doc(userId)
+          .collection('items')
+          .doc(billId)
+          .delete();
     }
   }
 }

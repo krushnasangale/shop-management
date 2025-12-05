@@ -11,7 +11,16 @@ import 'package:fast_contacts/fast_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class CreateNewBill extends StatefulWidget {
-  const CreateNewBill({super.key});
+  final bool isEditMode;
+  final String? billId;
+  final Map<String, dynamic>? existingBillData;
+
+  const CreateNewBill({
+    super.key,
+    this.isEditMode = false,
+    this.billId,
+    this.existingBillData,
+  });
 
   @override
   State<CreateNewBill> createState() => _CreateNewBillState();
@@ -50,7 +59,7 @@ class BoughtProduct {
     final buyPrice = (data['buyingPrice'] ?? 0).toDouble();
     final sellPrice = (data['sellingPrice'] ?? 0).toDouble();
     final margin = sellPrice - buyPrice;
-    
+
     return BoughtProduct(
       id: id,
       date: data['date'] ?? '',
@@ -75,8 +84,8 @@ class BillItem {
   final double buyingPrice;
   final double sellingPrice;
   final int maxQuantity;
-  final String batchId;  // Track which batch this item came from
-  final double profitMargin;  // Profit per unit for this batch
+  final String batchId; // Track which batch this item came from
+  final double profitMargin; // Profit per unit for this batch
   double billQuantity;
   int billPrice;
 
@@ -106,13 +115,15 @@ class _CreateNewBillState extends State<CreateNewBill> {
   bool _productsLoading = true;
   List<Map<String, dynamic>> _customers = [];
   bool _customersLoading = true;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _customersSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _customersSubscription;
   late TextEditingController _searchController;
   late TextEditingController _dateController;
   late TextEditingController _customerNameController;
   late TextEditingController _customerMobileController;
   late TextEditingController _customerVehicleController;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _productsSubscription;
   String _customerNameError = '';
   String _customerMobileError = '';
   String _customerVehicleError = '';
@@ -136,6 +147,86 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _nextPaymentDateController = TextEditingController();
     _loadProducts();
     _loadCustomers();
+
+    // Load existing bill data if in edit mode
+    if (widget.isEditMode && widget.existingBillData != null) {
+      _loadExistingBillData();
+    }
+  }
+
+  void _loadExistingBillData() {
+    final billData = widget.existingBillData!;
+
+    // Set customer information
+    _customerNameController.text = billData['customerName'] ?? '';
+    _customerMobileController.text = billData['customerMobile'] ?? '';
+    _customerVehicleController.text = billData['customerVehicle'] ?? '';
+
+    // Set date
+    _dateController.text =
+        billData['billDate'] ?? DateFormat('dd/MM/yyyy').format(DateTime.now());
+
+    // Set payment method and next payment date
+    paymentMethod = billData['paymentMethod'] ?? 'cash';
+    _nextPaymentDateController.text = billData['nextPaymentDate'] ?? '';
+
+    // Set payment status
+    totalAmountPaid = billData['totalAmountPaid'] ?? true;
+
+    // Set amount paid and remaining
+    final amountPaid = billData['amountPaid'] ?? 0;
+    final amountRemaining = billData['amountRemaining'] ?? 0;
+    _amountPaidController.text = amountPaid.toString();
+    _amountRemainingController.text = amountRemaining.toString();
+
+    // Load products into bill items - delay until products are loaded
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted && billData['products'] != null) {
+        final products = billData['products'] as List<dynamic>;
+
+        for (var product in products) {
+          // Find the matching product in available products by batch ID
+          final batchId = product['batchId'] as String?;
+          if (batchId != null) {
+            final matchingProduct = _availableProducts.firstWhere(
+              (p) => p.batchId == batchId,
+              orElse: () => BoughtProduct(
+                id: product['productId'] ?? '',
+                date: '',
+                productName: product['productName'] ?? 'Unknown',
+                supplierName: product['supplierName'] ?? 'Unknown',
+                unit: product['unit'] ?? '',
+                minLimit: 0,
+                quantity: (product['quantity'] ?? 0) as int,
+                buyingPrice: (product['boughtPrice'] ?? 0).toDouble(),
+                sellingPrice: (product['price'] ?? 0).toDouble(),
+                batchId: batchId,
+                purchaseDate: '',
+                profitMargin: (product['profitMargin'] ?? 0).toDouble(),
+              ),
+            );
+
+            // Create bill item with existing data
+            final billItem = BillItem(
+              productName: matchingProduct.productName,
+              supplierName: matchingProduct.supplierName,
+              unit: matchingProduct.unit,
+              buyingPrice: matchingProduct.buyingPrice,
+              sellingPrice: matchingProduct.sellingPrice,
+              maxQuantity: matchingProduct.quantity,
+              billQuantity: (product['quantity'] ?? 0).toDouble(),
+              billPrice: (product['price'] ?? 0) as int,
+              batchId: matchingProduct.batchId,
+              profitMargin: matchingProduct.profitMargin,
+            );
+
+            setState(() {
+              _billItems.add(billItem);
+            });
+          }
+        }
+      }
+    });
   }
 
   @override
@@ -193,19 +284,19 @@ class _CreateNewBillState extends State<CreateNewBill> {
           .collection('items')
           .snapshots()
           .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
-        if (!mounted) return;
+            if (!mounted) return;
 
-        final loadedProducts = snapshot.docs
-            .map((doc) => BoughtProduct.fromMap(doc.id, doc.data()))
-            .toList();
+            final loadedProducts = snapshot.docs
+                .map((doc) => BoughtProduct.fromMap(doc.id, doc.data()))
+                .toList();
 
-        if (mounted) {
-          setState(() {
-            _availableProducts = loadedProducts;
-            _productsLoading = false;
+            if (mounted) {
+              setState(() {
+                _availableProducts = loadedProducts;
+                _productsLoading = false;
+              });
+            }
           });
-        }
-      });
     }
   }
 
@@ -219,22 +310,22 @@ class _CreateNewBillState extends State<CreateNewBill> {
         .collection('items')
         .snapshots()
         .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
-      if (!mounted) return;
+          if (!mounted) return;
 
-      final customers = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return {
-          'id': doc.id,
-          'name': data['name'] ?? '',
-          'mobileNumber': data['mobileNumber'] ?? '',
-          'vehicleNumber': data['vehicleNumber'] ?? '',
-        };
-      }).toList();
-      setState(() {
-        _customers = customers;
-        _customersLoading = false;
-      });
-    });
+          final customers = snapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              'id': doc.id,
+              'name': data['name'] ?? '',
+              'mobileNumber': data['mobileNumber'] ?? '',
+              'vehicleNumber': data['vehicleNumber'] ?? '',
+            };
+          }).toList();
+          setState(() {
+            _customers = customers;
+            _customersLoading = false;
+          });
+        });
   }
 
   @override
@@ -248,7 +339,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
             Navigator.of(context).pop();
           },
         ),
-        title: const Text('Create new bill'),
+        title: Text(widget.isEditMode ? 'Edit Bill' : 'Create new bill'),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -280,7 +371,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Select Customer From',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: primaryTextColor),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: primaryTextColor,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -753,7 +848,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     ),
                   ],
                 ),
-                if (!totalAmountPaid)const SizedBox(height: 12),
+                if (!totalAmountPaid) const SizedBox(height: 12),
 
                 if (!totalAmountPaid)
                   Column(
@@ -834,15 +929,21 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         onTap: () async {
                           final selectedDate = await showDatePicker(
                             context: context,
-                            initialDate: DateTime.now().add(const Duration(days: 1)),
+                            initialDate: DateTime.now().add(
+                              const Duration(days: 1),
+                            ),
                             firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                            lastDate: DateTime.now().add(
+                              const Duration(days: 365),
+                            ),
                           );
                           if (selectedDate != null) {
                             setState(() {
-                              _nextPaymentDateController.text =
-                                  DateFormat('dd/MM/yyyy').format(selectedDate);
-                              _nextPaymentDateError = ''; // Clear error when date is selected
+                              _nextPaymentDateController.text = DateFormat(
+                                'dd/MM/yyyy',
+                              ).format(selectedDate);
+                              _nextPaymentDateError =
+                                  ''; // Clear error when date is selected
                             });
                           }
                         },
@@ -988,9 +1089,12 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
                             // Validate partial payment - next payment date is mandatory
                             if (!totalAmountPaid) {
-                              if (_nextPaymentDateController.text.trim().isEmpty) {
+                              if (_nextPaymentDateController.text
+                                  .trim()
+                                  .isEmpty) {
                                 setState(() {
-                                  _nextPaymentDateError = 'Next payment date is required';
+                                  _nextPaymentDateError =
+                                      'Next payment date is required';
                                 });
                                 return;
                               }
@@ -1037,6 +1141,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 nextPaymentDate: !totalAmountPaid
                                     ? _nextPaymentDateController.text
                                     : '',
+                                isEditMode: widget.isEditMode,
+                                billId: widget.billId,
                               ),
                             );
                           },
@@ -1178,7 +1284,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
   ) {
     // Filter batches to show only those with quantity > 0
     final availableBatches = batches.where((b) => b.quantity > 0).toList();
-    
+
     // If no batches available, show message
     if (availableBatches.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1186,7 +1292,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
       );
       return;
     }
-    
+
     // Sort batches by purchase date (oldest first - FIFO)
     availableBatches.sort((a, b) {
       DateTime dateA = DateTime.tryParse(a.purchaseDate) ?? DateTime.now();
@@ -1213,101 +1319,97 @@ class _CreateNewBillState extends State<CreateNewBill> {
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: List.generate(
-                  availableBatches.length,
-                  (index) {
-                    final batch = availableBatches[index];
-                    final isFifo = index == 0;
-                    final batchLabel = availableBatches.length > 1
-                        ? 'Batch ${index + 1} ${isFifo ? '(FIFO - Oldest)' : ''}'
-                        : '';
-                    final isBatchAlreadyAdded = _billItems.any(
-                      (item) => item.batchId == batch.batchId,
-                    );
+                children: List.generate(availableBatches.length, (index) {
+                  final batch = availableBatches[index];
+                  final isFifo = index == 0;
+                  final batchLabel = availableBatches.length > 1
+                      ? 'Batch ${index + 1} ${isFifo ? '(FIFO - Oldest)' : ''}'
+                      : '';
+                  final isBatchAlreadyAdded = _billItems.any(
+                    (item) => item.batchId == batch.batchId,
+                  );
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: ListTile(
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (batchLabel.isNotEmpty)
-                              Text(
-                                batchLabel,
-                                style: TextStyle(
-                                  color: isFifo ? Colors.orange : secondaryTextColor,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            const SizedBox(height: 4),
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: ListTile(
+                      title: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (batchLabel.isNotEmpty)
                             Text(
-                              'Buy: ₹${batch.buyingPrice.toStringAsFixed(2)} | Sell: ₹${batch.sellingPrice.toStringAsFixed(2)}',
+                              batchLabel,
                               style: TextStyle(
-                                color: primaryTextColor,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
+                                color: isFifo
+                                    ? Colors.orange
+                                    : secondaryTextColor,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Available: ${batch.quantity} ${batch.unit}${batch.quantity != 1 ? 's' : ''}',
-                              style: TextStyle(color: Colors.blue, fontSize: 12),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Buy: ₹${batch.buyingPrice.toStringAsFixed(2)} | Sell: ₹${batch.sellingPrice.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: primaryTextColor,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
                             ),
-                            if (batch.profitMargin > 0)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  'Profit/unit: ₹${batch.profitMargin.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    color: Colors.purple[400],
-                                    fontSize: 11,
-                                  ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Available: ${batch.quantity} ${batch.unit}${batch.quantity != 1 ? 's' : ''}',
+                            style: TextStyle(color: Colors.blue, fontSize: 12),
+                          ),
+                          if (batch.profitMargin > 0)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Text(
+                                'Profit/unit: ₹${batch.profitMargin.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  color: Colors.purple[400],
+                                  fontSize: 11,
                                 ),
                               ),
-                          ],
-                        ),
-                        trailing: isBatchAlreadyAdded
-                            ? Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
+                            ),
+                        ],
+                      ),
+                      trailing: isBatchAlreadyAdded
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Added',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: const Text(
-                                  'Added',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              )
-                            : null,
-                        onTap: isBatchAlreadyAdded
-                            ? null
-                            : () {
+                              ),
+                            )
+                          : null,
+                      onTap: isBatchAlreadyAdded
+                          ? null
+                          : () {
                               _addProductToBill(batch);
                               Navigator.pop(dialogContext);
                               Navigator.pop(context);
                             },
-                      ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                }),
               ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: primaryTextColor),
-              ),
+              child: Text('Cancel', style: TextStyle(color: primaryTextColor)),
             ),
           ],
         );
@@ -1823,24 +1925,38 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       setModalState(() {
                         if (query.isEmpty) {
                           // Show all unique products
-                          Map<String, BoughtProduct> uniqueFilteredProducts = {};
+                          Map<String, BoughtProduct> uniqueFilteredProducts =
+                              {};
                           for (var product in _availableProducts) {
-                            if (!uniqueFilteredProducts.containsKey(product.productName)) {
-                              uniqueFilteredProducts[product.productName] = product;
+                            if (!uniqueFilteredProducts.containsKey(
+                              product.productName,
+                            )) {
+                              uniqueFilteredProducts[product.productName] =
+                                  product;
                             }
                           }
-                          displayProducts = uniqueFilteredProducts.values.toList();
+                          displayProducts = uniqueFilteredProducts.values
+                              .toList();
                         } else {
                           // Filter and show unique products
-                          Map<String, BoughtProduct> uniqueFilteredProducts = {};
+                          Map<String, BoughtProduct> uniqueFilteredProducts =
+                              {};
                           for (var product in _availableProducts) {
-                            if ((product.productName.toLowerCase().contains(query.toLowerCase()) ||
-                                product.supplierName.toLowerCase().contains(query.toLowerCase())) &&
-                                !uniqueFilteredProducts.containsKey(product.productName)) {
-                              uniqueFilteredProducts[product.productName] = product;
+                            if ((product.productName.toLowerCase().contains(
+                                      query.toLowerCase(),
+                                    ) ||
+                                    product.supplierName.toLowerCase().contains(
+                                      query.toLowerCase(),
+                                    )) &&
+                                !uniqueFilteredProducts.containsKey(
+                                  product.productName,
+                                )) {
+                              uniqueFilteredProducts[product.productName] =
+                                  product;
                             }
                           }
-                          displayProducts = uniqueFilteredProducts.values.toList();
+                          displayProducts = uniqueFilteredProducts.values
+                              .toList();
                         }
                       });
                     },
@@ -1917,12 +2033,13 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10.0),
                               side: BorderSide(
-                                color: Theme.of(context)
-                                            .textTheme
-                                            .bodyMedium
-                                            ?.color
-                                            ?.withOpacity(0.1) ??
-                                        Colors.grey,
+                                color:
+                                    Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color
+                                        ?.withOpacity(0.1) ??
+                                    Colors.grey,
                                 width: 1.5,
                               ),
                             ),
@@ -1930,10 +2047,12 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               onTap: () {
                                 // Get all batches for this product from original list
                                 final productBatches = _availableProducts
-                                    .where((p) =>
-                                        p.productName == product.productName)
+                                    .where(
+                                      (p) =>
+                                          p.productName == product.productName,
+                                    )
                                     .toList();
-                                
+
                                 if (productBatches.length == 1) {
                                   // Only one batch, add directly (but check if batch already added)
                                   final batch = productBatches.first;
@@ -1946,7 +2065,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
-                                        content: Text('This batch is already added to the bill'),
+                                        content: Text(
+                                          'This batch is already added to the bill',
+                                        ),
                                       ),
                                     );
                                   }
@@ -1982,10 +2103,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                                     product.productName
                                                         .substring(1),
                                                 style: TextStyle(
-                                                  color: Theme.of(context)
-                                                        .textTheme
-                                                        .bodyLarge
-                                                        ?.color,
+                                                  color: Theme.of(
+                                                    context,
+                                                  ).textTheme.bodyLarge?.color,
                                                   fontWeight: FontWeight.w600,
                                                   fontSize: 16,
                                                 ),
@@ -2086,12 +2206,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
   Future<void> _showContactsBottomSheet(BuildContext context) async {
     // Request permission to access contacts
     final status = await Permission.contacts.request();
-    
+
     if (!status.isGranted) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Contact permission is required to select from contacts'),
+            content: Text(
+              'Contact permission is required to select from contacts',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -2159,12 +2281,15 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           displayContacts = contacts;
                         } else {
                           displayContacts = contacts
-                              .where((contact) =>
-                                  contact.displayName
-                                      .toLowerCase()
-                                      .contains(query.toLowerCase()) ||
-                                  contact.phones.any((phone) =>
-                                      phone.number.contains(query)))
+                              .where(
+                                (contact) =>
+                                    contact.displayName.toLowerCase().contains(
+                                      query.toLowerCase(),
+                                    ) ||
+                                    contact.phones.any(
+                                      (phone) => phone.number.contains(query),
+                                    ),
+                              )
                               .toList();
                         }
                       });
@@ -2197,8 +2322,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           final phoneNumber = contact.phones.isNotEmpty
                               ? contact.phones.first.number
                               : 'No phone';
-                          final cleanedPhoneNumber = phoneNumber
-                              .replaceAll(RegExp(r'[^\d]'), '');
+                          final cleanedPhoneNumber = phoneNumber.replaceAll(
+                            RegExp(r'[^\d]'),
+                            '',
+                          );
 
                           return Card(
                             margin: const EdgeInsets.symmetric(
@@ -2271,7 +2398,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             cleanedPhoneNumber,
                                             style: TextStyle(
                                               fontSize: 12,
-                                              color: cleanedPhoneNumber.length ==
+                                              color:
+                                                  cleanedPhoneNumber.length ==
                                                       10
                                                   ? Colors.green[600]
                                                   : Colors.red[600],
