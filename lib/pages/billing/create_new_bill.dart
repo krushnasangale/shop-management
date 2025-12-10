@@ -1894,11 +1894,13 @@ class _CreateNewBillState extends State<CreateNewBill> {
         uniqueProducts[product.productName] = {
           'product': product,
           'totalQuantity': product.quantity,
+          'batchCount': 1,
         };
       } else {
         // Add quantity from additional batches
         uniqueProducts[product.productName]!['totalQuantity'] +=
             product.quantity;
+        uniqueProducts[product.productName]!['batchCount'] += 1;
       }
     }
     List<Map<String, dynamic>> displayProducts = uniqueProducts.values.toList();
@@ -1957,11 +1959,15 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               uniqueFilteredProducts[product.productName] = {
                                 'product': product,
                                 'totalQuantity': product.quantity,
+                                'batchCount': 1,
                               };
                             } else {
                               uniqueFilteredProducts[product
                                       .productName]!['totalQuantity'] +=
                                   product.quantity;
+                              uniqueFilteredProducts[product
+                                      .productName]!['batchCount'] +=
+                                  1;
                             }
                           }
                           displayProducts = uniqueFilteredProducts.values
@@ -1983,11 +1989,15 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 uniqueFilteredProducts[product.productName] = {
                                   'product': product,
                                   'totalQuantity': product.quantity,
+                                  'batchCount': 1,
                                 };
                               } else {
                                 uniqueFilteredProducts[product
                                         .productName]!['totalQuantity'] +=
                                     product.quantity;
+                                uniqueFilteredProducts[product
+                                        .productName]!['batchCount'] +=
+                                    1;
                               }
                             }
                           }
@@ -2061,6 +2071,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               productData['product'] as BoughtProduct;
                           final totalQuantity =
                               productData['totalQuantity'] as int;
+                          final batchCount = productData['batchCount'] as int;
                           final isAlreadyAdded = _isProductAlreadyAdded(
                             product.productName,
                           );
@@ -2137,18 +2148,57 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                product.productName[0]
-                                                        .toUpperCase() +
-                                                    product.productName
-                                                        .substring(1),
-                                                style: TextStyle(
-                                                  color: Theme.of(
-                                                    context,
-                                                  ).textTheme.bodyLarge?.color,
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 16,
-                                                ),
+                                              Row(
+                                                children: [
+                                                  Flexible(
+                                                    child: Text(
+                                                      product.productName[0]
+                                                              .toUpperCase() +
+                                                          product.productName
+                                                              .substring(1),
+                                                      style: TextStyle(
+                                                        color: Theme.of(context)
+                                                            .textTheme
+                                                            .bodyLarge
+                                                            ?.color,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        fontSize: 16,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  if (batchCount > 1) ...[
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 6,
+                                                            vertical: 2,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.purple
+                                                            .withOpacity(0.15),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4,
+                                                            ),
+                                                        border: Border.all(
+                                                          color: Colors.purple,
+                                                          width: 1,
+                                                        ),
+                                                      ),
+                                                      child: Text(
+                                                        '$batchCount Batches',
+                                                        style: const TextStyle(
+                                                          color: Colors.purple,
+                                                          fontSize: 9,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
                                               ),
                                             ],
                                           ),
