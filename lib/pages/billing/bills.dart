@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:intl/intl.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 
@@ -27,6 +28,8 @@ class _BillsState extends State<Bills> {
   bool _showSearchBar = false;
   late TextEditingController _searchController;
   String _shopName = '--';
+  DateTime? _reportStartDate;
+  DateTime? _reportEndDate;
 
   @override
   void initState() {
@@ -202,58 +205,177 @@ class _BillsState extends State<Bills> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            'Generate Report',
-            style: TextStyle(color: primaryTextColor),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Select format to export bills data:'),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.maxFinite,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.picture_as_pdf),
-                  label: const Text('Export as PDF'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _generateAndSharePDF();
-                  },
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                'Generate Report',
+                style: TextStyle(color: primaryTextColor),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Select Date Range:'),
+                    const SizedBox(height: 12),
+                    // Start Date
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: _reportStartDate ?? DateTime.now(),
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (pickedDate != null) {
+                          setState(() {
+                            _reportStartDate = pickedDate;
+                            if (_reportEndDate != null && _reportEndDate!.isBefore(_reportStartDate!)) {
+                              _reportEndDate = null;
+                            }
+                          });
+                          this.setState(() {});
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_today),
+                      label: Text(
+                        _reportStartDate == null
+                            ? 'Start Date (Optional)'
+                            : 'From: ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 40),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // End Date
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: _reportEndDate ?? DateTime.now(),
+                          firstDate: _reportStartDate ?? DateTime(2020),
+                          lastDate: DateTime.now(),
+                        );
+                        if (pickedDate != null) {
+                          setState(() {
+                            _reportEndDate = pickedDate;
+                          });
+                          this.setState(() {});
+                        }
+                      },
+                      icon: const Icon(Icons.calendar_today),
+                      label: Text(
+                        _reportEndDate == null
+                            ? 'End Date (Optional)'
+                            : 'To: ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 40),
+                      ),
+                    ),
+                    if (_reportStartDate != null || _reportEndDate != null) ...[
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _reportStartDate = null;
+                            _reportEndDate = null;
+                          });
+                          this.setState(() {});
+                        },
+                        icon: const Icon(Icons.clear),
+                        label: const Text('Clear Dates'),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    const Text('Select format to export bills data:'),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.maxFinite,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.picture_as_pdf),
+                        label: const Text('Export as PDF'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _generateAndSharePDF();
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.maxFinite,
+                      child: ElevatedButton.icon(
+                        icon: const Icon(Icons.table_chart),
+                        label: const Text('Export as CSV (Excel)'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _generateAndShareCSV();
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.maxFinite,
-                child: ElevatedButton.icon(
-                  icon: const Icon(Icons.table_chart),
-                  label: const Text('Export as CSV (Excel)'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _generateAndShareCSV();
-                  },
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
                 ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
+  }
+
+  List<Bill> _getReportBills() {
+    if (_reportStartDate == null && _reportEndDate == null) {
+      return _filteredBills;
+    }
+
+    return _filteredBills.where((bill) {
+      try {
+        final billDate = DateFormat('dd MMM yyyy').parse(bill.date);
+        
+        if (_reportStartDate != null && _reportEndDate != null) {
+          // Both dates selected - check if bill is within range
+          return billDate.isAfter(_reportStartDate!.subtract(const Duration(days: 1))) &&
+                 billDate.isBefore(_reportEndDate!.add(const Duration(days: 1)));
+        } else if (_reportStartDate != null) {
+          // Only start date - bills from start date onwards
+          return billDate.isAfter(_reportStartDate!.subtract(const Duration(days: 1)));
+        } else if (_reportEndDate != null) {
+          // Only end date - bills up to end date
+          return billDate.isBefore(_reportEndDate!.add(const Duration(days: 1)));
+        }
+      } catch (e) {
+        print('Error parsing date: ${bill.date}, error: $e');
+      }
+      return true;
+    }).toList();
+  }
+
+  String _getDateRangeText() {
+    if (_reportStartDate == null && _reportEndDate == null) {
+      return 'All Dates';
+    } else if (_reportStartDate != null && _reportEndDate != null) {
+      return '${DateFormat('dd MMM yyyy').format(_reportStartDate!)} - ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
+    } else if (_reportStartDate != null) {
+      return 'From ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
+    } else {
+      return 'Up to ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
+    }
   }
 
   void _generateAndSharePDF() async {
@@ -342,6 +464,7 @@ class _BillsState extends State<Bills> {
     final dateTimeString =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
     final file = File('${dir.path}/bills_report_$dateTimeString.pdf');
+    final reportBills = _getReportBills();
 
     pdf.addPage(
       pw.Page(
@@ -361,7 +484,11 @@ class _BillsState extends State<Bills> {
               ),
               pw.SizedBox(height: 10),
               pw.Text(
-                'Generated on: ${now.toString().split('.')[0]} | Filter: ${_getStatusText(_selectedFilter)}',
+                'Generated on: ${now.toString().split('.')[0]}',
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+              pw.Text(
+                'Filter: ${_getStatusText(_selectedFilter)} | Date Range: ${_getDateRangeText()}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.SizedBox(height: 20),
@@ -403,7 +530,7 @@ class _BillsState extends State<Bills> {
                         .toList(),
                   ),
                   // Data rows
-                  ..._filteredBills.asMap().entries.map((entry) {
+                  ...reportBills.asMap().entries.map((entry) {
                     final bill = entry.value;
                     final index = entry.key + 1;
                     return pw.TableRow(
@@ -462,7 +589,7 @@ class _BillsState extends State<Bills> {
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                'Total Bills: ${_filteredBills.length}',
+                'Total Bills: ${reportBills.length}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -484,15 +611,16 @@ class _BillsState extends State<Bills> {
     final dateTimeString =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
     final file = File('${dir.path}/bills_report_$dateTimeString.csv');
+    final reportBills = _getReportBills();
 
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-        'S.No.,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getStatusText(_selectedFilter)}');
+        'S.No.,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getStatusText(_selectedFilter)},Date Range: ${_getDateRangeText()}');
 
     // Add bill rows
-    for (var i = 0; i < _filteredBills.length; i++) {
-      final bill = _filteredBills[i];
+    for (var i = 0; i < reportBills.length; i++) {
+      final bill = reportBills[i];
       csv.writeln(
           '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getStatusText(bill.status)}"');
     }
