@@ -45,43 +45,40 @@ Widget buildInputField({
     Function()? onTap,
     Function(String)? onChanged,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 53,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(color: Colors.grey[700]!),
-            ),
-            child: TextFormField(
-              onTap: onTap,
-              onChanged: onChanged,
-              controller: controller,
-              keyboardType: keyboardType,
-              maxLines: maxLines,
-              decoration: InputDecoration(
-                fillColor: Colors.white,
-                hintText: hint,
-                hintStyle: TextStyle(color: Colors.grey[700]!),
-                filled: true,
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: maxLines > 1 ? 16.0 : 16.0,
-                  horizontal: 16.0,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: suffixIcon != null
-                    ? Icon(suffixIcon, color: Colors.grey[700]!)
-                    : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 53,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.0),
+            border: Border.all(color: Colors.grey[700]!),
+          ),
+          child: TextFormField(
+            onTap: onTap,
+            onChanged: onChanged,
+            controller: controller,
+            keyboardType: keyboardType,
+            maxLines: maxLines,
+            decoration: InputDecoration(
+              fillColor: Colors.white,
+              hintText: hint,
+              hintStyle: TextStyle(color: Colors.grey[700]!),
+              filled: true,
+              contentPadding: EdgeInsets.symmetric(
+                vertical: maxLines > 1 ? 16.0 : 16.0,
+                horizontal: 16.0,
               ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: BorderSide.none,
+              ),
+              suffixIcon: suffixIcon != null
+                  ? Icon(suffixIcon, color: Colors.grey[700]!)
+                  : null,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }

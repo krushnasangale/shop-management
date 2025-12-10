@@ -253,7 +253,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
   String? _validateMobileNumber(String? value) {
     if (value == null || value.trim().isEmpty) {
-      return 'Mobile number is required';
+      return null; // Mobile number is optional
     }
     final cleanedValue = value.trim();
     if (!RegExp(r'^[0-9]{10}$').hasMatch(cleanedValue)) {
@@ -367,6 +367,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     }
                   },
                 ),
+                const SizedBox(height: 10),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -429,7 +430,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Enter Customer Name',
+                      'Customer Full Name *',
                       _customerNameController,
                       onChanged: (value) {
                         setState(() {
@@ -438,9 +439,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         });
                       },
                     ),
+                    const SizedBox(height: 10),
                     if (_customerNameError.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4, left: 16),
+                        padding: const EdgeInsets.only(
+                          top: 4,
+                          left: 16,
+                          bottom: 10,
+                        ),
                         child: Text(
                           _customerNameError,
                           style: const TextStyle(
@@ -456,7 +462,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Enter Mobile Number',
+                      'Customer Mobile Number',
                       _customerMobileController,
                       keyboardType: TextInputType.phone,
                       onChanged: (value) {
@@ -466,9 +472,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         });
                       },
                     ),
+                    const SizedBox(height: 10),
                     if (_customerMobileError.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4, left: 16),
+                        padding: const EdgeInsets.only(
+                          top: 4,
+                          left: 16,
+                          bottom: 10,
+                        ),
                         child: Text(
                           _customerMobileError,
                           style: const TextStyle(
@@ -484,7 +495,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Enter Vehicle Number',
+                      'Customer Vehicle Number',
                       _customerVehicleController,
                       keyboardType: TextInputType.text,
                       onChanged: (value) {
@@ -505,9 +516,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         });
                       },
                     ),
+                    const SizedBox(height: 10),
                     if (_customerVehicleError.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.only(top: 4, left: 16),
+                        padding: const EdgeInsets.only(
+                          top: 4,
+                          left: 16,
+                          bottom: 10,
+                        ),
                         child: Text(
                           _customerVehicleError,
                           style: const TextStyle(
@@ -1871,14 +1887,21 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
   void showAvailableProductsDrawer(BuildContext context) {
     final searchController = TextEditingController();
-    // Group products by name and show only one entry per product
-    Map<String, BoughtProduct> uniqueProducts = {};
+    // Group products by name and show total quantity across all batches
+    Map<String, Map<String, dynamic>> uniqueProducts = {};
     for (var product in _availableProducts) {
       if (!uniqueProducts.containsKey(product.productName)) {
-        uniqueProducts[product.productName] = product;
+        uniqueProducts[product.productName] = {
+          'product': product,
+          'totalQuantity': product.quantity,
+        };
+      } else {
+        // Add quantity from additional batches
+        uniqueProducts[product.productName]!['totalQuantity'] +=
+            product.quantity;
       }
     }
-    List<BoughtProduct> displayProducts = uniqueProducts.values.toList();
+    List<Map<String, dynamic>> displayProducts = uniqueProducts.values.toList();
 
     showModalBottomSheet(
       context: context,
@@ -1924,35 +1947,48 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     onChanged: (query) {
                       setModalState(() {
                         if (query.isEmpty) {
-                          // Show all unique products
-                          Map<String, BoughtProduct> uniqueFilteredProducts =
-                              {};
+                          // Show all unique products with total quantities
+                          Map<String, Map<String, dynamic>>
+                          uniqueFilteredProducts = {};
                           for (var product in _availableProducts) {
                             if (!uniqueFilteredProducts.containsKey(
                               product.productName,
                             )) {
-                              uniqueFilteredProducts[product.productName] =
-                                  product;
+                              uniqueFilteredProducts[product.productName] = {
+                                'product': product,
+                                'totalQuantity': product.quantity,
+                              };
+                            } else {
+                              uniqueFilteredProducts[product
+                                      .productName]!['totalQuantity'] +=
+                                  product.quantity;
                             }
                           }
                           displayProducts = uniqueFilteredProducts.values
                               .toList();
                         } else {
-                          // Filter and show unique products
-                          Map<String, BoughtProduct> uniqueFilteredProducts =
-                              {};
+                          // Filter and show unique products with total quantities
+                          Map<String, Map<String, dynamic>>
+                          uniqueFilteredProducts = {};
                           for (var product in _availableProducts) {
                             if ((product.productName.toLowerCase().contains(
-                                      query.toLowerCase(),
-                                    ) ||
-                                    product.supplierName.toLowerCase().contains(
-                                      query.toLowerCase(),
-                                    )) &&
-                                !uniqueFilteredProducts.containsKey(
-                                  product.productName,
-                                )) {
-                              uniqueFilteredProducts[product.productName] =
-                                  product;
+                                  query.toLowerCase(),
+                                ) ||
+                                product.supplierName.toLowerCase().contains(
+                                  query.toLowerCase(),
+                                ))) {
+                              if (!uniqueFilteredProducts.containsKey(
+                                product.productName,
+                              )) {
+                                uniqueFilteredProducts[product.productName] = {
+                                  'product': product,
+                                  'totalQuantity': product.quantity,
+                                };
+                              } else {
+                                uniqueFilteredProducts[product
+                                        .productName]!['totalQuantity'] +=
+                                    product.quantity;
+                              }
                             }
                           }
                           displayProducts = uniqueFilteredProducts.values
@@ -2020,7 +2056,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         controller: scrollController,
                         itemCount: displayProducts.length,
                         itemBuilder: (context, index) {
-                          final product = displayProducts[index];
+                          final productData = displayProducts[index];
+                          final product =
+                              productData['product'] as BoughtProduct;
+                          final totalQuantity =
+                              productData['totalQuantity'] as int;
                           final isAlreadyAdded = _isProductAlreadyAdded(
                             product.productName,
                           );
@@ -2152,7 +2192,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           ),
                                         ),
                                         Text(
-                                          'Qty: ${product.quantity}',
+                                          'Qty: $totalQuantity',
                                           style: TextStyle(
                                             color: isAlreadyAdded
                                                 ? Colors.grey
