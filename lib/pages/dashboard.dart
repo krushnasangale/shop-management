@@ -24,8 +24,10 @@ class _DashboardState extends State<Dashboard> {
   int _totalBuyingCount = 0; // Number of purchase transactions
   int _totalQuantityBought = 0;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _billsSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _purchasesSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _purchasesSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _productsSubscription;
 
   // Top Selling Products
   List<Map<String, dynamic>> _topSellingProducts = [];
@@ -77,12 +79,12 @@ class _DashboardState extends State<Dashboard> {
         .collection('items')
         .snapshots()
         .listen((_) {
-      _calculateAndUpdateDashboard(userId);
-      _loadTopSellingProducts(userId);
-      _loadPendingPayments(userId);
-      _loadUpcomingPayments(userId);
-      _loadOrderNowProducts(userId);
-    });
+          _calculateAndUpdateDashboard(userId);
+          _loadTopSellingProducts(userId);
+          _loadPendingPayments(userId);
+          _loadUpcomingPayments(userId);
+          _loadOrderNowProducts(userId);
+        });
 
     // Listen to purchases changes
     _purchasesSubscription = firestore
@@ -91,8 +93,8 @@ class _DashboardState extends State<Dashboard> {
         .collection('items')
         .snapshots()
         .listen((_) {
-      _calculateAndUpdateDashboard(userId);
-    });
+          _calculateAndUpdateDashboard(userId);
+        });
 
     // Listen to purchased products changes
     _productsSubscription = firestore
@@ -101,9 +103,9 @@ class _DashboardState extends State<Dashboard> {
         .collection('items')
         .snapshots()
         .listen((_) {
-      _calculateAndUpdateDashboard(userId);
-      _loadOrderNowProducts(userId);
-    });
+          _calculateAndUpdateDashboard(userId);
+          _loadOrderNowProducts(userId);
+        });
   }
 
   Future<void> _loadTopSellingProducts(String userId) async {
@@ -120,26 +122,61 @@ class _DashboardState extends State<Dashboard> {
       for (var billDoc in billsSnapshot.docs) {
         final billData = billDoc.data();
         final products = billData['products'] as Map<String, dynamic>?;
+        final billDiscount = (billData['discount'] as num?)?.toInt() ?? 0;
 
         if (products != null) {
+          // First, calculate total bill profit to determine discount distribution
+          int billTotalProfit = 0;
+          final productProfits = <String, int>{};
+
           products.forEach((pKey, pValue) {
             if (pValue is Map<String, dynamic>) {
               final productName = pValue['productName'] as String? ?? 'Unknown';
               final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
               final price = (pValue['price'] as num?)?.toInt() ?? 0;
               final boughtPrice = (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
-              final profitMargin = price - boughtPrice;
-              final totalProfit = profitMargin * quantity;
+
+              // Use stored profitTotal if available, else calculate
+              final profitTotal = (pValue['profitTotal'] as num?)?.toInt();
+              final productProfit =
+                  profitTotal ?? ((price - boughtPrice) * quantity);
+
+              billTotalProfit += productProfit;
+              productProfits[productName] =
+                  (productProfits[productName] ?? 0) + productProfit;
+            }
+          });
+
+          // Now distribute discount proportionally and accumulate product sales
+          products.forEach((pKey, pValue) {
+            if (pValue is Map<String, dynamic>) {
+              final productName = pValue['productName'] as String? ?? 'Unknown';
+              final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
+              final price = (pValue['price'] as num?)?.toInt() ?? 0;
+              final boughtPrice = (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
+
+              // Use stored profitTotal if available, else calculate
+              final profitTotal = (pValue['profitTotal'] as num?)?.toInt();
+              final productProfit =
+                  profitTotal ?? ((price - boughtPrice) * quantity);
+
+              // Calculate this product's share of the discount
+              final productDiscountShare = billTotalProfit > 0
+                  ? ((productProfit / billTotalProfit) * billDiscount).round()
+                  : 0;
+
+              // Adjusted profit after discount
+              final adjustedProfit = productProfit - productDiscountShare;
 
               if (productSales.containsKey(productName)) {
                 productSales[productName]!['quantity'] += quantity;
                 productSales[productName]!['revenue'] += (quantity * price);
-                productSales[productName]!['totalProfit'] += totalProfit;
+                productSales[productName]!['totalProfit'] += adjustedProfit;
               } else {
                 productSales[productName] = {
                   'quantity': quantity,
                   'revenue': (quantity * price),
-                  'totalProfit': totalProfit,
+                  'totalProfit': adjustedProfit,
                   'name': productName,
                 };
               }
@@ -150,7 +187,11 @@ class _DashboardState extends State<Dashboard> {
 
       // Convert to list and sort by revenue
       final topProducts = productSales.values.toList()
-        ..sort((a, b) => ((b['revenue'] as num?)?.toInt() ?? 0).compareTo((a['revenue'] as num?)?.toInt() ?? 0));
+        ..sort(
+          (a, b) => ((b['revenue'] as num?)?.toInt() ?? 0).compareTo(
+            (a['revenue'] as num?)?.toInt() ?? 0,
+          ),
+        );
 
       if (mounted) {
         setState(() {
@@ -180,7 +221,8 @@ class _DashboardState extends State<Dashboard> {
 
         // Only process unpaid bills
         if (!totalAmountPaid) {
-          final amountRemaining = (billData['amountRemaining'] as num?)?.toInt() ?? 0;
+          final amountRemaining =
+              (billData['amountRemaining'] as num?)?.toInt() ?? 0;
 
           // Only add if there's an actual amount remaining
           if (amountRemaining > 0) {
@@ -237,10 +279,13 @@ class _DashboardState extends State<Dashboard> {
       for (var billDoc in billsSnapshot.docs) {
         final billData = billDoc.data();
         final nextPaymentDate = billData['nextPaymentDate'] as String?;
-        final amountRemaining = (billData['amountRemaining'] as num?)?.toInt() ?? 0;
+        final amountRemaining =
+            (billData['amountRemaining'] as num?)?.toInt() ?? 0;
 
         // Show upcoming payments where nextPaymentDate is set AND amountRemaining > 0
-        if (nextPaymentDate != null && nextPaymentDate.isNotEmpty && amountRemaining > 0) {
+        if (nextPaymentDate != null &&
+            nextPaymentDate.isNotEmpty &&
+            amountRemaining > 0) {
           try {
             // Parse date in dd/MM/yyyy format
             final dateParts = nextPaymentDate.split('/');
@@ -353,11 +398,14 @@ class _DashboardState extends State<Dashboard> {
         final billDate = billData['billDate'] as String? ?? '';
         final totalAmount = (billData['totalAmount'] as num?)?.toInt() ?? 0;
         final products = billData['products'] as Map<String, dynamic>?;
+        final discount = (billData['discount'] as num?)?.toInt() ?? 0;
 
         // Check if bill is from selected month
         if (_isFromSelectedMonth(billDate)) {
           totalSales += totalAmount;
           salesCount++; // Increment sales count
+
+          int billProfit = 0;
 
           // Calculate profit for this bill using profitMargin if available, else calculate
           if (products != null) {
@@ -365,7 +413,8 @@ class _DashboardState extends State<Dashboard> {
               if (pValue is Map<String, dynamic>) {
                 final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
                 final sellingPrice = (pValue['price'] as num?)?.toInt() ?? 0;
-                final boughtPrice = (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
+                final boughtPrice =
+                    (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
                 final profitMargin = pValue['profitMargin'] as num?;
 
                 itemsSold += quantity;
@@ -374,20 +423,23 @@ class _DashboardState extends State<Dashboard> {
                 final profitTotal = (pValue['profitTotal'] as num?)?.toInt();
                 if (profitTotal != null) {
                   // Use stored profit from batch system (accurate per batch)
-                  totalProfit += profitTotal;
+                  billProfit += profitTotal;
                 } else if (profitMargin != null) {
                   // Use profitMargin if available (backward compatible)
                   final productProfit = (profitMargin * quantity).toInt();
-                  totalProfit += productProfit;
+                  billProfit += productProfit;
                 } else {
                   // Fallback: calculate from prices (legacy bills)
                   final profitPerUnit = sellingPrice - boughtPrice;
                   final productProfit = profitPerUnit * quantity;
-                  totalProfit += productProfit;
+                  billProfit += productProfit;
                 }
               }
             });
           }
+
+          // Subtract discount from bill profit
+          totalProfit += (billProfit - discount);
         }
       }
 
@@ -414,7 +466,8 @@ class _DashboardState extends State<Dashboard> {
             buyingCount++;
 
             // Get total units for this purchase
-            final totalUnits = (purchaseData['totalUnits'] as num?)?.toInt() ?? 0;
+            final totalUnits =
+                (purchaseData['totalUnits'] as num?)?.toInt() ?? 0;
             totalQuantityBoughtThisMonth += totalUnits;
           }
         }
@@ -434,7 +487,8 @@ class _DashboardState extends State<Dashboard> {
             // Check if product purchase is from selected month
             if (_isFromSelectedMonth(productDate)) {
               final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
-              final buyingPrice = (productData['buyingPrice'] as num?)?.toInt() ?? 0;
+              final buyingPrice =
+                  (productData['buyingPrice'] as num?)?.toInt() ?? 0;
               final amount = quantity * buyingPrice;
 
               totalBuying += amount;
@@ -595,7 +649,8 @@ class _DashboardState extends State<Dashboard> {
                       ),
                       itemBuilder: (context, index) {
                         final product = _topSellingProducts[index];
-                        final profit = (product['totalProfit'] as num?)?.toInt() ?? 0;
+                        final profit =
+                            (product['totalProfit'] as num?)?.toInt() ?? 0;
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -617,7 +672,8 @@ class _DashboardState extends State<Dashboard> {
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         'Qty: ${product['quantity']} • Revenue: ₹${product['revenue']}',
@@ -1689,16 +1745,19 @@ class _DashboardState extends State<Dashboard> {
             totalAmountPaid: (bill['totalAmountPaid'] as bool?) ?? false,
             amountPaid: ((bill['amountPaid'] ?? 0) as num).toInt(),
             amountRemaining:
-                (((bill['amountRemaining'] ?? bill['totalAmount'] ?? 0) as num).toInt()),
+                (((bill['amountRemaining'] ?? bill['totalAmount'] ?? 0) as num)
+                    .toInt()),
             products: bill['products'] != null
                 ? (bill['products'] as Map).entries
                       .map(
                         (e) => {
                           'productName':
                               (e.value['productName'] ?? 'Unknown') as String,
-                          'quantity': ((e.value['quantity'] ?? 0) as num).toInt(),
+                          'quantity': ((e.value['quantity'] ?? 0) as num)
+                              .toInt(),
                           'price': ((e.value['price'] ?? 0) as num).toInt(),
-                          'boughtPrice': ((e.value['boughtPrice'] ?? 0) as num).toInt(),
+                          'boughtPrice': ((e.value['boughtPrice'] ?? 0) as num)
+                              .toInt(),
                         },
                       )
                       .toList()

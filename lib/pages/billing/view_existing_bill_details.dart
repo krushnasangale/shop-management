@@ -98,10 +98,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   // Profit calculation
   double totalProfit = 0;
 
-  // Payment method
-  late String paymentMethod;
+  // Discount
+  int discount = 0;
 
-  // Next payment date for partial payments
+  // Payment method
+  late String paymentMethod; // Next payment date for partial payments
   String? nextPaymentDate;
   late TextEditingController _nextPaymentDateController;
 
@@ -123,6 +124,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     isTotalAmountPaid = widget.totalAmountPaid;
     amountPaid = '₹ ${widget.amountPaid.toString()}';
     amountRemaining = '₹ ${widget.amountRemaining.toString()}';
+
+    // Load discount from Firebase
+    _loadDiscount();
 
     // Convert products if provided
     if (widget.products != null && widget.products!.isNotEmpty) {
@@ -176,6 +180,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
     // Load payment records from Firebase
     _loadPaymentRecords();
+    _loadDiscount();
   }
 
   @override
@@ -214,6 +219,55 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     } catch (e) {
       print('Error loading payment records: $e');
     }
+  }
+
+  Future<void> _loadDiscount() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId)
+          .get();
+
+      if (snapshot.exists) {
+        final data = snapshot.data();
+        final loadedDiscount = (data?['discount'] as num?)?.toInt() ?? 0;
+        setState(() {
+          discount = loadedDiscount;
+          // Recalculate profit with discount subtracted
+          totalProfit = _calculateBaseProfit() - loadedDiscount;
+        });
+      }
+    } catch (e) {
+      print('Error loading discount: $e');
+    }
+  }
+
+  // Helper method to calculate base profit from products
+  double _calculateBaseProfit() {
+    double baseProfit = 0;
+    if (widget.products != null && widget.products!.isNotEmpty) {
+      for (var product in widget.products!) {
+        final quantity = (product['quantity'] ?? 0).toDouble();
+        final sellingPrice = (product['price'] ?? 0).toDouble();
+        final boughtPrice = (product['boughtPrice'] ?? 0).toDouble();
+
+        // Use stored profitTotal if available (new batch system), else calculate
+        final profitTotal = product['profitTotal'];
+        if (profitTotal != null) {
+          baseProfit += (profitTotal as num).toDouble();
+        } else {
+          // Fallback: calculate from prices (legacy bills)
+          final profit = (sellingPrice - boughtPrice) * quantity;
+          baseProfit += profit;
+        }
+      }
+    }
+    return baseProfit;
   }
 
   void _shareBill(BuildContext context) async {
@@ -1442,6 +1496,190 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     }
   }
 
+  void _showEditDiscountDialog() {
+    final TextEditingController discountController = TextEditingController();
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    String? errorText;
+    final remainingAmountValue = int.parse(
+      amountRemaining.replaceAll('₹ ', ''),
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                'Edit Discount',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Remaining Amount',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color,
+                          ),
+                        ),
+                        Text(
+                          '₹ $remainingAmountValue',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: discountController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      setState(() {
+                        errorText = null;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Add Discount',
+                      hintText: 'e.g., 100',
+                      prefixText: '₹ ',
+                      helperText: 'Max: ₹ $remainingAmountValue',
+                      prefixIcon: const Icon(Icons.discount),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      errorText: errorText,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newDiscount = int.tryParse(
+                      discountController.text.trim(),
+                    );
+                    if (newDiscount == null) {
+                      setState(() {
+                        errorText = 'Please enter a valid number';
+                      });
+                      return;
+                    }
+                    if (newDiscount < 0) {
+                      setState(() {
+                        errorText = 'Discount cannot be negative';
+                      });
+                      return;
+                    }
+                    if (newDiscount > remainingAmountValue) {
+                      setState(() {
+                        errorText = 'Discount cannot exceed remaining amount';
+                      });
+                      return;
+                    }
+                    Navigator.of(context).pop();
+                    _updateDiscount(newDiscount);
+                  },
+                  child: const Text('Update'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateDiscount(int additionalDiscount) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      final currentRemainingAmount = int.parse(
+        amountRemaining.replaceAll('₹ ', ''),
+      );
+      final currentAmountPaid = int.parse(amountPaid.replaceAll('₹ ', ''));
+      final totalAmountValue = int.parse(totalAmount.replaceAll('₹ ', ''));
+
+      // Calculate new total discount (current + additional)
+      final newTotalDiscount = discount + additionalDiscount;
+
+      // Calculate new amounts with additional discount
+      final newRemainingAmount = currentRemainingAmount - additionalDiscount;
+      final newAmountPaid = currentAmountPaid + additionalDiscount;
+
+      // Check if bill will be fully paid after discount
+      final isFullyPaid = newRemainingAmount <= 0;
+
+      final billRef = FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId);
+
+      // Add new discount as a payment record
+      await _addPaymentRecord(additionalDiscount, 'discount');
+
+      // Update bill with new amounts and total discount
+      await billRef.update({
+        'discount': newTotalDiscount,
+        'amountRemaining': isFullyPaid ? 0 : newRemainingAmount,
+        'amountPaid': isFullyPaid ? totalAmountValue : newAmountPaid,
+        'totalAmountPaid': isFullyPaid,
+      });
+
+      setState(() {
+        discount = newTotalDiscount;
+        amountRemaining = '₹ ${isFullyPaid ? 0 : newRemainingAmount}';
+        amountPaid = '₹ ${isFullyPaid ? totalAmountValue : newAmountPaid}';
+        isTotalAmountPaid = isFullyPaid;
+        paymentStatus = isFullyPaid ? 'Paid' : 'Partially Paid';
+        // Update profit by subtracting total discount
+        totalProfit = _calculateBaseProfit() - newTotalDiscount;
+      });
+
+      // Reload payment records to show the discount
+      await _loadPaymentRecords();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isFullyPaid
+                ? 'Discount of ₹$additionalDiscount added. Bill is now fully paid!'
+                : 'Discount of ₹$additionalDiscount added successfully',
+          ),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
   // --- Helper 5: Payment History Card ---
   Widget _buildPaymentHistoryCard(
     BuildContext context,
@@ -1537,18 +1775,27 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                       decoration: BoxDecoration(
                                         color: payment.paymentMethod == 'cash'
                                             ? Colors.blue.withOpacity(0.15)
+                                            : payment.paymentMethod ==
+                                                  'discount'
+                                            ? Colors.orange.withOpacity(0.15)
                                             : Colors.green.withOpacity(0.15),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
                                         payment.paymentMethod == 'cash'
                                             ? 'Cash'
+                                            : payment.paymentMethod ==
+                                                  'discount'
+                                            ? 'Discount'
                                             : 'Online',
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
                                           color: payment.paymentMethod == 'cash'
                                               ? Colors.blue[600]
+                                              : payment.paymentMethod ==
+                                                    'discount'
+                                              ? Colors.orange[600]
                                               : Colors.green[600],
                                         ),
                                       ),
@@ -1956,6 +2203,79 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               primaryTextColor,
               secondaryTextColor,
               isBold: true,
+            ),
+            // Discount row with edit functionality
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Discount',
+                    style: TextStyle(
+                      color: primaryTextColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _showEditDiscountDialog,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.orange.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Add Discount:',
+                            style: TextStyle(
+                              color: Colors.orange[700],
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.edit, size: 14, color: Colors.orange[600]),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Final Amount after discount
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Final Amount',
+                    style: TextStyle(
+                      color: Colors.green[700],
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '₹ ${int.parse(totalAmount.replaceAll('₹ ', '')) - discount}',
+                    style: TextStyle(
+                      color: Colors.green[700],
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
             ),
             Divider(color: secondaryTextColor?.withOpacity(0.3), height: 16),
             _buildSummaryRow(
