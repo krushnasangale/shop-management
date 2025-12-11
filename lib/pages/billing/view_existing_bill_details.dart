@@ -739,6 +739,47 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
           ],
         ),
+        // Discount row (if discount is given)
+        if (discount > 0)
+          pw.TableRow(
+            decoration: pw.BoxDecoration(color: PdfColors.grey300),
+            children: [
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text(
+                  'Discount:',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text(
+                  'Rs. $discount',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+            ],
+          ),
         // Total Amount Paid row
         pw.TableRow(
           decoration: pw.BoxDecoration(color: PdfColors.grey300),
@@ -769,7 +810,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
               child: pw.Text(
-                amountPaid.replaceAll('₹', 'Rs.'),
+                'Rs. ${int.parse(amountPaid.replaceAll('₹ ', '')) - discount}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
