@@ -48,6 +48,11 @@ class _DashboardState extends State<Dashboard> {
   // Order Now Products (qty = 0)
   List<Map<String, dynamic>> _orderNowProducts = [];
 
+  // Availability Section
+  int _totalAvailableQty = 0;
+  double _totalAvailableAmount = 0.0;
+  int _availableProductsCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +89,7 @@ class _DashboardState extends State<Dashboard> {
           _loadPendingPayments(userId);
           _loadUpcomingPayments(userId);
           _loadOrderNowProducts(userId);
+          _loadAvailability(userId);
         });
 
     // Listen to purchases changes
@@ -105,6 +111,7 @@ class _DashboardState extends State<Dashboard> {
         .listen((_) {
           _calculateAndUpdateDashboard(userId);
           _loadOrderNowProducts(userId);
+          _loadAvailability(userId);
         });
   }
 
@@ -373,6 +380,51 @@ class _DashboardState extends State<Dashboard> {
       }
     } catch (e) {
       print('Error loading order now products: $e');
+    }
+  }
+
+  Future<void> _loadAvailability(String userId) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final productsSnapshot = await firestore
+          .collection('purchased-products')
+          .doc(userId)
+          .collection('items')
+          .get();
+
+      int totalQty = 0;
+      double totalAmount = 0.0;
+
+      // Use a Set to track unique product names with quantity > 0
+      final availableProductNames = <String>{};
+
+      for (var productDoc in productsSnapshot.docs) {
+        final productData = productDoc.data();
+        final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
+        final sellingPrice =
+            (productData['sellingPrice'] as num?)?.toDouble() ?? 0.0;
+        final productName = productData['productName'] as String? ?? '';
+
+        // Only count products with quantity > 0
+        if (quantity > 0) {
+          totalQty += quantity;
+          totalAmount += quantity * sellingPrice;
+          // Add product name to the set (duplicates are automatically ignored)
+          if (productName.isNotEmpty) {
+            availableProductNames.add(productName);
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _totalAvailableQty = totalQty;
+          _totalAvailableAmount = totalAmount;
+          _availableProductsCount = availableProductNames.length;
+        });
+      }
+    } catch (e) {
+      print('Error loading availability: $e');
     }
   }
 
@@ -849,6 +901,214 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
+  Widget _buildAvailabilityCard() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.green.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.green.withOpacity(0.3)
+              : Colors.green.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Availability',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.grey[100] : Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Current Stock Overview',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.orange.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _availableProductsCount.toString(),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.orange[600],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Available\nProducts',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.orange[600],
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.green.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.green.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.inventory_2,
+                              color: Colors.green[600],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Total Quantity',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _totalAvailableQty.toString(),
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.green[600],
+                          ),
+                        ),
+                        Text(
+                          'items in stock',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isDark ? Colors.grey[500] : Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark
+                          ? Colors.blue.withOpacity(0.1)
+                          : Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.blue.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.currency_rupee,
+                              color: Colors.blue[600],
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Total Amount',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '₹${_formatCurrency(_totalAvailableAmount.toInt())}',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.blue[600],
+                          ),
+                        ),
+                        Text(
+                          'stock value',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: isDark ? Colors.grey[500] : Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildUpcomingPaymentsCard() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -1175,184 +1435,10 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // Modern Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 6),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Dashboard',
-                            style: Theme.of(context).textTheme.headlineMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.5,
-                                  color: primaryTextColor,
-                                ),
-                          ),
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.blue.withOpacity(0.2)
-                                  : Colors.blue.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.blue.withOpacity(0.6)
-                                    : Colors.blue.withOpacity(0.3),
-                                width: isDark ? 1.2 : 1,
-                              ),
-                            ),
-                            child: Text(
-                              _getMonthYear(),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: isDark
-                                    ? Colors.blue[300]
-                                    : Colors.blue[700],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.grey[750]
-                                  : Colors.grey[100],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isDark
-                                    ? Colors.grey[600]!
-                                    : Colors.transparent,
-                                width: isDark ? 1 : 0,
-                              ),
-                            ),
-                            child: PopupMenuButton<String>(
-                              offset: const Offset(0, 40),
-                              itemBuilder: (BuildContext context) => [
-                                PopupMenuItem(
-                                  value: 'day',
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.calendar_today,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text('Day'),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'month',
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.calendar_month,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text('Month'),
-                                    ],
-                                  ),
-                                ),
-                                PopupMenuItem(
-                                  value: 'year',
-                                  child: Row(
-                                    children: [
-                                      const Icon(
-                                        Icons.calendar_month,
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text('Year'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              onSelected: (String newValue) {
-                                setState(() {
-                                  filterType = newValue;
-                                  _isLoading = true;
-                                });
-                                _loadSalesReport();
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 8,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.filter_list,
-                                      color: Colors.blue[600],
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.arrow_drop_down,
-                                      color: Colors.blue[600],
-                                      size: 18,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Material(
-                            color: Colors.transparent,
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.calendar_today,
-                                color: Colors.blue[600],
-                                size: 22,
-                              ),
-                              onPressed: () => _showMonthPicker(context),
-                              style: IconButton.styleFrom(
-                                backgroundColor: isDark
-                                    ? Colors.grey[750]
-                                    : Colors.grey[100],
-                                side: isDark
-                                    ? BorderSide(
-                                        color: Colors.grey[600]!,
-                                        width: 1,
-                                      )
-                                    : null,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Content
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -1363,6 +1449,179 @@ class _DashboardState extends State<Dashboard> {
                       ),
                       child: Column(
                         children: [
+                          // Section 1 Title: Sales & Profit Analysis
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8, bottom: 12),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.analytics_outlined,
+                                  color: isDark
+                                      ? Colors.blue[300]
+                                      : Colors.blue[700],
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Sales & Profit Analysis',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark
+                                        ? Colors.grey[100]
+                                        : Colors.grey[800],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isDark
+                                      ? Colors.blue.withOpacity(0.2)
+                                      : Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDark
+                                        ? Colors.blue.withOpacity(0.6)
+                                        : Colors.blue.withOpacity(0.3),
+                                    width: isDark ? 1.2 : 1,
+                                  ),
+                                ),
+                                child: Text(
+                                  _getMonthYear(),
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark
+                                        ? Colors.blue[300]
+                                        : Colors.blue[700],
+                                  ),
+                                ),
+                              ),
+                              Row(
+                                children: [
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.grey[750]
+                                          : Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isDark
+                                            ? Colors.grey[600]!
+                                            : Colors.transparent,
+                                        width: isDark ? 1 : 0,
+                                      ),
+                                    ),
+                                    child: PopupMenuButton<String>(
+                                      offset: const Offset(0, 40),
+                                      itemBuilder: (BuildContext context) => [
+                                        PopupMenuItem(
+                                          value: 'day',
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.calendar_today,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text('Day'),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'month',
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.calendar_month,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text('Month'),
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'year',
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.calendar_month,
+                                                size: 18,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              const Text('Year'),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      onSelected: (String newValue) {
+                                        setState(() {
+                                          filterType = newValue;
+                                          _isLoading = true;
+                                        });
+                                        _loadSalesReport();
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.filter_list,
+                                              color: Colors.blue[600],
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.arrow_drop_down,
+                                              color: Colors.blue[600],
+                                              size: 18,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: IconButton(
+                                      icon: Icon(
+                                        Icons.calendar_today,
+                                        color: Colors.blue[600],
+                                        size: 22,
+                                      ),
+                                      onPressed: () =>
+                                          _showMonthPicker(context),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: isDark
+                                            ? Colors.grey[750]
+                                            : Colors.grey[100],
+                                        side: isDark
+                                            ? BorderSide(
+                                                color: Colors.grey[600]!,
+                                                width: 1,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
                           // Two Column Layout
                           Row(
                             children: [
@@ -1397,6 +1656,52 @@ class _DashboardState extends State<Dashboard> {
 
                           // Profit/Loss Card
                           _buildProfitLossCard(),
+                          const SizedBox(height: 24),
+
+                          // Section 2 Title: Inventory & Payments
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.store_outlined,
+                                  color: isDark
+                                      ? Colors.green[300]
+                                      : Colors.green[700],
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Inventory & Payments',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark
+                                            ? Colors.grey[100]
+                                            : Colors.grey[800],
+                                      ),
+                                    ),
+                                    Text(
+                                      'Live status',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Availability Section
+                          _buildAvailabilityCard(),
                           const SizedBox(height: 12),
 
                           // Upcoming Payments
@@ -1516,7 +1821,7 @@ class _DashboardState extends State<Dashboard> {
           width: isDark ? 1.5 : 1,
         ),
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
