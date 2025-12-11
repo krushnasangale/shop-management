@@ -312,7 +312,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: _selectedIndex == 0 ? AppBar(
         title: Text(_shopName),
         automaticallyImplyLeading: false,
         actions: [
@@ -334,7 +334,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           const SizedBox(width: 14),
         ],
-      ),
+      ) : null,
       body: IndexedStack(index: _selectedIndex, children: _screens),
 
       floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3

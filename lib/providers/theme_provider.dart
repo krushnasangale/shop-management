@@ -20,8 +20,8 @@ class ThemeProvider with ChangeNotifier {
         ),
         scaffoldBackgroundColor: const Color(0xFFF0F2F5),
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFFF0F2F5),
-          foregroundColor: Colors.black,
+          backgroundColor: Colors.blue,
+          foregroundColor: Colors.white,
           elevation: 0,
         ),
         cardTheme: CardThemeData(
@@ -32,7 +32,10 @@ class ThemeProvider with ChangeNotifier {
           ),
         ),
         textTheme: const TextTheme(
-          titleLarge: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+          titleLarge: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
           titleMedium: TextStyle(color: Colors.black),
           bodyLarge: TextStyle(color: Colors.black),
           bodyMedium: TextStyle(color: Colors.grey),
@@ -66,7 +69,7 @@ class ThemeProvider with ChangeNotifier {
         ),
         scaffoldBackgroundColor: Colors.black,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.black,
+          backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
           elevation: 0,
         ),
@@ -78,7 +81,10 @@ class ThemeProvider with ChangeNotifier {
           ),
         ),
         textTheme: const TextTheme(
-          titleLarge: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          titleLarge: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
           titleMedium: TextStyle(color: Colors.white),
           bodyLarge: TextStyle(color: Colors.white),
           bodyMedium: TextStyle(color: Colors.grey),

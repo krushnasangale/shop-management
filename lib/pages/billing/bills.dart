@@ -1,3 +1,4 @@
+import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -637,24 +638,38 @@ class _BillsState extends State<Bills> {
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: Icon(_showSearchBar ? Icons.close : Icons.search),
-              onPressed: () {
-                setState(() {
-                  _showSearchBar = !_showSearchBar;
-                  if (!_showSearchBar) {
-                    _searchController.clear();
-                  }
-                });
-              },
-            ),
+          IconButton(
+            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _showSearchBar = !_showSearchBar;
+                if (!_showSearchBar) {
+                  _searchController.clear();
+                }
+              });
+            },
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () => _showReportOptionsDialog(context),
           ),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.grey.withOpacity(0.2),
+            ),
+            height: 40,
+            width: 40,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.account_circle, size: 35),
+              onPressed: () async {
+                AppNavigator.push(context, const MyProfile());
+              },
+              tooltip: 'My Profile',
+            ),
+          ),
+          const SizedBox(width: 14),
         ],
       ),
       body: _isLoading
@@ -668,7 +683,7 @@ class _BillsState extends State<Bills> {
                     padding: const EdgeInsets.only(
                       left: 12.0,
                       right: 12.0,
-                      top: 0,
+                      top: 5,
                       bottom: 8.0,
                     ),
                     child: Card(
@@ -703,6 +718,7 @@ class _BillsState extends State<Bills> {
                   ),
 
                 // --- 2. Filter Chips Row ---
+                if(!_showSearchBar) const SizedBox(height: 5),
                 Padding(
                   padding: const EdgeInsets.only(
                     left: 12.0,

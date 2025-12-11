@@ -1,3 +1,5 @@
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +20,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   bool _isLoading = true;
   StreamSubscription<QuerySnapshot>? _streamSubscription;
   late TextEditingController _searchController;
+  bool _showSearchBar = false;
 
   @override
   void initState() {
@@ -39,28 +42,28 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .listen(
-      (snapshot) {
-        if (mounted) {
-          final entries = snapshot.docs.map((doc) {
-            final data = doc.data() as Map<String, dynamic>;
-            data['id'] = doc.id;
-            return data;
-          }).toList();
+          (snapshot) {
+            if (mounted) {
+              final entries = snapshot.docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                data['id'] = doc.id;
+                return data;
+              }).toList();
 
-          setState(() {
-            _boughtEntries = entries;
-            _filteredEntries = entries;
-            _isLoading = false;
-          });
-        }
-      },
-      onError: (error) {
-        print('Error loading bought entries: $error');
-        setState(() {
-          _isLoading = false;
-        });
-      },
-    );
+              setState(() {
+                _boughtEntries = entries;
+                _filteredEntries = entries;
+                _isLoading = false;
+              });
+            }
+          },
+          onError: (error) {
+            print('Error loading bought entries: $error');
+            setState(() {
+              _isLoading = false;
+            });
+          },
+        );
   }
 
   void _filterEntries() {
@@ -120,7 +123,41 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   Widget build(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     return Scaffold(
-      appBar: AppBar(title: const Text('Purchased Entries'), centerTitle: false, automaticallyImplyLeading: false),
+      appBar: AppBar(
+        title: const Text('Purchased Entries'),
+        centerTitle: false,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _showSearchBar = !_showSearchBar;
+                if (!_showSearchBar) {
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.grey.withOpacity(0.2),
+            ),
+            height: 40,
+            width: 40,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.account_circle, size: 35),
+              onPressed: () async {
+                AppNavigator.push(context, const MyProfile());
+              },
+              tooltip: 'My Profile',
+            ),
+          ),
+          const SizedBox(width: 14),
+        ],
+      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _boughtEntries.isEmpty
@@ -128,43 +165,44 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           : Column(
               children: [
                 // Search Bar
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 12.0,
-                    right: 12.0,
-                    top: 0,
-                    bottom: 0,
-                  ),
-                  child: Card(
-                    elevation: 2,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search by supplier or amount',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _searchController.clear();
-                                },
-                              )
-                            : null,
-                        filled: false,
-                        fillColor: Theme.of(
-                          context,
-                        ).inputDecorationTheme.fillColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 10,
+                if (_showSearchBar)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 12.0,
+                      right: 12.0,
+                      top: 5,
+                      bottom: 0,
+                    ),
+                    child: Card(
+                      elevation: 2,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search by supplier or amount',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                  },
+                                )
+                              : null,
+                          filled: false,
+                          fillColor: Theme.of(
+                            context,
+                          ).inputDecorationTheme.fillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
                 // List
                 Expanded(
                   child: _filteredEntries.isEmpty
@@ -191,7 +229,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) =>
-                                              PurchaseEntryDetails(entry: entry),
+                                              PurchaseEntryDetails(
+                                                entry: entry,
+                                              ),
                                         ),
                                       );
                                     },
