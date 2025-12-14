@@ -45,8 +45,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   String _searchQuery = '';
   late TextEditingController _searchController;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _unitsSubscription;
-
-  // Controllers for the Add Unit Popup
+  bool _showSearchBar = false;
   final TextEditingController _unitNameController = TextEditingController();
 
   @override
@@ -271,14 +270,28 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
         ),
         title: const Text('Measurement Units'),
         centerTitle: false,
+        actions: [
+            IconButton(
+              icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+              onPressed: () {
+                setState(() {
+                  _showSearchBar = !_showSearchBar;
+                  if (!_showSearchBar) {
+                    _searchController.clear();
+                  }
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
                 // --- Search Bar ---
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
+                if(_showSearchBar) Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
                   child: Card(
                     child: TextField(
                       controller: _searchController,
@@ -310,7 +323,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                               : 'No units found for "$_searchQuery"'),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: !_showSearchBar ? 8.0 : 0.0),
                           itemCount: _filteredUnits.length,
                           itemBuilder: (context, index) {
                             final unit = _filteredUnits[index];
