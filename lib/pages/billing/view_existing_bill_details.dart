@@ -624,15 +624,25 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     final rows = <List<String>>[
       ...products.asMap().entries.map((entry) {
         String price = entry.value['price']!;
+        String qty = entry.value['qty']!;
+
         // Remove rupee symbol and add 'Rs.' prefix for PDF
         price = price.replaceAll('₹', '').trim();
-        price = 'Rs. $price';
+
+        // Calculate total amount (quantity × rate)
+        final priceValue = int.tryParse(price.replaceAll(',', '')) ?? 0;
+        final qtyValue = double.tryParse(qty) ?? 0;
+        final totalAmount = (priceValue * qtyValue).toInt();
+
+        final formattedPrice = 'Rs. $price';
+        final formattedAmount = 'Rs. $totalAmount';
+
         return [
           '${entry.key + 1}',
           entry.value['name']!,
-          entry.value['qty']!,
-          price,
-          price,
+          qty,
+          formattedPrice,
+          formattedAmount,
         ];
       }),
     ];
@@ -687,7 +697,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               );
             }).toList(),
           );
-        }).toList(),
+        }),
         // White space below last product item
         pw.TableRow(
           decoration: pw.BoxDecoration(color: PdfColors.white),

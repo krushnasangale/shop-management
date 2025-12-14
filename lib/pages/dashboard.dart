@@ -401,14 +401,14 @@ class _DashboardState extends State<Dashboard> {
       for (var productDoc in productsSnapshot.docs) {
         final productData = productDoc.data();
         final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
-        final sellingPrice =
-            (productData['sellingPrice'] as num?)?.toDouble() ?? 0.0;
+        final buyingPrice =
+            (productData['buyingPrice'] as num?)?.toDouble() ?? 0.0;
         final productName = productData['productName'] as String? ?? '';
 
         // Only count products with quantity > 0
         if (quantity > 0) {
           totalQty += quantity;
-          totalAmount += quantity * sellingPrice;
+          totalAmount += quantity * buyingPrice;
           // Add product name to the set (duplicates are automatically ignored)
           if (productName.isNotEmpty) {
             availableProductNames.add(productName);
