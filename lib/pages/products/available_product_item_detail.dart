@@ -73,7 +73,8 @@ class _AvailableProductDetailScreenState
         final quantity = product['quantity'] ?? 0;
 
         // Only process batches with quantity > 0 and matching product name
-        if (quantity > 0 && product['productName'] == widget.product.productName) {
+        if (quantity > 0 &&
+            product['productName'] == widget.product.productName) {
           final batch = BoughtProduct.fromMap(doc.id, product);
           batches.add(batch);
         }
@@ -97,7 +98,7 @@ class _AvailableProductDetailScreenState
             break;
           }
         }
-        
+
         setState(() {
           _allBatches = batches;
           _isLoadingBatches = false;
@@ -125,7 +126,7 @@ class _AvailableProductDetailScreenState
       final history = <Map<String, dynamic>>[];
       for (var doc in snapshot.docs) {
         final item = doc.data();
-        
+
         // Match by product name to aggregate across all suppliers
         if (item['productName'] == widget.product.productName) {
           history.add(item);
@@ -202,15 +203,74 @@ class _AvailableProductDetailScreenState
   // --- SAVE BATCH QUANTITY ---
   Future<void> _saveBatchQuantity(String batchId, int newQuantity) async {
     try {
-      await FirebaseFirestore.instance
+      final firestore = FirebaseFirestore.instance;
+
+      // Get the product batch to find the old quantity and purchaseId
+      final batchDoc = await firestore
           .collection('purchased-products')
           .doc(widget.userId)
           .collection('items')
           .doc(batchId)
-          .update({
-            'quantity': newQuantity,
-            'initialQuantity': newQuantity,
-          });
+          .get();
+
+      if (!batchDoc.exists) {
+        throw Exception('Product batch not found');
+      }
+
+      final batchData = batchDoc.data()!;
+      final oldQuantity = (batchData['quantity'] as num?)?.toInt() ?? 0;
+      final oldInitialQuantity = (batchData['initialQuantity'] as num?)?.toInt() ?? 0;
+      final buyingPrice = (batchData['buyingPrice'] as num?)?.toDouble() ?? 0.0;
+      final purchaseId = batchData['purchaseId'] as String?;
+
+      // Calculate the quantity difference and amount difference
+      final quantityDifference = newQuantity - oldQuantity;
+      final oldTotal = oldQuantity * buyingPrice;
+      final newTotal = newQuantity * buyingPrice;
+      final amountDifference = newTotal - oldTotal;
+
+      // Calculate new initial quantity (adjust by the difference)
+      final newInitialQuantity = oldInitialQuantity + quantityDifference;
+
+      // Update the product batch quantity
+      await firestore
+          .collection('purchased-products')
+          .doc(widget.userId)
+          .collection('items')
+          .doc(batchId)
+          .update({'quantity': newQuantity, 'initialQuantity': newInitialQuantity});
+
+      // Update the purchase record's totalUnits and totalAmount if purchaseId exists
+      if (purchaseId != null && purchaseId.isNotEmpty) {
+        final purchaseDoc = await firestore
+            .collection('purchases')
+            .doc(widget.userId)
+            .collection('items')
+            .doc(purchaseId)
+            .get();
+
+        if (purchaseDoc.exists) {
+          final purchaseData = purchaseDoc.data()!;
+          final currentTotalUnits =
+              (purchaseData['totalUnits'] as num?)?.toInt() ?? 0;
+          final currentTotalAmount =
+              (purchaseData['totalAmount'] as num?)?.toDouble() ?? 0.0;
+
+          final newTotalUnits = currentTotalUnits + quantityDifference;
+          final newTotalAmount = currentTotalAmount + amountDifference;
+
+          // Update the purchase record
+          await firestore
+              .collection('purchases')
+              .doc(widget.userId)
+              .collection('items')
+              .doc(purchaseId)
+              .update({
+                'totalUnits': newTotalUnits > 0 ? newTotalUnits : 0,
+                'totalAmount': newTotalAmount > 0 ? newTotalAmount : 0,
+              });
+        }
+      }
 
       // Reload batches to reflect changes
       await _loadAllBatches();
@@ -219,9 +279,11 @@ class _AvailableProductDetailScreenState
         setState(() {
           _editingBatchQuantities[batchId] = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Quantity updated!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Quantity and purchase record updated!'),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -507,7 +569,12 @@ class _AvailableProductDetailScreenState
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Text(
-                                    _allBatches.fold(0, (sum, batch) => sum + batch.quantity).toString(),
+                                    _allBatches
+                                        .fold(
+                                          0,
+                                          (sum, batch) => sum + batch.quantity,
+                                        )
+                                        .toString(),
                                     style: TextStyle(
                                       color: Colors.purple[700],
                                       fontWeight: FontWeight.w700,
@@ -518,7 +585,7 @@ class _AvailableProductDetailScreenState
                               ],
                             ),
                             const SizedBox(height: 10),
-                            
+
                             // Group by unit and show individual totals
                             ..._allBatches
                                 .fold<Map<String, int>>({}, (map, batch) {
@@ -567,14 +634,16 @@ class _AvailableProductDetailScreenState
                                     ),
                                   ),
                                 ),
-                            
+
                             Divider(
-                              color: Theme.of(context).brightness == Brightness.dark 
-                                  ? Colors.grey[700] 
+                              color:
+                                  Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey[700]
                                   : Colors.grey[300],
                               height: 12,
                             ),
-                            
+
                             // Minimum Limit Section
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -595,16 +664,19 @@ class _AvailableProductDetailScreenState
                                             width: 100,
                                             child: TextField(
                                               controller: _minLimitController,
-                                              keyboardType: TextInputType.number,
+                                              keyboardType:
+                                                  TextInputType.number,
                                               decoration: InputDecoration(
                                                 isDense: true,
                                                 border: OutlineInputBorder(
-                                                  borderRadius: BorderRadius.circular(6),
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
                                                 ),
-                                                contentPadding: const EdgeInsets.symmetric(
-                                                  horizontal: 8,
-                                                  vertical: 6,
-                                                ),
+                                                contentPadding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 6,
+                                                    ),
                                               ),
                                               style: TextStyle(
                                                 color: primaryTextColor,
@@ -619,8 +691,11 @@ class _AvailableProductDetailScreenState
                                               vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.green.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(16),
+                                              color: Colors.green.withOpacity(
+                                                0.1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
                                             ),
                                             child: Text(
                                               _minLimitController.text,
@@ -647,7 +722,8 @@ class _AvailableProductDetailScreenState
                                             }
                                           }
                                           setState(() {
-                                            _minLimitController.text = minLimit.toString();
+                                            _minLimitController.text = minLimit
+                                                .toString();
                                             _editingMinLimit = false;
                                           });
                                         },
@@ -655,7 +731,9 @@ class _AvailableProductDetailScreenState
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
                                             color: Colors.red.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(6),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
                                           ),
                                           child: Icon(
                                             Icons.close,
@@ -669,7 +747,11 @@ class _AvailableProductDetailScreenState
                                       onTap: () {
                                         if (_editingMinLimit) {
                                           // Save the new min limit
-                                          final newMinLimit = int.tryParse(_minLimitController.text) ?? 0;
+                                          final newMinLimit =
+                                              int.tryParse(
+                                                _minLimitController.text,
+                                              ) ??
+                                              0;
                                           if (newMinLimit >= 0) {
                                             // Find the batch that stores minLimit and update it
                                             BoughtProduct? batchWithMinLimit;
@@ -679,38 +761,58 @@ class _AvailableProductDetailScreenState
                                                 break;
                                               }
                                             }
-                                            
+
                                             // If no batch has minLimit, use the first one
-                                            batchWithMinLimit ??= _allBatches.isNotEmpty ? _allBatches.first : null;
-                                            
+                                            batchWithMinLimit ??=
+                                                _allBatches.isNotEmpty
+                                                ? _allBatches.first
+                                                : null;
+
                                             if (batchWithMinLimit != null) {
                                               FirebaseFirestore.instance
-                                                  .collection('purchased-products')
+                                                  .collection(
+                                                    'purchased-products',
+                                                  )
                                                   .doc(widget.userId)
                                                   .collection('items')
                                                   .doc(batchWithMinLimit.id)
-                                                  .update({'minLimit': newMinLimit})
+                                                  .update({
+                                                    'minLimit': newMinLimit,
+                                                  })
                                                   .then((_) {
-                                                setState(() {
-                                                  _editingMinLimit = false;
-                                                });
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text('Minimum limit updated'),
-                                                  ),
-                                                );
-                                              }).catchError((e) {
-                                                ScaffoldMessenger.of(context).showSnackBar(
-                                                  SnackBar(
-                                                    content: Text('Error: $e'),
-                                                  ),
-                                                );
-                                              });
+                                                    setState(() {
+                                                      _editingMinLimit = false;
+                                                    });
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      const SnackBar(
+                                                        content: Text(
+                                                          'Minimum limit updated',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  })
+                                                  .catchError((e) {
+                                                    ScaffoldMessenger.of(
+                                                      context,
+                                                    ).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text(
+                                                          'Error: $e',
+                                                        ),
+                                                      ),
+                                                    );
+                                                  });
                                             }
                                           } else {
-                                            ScaffoldMessenger.of(context).showSnackBar(
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
                                               const SnackBar(
-                                                content: Text('Enter a valid number'),
+                                                content: Text(
+                                                  'Enter a valid number',
+                                                ),
                                               ),
                                             );
                                           }
@@ -724,10 +826,14 @@ class _AvailableProductDetailScreenState
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
                                           color: Colors.blue.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
                                         ),
                                         child: Icon(
-                                          _editingMinLimit ? Icons.check : Icons.edit,
+                                          _editingMinLimit
+                                              ? Icons.check
+                                              : Icons.edit,
                                           color: Colors.blue[600],
                                           size: 18,
                                         ),
@@ -1000,20 +1106,33 @@ class _AvailableProductDetailScreenState
                                                                 });
                                                               },
                                                               child: Container(
-                                                                padding: const EdgeInsets.symmetric(
-                                                                  horizontal: 12,
-                                                                  vertical: 8,
-                                                                ),
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          12,
+                                                                      vertical:
+                                                                          8,
+                                                                    ),
                                                                 decoration: BoxDecoration(
-                                                                  color: Colors.blue.withOpacity(0.1),
+                                                                  color: Colors
+                                                                      .blue
+                                                                      .withOpacity(
+                                                                        0.1,
+                                                                      ),
                                                                   border: Border.all(
-                                                                    color: Colors.blue,
+                                                                    color: Colors
+                                                                        .blue,
                                                                     width: 1.5,
                                                                   ),
-                                                                  borderRadius: BorderRadius.circular(6),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        6,
+                                                                      ),
                                                                 ),
                                                                 child: Row(
-                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min,
                                                                   children: [
                                                                     Text(
                                                                       '${batch.quantity} ${batch.unit}',
@@ -1021,15 +1140,17 @@ class _AvailableProductDetailScreenState
                                                                         color: Colors
                                                                             .blue[400],
                                                                         fontWeight:
-                                                                            FontWeight
-                                                                                .w600,
+                                                                            FontWeight.w600,
                                                                         fontSize:
                                                                             16,
                                                                       ),
                                                                     ),
-                                                                    const SizedBox(width: 8),
+                                                                    const SizedBox(
+                                                                      width: 8,
+                                                                    ),
                                                                     Icon(
-                                                                      Icons.edit,
+                                                                      Icons
+                                                                          .edit,
                                                                       color: Colors
                                                                           .blue,
                                                                       size: 20,
@@ -1228,20 +1349,33 @@ class _AvailableProductDetailScreenState
                                                                 });
                                                               },
                                                               child: Container(
-                                                                padding: const EdgeInsets.symmetric(
-                                                                  horizontal: 12,
-                                                                  vertical: 8,
-                                                                ),
+                                                                padding:
+                                                                    const EdgeInsets.symmetric(
+                                                                      horizontal:
+                                                                          12,
+                                                                      vertical:
+                                                                          8,
+                                                                    ),
                                                                 decoration: BoxDecoration(
-                                                                  color: Colors.blue.withOpacity(0.1),
+                                                                  color: Colors
+                                                                      .blue
+                                                                      .withOpacity(
+                                                                        0.1,
+                                                                      ),
                                                                   border: Border.all(
-                                                                    color: Colors.blue,
+                                                                    color: Colors
+                                                                        .blue,
                                                                     width: 1.5,
                                                                   ),
-                                                                  borderRadius: BorderRadius.circular(6),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        6,
+                                                                      ),
                                                                 ),
                                                                 child: Row(
-                                                                  mainAxisSize: MainAxisSize.min,
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min,
                                                                   children: [
                                                                     Text(
                                                                       '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
@@ -1249,15 +1383,17 @@ class _AvailableProductDetailScreenState
                                                                         color: Colors
                                                                             .green[400],
                                                                         fontWeight:
-                                                                            FontWeight
-                                                                                .w600,
+                                                                            FontWeight.w600,
                                                                         fontSize:
                                                                             16,
                                                                       ),
                                                                     ),
-                                                                    const SizedBox(width: 8),
+                                                                    const SizedBox(
+                                                                      width: 8,
+                                                                    ),
                                                                     Icon(
-                                                                      Icons.edit,
+                                                                      Icons
+                                                                          .edit,
                                                                       color: Colors
                                                                           .blue,
                                                                       size: 20,

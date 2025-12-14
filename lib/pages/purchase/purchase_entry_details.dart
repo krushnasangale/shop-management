@@ -123,7 +123,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
         double newTotalAmount = 0;
         int newTotalUnits = 0;
         int newTotalProducts = remainingItems.docs.length;
-        
+
         for (var doc in remainingItems.docs) {
           final total = (doc['total'] ?? 0) as num;
           final quantity = (doc['initialQuantity'] ?? 0) as num;
@@ -209,13 +209,10 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
   Widget build(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-    
-    // Calculate total amount dynamically from items
-    double totalAmount = 0;
-    for (var item in _items) {
-      final itemTotal = (item['total'] ?? 0) as num;
-      totalAmount += itemTotal.toDouble();
-    }
+
+    // Use totalAmount and totalUnits from the purchase record (widget.entry)
+    final totalAmount = (widget.entry['totalAmount'] ?? 0) as num;
+    final totalUnits = (widget.entry['totalUnits'] ?? 0) as num;
 
     if (_isLoading) {
       return Scaffold(
@@ -285,7 +282,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              'Items Count',
+                              'Total Units',
                               style: TextStyle(
                                 color: secondaryTextColor,
                                 fontSize: 12,
@@ -293,7 +290,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '${_items.length}',
+                              '$totalUnits',
                               style: TextStyle(
                                 color: primaryTextColor,
                                 fontWeight: FontWeight.w600,
@@ -322,14 +319,15 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               final index = mapEntry.key;
               final item = mapEntry.value;
               final productName = item['productName'] ?? 'Unknown';
-              final quantity = item['initialQuantity'] ?? 0;
+              final quantity = item['initialQuantity'] ?? 0; // Use current quantity
               final buyingPrice =
                   item['buyingPrice'] ?? 0; // Buying price never changes
               final sellingPrice =
                   item['sellingPrice'] ??
                   0; // Selling price at time of purchase
               final unit = item['unit'] ?? '';
-              final total = item['total'] ?? 0;
+              final total =
+                  quantity * buyingPrice; // Calculate from current quantity
               final batchId = item['batchId'] as String?;
               final profitMargin = (sellingPrice - buyingPrice)
                   .toDouble(); // Calculate from prices
@@ -346,9 +344,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
