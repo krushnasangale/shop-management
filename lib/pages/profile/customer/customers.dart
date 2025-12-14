@@ -16,16 +16,25 @@ class _CustomersState extends State<Customers> {
   List<Map<String, dynamic>> _customers = [];
   bool _isLoading = true;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _customersSubscription;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _showSearchBar = false;
 
   @override
   void initState() {
     super.initState();
     _loadCustomers();
+    _searchController.addListener(() {
+      setState(() {
+        _searchQuery = _searchController.text.toLowerCase();
+      });
+    });
   }
 
   @override
   void dispose() {
     _customersSubscription?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -82,29 +91,100 @@ class _CustomersState extends State<Customers> {
     }
   }
 
+  List<Map<String, dynamic>> get _filteredCustomers {
+    if (_searchQuery.isEmpty) {
+      return _customers;
+    }
+    return _customers.where((customer) {
+      final name = customer['name'].toString().toLowerCase();
+      return name.contains(_searchQuery);
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Customers')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _customers.isEmpty
-          ? const Center(child: Text('No customers added yet'))
-          : ListView.builder(
-              padding: const EdgeInsets.all(8),
-              itemCount: _customers.length,
-              itemBuilder: (context, index) {
-                final customer = _customers[index];
-                final initials = _getInitials(customer['name']);
-                final avatarColor = _getAvatarColor(index);
-                return _buildCustomerCard(
-                  context,
-                  customer,
-                  initials,
-                  avatarColor,
-                );
-              },
+      appBar: AppBar(
+        title: const Text('Customers'),
+        actions: [
+          IconButton(
+            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _showSearchBar = !_showSearchBar;
+                if (!_showSearchBar) {
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (_showSearchBar)
+            Padding(
+              padding: const EdgeInsets.only(
+                left: 14.0,
+                right: 14.0,
+                top: 8.0,
+              ),
+              child: Card(
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search Customers...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          )
+                        : null,
+                    filled: false,
+                    fillColor: Theme.of(
+                      context,
+                    ).inputDecorationTheme.fillColor,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
             ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _filteredCustomers.isEmpty
+                    ? Center(
+                        child: Text(
+                          _searchQuery.isEmpty
+                              ? 'No customers added yet'
+                              : 'No customers found',
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(8),
+                        itemCount: _filteredCustomers.length,
+                        itemBuilder: (context, index) {
+                          final customer = _filteredCustomers[index];
+                          final initials = _getInitials(customer['name']);
+                          final avatarColor = _getAvatarColor(index);
+                          return _buildCustomerCard(
+                            context,
+                            customer,
+                            initials,
+                            avatarColor,
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddEditDialog(context),
         child: const Icon(Icons.add),
