@@ -21,11 +21,7 @@ class Supplier {
 
   // Convert Supplier to Map for Firebase
   Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'contact': contact,
-      'location': location,
-    };
+    return {'name': name, 'contact': contact, 'location': location};
   }
 
   // Create Supplier from Map
@@ -53,7 +49,9 @@ class _SuppliersState extends State<Suppliers> {
   bool _isLoading = true;
   String _searchQuery = '';
   late TextEditingController _searchController;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _suppliersSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _suppliersSubscription;
+  bool _showSearchBar = false;
 
   // --- Random Color Generator for Avatar Initials ---
   final Random _random = Random();
@@ -99,10 +97,12 @@ class _SuppliersState extends State<Suppliers> {
         _filteredSuppliers = _suppliers;
       } else {
         _filteredSuppliers = _suppliers
-            .where((supplier) =>
-                supplier.name.toLowerCase().contains(_searchQuery) ||
-                supplier.contact.toLowerCase().contains(_searchQuery) ||
-                supplier.location.toLowerCase().contains(_searchQuery))
+            .where(
+              (supplier) =>
+                  supplier.name.toLowerCase().contains(_searchQuery) ||
+                  supplier.contact.toLowerCase().contains(_searchQuery) ||
+                  supplier.location.toLowerCase().contains(_searchQuery),
+            )
             .toList();
       }
     });
@@ -129,19 +129,19 @@ class _SuppliersState extends State<Suppliers> {
         .collection('items')
         .snapshots()
         .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
-      if (!mounted) return;
-      
-      final loadedSuppliers = snapshot.docs
-          .map((doc) => Supplier.fromMap(doc.id, doc.data()))
-          .toList();
-      if (mounted) {
-        setState(() {
-          _suppliers = loadedSuppliers;
-          _filterSuppliers();
-          _isLoading = false;
+          if (!mounted) return;
+
+          final loadedSuppliers = snapshot.docs
+              .map((doc) => Supplier.fromMap(doc.id, doc.data()))
+              .toList();
+          if (mounted) {
+            setState(() {
+              _suppliers = loadedSuppliers;
+              _filterSuppliers();
+              _isLoading = false;
+            });
+          }
         });
-      }
-    });
   }
 
   @override
@@ -156,53 +156,76 @@ class _SuppliersState extends State<Suppliers> {
               Navigator.of(context).pop();
             },
           ),
+          actions: [
+            IconButton(
+              icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+              onPressed: () {
+                setState(() {
+                  _showSearchBar = !_showSearchBar;
+                  if (!_showSearchBar) {
+                    _searchController.clear();
+                  }
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
         body: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 children: [
                   // --- Search Bar ---
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 16.0,
-                      right: 16.0,
-                      bottom: 8.0,
-                    ),
-                    child: Card(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'Search Suppliers...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                  },
-                                )
-                              : null,
-                          filled: false,
-                          fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                            borderSide: BorderSide.none,
+                  if (_showSearchBar)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        left: 14.0,
+                        right: 14.0,
+                        bottom: 8.0,
+                        top: 8.0,
+                      ),
+                      child: Card(
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Search Suppliers...',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                    },
+                                  )
+                                : null,
+                            filled: false,
+                            fillColor: Theme.of(
+                              context,
+                            ).inputDecorationTheme.fillColor,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide.none,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
 
                   // --- Suppliers List ---
                   Expanded(
                     child: _filteredSuppliers.isEmpty
                         ? Center(
-                            child: Text(_searchQuery.isEmpty
-                                ? 'No suppliers yet. Add one to get started!'
-                                : 'No suppliers found for "$_searchQuery"'),
+                            child: Text(
+                              _searchQuery.isEmpty
+                                  ? 'No suppliers yet. Add one to get started!'
+                                  : 'No suppliers found for "$_searchQuery"',
+                            ),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                              vertical: !_showSearchBar ? 8.0 : 0.0,
+                            ),
                             itemCount: _filteredSuppliers.length,
                             itemBuilder: (context, index) {
                               final supplier = _filteredSuppliers[index];
@@ -327,25 +350,19 @@ class _SuppliersState extends State<Suppliers> {
                   onPressed: () => _showSupplierHistory(supplier),
                   icon: const Icon(Icons.history, size: 18),
                   label: const Text('History'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.green,
-                  ),
+                  style: TextButton.styleFrom(foregroundColor: Colors.green),
                 ),
                 TextButton.icon(
                   onPressed: () => _editSupplier(supplier),
                   icon: const Icon(Icons.edit, size: 18),
                   label: const Text('Edit'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.blue,
-                  ),
+                  style: TextButton.styleFrom(foregroundColor: Colors.blue),
                 ),
                 TextButton.icon(
                   onPressed: () => _showDeleteConfirmation(supplier),
                   icon: const Icon(Icons.delete, size: 18),
                   label: const Text('Delete'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red,
-                  ),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
                 ),
               ],
             ),
@@ -365,13 +382,29 @@ class _SuppliersState extends State<Suppliers> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Add Supplier', style: TextStyle(color: primaryTextColor),),
+          title: Text(
+            'Add Supplier',
+            style: TextStyle(color: primaryTextColor),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              buildFormField('Supplier Name', 'Enter Supplier Name', nameController),
-              buildFormField('Supplier Contact', 'Enter Contact Number', contactController, keyboardType: TextInputType.phone),
-              buildFormField('Supplier Location', 'Enter Location', locationController),
+              buildFormField(
+                'Supplier Name',
+                'Enter Supplier Name',
+                nameController,
+              ),
+              buildFormField(
+                'Supplier Contact',
+                'Enter Contact Number',
+                contactController,
+                keyboardType: TextInputType.phone,
+              ),
+              buildFormField(
+                'Supplier Location',
+                'Enter Location',
+                locationController,
+              ),
             ],
           ),
           actions: [
@@ -399,7 +432,9 @@ class _SuppliersState extends State<Suppliers> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text('Add', style: TextStyle(color: Colors.white)),
             ),
@@ -436,13 +471,16 @@ class _SuppliersState extends State<Suppliers> {
             ),
             child: Builder(
               builder: (context) {
-                final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+                final isDarkMode =
+                    Theme.of(context).brightness == Brightness.dark;
                 return TextFormField(
                   onTap: onTap,
                   controller: controller,
                   keyboardType: keyboardType,
                   maxLines: maxLines,
-                  textCapitalization: keyboardType == TextInputType.phone ? TextCapitalization.none : TextCapitalization.characters,
+                  textCapitalization: keyboardType == TextInputType.phone
+                      ? TextCapitalization.none
+                      : TextCapitalization.characters,
                   onChanged: (value) {
                     // Only apply uppercase conversion for name and location (not phone)
                     if (keyboardType != TextInputType.phone) {
@@ -475,7 +513,7 @@ class _SuppliersState extends State<Suppliers> {
                         : null,
                   ),
                 );
-              }
+              },
             ),
           ),
         ],
@@ -493,13 +531,29 @@ class _SuppliersState extends State<Suppliers> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Edit Supplier', style: TextStyle(color: primaryTextColor),),
+          title: Text(
+            'Edit Supplier',
+            style: TextStyle(color: primaryTextColor),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              buildFormField('Supplier Name', 'Enter Supplier Name', nameController),
-              buildFormField('Supplier Contact', 'Enter Contact Number', contactController, keyboardType: TextInputType.phone),
-              buildFormField('Supplier Location', 'Enter Location', locationController),
+              buildFormField(
+                'Supplier Name',
+                'Enter Supplier Name',
+                nameController,
+              ),
+              buildFormField(
+                'Supplier Contact',
+                'Enter Contact Number',
+                contactController,
+                keyboardType: TextInputType.phone,
+              ),
+              buildFormField(
+                'Supplier Location',
+                'Enter Location',
+                locationController,
+              ),
             ],
           ),
           actions: [
@@ -518,16 +572,18 @@ class _SuppliersState extends State<Suppliers> {
                       .collection('items')
                       .doc(supplier.id)
                       .update({
-                    'name': nameController.text,
-                    'contact': contactController.text,
-                    'location': locationController.text,
-                  });
+                        'name': nameController.text,
+                        'contact': contactController.text,
+                        'location': locationController.text,
+                      });
                   if (mounted) Navigator.pop(context);
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text('Save', style: TextStyle(color: Colors.white)),
             ),
@@ -555,7 +611,10 @@ class _SuppliersState extends State<Suppliers> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Delete Supplier', style: TextStyle(color: primaryTextColor),),
+          title: Text(
+            'Delete Supplier',
+            style: TextStyle(color: primaryTextColor),
+          ),
           content: Text('Are you sure you want to delete ${supplier.name}?'),
           actions: [
             TextButton(
@@ -574,9 +633,14 @@ class _SuppliersState extends State<Suppliers> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+              child: const Text(
+                'Delete',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -584,4 +648,3 @@ class _SuppliersState extends State<Suppliers> {
     );
   }
 }
-
