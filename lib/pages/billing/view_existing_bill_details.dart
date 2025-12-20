@@ -71,38 +71,22 @@ class ViewBillDetailsScreen extends StatefulWidget {
 }
 
 class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
-  // --- STATE VARIABLES (Simulated Data) ---
-  // Note: In a real app, this data would come from a database query.
   late String billId;
   late String billDate;
   late String customerName;
   late String customerMobile;
   String? customerVehicle;
-  List<Map<String, String>> products = const [
-    {'name': 'Product Alpha', 'qty': '5', 'price': '₹ 5,000'},
-    {'name': 'Service Beta', 'qty': '2', 'price': '₹ 1,500'},
-    {'name': 'Component Gamma', 'qty': '10', 'price': '₹ 3,500'},
-  ];
-  String totalItems = '17';
+  List<Map<String, String>> products = const [];
+  String totalItems = '0';
   late String totalAmount;
   late String amountPaid;
   late String amountRemaining;
-  String paymentStatus = 'Partially Paid';
-
-  // New state variable for the boolean status
+  String paymentStatus = '';
   bool isTotalAmountPaid = false;
-
-  // Payment records
   List<PaymentRecord> paymentRecords = [];
-
-  // Profit calculation
   double totalProfit = 0;
-
-  // Discount
   int discount = 0;
-
-  // Payment method
-  late String paymentMethod; // Next payment date for partial payments
+  late String paymentMethod;
   String? nextPaymentDate;
   late TextEditingController _nextPaymentDateController;
 
@@ -125,9 +109,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     amountPaid = '₹ ${widget.amountPaid.toString()}';
     amountRemaining = '₹ ${widget.amountRemaining.toString()}';
 
-    // Load discount from Firebase
-    _loadDiscount();
-
     // Convert products if provided
     if (widget.products != null && widget.products!.isNotEmpty) {
       products = widget.products!
@@ -138,31 +119,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               'price': '₹ ${(p['price'] ?? 0).toString()}',
               'boughtPrice': '₹ ${(p['boughtPrice'] ?? 0).toString()}',
               'batchId': (p['batchId'] as String?) ?? '',
-              'profitMargin':
-                  (p['profitMargin'] as num?)?.toStringAsFixed(2) ?? '0.00',
+              'profitTotal':
+                  (p['profitTotal'] as num?)?.toStringAsFixed(2) ?? '0.00',
             },
           )
           .toList();
       totalItems = widget.products!.length.toString();
 
       // Calculate total profit using batch profit data if available
-      totalProfit = 0;
-      for (var product in widget.products!) {
-        final quantity = (product['quantity'] ?? 0).toDouble();
-        final sellingPrice = (product['price'] ?? 0).toDouble();
-        final boughtPrice = (product['boughtPrice'] ?? 0).toDouble();
-
-        // Use stored profitTotal if available (new batch system), else calculate
-        final profitTotal = product['profitTotal'];
-        if (profitTotal != null) {
-          // Use stored profit from batch system (accurate per batch)
-          totalProfit += (profitTotal as num).toDouble();
-        } else {
-          // Fallback: calculate from prices (legacy bills)
-          final profit = (sellingPrice - boughtPrice) * quantity;
-          totalProfit += profit;
-        }
-      }
+      // Discount will be subtracted after loading from Firebase
+      totalProfit = _calculateBaseProfit();
     } else {
       products = [];
       totalItems = '0';
@@ -178,7 +144,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       paymentStatus = 'Partially Paid';
     }
 
-    // Load payment records from Firebase
+    // Load discount and payment records from Firebase
     _loadPaymentRecords();
     _loadDiscount();
   }
@@ -238,7 +204,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         final loadedDiscount = (data?['discount'] as num?)?.toInt() ?? 0;
         setState(() {
           discount = loadedDiscount;
-          // Recalculate profit with discount subtracted
+          // Recalculate profit with discount subtracted from base profit
+          // Formula: Profit = Base Profit (already calculated from products) - Total Discount
           totalProfit = _calculateBaseProfit() - loadedDiscount;
         });
       }
@@ -2104,8 +2071,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             const SizedBox(height: 12),
             ...products.map((product) {
               final batchId = product['batchId']?.toString() ?? '';
-              final profitMargin =
-                  product['profitMargin']?.toString() ?? '0.00';
+              final profitTotal =
+                  product['profitTotal']?.toString() ?? '0.00';
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -2193,11 +2160,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             fontSize: 12,
                           ),
                         ),
-                        if (profitMargin != '0.00')
+                        if (profitTotal != '0.00')
                           Text(
-                            'Profit/unit: ₹$profitMargin',
+                            'Profit/unit: ₹$profitTotal',
                             style: TextStyle(
-                              color: double.parse(profitMargin) >= 0
+                              color: double.parse(profitTotal) >= 0
                                   ? Colors.green[600]
                                   : Colors.red[600],
                               fontSize: 12,
