@@ -223,15 +223,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         final sellingPrice = (product['price'] ?? 0).toDouble();
         final boughtPrice = (product['boughtPrice'] ?? 0).toDouble();
 
-        // Use stored profitTotal if available (new batch system), else calculate
-        final profitTotal = product['profitTotal'];
-        if (profitTotal != null) {
-          baseProfit += (profitTotal as num).toDouble();
-        } else {
-          // Fallback: calculate from prices (legacy bills)
-          final profit = (sellingPrice - boughtPrice) * quantity;
-          baseProfit += profit;
-        }
+        // Always calculate profit from prices (not from stored profitTotal)
+        final profit = (sellingPrice - boughtPrice) * quantity;
+        baseProfit += profit;
       }
     }
     return baseProfit;
@@ -2065,126 +2059,227 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               style: TextStyle(
                 color: primaryTextColor,
                 fontWeight: FontWeight.bold,
-                fontSize: 16,
+                fontSize: 18,
               ),
             ),
-            const SizedBox(height: 12),
-            ...products.map((product) {
+            const SizedBox(height: 16),
+            ...products.asMap().entries.map((entry) {
+              final index = entry.key;
+              final product = entry.value;
               final batchId = product['batchId']?.toString() ?? '';
-              final profitTotal =
-                  product['profitTotal']?.toString() ?? '0.00';
+              final quantity = double.tryParse(product['qty'] ?? '0') ?? 0;
+              
+              // Calculate profit per unit from prices
+              final sellingPrice = double.tryParse(
+                product['price']?.toString().replaceAll('₹', '').trim() ?? '0',
+              ) ?? 0;
+              final boughtPrice = double.tryParse(
+                product['boughtPrice']?.toString().replaceAll('₹', '').trim() ?? '0',
+              ) ?? 0;
+              final profitPerUnit = sellingPrice - boughtPrice;
+              final totalSellingPrice = sellingPrice * quantity;
+              final totalProfit = profitPerUnit * quantity;
 
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10.0),
-                child: Column(
-                  children: [
-                    // Product Name and Selling Price in Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              return Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12.0),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.blue.withOpacity(0.15),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            product['name']!,
-                            style: TextStyle(
-                              color: primaryTextColor,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
+                        // Header: Product Number and Name
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Selling Price',
-                              style: TextStyle(
-                                color: secondaryTextColor,
-                                fontSize: 11,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '#${index + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
                               ),
                             ),
-                            Text(
-                              product['price']!,
-                              style: TextStyle(
-                                color: primaryTextColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                product['name']!,
+                                style: TextStyle(
+                                  color: primaryTextColor,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    // Batch Badge
-                    if (batchId.isNotEmpty)
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            'Batch: ${batchId.substring(0, 8)}...',
-                            style: TextStyle(
-                              color: Colors.purple[600],
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
+                        const SizedBox(height: 10),
+
+                        // Batch Badge
+                        if (batchId.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: Colors.purple.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Text(
+                                'Batch: ${batchId.substring(0, 8)}...',
+                                style: TextStyle(
+                                  color: Colors.purple[700],
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                    const SizedBox(height: 6),
-                    // Details Row: Qty, Buying Price, Profit
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Qty: ${product['qty']!}',
-                          style: TextStyle(
-                            color: secondaryTextColor,
-                            fontSize: 12,
+
+                        // First row: Quantity | Selling Price | Buying Price
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildProductInfoBox(
+                                'Qty',
+                                '${quantity.toInt()} units',
+                                Colors.blue,
+                                secondaryTextColor,
+                              ),
+                              _buildProductInfoBox(
+                                'Selling Price',
+                                product['price']!,
+                                Colors.green,
+                                secondaryTextColor,
+                              ),
+                              _buildProductInfoBox(
+                                'Buying Price',
+                                product['boughtPrice']!,
+                                Colors.orange,
+                                secondaryTextColor,
+                              ),
+                            ],
                           ),
                         ),
-                        Text(
-                          'Buying Price: ${product['boughtPrice']!}',
-                          style: TextStyle(
-                            color: Colors.orange[700],
-                            fontSize: 12,
+                        Divider(
+                          color: Colors.grey.withOpacity(0.2),
+                          height: 16,
+                        ),
+
+                        // Second row: Total Selling | Profit Per Unit | Total Profit
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildProductInfoBox(
+                                'Total Selling',
+                                '₹${totalSellingPrice.toStringAsFixed(0)}',
+                                Colors.green,
+                                secondaryTextColor,
+                              ),
+                              _buildProductInfoBox(
+                                'Profit/Unit',
+                                '₹${profitPerUnit.toStringAsFixed(2)}',
+                                profitPerUnit >= 0 ? Colors.green : Colors.red,
+                                secondaryTextColor,
+                              ),
+                              _buildProductInfoBox(
+                                'Total Profit',
+                                '₹${totalProfit.toStringAsFixed(0)}',
+                                totalProfit >= 0 ? Colors.green : Colors.red,
+                                secondaryTextColor,
+                              ),
+                            ],
                           ),
                         ),
-                        if (profitTotal != '0.00')
-                          Text(
-                            'Profit/unit: ₹$profitTotal',
-                            style: TextStyle(
-                              color: double.parse(profitTotal) >= 0
-                                  ? Colors.green[600]
-                                  : Colors.red[600],
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
                       ],
                     ),
-                    if (products.last != product)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 10.0),
-                        child: Divider(
-                          color: secondaryTextColor?.withOpacity(0.2),
-                          height: 1,
-                        ),
+                  ),
+                  if (index < products.length - 1)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: Divider(
+                        color: secondaryTextColor?.withOpacity(0.1),
+                        height: 1,
                       ),
-                  ],
-                ),
+                    )
+                  else
+                    const SizedBox(height: 8),
+                ],
               );
-            }),
+            }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProductInfoBox(
+    String label,
+    String value,
+    Color accentColor,
+    Color? secondaryTextColor,
+  ) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: accentColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: accentColor.withOpacity(0.2),
+            width: 0.5,
+          ),
+        ),
+        child: Column(
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: secondaryTextColor,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                color: accentColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),
