@@ -2080,160 +2080,163 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               final totalSellingPrice = sellingPrice * quantity;
               final totalProfit = profitPerUnit * quantity;
 
-              return Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.03),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                  ),
+                  child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    backgroundColor: Colors.blue.withOpacity(0.02),
+                    collapsedBackgroundColor: Colors.blue.withOpacity(0.02),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
+                      side: BorderSide(
                         color: Colors.blue.withOpacity(0.15),
                         width: 1,
                       ),
                     ),
-                    child: Column(
+                    collapsedShape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(
+                        color: Colors.blue.withOpacity(0.15),
+                        width: 1,
+                      ),
+                    ),
+                    title: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header: Product Number and Name
                         Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                                horizontal: 6,
                                 vertical: 2,
                               ),
                               decoration: BoxDecoration(
                                 color: Colors.blue,
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(3),
                               ),
                               child: Text(
                                 '#${index + 1}',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 product['name']!,
                                 style: TextStyle(
                                   color: primaryTextColor,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                maxLines: 2,
+                                maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 10),
-
-                        // Batch Badge
-                        if (batchId.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.purple.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(
-                                  color: Colors.purple.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Text(
-                                'Batch: ${batchId.substring(0, 8)}...',
-                                style: TextStyle(
-                                  color: Colors.purple[700],
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        const SizedBox(height: 6),
+                        // Tile: Show only Qty and Total Selling Price
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Qty: ${quantity.toInt()}',
+                              style: TextStyle(
+                                color: secondaryTextColor,
+                                fontSize: 12,
                               ),
                             ),
-                          ),
-
-                        // First row: Quantity | Selling Price | Buying Price
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildProductInfoBox(
-                                'Qty',
-                                '${quantity.toInt()} units',
-                                Colors.blue,
-                                secondaryTextColor,
+                            Text(
+                              'Total: ₹${totalSellingPrice.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                color: Colors.green[700],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
                               ),
-                              _buildProductInfoBox(
-                                'Selling Price',
-                                product['price']!,
-                                Colors.green,
-                                secondaryTextColor,
-                              ),
-                              _buildProductInfoBox(
-                                'Buying Price',
-                                product['boughtPrice']!,
-                                Colors.orange,
-                                secondaryTextColor,
-                              ),
-                            ],
-                          ),
-                        ),
-                        Divider(
-                          color: Colors.grey.withOpacity(0.2),
-                          height: 16,
-                        ),
-
-                        // Second row: Total Selling | Profit Per Unit | Total Profit
-                        Container(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              _buildProductInfoBox(
-                                'Total Selling',
-                                '₹${totalSellingPrice.toStringAsFixed(0)}',
-                                Colors.green,
-                                secondaryTextColor,
-                              ),
-                              _buildProductInfoBox(
-                                'Profit/Unit',
-                                '₹${profitPerUnit.toStringAsFixed(2)}',
-                                profitPerUnit >= 0 ? Colors.green : Colors.red,
-                                secondaryTextColor,
-                              ),
-                              _buildProductInfoBox(
-                                'Total Profit',
-                                '₹${totalProfit.toStringAsFixed(0)}',
-                                totalProfit >= 0 ? Colors.green : Colors.red,
-                                secondaryTextColor,
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ),
-                  if (index < products.length - 1)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12.0),
-                      child: Divider(
-                        color: secondaryTextColor?.withOpacity(0.1),
-                        height: 1,
+                    children: [
+                      // Expanded details
+                      Divider(color: Colors.grey.withOpacity(0.2), height: 12),
+                      const SizedBox(height: 8),
+                      
+                      if (batchId.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: Colors.purple.withOpacity(0.3),
+                              ),
+                            ),
+                            child: Text(
+                              'Batch: ${batchId.substring(0, 8)}...',
+                              style: TextStyle(
+                                color: Colors.purple[700],
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // Expanded info: Selling Price, Buying Price, Profit Per Unit, Total Profit
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildDetailBox(
+                            'Selling Price',
+                            product['price']!,
+                            Colors.green,
+                            secondaryTextColor,
+                          ),
+                          _buildDetailBox(
+                            'Buying Price',
+                            product['boughtPrice']!,
+                            Colors.orange,
+                            secondaryTextColor,
+                          ),
+                        ],
                       ),
-                    )
-                  else
-                    const SizedBox(height: 8),
-                ],
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildDetailBox(
+                            'Profit Per Unit',
+                            '₹${profitPerUnit.toStringAsFixed(2)}',
+                            profitPerUnit >= 0 ? Colors.green : Colors.red,
+                            secondaryTextColor,
+                          ),
+                          _buildDetailBox(
+                            'Total Profit',
+                            '₹${totalProfit.toStringAsFixed(0)}',
+                            totalProfit >= 0 ? Colors.green : Colors.red,
+                            secondaryTextColor,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               );
             }).toList(),
           ],
@@ -2242,7 +2245,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
-  Widget _buildProductInfoBox(
+  Widget _buildCompactInfoBox(
     String label,
     String value,
     Color accentColor,
@@ -2250,16 +2253,62 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   ) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
           color: accentColor.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(4),
           border: Border.all(
-            color: accentColor.withOpacity(0.2),
+            color: accentColor.withOpacity(0.15),
             width: 0.5,
           ),
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: secondaryTextColor,
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(
+                color: accentColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailBox(
+    String label,
+    String value,
+    Color accentColor,
+    Color? secondaryTextColor,
+  ) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: accentColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: accentColor.withOpacity(0.15),
+            width: 0.5,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               label,
@@ -2274,7 +2323,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               value,
               style: TextStyle(
                 color: accentColor,
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
               maxLines: 1,
