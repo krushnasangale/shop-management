@@ -19,6 +19,7 @@ class BoughtItem {
   final String supplierName;
   final String supplierId;
   final String unit;
+  String? expiryDate;
   final int minLimit;
   int initialQuantity; // Original quantity bought (for purchase history)
   int quantity; // Current quantity (decreases as items are sold)
@@ -30,6 +31,7 @@ class BoughtItem {
     required this.supplierName,
     required this.supplierId,
     required this.unit,
+    this.expiryDate,
     required this.minLimit,
     required this.initialQuantity,
     required this.quantity,
@@ -51,6 +53,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   late TextEditingController _supplierNameController;
   late TextEditingController _productController;
   late TextEditingController _unitController;
+  late TextEditingController _expiryDateController;
   late TextEditingController _quantityController;
   late TextEditingController _buyingPriceController;
   late TextEditingController _sellingPriceController;
@@ -75,6 +78,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _supplierNameController = TextEditingController();
     _productController = TextEditingController();
     _unitController = TextEditingController();
+    _expiryDateController = TextEditingController();
     _quantityController = TextEditingController();
     _buyingPriceController = TextEditingController();
     _sellingPriceController = TextEditingController();
@@ -178,6 +182,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     final sellingPriceController = TextEditingController(
       text: item.sellingPrice.toString(),
     );
+    final expiryDateController = TextEditingController(
+      text: item.expiryDate ?? '',
+    );
 
     showDialog(
       context: context,
@@ -233,6 +240,15 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           fontSize: 14,
                         ),
                       ),
+                      if (item.expiryDate != null &&
+                          item.expiryDate!.isNotEmpty)
+                        Text(
+                          'Expiry Date: ${item.expiryDate}',
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontSize: 14,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -262,6 +278,32 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     border: OutlineInputBorder(),
                   ),
                 ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: expiryDateController,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: 'Expiry Date (Optional)',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: const Icon(Icons.calendar_today_outlined),
+                  ),
+                  onTap: () async {
+                    final DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate:
+                          item.expiryDate != null && item.expiryDate!.isNotEmpty
+                          ? DateFormat('dd/MM/yyyy').parse(item.expiryDate!)
+                          : DateTime.now().add(const Duration(days: 30)),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime(2101),
+                    );
+                    if (pickedDate != null) {
+                      expiryDateController.text = DateFormat(
+                        'dd/MM/yyyy',
+                      ).format(pickedDate);
+                    }
+                  },
+                ),
               ],
             ),
           ),
@@ -282,6 +324,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     item.quantity = quantity;
                     item.buyingPrice = price;
                     item.sellingPrice = sellingPrice;
+                    item.expiryDate = expiryDateController.text.isNotEmpty
+                        ? expiryDateController.text
+                        : null;
                     _calculateTotalBoughtAmount();
                   });
                   Navigator.of(context).pop();
@@ -376,6 +421,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       supplierName: _supplierNameController.text,
       supplierId: _selectedSupplierId,
       unit: _unitController.text,
+      expiryDate: _expiryDateController.text.isNotEmpty
+          ? _expiryDateController.text
+          : null,
       minLimit: minLimit,
       initialQuantity: quantity,
       quantity: quantity,
@@ -391,6 +439,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     // Clear the fields
     _productController.clear();
     _unitController.clear();
+    _expiryDateController.clear();
     _quantityController.clear();
     _buyingPriceController.clear();
     _sellingPriceController.clear();
@@ -1411,6 +1460,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'supplierId': item.supplierId,
           'supplierName': item.supplierName,
           'unit': item.unit,
+          'expiryDate': item.expiryDate ?? '',
           'minLimit': batchMinLimit,
           'initialQuantity': item.initialQuantity,
           'quantity': item.quantity,
@@ -1441,6 +1491,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'supplierId': item.supplierId,
           'supplierName': item.supplierName,
           'unit': item.unit,
+          'expiryDate': item.expiryDate ?? '',
           'quantity': item.initialQuantity,
           'buyingPrice': item.buyingPrice,
           'sellingPrice': item.sellingPrice,
@@ -1483,6 +1534,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           (item) => BoughtItemReview(
             productName: item.productName,
             unit: item.unit,
+            expiryDate: item.expiryDate,
             quantity: item.quantity,
             buyingPrice: item.buyingPrice,
             sellingPrice: item.sellingPrice,
@@ -1510,6 +1562,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _supplierNameController.dispose();
     _productController.dispose();
     _unitController.dispose();
+    _expiryDateController.dispose();
     _quantityController.dispose();
     _buyingPriceController.dispose();
     _sellingPriceController.dispose();
@@ -1609,6 +1662,26 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   suffixIcon: Icons.arrow_drop_down,
                   onTap: () =>
                       _showSelectionSheet('Units', _allUnits, _unitController),
+                  enabled: false,
+                ),
+                // Expiry Date Field
+                buildFormField(
+                  'Expiry Date (Optional)',
+                  _expiryDateController,
+                  suffixIcon: Icons.calendar_today_outlined,
+                  onTap: () async {
+                    final DateTime? pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: DateTime.now().add(const Duration(days: 30)),
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime(2101),
+                    );
+                    if (pickedDate != null) {
+                      _expiryDateController.text = DateFormat(
+                        'dd/MM/yyyy',
+                      ).format(pickedDate);
+                    }
+                  },
                   enabled: false,
                 ),
                 // Quantity Field
@@ -1901,8 +1974,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     Function(String)? onChanged,
     bool enabled = true,
   }) {
-    bool fontSizeSmall = hint == 'Buying Price Per Item' ||
-        hint == 'Selling Price Per Item';
+    bool fontSizeSmall =
+        hint == 'Buying Price Per Item' || hint == 'Selling Price Per Item';
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Column(

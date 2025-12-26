@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class BoughtItemReview {
   final String productName;
   final String unit;
+  final String? expiryDate;
   final int quantity;
   final int buyingPrice;
   final int sellingPrice;
@@ -10,6 +11,7 @@ class BoughtItemReview {
   BoughtItemReview({
     required this.productName,
     required this.unit,
+    this.expiryDate,
     required this.quantity,
     required this.buyingPrice,
     required this.sellingPrice,
@@ -226,6 +228,21 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                           ),
                                         ],
                                       ),
+                                      if (item.expiryDate != null &&
+                                          item.expiryDate!.isNotEmpty) ...[
+                                        const SizedBox(height: 10),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            _buildDetailItem(
+                                              'Expiry Date',
+                                              item.expiryDate!,
+                                              color: Colors.orange[700],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                       const SizedBox(height: 10),
                                       Row(
                                         mainAxisAlignment:

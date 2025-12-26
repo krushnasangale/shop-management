@@ -26,9 +26,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
   bool _isLoading = true;
   bool _showSearchBar = false;
   String _searchQuery = '';
-  String _selectedFilter = 'All'; // 'All', 'Reorder Now', 'Order Soon', 'Well Stocked'
+  String _selectedFilter =
+      'All'; // 'All', 'Reorder Now', 'Order Soon', 'Well Stocked'
   late TextEditingController _searchController;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _productsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _productsSubscription;
   String _shopName = '--';
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
 
@@ -90,20 +92,20 @@ class _AvailableProductsState extends State<AvailableProducts> {
         .collection('items')
         .snapshots()
         .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
-      if (!mounted) return;
+          if (!mounted) return;
 
-      final loadedProducts = snapshot.docs
-          .map((doc) => BoughtProduct.fromMap(doc.id, doc.data()))
-          .toList();
+          final loadedProducts = snapshot.docs
+              .map((doc) => BoughtProduct.fromMap(doc.id, doc.data()))
+              .toList();
 
-      if (mounted) {
-        setState(() {
-          _boughtProducts = loadedProducts;
-          _isLoading = false;
+          if (mounted) {
+            setState(() {
+              _boughtProducts = loadedProducts;
+              _isLoading = false;
+            });
+            _filterProducts();
+          }
         });
-        _filterProducts();
-      }
-    });
   }
 
   void _filterProducts() {
@@ -112,7 +114,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     setState(() {
       // Group products by name and consolidate quantities across all suppliers/batches
       Map<String, List<BoughtProduct>> groupedByName = {};
-      
+
       for (var product in _boughtProducts) {
         if (!groupedByName.containsKey(product.productName)) {
           groupedByName[product.productName] = [];
@@ -135,24 +137,83 @@ class _AvailableProductsState extends State<AvailableProducts> {
       // Apply status filter - check consolidated quantity
       if (_selectedFilter != 'All') {
         filtered = filtered.where((product) {
+          // Handle Expired filter separately
+          if (_selectedFilter == 'Expired') {
+            // Check if product has expiry date and if it's expired
+            if (product.expiryDate == null || product.expiryDate!.isEmpty) {
+              return false; // No expiry date, not expired
+            }
+            try {
+              // Parse the expiry date (format: dd/MM/yyyy)
+              final parts = product.expiryDate!.split('/');
+              if (parts.length == 3) {
+                final day = int.parse(parts[0]);
+                final month = int.parse(parts[1]);
+                final year = int.parse(parts[2]);
+                final expiryDate = DateTime(year, month, day);
+                final now = DateTime.now();
+                final today = DateTime(now.year, now.month, now.day);
+                return expiryDate.isBefore(today); // Expired if before today
+              }
+              return false;
+            } catch (e) {
+              return false; // Invalid date format
+            }
+          }
+
+          // Handle Expiring Soon filter
+          if (_selectedFilter == 'Expiring Soon') {
+            // Check if product has expiry date and if it's expiring within 90 days
+            if (product.expiryDate == null || product.expiryDate!.isEmpty) {
+              return false; // No expiry date
+            }
+            try {
+              // Parse the expiry date (format: dd/MM/yyyy)
+              final parts = product.expiryDate!.split('/');
+              if (parts.length == 3) {
+                final day = int.parse(parts[0]);
+                final month = int.parse(parts[1]);
+                final year = int.parse(parts[2]);
+                final expiryDate = DateTime(year, month, day);
+                final now = DateTime.now();
+                final today = DateTime(now.year, now.month, now.day);
+                final ninetyDaysFromNow = today.add(const Duration(days: 90));
+                // Expiring soon if not yet expired and within 90 days
+                return !expiryDate.isBefore(today) &&
+                    expiryDate.isBefore(ninetyDaysFromNow);
+              }
+              return false;
+            } catch (e) {
+              return false; // Invalid date format
+            }
+          }
+
           // Get all batches for this product
           final allBatches = groupedByName[product.productName] ?? [];
-          
+
           // Filter only available batches (quantity > 0)
-          final availableBatches = allBatches.where((p) => p.quantity > 0).toList();
-          
+          final availableBatches = allBatches
+              .where((p) => p.quantity > 0)
+              .toList();
+
           // Calculate total quantity from available batches only
-          final totalQty = availableBatches.fold(0, (sum, p) => sum + p.quantity);
-          
+          final totalQty = availableBatches.fold(
+            0,
+            (int sum, p) => sum + p.quantity,
+          );
+
           // Get min limit from the one batch that stores it (minLimit > 0)
           final minLimitForStatus = availableBatches.isNotEmpty
-              ? (availableBatches.firstWhere(
-                  (batch) => batch.minLimit > 0,
-                  orElse: () => availableBatches.first,
-                ).minLimit)
+              ? (availableBatches
+                    .firstWhere(
+                      (batch) => batch.minLimit > 0,
+                      orElse: () => availableBatches.first,
+                    )
+                    .minLimit)
               : 0;
-          
-          return _getStockStatus(totalQty, minLimitForStatus) == _selectedFilter;
+
+          return _getStockStatus(totalQty, minLimitForStatus) ==
+              _selectedFilter;
         }).toList();
       }
 
@@ -166,7 +227,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Generate Report', style: TextStyle(color: primaryTextColor),),
+          title: Text(
+            'Generate Report',
+            style: TextStyle(color: primaryTextColor),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -255,10 +319,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
-        await Share.shareXFiles(
-          [XFile(pdfFile.path)],
-          text: 'Available Products Report from $_shopName',
-        );
+        await Share.shareXFiles([
+          XFile(pdfFile.path),
+        ], text: 'Available Products Report from $_shopName');
       }
     } catch (e) {
       if (mounted) {
@@ -278,10 +341,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
       final csvFile = await _generateProductsCSV();
 
       if (mounted) {
-        await Share.shareXFiles(
-          [XFile(csvFile.path)],
-          text: 'Available Products Report (CSV) from $_shopName',
-        );
+        await Share.shareXFiles([
+          XFile(csvFile.path),
+        ], text: 'Available Products Report (CSV) from $_shopName');
       }
     } catch (e) {
       if (mounted) {
@@ -299,7 +361,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final pdf = pw.Document();
     final dir = await getTemporaryDirectory();
     final now = DateTime.now();
-    final dateTimeString = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    final dateTimeString =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
     final file = File('${dir.path}/products_report_$dateTimeString.pdf');
 
     pdf.addPage(
@@ -313,7 +376,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
               // Header
               pw.Text(
                 '$_shopName - Available Products Report',
-                style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 24,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
               pw.SizedBox(height: 10),
               pw.Text(
@@ -338,27 +404,30 @@ class _AvailableProductsState extends State<AvailableProducts> {
                   // Header row
                   pw.TableRow(
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    children: [
-                      'S.No.',
-                      'Product Name',
-                      'Supplier',
-                      'Unit',
-                      'Qty',
-                      'Buying',
-                      'Selling',
-                    ]
-                        .map((header) => pw.Padding(
-                              padding: const pw.EdgeInsets.all(5),
-                              child: pw.Text(
-                                header,
-                                style: pw.TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: pw.FontWeight.bold,
+                    children:
+                        [
+                              'S.No.',
+                              'Product Name',
+                              'Supplier',
+                              'Unit',
+                              'Qty',
+                              'Buying',
+                              'Selling',
+                            ]
+                            .map(
+                              (header) => pw.Padding(
+                                padding: const pw.EdgeInsets.all(5),
+                                child: pw.Text(
+                                  header,
+                                  style: pw.TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                  textAlign: pw.TextAlign.center,
                                 ),
-                                textAlign: pw.TextAlign.center,
                               ),
-                            ))
-                        .toList(),
+                            )
+                            .toList(),
                   ),
                   // Data rows - use filtered products
                   ..._filteredProducts.asMap().entries.map((entry) {
@@ -428,7 +497,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
               pw.SizedBox(height: 20),
               pw.Text(
                 'Total Products: ${_filteredProducts.length}',
-                style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
               ),
             ],
           );
@@ -443,18 +515,23 @@ class _AvailableProductsState extends State<AvailableProducts> {
   Future<File> _generateProductsCSV() async {
     final dir = await getTemporaryDirectory();
     final now = DateTime.now();
-    final dateTimeString = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    final dateTimeString =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
     final file = File('${dir.path}/products_report_$dateTimeString.csv');
 
     // Create CSV header
     final csv = StringBuffer();
-    csv.writeln('S.No.,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Stock Status,Min Limit,Filter Applied: $_selectedFilter');
+    csv.writeln(
+      'S.No.,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Stock Status,Min Limit,Filter Applied: $_selectedFilter',
+    );
 
     // Add product rows - use filtered products
     for (var i = 0; i < _filteredProducts.length; i++) {
       final product = _filteredProducts[i];
       final status = _getStockStatus(product.quantity, product.minLimit);
-      csv.writeln('${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},Rs.${product.buyingPrice.toStringAsFixed(2)},Rs.${product.sellingPrice.toStringAsFixed(2)},"$status",${product.minLimit}');
+      csv.writeln(
+        '${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},Rs.${product.buyingPrice.toStringAsFixed(2)},Rs.${product.sellingPrice.toStringAsFixed(2)},"$status",${product.minLimit}',
+      );
     }
 
     await file.writeAsString(csv.toString());
@@ -557,13 +634,20 @@ class _AvailableProductsState extends State<AvailableProducts> {
             ),
 
           // --- Filter Chips ---
-          if(!_showSearchBar) const SizedBox(height: 5),
+          if (!_showSearchBar) const SizedBox(height: 5),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 2.0,
+            ),
             child: Row(
               children: [
                 _buildFilterChip('All'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Expiring Soon'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Expired'),
                 const SizedBox(width: 8),
                 _buildFilterChip('Reorder Now'),
                 const SizedBox(width: 8),
@@ -603,9 +687,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         });
         _filterProducts();
       },
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: cardColor,
       selectedColor: Colors.blue.withOpacity(0.3),
       side: BorderSide(
@@ -677,6 +759,107 @@ class _AvailableProductsState extends State<AvailableProducts> {
     );
   }
 
+  // Build expiry badge widget
+  Widget? _buildExpiryBadge(List<BoughtProduct> batches) {
+    bool isExpired = false;
+    DateTime? nearestExpiryDate;
+    int? daysUntilExpiry;
+
+    // Check expiry status for all batches
+    for (final batch in batches) {
+      if (batch.expiryDate != null && batch.expiryDate!.isNotEmpty) {
+        try {
+          final parts = batch.expiryDate!.split('/');
+          if (parts.length == 3) {
+            final day = int.parse(parts[0]);
+            final month = int.parse(parts[1]);
+            final year = int.parse(parts[2]);
+            final expiryDate = DateTime(year, month, day);
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+            final sixtyDaysFromNow = today.add(const Duration(days: 90));
+
+            if (expiryDate.isBefore(today)) {
+              isExpired = true;
+              break; // Expired takes priority
+            } else if (expiryDate.isBefore(sixtyDaysFromNow) ||
+                expiryDate.isAtSameMomentAs(today)) {
+              // Track nearest expiry date
+              if (nearestExpiryDate == null ||
+                  expiryDate.isBefore(nearestExpiryDate)) {
+                nearestExpiryDate = expiryDate;
+                daysUntilExpiry = expiryDate.difference(today).inDays;
+              }
+            }
+          }
+        } catch (e) {
+          // Invalid date format, skip
+        }
+      }
+    }
+
+    if (isExpired) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.red.withOpacity(0.15),
+          border: Border.all(color: Colors.red, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.error_outline, size: 14, color: Colors.red[700]),
+            const SizedBox(width: 4),
+            Text(
+              'Expired',
+              style: TextStyle(
+                color: Colors.red[700],
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (nearestExpiryDate != null && daysUntilExpiry != null) {
+      String expiryText;
+      if (daysUntilExpiry == 0) {
+        expiryText = 'Expiring today';
+      } else if (daysUntilExpiry == 1) {
+        expiryText = 'Expiring tomorrow';
+      } else {
+        expiryText = '${daysUntilExpiry}d left';
+      }
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.orange.withOpacity(0.15),
+          border: Border.all(color: Colors.orange, width: 1.5),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.access_time, size: 14, color: Colors.orange[700]),
+            const SizedBox(width: 4),
+            Text(
+              expiryText,
+              style: TextStyle(
+                color: Colors.orange[700],
+                fontWeight: FontWeight.bold,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return null; // No expiry concerns
+  }
+
   // Build grouped product list with batch hierarchy
   Widget _buildGroupedProductList(BuildContext context) {
     // Group products by name
@@ -697,46 +880,117 @@ class _AvailableProductsState extends State<AvailableProducts> {
       });
     }
 
+    // Sort product names alphabetically (A to Z)
+    final sortedProductNames = groupedByName.keys.toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
     final cardColor = Theme.of(context).cardTheme.color;
 
     return ListView.builder(
-      itemCount: groupedByName.length,
+      itemCount: sortedProductNames.length,
       itemBuilder: (context, index) {
-        final productName = groupedByName.keys.toList()[index];
+        final productName = sortedProductNames[index];
         final batches = groupedByName[productName]!;
         final totalQty = batches.fold<int>(0, (sum, p) => sum + p.quantity);
-        
+
         // Filter only available batches (quantity > 0)
         final availableBatches = batches.where((p) => p.quantity > 0).toList();
-        
+
         // Calculate min limit from available batches (use SUM of all min limits)
-        final minLimitForStatus = availableBatches.fold(0, (sum, p) => sum + p.minLimit);
-        
+        final minLimitForStatus = availableBatches.fold(
+          0,
+          (sum, p) => sum + p.minLimit,
+        );
+
         final unit = batches.first.unit;
         final firstBatch = batches.first;
+
+        // Calculate expiry details for description
+        int expiringQuantity = 0;
+        int? daysUntilNearestExpiry;
+        DateTime? nearestExpiryDate;
+        bool hasExpired = false;
+
+        for (final batch in batches) {
+          if (batch.expiryDate != null &&
+              batch.expiryDate!.isNotEmpty &&
+              batch.quantity > 0) {
+            try {
+              final parts = batch.expiryDate!.split('/');
+              if (parts.length == 3) {
+                final day = int.parse(parts[0]);
+                final month = int.parse(parts[1]);
+                final year = int.parse(parts[2]);
+                final expiryDate = DateTime(year, month, day);
+                final now = DateTime.now();
+                final today = DateTime(now.year, now.month, now.day);
+                final sixtyDaysFromNow = today.add(const Duration(days: 60));
+
+                if (expiryDate.isBefore(today)) {
+                  hasExpired = true;
+                  expiringQuantity += batch.quantity;
+                  if (nearestExpiryDate == null ||
+                      expiryDate.isBefore(nearestExpiryDate)) {
+                    nearestExpiryDate = expiryDate;
+                    daysUntilNearestExpiry = expiryDate
+                        .difference(today)
+                        .inDays;
+                  }
+                } else if (expiryDate.isBefore(sixtyDaysFromNow) ||
+                    expiryDate.isAtSameMomentAs(today)) {
+                  expiringQuantity += batch.quantity;
+                  if (nearestExpiryDate == null ||
+                      expiryDate.isBefore(nearestExpiryDate)) {
+                    nearestExpiryDate = expiryDate;
+                    daysUntilNearestExpiry = expiryDate
+                        .difference(today)
+                        .inDays;
+                  }
+                }
+              }
+            } catch (e) {
+              // Invalid date format, skip
+            }
+          }
+        }
+
+        // Determine border color based on expiry status
+        Color borderColor = secondaryTextColor!.withOpacity(0.1);
+        double borderWidth = 1.0;
+
+        if (hasExpired) {
+          borderColor = Colors.red;
+          borderWidth = 2.0;
+        } else if (expiringQuantity > 0) {
+          borderColor = Colors.orange;
+          borderWidth = 2.0;
+        }
 
         return Card(
           color: cardColor,
           margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10.0),
-            side: BorderSide(
-              color: secondaryTextColor!.withOpacity(0.1),
-              width: 1.0,
-            ),
+            side: BorderSide(color: borderColor, width: borderWidth),
           ),
           child: InkWell(
             onTap: () {
               AppNavigator.push(
                 context,
-                AvailableProductDetailScreen(product: firstBatch, userId: _currentUserId),
+                AvailableProductDetailScreen(
+                  product: firstBatch,
+                  userId: _currentUserId,
+                ),
               );
             },
             borderRadius: BorderRadius.circular(10.0),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(
+                vertical: 10.0,
+                horizontal: 12.0,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -748,7 +1002,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
                       children: [
                         // Product Name
                         Text(
-                          productName[0].toUpperCase() + productName.substring(1),
+                          productName[0].toUpperCase() +
+                              productName.substring(1),
                           style: TextStyle(
                             color: primaryTextColor,
                             fontWeight: FontWeight.w600,
@@ -783,11 +1038,54 @@ class _AvailableProductsState extends State<AvailableProducts> {
                             ),
                           ],
                         ),
+                        // Expiry description at bottom
+                        if (expiringQuantity > 0) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(
+                                hasExpired
+                                    ? Icons.error_outline
+                                    : Icons.warning_amber_rounded,
+                                size: 12,
+                                color: hasExpired
+                                    ? Colors.red
+                                    : (daysUntilNearestExpiry != null &&
+                                          daysUntilNearestExpiry < 30)
+                                    ? Colors.red
+                                    : Colors.orange,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  hasExpired
+                                      ? '$expiringQuantity $unit expired'
+                                      : daysUntilNearestExpiry == 0
+                                      ? '$expiringQuantity $unit expiring today'
+                                      : daysUntilNearestExpiry == 1
+                                      ? '$expiringQuantity $unit expiring tomorrow'
+                                      : '$expiringQuantity $unit expiring in $daysUntilNearestExpiry days',
+                                  style: TextStyle(
+                                    color: hasExpired
+                                        ? Colors.red
+                                        : (daysUntilNearestExpiry != null &&
+                                              daysUntilNearestExpiry < 30)
+                                        ? Colors.red
+                                        : Colors.orange,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Status badge based on sum of available batches min limits
+                  // Stock badge
                   _buildStockBadge(totalQty, minLimitForStatus),
                 ],
               ),
@@ -797,7 +1095,6 @@ class _AvailableProductsState extends State<AvailableProducts> {
       },
     );
   }
-
 }
 
 // --- Data Model for Bought Products ---
@@ -807,6 +1104,7 @@ class BoughtProduct {
   final String productName;
   final String supplierName;
   final String unit;
+  final String? expiryDate;
   final int minLimit;
   final int quantity;
   final double buyingPrice;
@@ -821,6 +1119,7 @@ class BoughtProduct {
     required this.productName,
     required this.supplierName,
     required this.unit,
+    this.expiryDate,
     required this.minLimit,
     required this.quantity,
     required this.buyingPrice,
@@ -830,18 +1129,22 @@ class BoughtProduct {
     required this.profitMargin,
   });
 
-  factory BoughtProduct.fromMap(String id, Map<dynamic, dynamic> data,
-      {String? entryDate}) {
+  factory BoughtProduct.fromMap(
+    String id,
+    Map<dynamic, dynamic> data, {
+    String? entryDate,
+  }) {
     final buyPrice = (data['buyingPrice'] ?? 0).toDouble();
     final sellPrice = (data['sellingPrice'] ?? 0).toDouble();
     final margin = sellPrice - buyPrice;
-    
+
     return BoughtProduct(
       id: id,
       date: entryDate ?? data['timestamp'] ?? '',
       productName: data['productName'] ?? 'Unknown',
       supplierName: data['supplierName'] ?? 'Unknown',
       unit: data['unit'] ?? '',
+      expiryDate: data['expiryDate'] as String?,
       minLimit: data['minLimit'] ?? 0,
       quantity: data['quantity'] ?? 0,
       buyingPrice: buyPrice,

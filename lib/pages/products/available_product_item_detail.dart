@@ -200,6 +200,100 @@ class _AvailableProductDetailScreenState
     }
   }
 
+  // --- SHOW EDIT QUANTITY DIALOG ---
+  void _showEditQuantityDialog(BoughtProduct batch) {
+    final quantityController = TextEditingController(
+      text: batch.quantity.toString(),
+    );
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Edit Quantity', style: TextStyle(color: primaryTextColor)),
+        content: TextField(
+          controller: quantityController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'Quantity',
+            hintText: 'Enter quantity',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newQuantity = int.tryParse(quantityController.text);
+              if (newQuantity != null && newQuantity > 0) {
+                _saveBatchQuantity(batch.id, newQuantity);
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter valid quantity')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- SHOW EDIT SELLING PRICE DIALOG ---
+  void _showEditSellingPriceDialog(BoughtProduct batch) {
+    final priceController = TextEditingController(
+      text: batch.sellingPrice.toStringAsFixed(2),
+    );
+    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Edit Selling Price',
+          style: TextStyle(color: primaryTextColor),
+        ),
+        content: TextField(
+          controller: priceController,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: 'Selling Price',
+            hintText: 'Enter price',
+            prefix: const Text('₹'),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final newPrice = double.tryParse(priceController.text);
+              if (newPrice != null && newPrice > 0) {
+                _saveBatchSellingPrice(batch.id, newPrice);
+                Navigator.pop(context);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Enter valid price')),
+                );
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // --- SAVE BATCH QUANTITY ---
   Future<void> _saveBatchQuantity(String batchId, int newQuantity) async {
     try {
@@ -219,7 +313,8 @@ class _AvailableProductDetailScreenState
 
       final batchData = batchDoc.data()!;
       final oldQuantity = (batchData['quantity'] as num?)?.toInt() ?? 0;
-      final oldInitialQuantity = (batchData['initialQuantity'] as num?)?.toInt() ?? 0;
+      final oldInitialQuantity =
+          (batchData['initialQuantity'] as num?)?.toInt() ?? 0;
       final buyingPrice = (batchData['buyingPrice'] as num?)?.toDouble() ?? 0.0;
       final purchaseId = batchData['purchaseId'] as String?;
 
@@ -238,7 +333,10 @@ class _AvailableProductDetailScreenState
           .doc(widget.userId)
           .collection('items')
           .doc(batchId)
-          .update({'quantity': newQuantity, 'initialQuantity': newInitialQuantity});
+          .update({
+            'quantity': newQuantity,
+            'initialQuantity': newInitialQuantity,
+          });
 
       // Update the purchase record's totalUnits and totalAmount if purchaseId exists
       if (purchaseId != null && purchaseId.isNotEmpty) {
@@ -1057,7 +1155,7 @@ class _AvailableProductDetailScreenState
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              // Editable Quantity
+                                              // Row 1: Quantity and Profit/Unit
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.symmetric(
@@ -1065,243 +1163,163 @@ class _AvailableProductDetailScreenState
                                                     ),
                                                 child: Row(
                                                   children: [
-                                                    Icon(
-                                                      Icons
-                                                          .inventory_2_outlined,
-                                                      color: Colors.grey,
-                                                      size: 20,
-                                                    ),
-                                                    const SizedBox(width: 8),
+                                                    // Quantity
                                                     Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                      child: Row(
                                                         children: [
-                                                          Text(
-                                                            'Quantity',
-                                                            style: TextStyle(
-                                                              color:
-                                                                  Colors.grey,
-                                                              fontSize: 13,
-                                                            ),
+                                                          Icon(
+                                                            Icons
+                                                                .inventory_2_outlined,
+                                                            color: Colors.grey,
+                                                            size: 20,
                                                           ),
                                                           const SizedBox(
-                                                            height: 2,
+                                                            width: 8,
                                                           ),
-                                                          if (!(_editingBatchQuantities[batch
-                                                                  .id] ??
-                                                              false))
-                                                            GestureDetector(
-                                                              onTap: () {
-                                                                _getQuantityController(
-                                                                  batch.id,
-                                                                  batch
-                                                                      .quantity,
-                                                                );
-                                                                setState(() {
-                                                                  _editingBatchQuantities[batch
-                                                                          .id] =
-                                                                      true;
-                                                                });
-                                                              },
-                                                              child: Container(
-                                                                padding:
-                                                                    const EdgeInsets.symmetric(
+                                                          Expanded(
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Text(
+                                                                  'Quantity',
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .grey,
+                                                                    fontSize:
+                                                                        13,
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  height: 2,
+                                                                ),
+                                                                GestureDetector(
+                                                                  onTap: () =>
+                                                                      _showEditQuantityDialog(
+                                                                        batch,
+                                                                      ),
+                                                                  child: Container(
+                                                                    padding: const EdgeInsets.symmetric(
                                                                       horizontal:
                                                                           12,
                                                                       vertical:
-                                                                          8,
+                                                                          4,
                                                                     ),
-                                                                decoration: BoxDecoration(
-                                                                  color: Colors
-                                                                      .blue
-                                                                      .withOpacity(
-                                                                        0.1,
-                                                                      ),
-                                                                  border: Border.all(
-                                                                    color: Colors
-                                                                        .blue,
-                                                                    width: 1.5,
-                                                                  ),
-                                                                  borderRadius:
-                                                                      BorderRadius.circular(
-                                                                        6,
-                                                                      ),
-                                                                ),
-                                                                child: Row(
-                                                                  mainAxisSize:
-                                                                      MainAxisSize
-                                                                          .min,
-                                                                  children: [
-                                                                    Text(
-                                                                      '${batch.quantity} ${batch.unit}',
-                                                                      style: TextStyle(
+                                                                    decoration: BoxDecoration(
+                                                                      color: Colors
+                                                                          .blue
+                                                                          .withOpacity(
+                                                                            0.1,
+                                                                          ),
+                                                                      border: Border.all(
                                                                         color: Colors
-                                                                            .blue[400],
-                                                                        fontWeight:
-                                                                            FontWeight.w600,
-                                                                        fontSize:
-                                                                            16,
+                                                                            .blue,
+                                                                        width:
+                                                                            1.5,
                                                                       ),
-                                                                    ),
-                                                                    const SizedBox(
-                                                                      width: 8,
-                                                                    ),
-                                                                    Icon(
-                                                                      Icons
-                                                                          .edit,
-                                                                      color: Colors
-                                                                          .blue,
-                                                                      size: 20,
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            )
-                                                          else
-                                                            Row(
-                                                              children: [
-                                                                Expanded(
-                                                                  child: TextField(
-                                                                    controller:
-                                                                        _getQuantityController(
-                                                                          batch
-                                                                              .id,
-                                                                          batch
-                                                                              .quantity,
-                                                                        ),
-                                                                    keyboardType:
-                                                                        TextInputType
-                                                                            .number,
-                                                                    decoration: InputDecoration(
-                                                                      hintText:
-                                                                          'Enter quantity',
-                                                                      border: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              6,
-                                                                            ),
-                                                                      ),
-                                                                      isDense:
-                                                                          true,
-                                                                      contentPadding: const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            8,
-                                                                        vertical:
-                                                                            6,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 6,
-                                                                ),
-                                                                GestureDetector(
-                                                                  onTap: () {
-                                                                    final newQuantity = int.tryParse(
-                                                                      _getQuantityController(
-                                                                        batch
-                                                                            .id,
-                                                                        batch
-                                                                            .quantity,
-                                                                      ).text,
-                                                                    );
-                                                                    if (newQuantity !=
-                                                                            null &&
-                                                                        newQuantity >
-                                                                            0) {
-                                                                      _saveBatchQuantity(
-                                                                        batch
-                                                                            .id,
-                                                                        newQuantity,
-                                                                      );
-                                                                    } else {
-                                                                      ScaffoldMessenger.of(
-                                                                        context,
-                                                                      ).showSnackBar(
-                                                                        const SnackBar(
-                                                                          content: Text(
-                                                                            'Enter valid quantity',
-                                                                          ),
-                                                                        ),
-                                                                      );
-                                                                    }
-                                                                  },
-                                                                  child: Container(
-                                                                    padding:
-                                                                        const EdgeInsets.all(
-                                                                          6,
-                                                                        ),
-                                                                    decoration: BoxDecoration(
-                                                                      color: Colors
-                                                                          .green,
                                                                       borderRadius:
                                                                           BorderRadius.circular(
                                                                             6,
                                                                           ),
                                                                     ),
-                                                                    child: const Icon(
-                                                                      Icons
-                                                                          .check,
-                                                                      color: Colors
-                                                                          .white,
-                                                                      size: 16,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 6,
-                                                                ),
-                                                                GestureDetector(
-                                                                  onTap: () {
-                                                                    setState(() {
-                                                                      _editingBatchQuantities[batch
-                                                                              .id] =
-                                                                          false;
-                                                                    });
-                                                                  },
-                                                                  child: Container(
-                                                                    padding:
-                                                                        const EdgeInsets.all(
-                                                                          6,
-                                                                        ),
-                                                                    decoration: BoxDecoration(
-                                                                      color: Colors
-                                                                          .grey,
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                            6,
+                                                                    child: Row(
+                                                                      mainAxisSize:
+                                                                          MainAxisSize
+                                                                              .min,
+                                                                      children: [
+                                                                        Text(
+                                                                          '${batch.quantity} ${batch.unit}',
+                                                                          style: TextStyle(
+                                                                            color:
+                                                                                Colors.blue[400],
+                                                                            fontWeight:
+                                                                                FontWeight.w600,
+                                                                            fontSize:
+                                                                                16,
                                                                           ),
-                                                                    ),
-                                                                    child: const Icon(
-                                                                      Icons
-                                                                          .close,
-                                                                      color: Colors
-                                                                          .white,
-                                                                      size: 16,
+                                                                        ),
+                                                                        const SizedBox(
+                                                                          width:
+                                                                              8,
+                                                                        ),
+                                                                        Icon(
+                                                                          Icons
+                                                                              .edit,
+                                                                          color:
+                                                                              Colors.blue,
+                                                                          size:
+                                                                              20,
+                                                                        ),
+                                                                      ],
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ],
                                                             ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    // Profit/Unit
+                                                    Expanded(
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.trending_up,
+                                                            color: Colors.grey,
+                                                            size: 20,
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 8,
+                                                          ),
+                                                          Expanded(
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Text(
+                                                                  'Profit/Unit',
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .grey,
+                                                                    fontSize:
+                                                                        13,
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  height: 2,
+                                                                ),
+                                                                Text(
+                                                                  '₹${batch.profitMargin.toStringAsFixed(2)}',
+                                                                  style: TextStyle(
+                                                                    color:
+                                                                        batch.profitMargin >=
+                                                                            0
+                                                                        ? Colors
+                                                                              .green[400]
+                                                                        : Colors
+                                                                              .red[400],
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
                                                         ],
                                                       ),
                                                     ),
                                                   ],
                                                 ),
                                               ),
-                                              const SizedBox(height: 8),
-                                              _buildDetailRow(
-                                                context,
-                                                'Buy Price',
-                                                '₹${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
-                                                icon: Icons.shopping_cart,
-                                                valueColor: Colors.red[400],
-                                              ),
-                                              const SizedBox(height: 8),
-
-                                              // Editable Sell Price
+                                              const SizedBox(height: 4),
+                                              // Row 2: Buying Price and Selling Price
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.symmetric(
@@ -1309,248 +1327,170 @@ class _AvailableProductDetailScreenState
                                                     ),
                                                 child: Row(
                                                   children: [
-                                                    Icon(
-                                                      Icons.sell_outlined,
-                                                      color: Colors.grey,
-                                                      size: 20,
-                                                    ),
-                                                    const SizedBox(width: 8),
+                                                    // Buying Price
                                                     Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                      child: Row(
                                                         children: [
-                                                          Text(
-                                                            'Sell Price',
-                                                            style: TextStyle(
-                                                              color:
-                                                                  Colors.grey,
-                                                              fontSize: 13,
-                                                            ),
+                                                          Icon(
+                                                            Icons.shopping_cart,
+                                                            color: Colors.grey,
+                                                            size: 20,
                                                           ),
                                                           const SizedBox(
-                                                            height: 2,
+                                                            width: 8,
                                                           ),
-                                                          if (!(_editingBatchPrices[batch
-                                                                  .id] ??
-                                                              false))
-                                                            GestureDetector(
-                                                              onTap: () {
-                                                                _getPriceController(
-                                                                  batch.id,
-                                                                  batch
-                                                                      .sellingPrice,
-                                                                );
-                                                                setState(() {
-                                                                  _editingBatchPrices[batch
-                                                                          .id] =
-                                                                      true;
-                                                                });
-                                                              },
-                                                              child: Container(
-                                                                padding:
-                                                                    const EdgeInsets.symmetric(
+                                                          Expanded(
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Text(
+                                                                  'Buying Price',
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .grey,
+                                                                    fontSize:
+                                                                        13,
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  height: 2,
+                                                                ),
+                                                                Text(
+                                                                  '₹${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .red[400],
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    fontSize:
+                                                                        14,
+                                                                  ),
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    // Selling Price
+                                                    Expanded(
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(
+                                                            Icons.sell_outlined,
+                                                            color: Colors.grey,
+                                                            size: 20,
+                                                          ),
+                                                          const SizedBox(
+                                                            width: 8,
+                                                          ),
+                                                          Expanded(
+                                                            child: Column(
+                                                              crossAxisAlignment:
+                                                                  CrossAxisAlignment
+                                                                      .start,
+                                                              children: [
+                                                                Text(
+                                                                  'Selling Price',
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .grey,
+                                                                    fontSize:
+                                                                        13,
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  height: 2,
+                                                                ),
+                                                                GestureDetector(
+                                                                  onTap: () =>
+                                                                      _showEditSellingPriceDialog(
+                                                                        batch,
+                                                                      ),
+                                                                  child: Container(
+                                                                    padding: const EdgeInsets.symmetric(
                                                                       horizontal:
                                                                           12,
                                                                       vertical:
-                                                                          8,
+                                                                          4,
                                                                     ),
-                                                                decoration: BoxDecoration(
-                                                                  color: Colors
-                                                                      .blue
-                                                                      .withOpacity(
-                                                                        0.1,
-                                                                      ),
-                                                                  border: Border.all(
-                                                                    color: Colors
-                                                                        .blue,
-                                                                    width: 1.5,
-                                                                  ),
-                                                                  borderRadius:
-                                                                      BorderRadius.circular(
-                                                                        6,
-                                                                      ),
-                                                                ),
-                                                                child: Row(
-                                                                  mainAxisSize:
-                                                                      MainAxisSize
-                                                                          .min,
-                                                                  children: [
-                                                                    Text(
-                                                                      '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
-                                                                      style: TextStyle(
+                                                                    decoration: BoxDecoration(
+                                                                      color: Colors
+                                                                          .blue
+                                                                          .withOpacity(
+                                                                            0.1,
+                                                                          ),
+                                                                      border: Border.all(
                                                                         color: Colors
-                                                                            .green[400],
-                                                                        fontWeight:
-                                                                            FontWeight.w600,
-                                                                        fontSize:
-                                                                            16,
+                                                                            .blue,
+                                                                        width:
+                                                                            1.5,
                                                                       ),
+                                                                      borderRadius:
+                                                                          BorderRadius.circular(
+                                                                            6,
+                                                                          ),
                                                                     ),
-                                                                    const SizedBox(
-                                                                      width: 8,
-                                                                    ),
-                                                                    Icon(
-                                                                      Icons
-                                                                          .edit,
-                                                                      color: Colors
-                                                                          .blue,
-                                                                      size: 20,
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            )
-                                                          else
-                                                            Row(
-                                                              children: [
-                                                                Expanded(
-                                                                  child: TextField(
-                                                                    controller:
-                                                                        _getPriceController(
-                                                                          batch
-                                                                              .id,
-                                                                          batch
-                                                                              .sellingPrice,
-                                                                        ),
-                                                                    keyboardType:
-                                                                        const TextInputType.numberWithOptions(
-                                                                          decimal:
-                                                                              true,
-                                                                        ),
-                                                                    decoration: InputDecoration(
-                                                                      hintText:
-                                                                          'Enter price',
-                                                                      border: OutlineInputBorder(
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                              6,
+                                                                    child: Row(
+                                                                      mainAxisSize:
+                                                                          MainAxisSize
+                                                                              .min,
+                                                                      children: [
+                                                                        Flexible(
+                                                                          child: Text(
+                                                                            '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                                            style: TextStyle(
+                                                                              color: Colors.green[400],
+                                                                              fontWeight: FontWeight.w600,
+                                                                              fontSize: 14,
                                                                             ),
-                                                                      ),
-                                                                      isDense:
-                                                                          true,
-                                                                      contentPadding: const EdgeInsets.symmetric(
-                                                                        horizontal:
-                                                                            8,
-                                                                        vertical:
-                                                                            6,
-                                                                      ),
-                                                                      prefix:
-                                                                          const Text(
-                                                                            '₹',
-                                                                          ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 6,
-                                                                ),
-                                                                GestureDetector(
-                                                                  onTap: () {
-                                                                    final newPrice = double.tryParse(
-                                                                      _getPriceController(
-                                                                        batch
-                                                                            .id,
-                                                                        batch
-                                                                            .sellingPrice,
-                                                                      ).text,
-                                                                    );
-                                                                    if (newPrice !=
-                                                                            null &&
-                                                                        newPrice >
-                                                                            0) {
-                                                                      _saveBatchSellingPrice(
-                                                                        batch
-                                                                            .id,
-                                                                        newPrice,
-                                                                      );
-                                                                    } else {
-                                                                      ScaffoldMessenger.of(
-                                                                        context,
-                                                                      ).showSnackBar(
-                                                                        const SnackBar(
-                                                                          content: Text(
-                                                                            'Enter valid price',
+                                                                            overflow:
+                                                                                TextOverflow.ellipsis,
                                                                           ),
                                                                         ),
-                                                                      );
-                                                                    }
-                                                                  },
-                                                                  child: Container(
-                                                                    padding:
-                                                                        const EdgeInsets.all(
-                                                                          6,
+                                                                        const SizedBox(
+                                                                          width:
+                                                                              8,
                                                                         ),
-                                                                    decoration: BoxDecoration(
-                                                                      color: Colors
-                                                                          .green,
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                            6,
-                                                                          ),
-                                                                    ),
-                                                                    child: const Icon(
-                                                                      Icons
-                                                                          .check,
-                                                                      color: Colors
-                                                                          .white,
-                                                                      size: 16,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 6,
-                                                                ),
-                                                                GestureDetector(
-                                                                  onTap: () {
-                                                                    setState(() {
-                                                                      _editingBatchPrices[batch
-                                                                              .id] =
-                                                                          false;
-                                                                    });
-                                                                  },
-                                                                  child: Container(
-                                                                    padding:
-                                                                        const EdgeInsets.all(
-                                                                          6,
+                                                                        Icon(
+                                                                          Icons
+                                                                              .edit,
+                                                                          color:
+                                                                              Colors.blue,
+                                                                          size:
+                                                                              18,
                                                                         ),
-                                                                    decoration: BoxDecoration(
-                                                                      color: Colors
-                                                                          .grey,
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                            6,
-                                                                          ),
-                                                                    ),
-                                                                    child: const Icon(
-                                                                      Icons
-                                                                          .close,
-                                                                      color: Colors
-                                                                          .white,
-                                                                      size: 16,
+                                                                      ],
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ],
                                                             ),
+                                                          ),
                                                         ],
                                                       ),
                                                     ),
                                                   ],
                                                 ),
                                               ),
-                                              const SizedBox(height: 8),
-                                              _buildDetailRow(
-                                                context,
-                                                'Profit/Unit',
-                                                '₹${batch.profitMargin.toStringAsFixed(2)}',
-                                                icon: Icons.trending_up,
-                                                valueColor:
-                                                    batch.profitMargin >= 0
-                                                    ? Colors.green[400]
-                                                    : Colors.red[400],
-                                              ),
+                                              if (batch.expiryDate != null &&
+                                                  batch
+                                                      .expiryDate!
+                                                      .isNotEmpty) ...[
+                                                const SizedBox(height: 4),
+                                                _buildDetailRow(
+                                                  context,
+                                                  'Expiry Date',
+                                                  batch.expiryDate!,
+                                                  icon: Icons.calendar_today,
+                                                  valueColor:
+                                                      Colors.orange[700],
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),

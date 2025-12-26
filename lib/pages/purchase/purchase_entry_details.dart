@@ -319,13 +319,15 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               final index = mapEntry.key;
               final item = mapEntry.value;
               final productName = item['productName'] ?? 'Unknown';
-              final quantity = item['initialQuantity'] ?? 0; // Use current quantity
+              final quantity =
+                  item['initialQuantity'] ?? 0; // Use current quantity
               final buyingPrice =
                   item['buyingPrice'] ?? 0; // Buying price never changes
               final sellingPrice =
                   item['sellingPrice'] ??
                   0; // Selling price at time of purchase
               final unit = item['unit'] ?? '';
+              final expiryDate = item['expiryDate'] as String?;
               final total =
                   quantity * buyingPrice; // Calculate from current quantity
               final batchId = item['batchId'] as String?;
@@ -440,6 +442,28 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                             ),
                           ],
                         ),
+                        if (expiryDate != null && expiryDate.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8.0),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.calendar_today,
+                                  size: 16,
+                                  color: Colors.orange[700],
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Expiry Date: $expiryDate',
+                                  style: TextStyle(
+                                    color: Colors.orange[700],
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
