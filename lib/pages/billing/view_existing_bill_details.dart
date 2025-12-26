@@ -2453,18 +2453,72 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            _buildSummaryRow(
-              'Total Items',
-              totalItems,
-              primaryTextColor,
-              secondaryTextColor,
-            ),
-            _buildSummaryRow(
-              'Total Amount',
-              totalAmount,
-              primaryTextColor,
-              secondaryTextColor,
-              isBold: true,
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue.shade400, Colors.blue.shade600],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.shopping_bag,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Total Items',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      totalItems,
+                      style: TextStyle(
+                        color: Colors.blue.shade700,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             // Discount row with edit functionality
             Padding(
@@ -2648,7 +2702,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(20.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2660,9 +2714,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 fontSize: 18,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: profitColor.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -2685,7 +2739,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                       Text(
                         '₹ ${totalProfit.abs().toStringAsFixed(2)}',
                         style: TextStyle(
