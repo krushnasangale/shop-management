@@ -42,6 +42,8 @@ class ReviewBillingDetails extends StatefulWidget {
 }
 
 class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
+  int _currentBillNumber = 0;
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -694,6 +696,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 products: widget.products,
                 paymentMethod: widget.paymentMethod,
                 nextPaymentDate: widget.nextPaymentDate,
+                billNumber: _currentBillNumber,
               ),
             ),
           );
@@ -728,6 +731,30 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       await _deleteOldBill(firestore, userId, widget.billId!);
     }
 
+    // Generate bill number if not in edit mode
+    int billNumber = 1;
+    if (!widget.isEditMode) {
+      // Get the count of existing bills to generate the next bill number
+      final billsSnapshot = await firestore
+          .collection('bills')
+          .doc(userId)
+          .collection('items')
+          .get();
+      billNumber = billsSnapshot.docs.length + 1;
+    } else if (widget.billId != null) {
+      // If editing, retrieve the existing bill number
+      final existingBill = await firestore
+          .collection('bills')
+          .doc(userId)
+          .collection('items')
+          .doc(widget.billId)
+          .get();
+      billNumber = existingBill.data()?['billNumber'] ?? 1;
+    }
+
+    // Store billNumber in instance variable to pass to success page
+    _currentBillNumber = billNumber;
+
     // Generate document ID using Firestore auto-generated ID format
     final billDocRef = firestore
         .collection('bills')
@@ -743,6 +770,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
         : (widget.amountRemaining ?? 0);
 
     final billData = {
+      'billNumber': billNumber, // Add bill number
       'customerId': widget
           .customerId, // Add customerId for efficient customer history fetching
       'billDate': widget.billDate,

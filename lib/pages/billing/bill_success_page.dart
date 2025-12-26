@@ -44,6 +44,7 @@ class BillSuccessPage extends StatefulWidget {
   final List<BillProductItem> products;
   final String paymentMethod;
   final String nextPaymentDate;
+  final int billNumber;
 
   const BillSuccessPage({
     required this.customerName,
@@ -55,6 +56,7 @@ class BillSuccessPage extends StatefulWidget {
     required this.products,
     this.paymentMethod = 'cash',
     this.nextPaymentDate = '',
+    required this.billNumber,
     super.key,
   });
 
@@ -72,6 +74,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   late List<BillProductItem> products;
   late String paymentMethod;
   late String nextPaymentDate;
+  late int billNumber;
 
   @override
   void initState() {
@@ -85,6 +88,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     products = widget.products;
     paymentMethod = widget.paymentMethod;
     nextPaymentDate = widget.nextPaymentDate;
+    billNumber = widget.billNumber;
   }
 
   @override
@@ -331,7 +335,6 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     final fileName = '${sanitizedCustomerName}_${dateTimeString}.pdf';
     final file = File('${dir.path}/$fileName');
 
-    final billId = 'BILL-${now.millisecondsSinceEpoch}';
     final billDate = now.toString().split('.')[0];
 
     // Fetch owner signature and company details from Firebase
@@ -422,7 +425,10 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                           fontWeight: pw.FontWeight.bold,
                         ),
                       ),
-                      pw.Text(billId, style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text(
+                        '# $billNumber',
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
                     ],
                   ),
                   pw.Column(
@@ -474,15 +480,16 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
               pw.SizedBox(height: 40),
 
               // Remaining Amount Instruction (if applicable)
-              if (amountRemaining > 0) ...[pw.Text(
-                'Please arrange payment of Rs. $amountRemaining on or before $nextPaymentDate to complete this transaction.',
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontWeight: pw.FontWeight.bold,
+              if (amountRemaining > 0) ...[
+                pw.Text(
+                  'Please arrange payment of Rs. $amountRemaining on or before $nextPaymentDate to complete this transaction.',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  textAlign: pw.TextAlign.center,
                 ),
-                textAlign: pw.TextAlign.center,
-              ),
-              pw.SizedBox(height: 15),
+                pw.SizedBox(height: 15),
               ],
 
               // Terms & Conditions

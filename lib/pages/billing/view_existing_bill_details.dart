@@ -73,6 +73,7 @@ class ViewBillDetailsScreen extends StatefulWidget {
 
 class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   late String billId;
+  int billNumber = 0; // Sequential bill number
   late String billDate;
   late String customerName;
   late String customerMobile;
@@ -203,8 +204,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       if (snapshot.exists) {
         final data = snapshot.data();
         final loadedDiscount = (data?['discount'] as num?)?.toInt() ?? 0;
+        int loadedBillNumber = (data?['billNumber'] as num?)?.toInt() ?? 0;
+
         setState(() {
           discount = loadedDiscount;
+          billNumber = loadedBillNumber;
           // Recalculate profit with discount subtracted from base profit
           // Formula: Profit = Base Profit (already calculated from products) - Total Discount
           totalProfit = _calculateBaseProfit() - loadedDiscount;
@@ -326,6 +330,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   Future<File> _generateBillPDF() async {
+    // Ensure billNumber is loaded before generating PDF
+    if (billNumber == 0) {
+      await _loadDiscount(); // This will load or generate billNumber
+    }
+
     final pdf = pw.Document();
 
     // Get temporary directory
@@ -431,7 +440,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           fontWeight: pw.FontWeight.bold,
                         ),
                       ),
-                      pw.Text(billId, style: const pw.TextStyle(fontSize: 10)),
+                      pw.Text(
+                        billNumber > 0 ? '# $billNumber' : billId,
+                        style: const pw.TextStyle(fontSize: 10),
+                      ),
                     ],
                   ),
                   pw.Column(
