@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:convert' as convert;
 import 'package:flashbill/pages/billing/create_new_bill.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -1508,6 +1509,81 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     }
   }
 
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    try {
+      await launchUrl(launchUri);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch phone dialer')),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendMessage(String phoneNumber) async {
+    // Fetch shop name from Firebase
+    String shopName = 'Our Shop';
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final snapshot = await FirebaseFirestore.instance
+            .collection('shop-profile')
+            .doc(user.uid)
+            .get();
+        if (snapshot.exists) {
+          shopName = snapshot.data()?['shopName'] ?? 'Our Shop';
+        }
+      }
+    } catch (e) {
+      print('Error fetching shop name: $e');
+    }
+
+    // Prepare message based on payment status
+    String message;
+    final remainingAmount = int.parse(amountRemaining.replaceAll('₹ ', ''));
+
+    if (remainingAmount > 0) {
+      // Pending payment reminder message
+      message =
+          '$shopName\n\n'
+          'Dear $customerName,\n\n'
+          'Thank you for shopping with us!\n\n'
+          'This is a friendly reminder that you have a pending payment of ₹$remainingAmount '
+          'for your purchase on $billDate.\n\n'
+          '${nextPaymentDate != null && nextPaymentDate!.isNotEmpty ? "Please arrange payment by $nextPaymentDate.\n\n" : ""}'
+          'We appreciate your business!\n\n'
+          'Best regards,\n$shopName';
+    } else {
+      // Thank you message for completed payment
+      message =
+          '$shopName\n\n'
+          'Dear $customerName,\n\n'
+          'Thank you for your purchase on $billDate!\n\n'
+          'We truly appreciate your business and hope you are satisfied with your products.\n\n'
+          'Looking forward to serving you again soon!\n\n'
+          'Best regards,\n$shopName';
+    }
+
+    // URI encode the message
+    final Uri launchUri = Uri(
+      scheme: 'sms',
+      path: phoneNumber,
+      queryParameters: {'body': message},
+    );
+
+    try {
+      await launchUrl(launchUri);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not launch messaging app')),
+        );
+      }
+    }
+  }
+
   void _showEditDiscountDialog() {
     final TextEditingController discountController = TextEditingController();
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
@@ -1945,30 +2021,78 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               'Customer Mobile Number',
               style: TextStyle(color: secondaryTextColor, fontSize: 14),
             ),
-            GestureDetector(
-              onTap: _showEditMobileDialog,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.2)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      customerMobile,
-                      style: TextStyle(
-                        color: primaryTextColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _showEditMobileDialog,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            customerMobile,
+                            style: TextStyle(
+                              color: primaryTextColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 18,
+                            ),
+                          ),
+                          Icon(Icons.edit, size: 16, color: Colors.blue[600]),
+                        ],
                       ),
                     ),
-                    Icon(Icons.edit, size: 16, color: Colors.blue[600]),
-                  ],
+                  ),
                 ),
-              ),
+                // Show call and message buttons only on mobile platforms
+                if (Platform.isAndroid || Platform.isIOS) ...[
+                  const SizedBox(width: 8),
+                  // Call button
+                  InkWell(
+                    onTap: () => _makePhoneCall(customerMobile),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.green),
+                      ),
+                      child: const Icon(
+                        Icons.call,
+                        color: Colors.green,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Message button
+                  InkWell(
+                    onTap: () => _sendMessage(customerMobile),
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue),
+                      ),
+                      child: const Icon(
+                        Icons.message,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 12),
             Text(
@@ -2068,14 +2192,23 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               final product = entry.value;
               final batchId = product['batchId']?.toString() ?? '';
               final quantity = double.tryParse(product['qty'] ?? '0') ?? 0;
-              
+
               // Calculate profit per unit from prices
-              final sellingPrice = double.tryParse(
-                product['price']?.toString().replaceAll('₹', '').trim() ?? '0',
-              ) ?? 0;
-              final boughtPrice = double.tryParse(
-                product['boughtPrice']?.toString().replaceAll('₹', '').trim() ?? '0',
-              ) ?? 0;
+              final sellingPrice =
+                  double.tryParse(
+                    product['price']?.toString().replaceAll('₹', '').trim() ??
+                        '0',
+                  ) ??
+                  0;
+              final boughtPrice =
+                  double.tryParse(
+                    product['boughtPrice']
+                            ?.toString()
+                            .replaceAll('₹', '')
+                            .trim() ??
+                        '0',
+                  ) ??
+                  0;
               final profitPerUnit = sellingPrice - boughtPrice;
               final totalSellingPrice = sellingPrice * quantity;
               final totalProfit = profitPerUnit * quantity;
@@ -2083,11 +2216,14 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Theme(
-                  data: Theme.of(context).copyWith(
-                    dividerColor: Colors.transparent,
-                  ),
+                  data: Theme.of(
+                    context,
+                  ).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
-                    tilePadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                    tilePadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 2,
+                    ),
                     childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                     backgroundColor: Colors.blue.withOpacity(0.02),
                     collapsedBackgroundColor: Colors.blue.withOpacity(0.02),
@@ -2171,7 +2307,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       // Expanded details
                       Divider(color: Colors.grey.withOpacity(0.2), height: 12),
                       const SizedBox(height: 8),
-                      
+
                       if (batchId.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 12.0),
@@ -2257,10 +2393,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         decoration: BoxDecoration(
           color: accentColor.withOpacity(0.08),
           borderRadius: BorderRadius.circular(4),
-          border: Border.all(
-            color: accentColor.withOpacity(0.15),
-            width: 0.5,
-          ),
+          border: Border.all(color: accentColor.withOpacity(0.15), width: 0.5),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2302,10 +2435,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         decoration: BoxDecoration(
           color: accentColor.withOpacity(0.08),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: accentColor.withOpacity(0.15),
-            width: 0.5,
-          ),
+          border: Border.all(color: accentColor.withOpacity(0.15), width: 0.5),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

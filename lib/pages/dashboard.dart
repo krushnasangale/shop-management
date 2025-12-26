@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/helpers/utils.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/pending_payments_page.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -895,6 +897,30 @@ class _DashboardState extends State<Dashboard> {
                       },
                     ),
             ),
+            if (_expandPendingPayments && _pendingPayments.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      AppNavigator.push(context, const PendingPaymentsPage());
+                    },
+                    icon: const Icon(Icons.visibility, size: 18),
+                    label: const Text('View All Pending Payments'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.orange[600],
+                      side: BorderSide(color: Colors.orange.withOpacity(0.5)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ],
         ],
       ),
