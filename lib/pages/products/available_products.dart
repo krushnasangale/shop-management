@@ -280,6 +280,106 @@ class _AvailableProductsState extends State<AvailableProducts> {
     );
   }
 
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filter Products',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildFilterChipForBottomSheet('All', setModalState),
+                      _buildFilterChipForBottomSheet(
+                        'Expiring Soon',
+                        setModalState,
+                      ),
+                      _buildFilterChipForBottomSheet('Expired', setModalState),
+                      _buildFilterChipForBottomSheet(
+                        'Reorder Now',
+                        setModalState,
+                      ),
+                      _buildFilterChipForBottomSheet(
+                        'Order Soon',
+                        setModalState,
+                      ),
+                      _buildFilterChipForBottomSheet(
+                        'Well Stocked',
+                        setModalState,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildFilterChipForBottomSheet(
+    String label,
+    StateSetter setModalState,
+  ) {
+    final isSelected = _selectedFilter == label;
+    final cardColor = Theme.of(context).cardTheme.color;
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedFilter = label;
+        });
+        setModalState(() {
+          _selectedFilter = label;
+        });
+        _filterProducts();
+        Navigator.pop(context); // Close bottom sheet after selection
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: cardColor,
+      selectedColor: Colors.blue.withOpacity(0.3),
+      side: BorderSide(
+        color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
+        width: 1,
+      ),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.blue : null,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
+  }
+
   void _generateAndSharePDF() async {
     try {
       // Show loading dialog
@@ -491,7 +591,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                         ),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
               pw.SizedBox(height: 20),
@@ -561,6 +661,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
+          if (Platform.isAndroid || Platform.isIOS)
+            IconButton(
+              onPressed: _showFilterBottomSheet,
+              icon: const Icon(Icons.filter_alt_sharp),
+            ),
           IconButton(
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: () {
@@ -635,28 +740,29 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
           // --- Filter Chips ---
           if (!_showSearchBar) const SizedBox(height: 5),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 2.0,
+          if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 2.0,
+              ),
+              child: Row(
+                children: [
+                  _buildFilterChip('All'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Expiring Soon'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Expired'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Reorder Now'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Order Soon'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Well Stocked'),
+                ],
+              ),
             ),
-            child: Row(
-              children: [
-                _buildFilterChip('All'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Expiring Soon'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Expired'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Reorder Now'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Order Soon'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Well Stocked'),
-              ],
-            ),
-          ),
 
           // --- Product List (Grouped by Name with Batch Details) ---
           Expanded(

@@ -21,7 +21,8 @@ class Bills extends StatefulWidget {
 
 class _BillsState extends State<Bills> {
   PaymentFilter _selectedFilter = PaymentFilter.all;
-  late StreamSubscription<QuerySnapshot<Map<String, dynamic>>> _billsSubscription;
+  late StreamSubscription<QuerySnapshot<Map<String, dynamic>>>
+  _billsSubscription;
   late String _userId;
   List<Bill> _allBills = [];
   List<Bill> _filteredBills = [];
@@ -63,79 +64,86 @@ class _BillsState extends State<Bills> {
         .collection('items')
         .snapshots()
         .listen(
-      (QuerySnapshot<Map<String, dynamic>> snapshot) {
-        try {
-          final bills = <Bill>[];
+          (QuerySnapshot<Map<String, dynamic>> snapshot) {
+            try {
+              final bills = <Bill>[];
 
-          for (var billDoc in snapshot.docs) {
-            final billData = billDoc.data();
-            final totalAmount = (billData['totalAmount'] as num?)?.toInt() ?? 0;
-            final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? true;
-            final amountRemaining = (billData['amountRemaining'] as num?)?.toInt() ?? 0;
-            final amountPaid = (billData['amountPaid'] as num?)?.toInt() ?? 0;
+              for (var billDoc in snapshot.docs) {
+                final billData = billDoc.data();
+                final totalAmount =
+                    (billData['totalAmount'] as num?)?.toInt() ?? 0;
+                final totalAmountPaid =
+                    billData['totalAmountPaid'] as bool? ?? true;
+                final amountRemaining =
+                    (billData['amountRemaining'] as num?)?.toInt() ?? 0;
+                final amountPaid =
+                    (billData['amountPaid'] as num?)?.toInt() ?? 0;
 
-            // Determine payment status
-            PaymentFilter status;
-            if (amountPaid == 0 && amountRemaining != 0) {
-              status = PaymentFilter.unpaid;
-            } else if (totalAmountPaid) {
-              status = PaymentFilter.paid;
-            } else if (amountRemaining == 0) {
-              status = PaymentFilter.paid;
-            } else {
-              status = PaymentFilter.partial;
+                // Determine payment status
+                PaymentFilter status;
+                if (amountPaid == 0 && amountRemaining != 0) {
+                  status = PaymentFilter.unpaid;
+                } else if (totalAmountPaid) {
+                  status = PaymentFilter.paid;
+                } else if (amountRemaining == 0) {
+                  status = PaymentFilter.paid;
+                } else {
+                  status = PaymentFilter.partial;
+                }
+
+                final productsMap =
+                    billData['products'] as Map<String, dynamic>?;
+                final productsList = <Map<String, dynamic>>[];
+                if (productsMap != null) {
+                  productsList.addAll(
+                    productsMap.values.cast<Map<String, dynamic>>(),
+                  );
+                }
+
+                bills.add(
+                  Bill(
+                    billDoc.id,
+                    billData['billDate'] ?? '',
+                    billData['customerName'] ?? 'Unknown',
+                    billData['customerMobile'] ?? '',
+                    billData['customerVehicle'],
+                    '₹${totalAmount}',
+                    status,
+                    billData['timestamp'] ?? '',
+                    totalAmount,
+                    totalAmountPaid,
+                    amountPaid,
+                    amountRemaining,
+                    productsList,
+                    billData['nextPaymentDate'],
+                  ),
+                );
+              }
+
+              // Sort bills by timestamp (newest first)
+              bills.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+              if (mounted) {
+                setState(() {
+                  _allBills = bills;
+                  _filterBills();
+                  _isLoading = false;
+                });
+              }
+            } catch (e) {
+              print('Error loading bills: $e');
+              if (mounted) {
+                setState(() => _isLoading = false);
+              }
             }
-
-            final productsMap = billData['products'] as Map<String, dynamic>?;
-            final productsList = <Map<String, dynamic>>[];
-            if (productsMap != null) {
-              productsList.addAll(productsMap.values.cast<Map<String, dynamic>>());
+          },
+          onError: (error) {
+            print('Firebase error: $error');
+            if (mounted) {
+              setState(() => _isLoading = false);
             }
-
-            bills.add(
-              Bill(
-                billDoc.id,
-                billData['billDate'] ?? '',
-                billData['customerName'] ?? 'Unknown',
-                billData['customerMobile'] ?? '',
-                billData['customerVehicle'],
-                '₹${totalAmount}',
-                status,
-                billData['timestamp'] ?? '',
-                totalAmount,
-                totalAmountPaid,
-                amountPaid,
-                amountRemaining,
-                productsList,
-                billData['nextPaymentDate'],
-              ),
-            );
-          }
-
-          // Sort bills by timestamp (newest first)
-          bills.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-
-          if (mounted) {
-            setState(() {
-              _allBills = bills;
-              _filterBills();
-              _isLoading = false;
-            });
-          }
-        } catch (e) {
-          print('Error loading bills: $e');
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
-        }
-      },
-      onError: (error) {
-        print('Firebase error: $error');
-        if (mounted) {
-          setState(() => _isLoading = false);
-        }
-      },
-    );
+          },
+        );
   }
 
   // Filter bills based on search query and payment status
@@ -201,6 +209,135 @@ class _BillsState extends State<Bills> {
     }
   }
 
+  void _showFilterBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Filter Bills',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyLarge?.color,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildFilterChipForBottomSheet(
+                        PaymentFilter.all,
+                        setModalState,
+                      ),
+                      _buildFilterChipForBottomSheet(
+                        PaymentFilter.paid,
+                        setModalState,
+                      ),
+                      _buildFilterChipForBottomSheet(
+                        PaymentFilter.partial,
+                        setModalState,
+                      ),
+                      _buildFilterChipForBottomSheet(
+                        PaymentFilter.unpaid,
+                        setModalState,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Helper to get count for each filter
+  int _getFilterCount(PaymentFilter filter) {
+    if (filter == PaymentFilter.all) {
+      return _allBills.length;
+    }
+    return _allBills.where((bill) => bill.status == filter).length;
+  }
+
+  Widget _buildFilterChipForBottomSheet(
+    PaymentFilter filter,
+    StateSetter setModalState,
+  ) {
+    final isSelected = _selectedFilter == filter;
+    final cardColor = Theme.of(context).cardTheme.color;
+    final count = _getFilterCount(filter);
+
+    return FilterChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(_getStatusText(filter)),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                color: isSelected ? Colors.white : null,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedFilter = filter;
+        });
+        setModalState(() {
+          _selectedFilter = filter;
+        });
+        _filterBills();
+        Navigator.pop(context); // Close bottom sheet after selection
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      backgroundColor: cardColor,
+      selectedColor: Colors.blue.withOpacity(0.3),
+      side: BorderSide(
+        color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
+        width: 1,
+      ),
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.blue : null,
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      ),
+    );
+  }
+
   void _showReportOptionsDialog(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
@@ -232,7 +369,8 @@ class _BillsState extends State<Bills> {
                         if (pickedDate != null) {
                           setState(() {
                             _reportStartDate = pickedDate;
-                            if (_reportEndDate != null && _reportEndDate!.isBefore(_reportStartDate!)) {
+                            if (_reportEndDate != null &&
+                                _reportEndDate!.isBefore(_reportStartDate!)) {
                               _reportEndDate = null;
                             }
                           });
@@ -348,17 +486,23 @@ class _BillsState extends State<Bills> {
     return _filteredBills.where((bill) {
       try {
         final billDate = DateFormat('dd MMM yyyy').parse(bill.date);
-        
+
         if (_reportStartDate != null && _reportEndDate != null) {
           // Both dates selected - check if bill is within range
-          return billDate.isAfter(_reportStartDate!.subtract(const Duration(days: 1))) &&
-                 billDate.isBefore(_reportEndDate!.add(const Duration(days: 1)));
+          return billDate.isAfter(
+                _reportStartDate!.subtract(const Duration(days: 1)),
+              ) &&
+              billDate.isBefore(_reportEndDate!.add(const Duration(days: 1)));
         } else if (_reportStartDate != null) {
           // Only start date - bills from start date onwards
-          return billDate.isAfter(_reportStartDate!.subtract(const Duration(days: 1)));
+          return billDate.isAfter(
+            _reportStartDate!.subtract(const Duration(days: 1)),
+          );
         } else if (_reportEndDate != null) {
           // Only end date - bills up to end date
-          return billDate.isBefore(_reportEndDate!.add(const Duration(days: 1)));
+          return billDate.isBefore(
+            _reportEndDate!.add(const Duration(days: 1)),
+          );
         }
       } catch (e) {
         print('Error parsing date: ${bill.date}, error: $e');
@@ -418,10 +562,9 @@ class _BillsState extends State<Bills> {
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
-        await Share.shareXFiles(
-          [XFile(pdfFile.path)],
-          text: 'Bills Report from $_shopName',
-        );
+        await Share.shareXFiles([
+          XFile(pdfFile.path),
+        ], text: 'Bills Report from $_shopName');
       }
     } catch (e) {
       if (mounted) {
@@ -441,10 +584,9 @@ class _BillsState extends State<Bills> {
       final csvFile = await _generateBillsCSV();
 
       if (mounted) {
-        await Share.shareXFiles(
-          [XFile(csvFile.path)],
-          text: 'Bills Report (CSV) from $_shopName',
-        );
+        await Share.shareXFiles([
+          XFile(csvFile.path),
+        ], text: 'Bills Report (CSV) from $_shopName');
       }
     } catch (e) {
       if (mounted) {
@@ -509,26 +651,29 @@ class _BillsState extends State<Bills> {
                   // Header row
                   pw.TableRow(
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    children: [
-                      'S.No.',
-                      'Customer',
-                      'Mobile',
-                      'Date',
-                      'Amount',
-                      'Status',
-                    ]
-                        .map((header) => pw.Padding(
-                              padding: const pw.EdgeInsets.all(5),
-                              child: pw.Text(
-                                header,
-                                style: pw.TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: pw.FontWeight.bold,
+                    children:
+                        [
+                              'S.No.',
+                              'Customer',
+                              'Mobile',
+                              'Date',
+                              'Amount',
+                              'Status',
+                            ]
+                            .map(
+                              (header) => pw.Padding(
+                                padding: const pw.EdgeInsets.all(5),
+                                child: pw.Text(
+                                  header,
+                                  style: pw.TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: pw.FontWeight.bold,
+                                  ),
+                                  textAlign: pw.TextAlign.center,
                                 ),
-                                textAlign: pw.TextAlign.center,
                               ),
-                            ))
-                        .toList(),
+                            )
+                            .toList(),
                   ),
                   // Data rows
                   ...reportBills.asMap().entries.map((entry) {
@@ -617,13 +762,15 @@ class _BillsState extends State<Bills> {
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-        'S.No.,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getStatusText(_selectedFilter)},Date Range: ${_getDateRangeText()}');
+      'S.No.,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getStatusText(_selectedFilter)},Date Range: ${_getDateRangeText()}',
+    );
 
     // Add bill rows
     for (var i = 0; i < reportBills.length; i++) {
       final bill = reportBills[i];
       csv.writeln(
-          '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getStatusText(bill.status)}"');
+        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getStatusText(bill.status)}"',
+      );
     }
 
     await file.writeAsString(csv.toString());
@@ -638,6 +785,11 @@ class _BillsState extends State<Bills> {
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
+          if (Platform.isAndroid || Platform.isIOS)
+            IconButton(
+              onPressed: _showFilterBottomSheet,
+              icon: const Icon(Icons.filter_alt_sharp),
+            ),
           IconButton(
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: () {
@@ -674,7 +826,7 @@ class _BillsState extends State<Bills> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-            : Column(
+          : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // --- 1. Search Bar (Toggle Visibility) ---
@@ -718,31 +870,29 @@ class _BillsState extends State<Bills> {
                   ),
 
                 // --- 2. Filter Chips Row ---
-                if(!_showSearchBar) const SizedBox(height: 5),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 12.0,
-                    right: 12.0,
-                  ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4.0,
-                      vertical: 2.0,
+                if (!_showSearchBar) const SizedBox(height: 5),
+                if (Platform.isWindows || Platform.isLinux || Platform.isMacOS)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12.0, right: 12.0),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0,
+                        vertical: 2.0,
+                      ),
+                      child: Row(
+                        children: [
+                          _buildFilterChip(PaymentFilter.all),
+                          const SizedBox(width: 8),
+                          _buildFilterChip(PaymentFilter.paid),
+                          const SizedBox(width: 8),
+                          _buildFilterChip(PaymentFilter.partial),
+                          const SizedBox(width: 8),
+                          _buildFilterChip(PaymentFilter.unpaid),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        _buildFilterChip(PaymentFilter.all),
-                        const SizedBox(width: 8),
-                        _buildFilterChip(PaymentFilter.paid),
-                        const SizedBox(width: 8),
-                        _buildFilterChip(PaymentFilter.partial),
-                        const SizedBox(width: 8),
-                        _buildFilterChip(PaymentFilter.unpaid),
-                      ],
-                    ),
-                  ),
-                ),                // --- 3. Filtered Bills List ---
+                  ), // --- 3. Filtered Bills List ---
                 Expanded(
                   child: _filteredBills.isEmpty
                       ? Center(
@@ -815,9 +965,31 @@ class _BillsState extends State<Bills> {
   Widget _buildFilterChip(PaymentFilter filter) {
     final isSelected = _selectedFilter == filter;
     final cardColor = Theme.of(context).cardTheme.color;
+    final count = _getFilterCount(filter);
 
     return FilterChip(
-      label: Text(_getStatusText(filter)),
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(_getStatusText(filter)),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              count.toString(),
+              style: TextStyle(
+                color: isSelected ? Colors.white : null,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
       selected: isSelected,
       onSelected: (selected) {
         setState(() {
@@ -825,9 +997,7 @@ class _BillsState extends State<Bills> {
           _filterBills();
         });
       },
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       backgroundColor: cardColor,
       selectedColor: Colors.blue.withOpacity(0.3),
       side: BorderSide(
