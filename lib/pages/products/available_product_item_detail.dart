@@ -392,32 +392,6 @@ class _AvailableProductDetailScreenState
     }
   }
 
-  // --- GET OR CREATE PRICE CONTROLLER FOR BATCH ---
-  TextEditingController _getPriceController(
-    String batchId,
-    double currentPrice,
-  ) {
-    if (!_batchPriceControllers.containsKey(batchId)) {
-      _batchPriceControllers[batchId] = TextEditingController(
-        text: currentPrice.toStringAsFixed(2),
-      );
-    }
-    return _batchPriceControllers[batchId]!;
-  }
-
-  // --- GET OR CREATE QUANTITY CONTROLLER FOR BATCH ---
-  TextEditingController _getQuantityController(
-    String batchId,
-    int currentQuantity,
-  ) {
-    if (!_batchQuantityControllers.containsKey(batchId)) {
-      _batchQuantityControllers[batchId] = TextEditingController(
-        text: currentQuantity.toString(),
-      );
-    }
-    return _batchQuantityControllers[batchId]!;
-  }
-
   // --- FINANCIAL CALCULATIONS (From all batches with their individual prices) ---
   double get totalStockQty {
     if (_isLoadingBatches) return 0;

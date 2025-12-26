@@ -2381,48 +2381,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
-  Widget _buildCompactInfoBox(
-    String label,
-    String value,
-    Color accentColor,
-    Color? secondaryTextColor,
-  ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-        decoration: BoxDecoration(
-          color: accentColor.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: accentColor.withOpacity(0.15), width: 0.5),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: secondaryTextColor,
-                fontSize: 9,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: TextStyle(
-                color: accentColor,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildDetailBox(
     String label,
     String value,
