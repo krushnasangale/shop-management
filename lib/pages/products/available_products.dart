@@ -872,7 +872,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
         return Card(
           color: cardColor,
-          elevation: 0,
+          elevation: 1,
           margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10.0),
