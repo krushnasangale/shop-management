@@ -645,15 +645,15 @@ class _AvailableProductsState extends State<AvailableProducts> {
               children: [
                 _buildFilterChip('All'),
                 const SizedBox(width: 8),
-                _buildFilterChip('Expiring Soon'),
-                const SizedBox(width: 8),
-                _buildFilterChip('Expired'),
-                const SizedBox(width: 8),
                 _buildFilterChip('Reorder Now'),
                 const SizedBox(width: 8),
                 _buildFilterChip('Order Soon'),
                 const SizedBox(width: 8),
                 _buildFilterChip('Well Stocked'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Expiring Soon'),
+                const SizedBox(width: 8),
+                _buildFilterChip('Expired'),
               ],
             ),
           ),
@@ -687,18 +687,21 @@ class _AvailableProductsState extends State<AvailableProducts> {
         });
         _filterProducts();
       },
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       backgroundColor: cardColor,
-      selectedColor: Colors.blue.withOpacity(0.3),
+      selectedColor: Colors.blue.withOpacity(0.2),
       side: BorderSide(
         color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
-        width: 1,
+        width: 0.8,
       ),
       labelStyle: TextStyle(
         color: isSelected ? Colors.blue : null,
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 12,
       ),
-      visualDensity: VisualDensity.compact,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: -1),
+      visualDensity: const VisualDensity(horizontal: -2, vertical: -4),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
@@ -731,27 +734,27 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final stockColor = _getStockColor(quantity, minLimit);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: stockColor.withOpacity(0.2),
-        border: Border.all(color: stockColor, width: 1.5),
-        borderRadius: BorderRadius.circular(20),
+        color: stockColor.withOpacity(0.15),
+        border: Border.all(color: stockColor, width: 1),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             quantity < minLimit ? Icons.warning : Icons.check_circle,
-            size: 16,
+            size: 12,
             color: stockColor,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           Text(
             stockStatus,
             style: TextStyle(
               color: stockColor,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              fontSize: 10,
             ),
           ),
         ],
@@ -869,7 +872,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
         return Card(
           color: cardColor,
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+          elevation: 0,
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10.0),
             side: BorderSide(color: borderColor, width: borderWidth),
@@ -887,14 +891,12 @@ class _AvailableProductsState extends State<AvailableProducts> {
             borderRadius: BorderRadius.circular(10.0),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                vertical: 10.0,
                 horizontal: 12.0,
+                vertical: 10.0,
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Product info
+                  // Left side: Product Name and Unit
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -911,33 +913,41 @@ class _AvailableProductsState extends State<AvailableProducts> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 6),
-                        // Unit and Total Qty
+                        const SizedBox(height: 4),
+                        // Unit and Quantity in one row
                         Row(
                           children: [
-                            Expanded(
-                              child: Text(
-                                'Unit: $unit',
-                                style: TextStyle(
-                                  color: secondaryTextColor,
-                                  fontSize: 12,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            Icon(
+                              Icons.straighten,
+                              size: 14,
+                              color: secondaryTextColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              unit,
+                              style: TextStyle(
+                                color: secondaryTextColor,
+                                fontSize: 12,
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 12),
+                            Icon(
+                              Icons.inventory_2_outlined,
+                              size: 14,
+                              color: Colors.blue[700],
+                            ),
+                            const SizedBox(width: 4),
                             Text(
-                              'Total: $totalQty',
+                              '$totalQty',
                               style: TextStyle(
-                                color: Colors.blue,
+                                color: Colors.blue[700],
                                 fontWeight: FontWeight.bold,
                                 fontSize: 12,
                               ),
                             ),
                           ],
                         ),
-                        // Expiry description at bottom
+                        // Expiry warning (if any)
                         if (expiringQuantity > 0) ...[
                           const SizedBox(height: 6),
                           Row(
@@ -948,11 +958,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
                                     : Icons.warning_amber_rounded,
                                 size: 12,
                                 color: hasExpired
-                                    ? Colors.red
+                                    ? Colors.red[700]
                                     : (daysUntilNearestExpiry != null &&
                                           daysUntilNearestExpiry < 30)
-                                    ? Colors.red
-                                    : Colors.orange,
+                                    ? Colors.red[700]
+                                    : Colors.orange[700],
                               ),
                               const SizedBox(width: 4),
                               Flexible(
@@ -966,11 +976,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
                                       : '$expiringQuantity $unit expiring in $daysUntilNearestExpiry days',
                                   style: TextStyle(
                                     color: hasExpired
-                                        ? Colors.red
+                                        ? Colors.red[700]
                                         : (daysUntilNearestExpiry != null &&
                                               daysUntilNearestExpiry < 30)
-                                        ? Colors.red
-                                        : Colors.orange,
+                                        ? Colors.red[700]
+                                        : Colors.orange[700],
                                     fontWeight: FontWeight.w600,
                                     fontSize: 11,
                                   ),
@@ -984,7 +994,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  // Stock badge
+                  // Right side: Stock badge
                   _buildStockBadge(totalQty, minLimitForStatus),
                 ],
               ),
