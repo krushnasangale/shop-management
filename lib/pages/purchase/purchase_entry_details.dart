@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 
 class PurchaseEntryDetails extends StatefulWidget {
   final Map<String, dynamic> entry;
@@ -17,12 +18,17 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
   bool _isLoading = true;
   late List<StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>
   _subscriptions;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
+  _purchaseSubscription;
+  Map<String, dynamic> _purchaseData = {};
 
   @override
   void initState() {
     super.initState();
     _subscriptions = [];
+    _purchaseData = Map.from(widget.entry);
     _loadItems();
+    _loadPurchaseData();
   }
 
   @override
@@ -30,7 +36,38 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
     for (var sub in _subscriptions) {
       sub.cancel();
     }
+    _purchaseSubscription?.cancel();
     super.dispose();
+  }
+
+  void _loadPurchaseData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final purchaseId = widget.entry['id'] as String?;
+      if (purchaseId == null || purchaseId.isEmpty) return;
+
+      // Listen to purchase document for real-time updates
+      _purchaseSubscription = FirebaseFirestore.instance
+          .collection('purchases')
+          .doc(user.uid)
+          .collection('items')
+          .doc(purchaseId)
+          .snapshots()
+          .listen((snapshot) {
+            if (mounted && snapshot.exists) {
+              setState(() {
+                _purchaseData = {'id': snapshot.id, ...snapshot.data()!};
+                print(
+                  'Purchase data updated: totalUnits=${_purchaseData['totalUnits']}, totalAmount=${_purchaseData['totalAmount']}',
+                );
+              });
+            }
+          });
+    } catch (e) {
+      print('Error loading purchase data: $e');
+    }
   }
 
   void _loadItems() async {
@@ -210,9 +247,9 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
 
-    // Use totalAmount and totalUnits from the purchase record (widget.entry)
-    final totalAmount = (widget.entry['totalAmount'] ?? 0) as num;
-    final totalUnits = (widget.entry['totalUnits'] ?? 0) as num;
+    // Use totalAmount and totalUnits from real-time purchase data
+    final totalAmount = (_purchaseData['totalAmount'] ?? 0) as num;
+    final totalUnits = (_purchaseData['totalUnits'] ?? 0) as num;
 
     if (_isLoading) {
       return Scaffold(
@@ -225,7 +262,26 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Purchase Details'), centerTitle: false),
+      appBar: AppBar(
+        title: const Text('Purchase Details'),
+        centerTitle: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            tooltip: 'Edit Purchase',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => AddPurchaseEntry(
+                    purchaseId: _purchaseData['id'] as String?,
+                    existingEntry: _purchaseData,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12.0),
         child: Column(
@@ -246,7 +302,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.entry['supplierName'] ?? 'Unknown Supplier',
+                      _purchaseData['supplierName'] ?? 'Unknown Supplier',
                       style: TextStyle(
                         color: primaryTextColor,
                         fontWeight: FontWeight.bold,
@@ -269,7 +325,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              widget.entry['date'] ?? 'N/A',
+                              _purchaseData['date'] ?? 'N/A',
                               style: TextStyle(
                                 color: primaryTextColor,
                                 fontWeight: FontWeight.w600,

@@ -8,7 +8,10 @@ import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/add_purchase_review.dart';
 
 class AddPurchaseEntry extends StatefulWidget {
-  const AddPurchaseEntry({super.key});
+  final String? purchaseId;
+  final Map<String, dynamic>? existingEntry;
+
+  const AddPurchaseEntry({super.key, this.purchaseId, this.existingEntry});
 
   @override
   State<AddPurchaseEntry> createState() => _AddPurchaseEntryState();
@@ -86,6 +89,65 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _loadProductNames();
     _loadSupplierDetails();
     _loadUnits();
+
+    // Load existing data if editing
+    if (widget.purchaseId != null && widget.existingEntry != null) {
+      _loadExistingPurchaseData();
+    }
+  }
+
+  Future<void> _loadExistingPurchaseData() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null || widget.purchaseId == null) return;
+
+      // Set basic entry info
+      setState(() {
+        _dateController.text = widget.existingEntry!['date'] ?? '';
+        _supplierNameController.text =
+            widget.existingEntry!['supplierName'] ?? '';
+      });
+
+      // Load items for this purchase
+      final itemsSnapshot = await FirebaseFirestore.instance
+          .collection('purchased-products')
+          .doc(user.uid)
+          .collection('items')
+          .where('purchaseId', isEqualTo: widget.purchaseId)
+          .get();
+
+      List<BoughtItem> loadedItems = [];
+      for (var doc in itemsSnapshot.docs) {
+        final data = doc.data();
+        loadedItems.add(
+          BoughtItem(
+            productName: data['productName'] ?? '',
+            supplierName: data['supplierName'] ?? '',
+            supplierId: data['supplierId'] ?? '',
+            unit: data['unit'] ?? '',
+            expiryDate: data['expiryDate'],
+            minLimit: (data['minLimit'] ?? 0) as int,
+            initialQuantity: (data['initialQuantity'] ?? 0) as int,
+            quantity: (data['quantity'] ?? 0) as int,
+            buyingPrice: (data['buyingPrice'] ?? 0) as int,
+            sellingPrice: (data['sellingPrice'] ?? 0) as int,
+          ),
+        );
+        _selectedSupplierId = data['supplierId'] ?? '';
+      }
+
+      setState(() {
+        _boughtItems = loadedItems;
+        _calculateTotalBoughtAmount();
+      });
+    } catch (e) {
+      print('Error loading existing purchase data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading purchase data: $e')),
+        );
+      }
+    }
   }
 
   void _loadProductNames() {
@@ -322,6 +384,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 if (quantity > 0 && price > 0 && sellingPrice > 0) {
                   setState(() {
                     item.quantity = quantity;
+                    item.initialQuantity = quantity;
                     item.buyingPrice = price;
                     item.sellingPrice = sellingPrice;
                     item.expiryDate = expiryDateController.text.isNotEmpty
@@ -1390,30 +1453,73 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           .collection('purchased-products')
           .doc(user.uid)
           .collection('items');
+      final historyCol = firestore
+          .collection('product-purchase-history')
+          .doc(user.uid)
+          .collection('items');
 
       // Calculate total products and total units
       int totalProducts = _boughtItems.length;
       int totalUnits = 0;
       for (var item in _boughtItems) {
-        totalUnits += item.quantity;
+        totalUnits += item.initialQuantity;
+        print(
+          'Item: ${item.productName}, initialQuantity: ${item.initialQuantity}',
+        );
+      }
+      print(
+        'Calculated totalUnits: $totalUnits, totalProducts: $totalProducts, totalAmount: $_totalBoughtAmount',
+      );
+
+      String purchaseId;
+      bool isEditMode = widget.purchaseId != null;
+
+      if (isEditMode) {
+        // EDIT MODE: Update existing purchase
+        purchaseId = widget.purchaseId!;
+
+        // Delete old items from purchased-products
+        final oldItems = await productsCol
+            .where('purchaseId', isEqualTo: purchaseId)
+            .get();
+        for (var doc in oldItems.docs) {
+          await doc.reference.delete();
+        }
+
+        // Delete old items from history
+        final oldHistory = await historyCol
+            .where('purchaseId', isEqualTo: purchaseId)
+            .get();
+        for (var doc in oldHistory.docs) {
+          await doc.reference.delete();
+        }
+
+        // Update purchase entry
+        await purchasesCol.doc(purchaseId).update({
+          'date': _dateController.text,
+          'supplierName': _supplierNameController.text,
+          'totalAmount': _totalBoughtAmount,
+          'totalProducts': totalProducts,
+          'totalUnits': totalUnits,
+          'timestamp': DateTime.now().toIso8601String(),
+        });
+      } else {
+        // CREATE MODE: Create new purchase
+        final purchaseEntry = {
+          'date': _dateController.text,
+          'supplierName': _supplierNameController.text,
+          'totalAmount': _totalBoughtAmount,
+          'totalProducts': totalProducts,
+          'totalUnits': totalUnits,
+          'timestamp': DateTime.now().toIso8601String(),
+        };
+
+        final purchaseDoc = await purchasesCol.add(purchaseEntry);
+        purchaseId = purchaseDoc.id;
       }
 
-      // First, save the purchase entry to get its ID
-      final purchaseEntry = {
-        'date': _dateController.text,
-        'supplierName': _supplierNameController.text,
-        'totalAmount': _totalBoughtAmount,
-        'totalProducts': totalProducts,
-        'totalUnits': totalUnits,
-        'timestamp': DateTime.now().toIso8601String(),
-      };
-
-      final purchaseDoc = await purchasesCol.add(purchaseEntry);
-      final purchaseId = purchaseDoc.id;
-
-      // Then, save all purchased items with the purchase reference ID
+      // Save all items (same for both create and edit)
       for (var item in _boughtItems) {
-        // Generate unique batch ID based on product name + supplier name + buying price
         final batchHash = md5
             .convert(
               utf8.encode(
@@ -1424,34 +1530,34 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             .substring(0, 8);
         final batchId = '${item.productName}_${item.supplierId}_$batchHash';
 
-        // Check if product already exists in stock (qty > 0)
-        // Get all existing batches for this product
-        final existingSnapshot = await productsCol.get();
-        int existingTotalQty = 0;
-        int existingMinLimit = 0;
-        String? existingMinLimitBatchId;
+        // For new purchases, check if product exists in stock
+        int batchMinLimit = item.minLimit;
+        if (!isEditMode) {
+          final existingSnapshot = await productsCol.get();
+          int existingTotalQty = 0;
+          int existingMinLimit = 0;
+          String? existingMinLimitBatchId;
 
-        for (var doc in existingSnapshot.docs) {
-          final product = doc.data();
-          if (product['productName'] == item.productName) {
-            existingTotalQty += ((product['quantity'] ?? 0) as num).toInt();
-            // Find the batch that holds the minLimit (minLimit > 0)
-            final batchMinLimit = ((product['minLimit'] ?? 0) as num).toInt();
-            if (batchMinLimit > 0 && existingMinLimitBatchId == null) {
-              existingMinLimit = batchMinLimit;
-              existingMinLimitBatchId = doc.id;
+          for (var doc in existingSnapshot.docs) {
+            final product = doc.data();
+            if (product['productName'] == item.productName) {
+              existingTotalQty += ((product['quantity'] ?? 0) as num).toInt();
+              final minLim = ((product['minLimit'] ?? 0) as num).toInt();
+              if (minLim > 0 && existingMinLimitBatchId == null) {
+                existingMinLimit = minLim;
+                existingMinLimitBatchId = doc.id;
+              }
             }
           }
-        }
 
-        // Determine the minLimit for this new batch
-        int batchMinLimit;
-        if (existingTotalQty == 0) {
-          // Product not in stock, this batch will store the minLimit
-          batchMinLimit = item.minLimit;
-        } else {
-          // Product already in stock, new batch gets 0, we'll update the existing batch
-          batchMinLimit = 0;
+          if (existingTotalQty > 0) {
+            batchMinLimit = 0;
+            if (existingMinLimitBatchId != null) {
+              await productsCol.doc(existingMinLimitBatchId).update({
+                'minLimit': existingMinLimit + item.minLimit,
+              });
+            }
+          }
         }
 
         final productEntry = {
@@ -1474,19 +1580,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'profitMargin': (item.sellingPrice - item.buyingPrice).toDouble(),
         };
 
-        // Save to purchased-products and capture the generated product ID
         final productDoc = await productsCol.add(productEntry);
-        final productId = productDoc.id; // Get the unique product ID
 
-        // Also save to permanent purchase history using productId (not productName)
-        // This ensures history is not affected if product name changes in future
-        final historyCol = firestore
-            .collection('product-purchase-history')
-            .doc(user.uid)
-            .collection('items');
         final historyEntry = {
           'purchaseId': purchaseId,
-          'productId': productId, // Store the unique product ID
+          'productId': productDoc.id,
           'productName': item.productName,
           'supplierId': item.supplierId,
           'supplierName': item.supplierName,
@@ -1501,20 +1599,17 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'batchId': batchId,
         };
         await historyCol.add(historyEntry);
-
-        // If product already exists and we need to update minLimit
-        if (existingTotalQty > 0 && existingMinLimitBatchId != null) {
-          // Update the existing batch that holds the minLimit
-          final updatedMinLimit = existingMinLimit + item.minLimit;
-          await productsCol.doc(existingMinLimitBatchId).update({
-            'minLimit': updatedMinLimit,
-          });
-        }
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bought entry saved successfully')),
+          SnackBar(
+            content: Text(
+              isEditMode
+                  ? 'Purchase updated successfully'
+                  : 'Bought entry saved successfully',
+            ),
+          ),
         );
         Navigator.of(context).pop();
       }
@@ -1575,8 +1670,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   @override
   Widget build(BuildContext context) {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
+    final isEditMode = widget.purchaseId != null;
     return Scaffold(
-      appBar: AppBar(title: const Text('Add Bought Entry')),
+      appBar: AppBar(
+        title: Text(isEditMode ? 'Edit Purchase Entry' : 'Add Bought Entry'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
