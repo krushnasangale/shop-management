@@ -10,6 +10,7 @@ import 'package:flashbill/pages/profile/products/product.dart';
 import 'package:flashbill/pages/profile/supplier/suppliers.dart';
 import 'package:flashbill/pages/profile/units/units.dart';
 import 'package:flashbill/pages/profile/edit_profile.dart';
+import 'package:flashbill/pages/profile/privacy_policy.dart';
 import 'package:flashbill/providers/theme_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -545,6 +546,9 @@ class _MyProfileState extends State<MyProfile> {
                     Icons.policy_outlined,
                     'Privacy Policy',
                     context,
+                    onTap: () {
+                      AppNavigator.push(context, const PrivacyPolicyPage());
+                    },
                   ),
 
                   // General Section
