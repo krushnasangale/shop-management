@@ -499,49 +499,139 @@ class _AvailableProductDetailScreenState
       appBar: AppBar(
         title: Text(displayedProductName),
         centerTitle: false,
-        // actions: [
-        //   IconButton(
-        //     icon: const Icon(Icons.delete),
-        //     onPressed: () {
-        //       // Confirm deletion
-        //       showDialog(
-        //         context: context,
-        //         builder: (context) => AlertDialog(
-        //           title: Text('Delete Product', style: TextStyle(color: primaryTextColor),),
-        //           content: const Text('Are you sure you want to delete this product? This action cannot be undone.'),
-        //           actions: [
-        //             TextButton(
-        //               onPressed: () => Navigator.of(context).pop(),
-        //               child: const Text('Cancel'),
-        //             ),
-        //             ElevatedButton(
-        //               onPressed: () async {
-        //                 try {
-        //                   await _productRef.remove();
-        //                   if (mounted) {
-        //                     Navigator.of(context).pop(); // Close dialog
-        //                     Navigator.of(context).pop(); // Go back after deletion
-        //                     ScaffoldMessenger.of(context).showSnackBar(
-        //                       const SnackBar(content: Text('Product deleted successfully.')),
-        //                     );
-        //                   }
-        //                 } catch (e) {
-        //                   if (mounted) {
-        //                     Navigator.of(context).pop(); // Close dialog
-        //                     ScaffoldMessenger.of(context).showSnackBar(
-        //                       SnackBar(content: Text('Error deleting product: $e')),
-        //                     );
-        //                   }
-        //                 }
-        //               },
-        //               child: const Text('Delete'),
-        //             ),
-        //           ],
-        //         ),
-        //       );
-        //     },
-        //   ),
-        // ],
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              // Confirm deletion
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Text(
+                    'Delete Product',
+                    style: TextStyle(color: primaryTextColor),
+                  ),
+                  content: const Text(
+                    'Are you sure you want to delete this product? This action cannot be undone.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () async {
+                        try {
+                          // Delete all batches of this product from purchased-products collection
+                          final batchesSnapshot = await FirebaseFirestore
+                              .instance
+                              .collection('purchased-products')
+                              .doc(widget.userId)
+                              .collection('items')
+                              .where(
+                                'productName',
+                                isEqualTo: widget.product.productName,
+                              )
+                              .get();
+
+                          // Collect unique purchase IDs from all batches
+                          Set<String> affectedPurchaseIds = {};
+                          for (var doc in batchesSnapshot.docs) {
+                            final purchaseId =
+                                doc.data()['purchaseId'] as String?;
+                            if (purchaseId != null && purchaseId.isNotEmpty) {
+                              affectedPurchaseIds.add(purchaseId);
+                            }
+                          }
+
+                          // Delete each batch
+                          for (var doc in batchesSnapshot.docs) {
+                            await doc.reference.delete();
+                          }
+
+                          // Update or delete affected purchase entries
+                          for (String purchaseId in affectedPurchaseIds) {
+                            // Get remaining items for this purchase
+                            final remainingItems = await FirebaseFirestore
+                                .instance
+                                .collection('purchased-products')
+                                .doc(widget.userId)
+                                .collection('items')
+                                .where('purchaseId', isEqualTo: purchaseId)
+                                .get();
+
+                            if (remainingItems.docs.isEmpty) {
+                              // No items left, delete the purchase entry
+                              await FirebaseFirestore.instance
+                                  .collection('purchases')
+                                  .doc(widget.userId)
+                                  .collection('items')
+                                  .doc(purchaseId)
+                                  .delete();
+                            } else {
+                              // Recalculate purchase totals
+                              double newTotalAmount = 0;
+                              int newTotalUnits = 0;
+                              int newTotalProducts = remainingItems.docs.length;
+
+                              for (var doc in remainingItems.docs) {
+                                final total = (doc['total'] ?? 0) as num;
+                                final quantity =
+                                    (doc['initialQuantity'] ?? 0) as num;
+                                newTotalAmount += total.toDouble();
+                                newTotalUnits += quantity.toInt();
+                              }
+
+                              // Update the purchase entry
+                              await FirebaseFirestore.instance
+                                  .collection('purchases')
+                                  .doc(widget.userId)
+                                  .collection('items')
+                                  .doc(purchaseId)
+                                  .update({
+                                    'totalAmount': newTotalAmount,
+                                    'totalUnits': newTotalUnits,
+                                    'totalProducts': newTotalProducts,
+                                  });
+                            }
+                          }
+
+                          if (mounted) {
+                            Navigator.of(context).pop(); // Close dialog
+                            Navigator.of(
+                              context,
+                            ).pop(); // Go back after deletion
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '${widget.product.productName} deleted successfully (${batchesSnapshot.docs.length} batches removed)',
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            Navigator.of(context).pop(); // Close dialog
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error deleting product: $e'),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      child: const Text('Delete'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Column(
         children: [
