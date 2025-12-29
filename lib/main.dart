@@ -312,29 +312,31 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: _selectedIndex == 0 ? AppBar(
-        title: Text(_shopName),
-        automaticallyImplyLeading: false,
-        actions: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: Colors.grey.withOpacity(0.2),
-            ),
-            height: 40,
-            width: 40,
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              icon: const Icon(Icons.account_circle, size: 35),
-              onPressed: () async {
-                AppNavigator.push(context, const MyProfile());
-              },
-              tooltip: 'My Profile',
-            ),
-          ),
-          const SizedBox(width: 14),
-        ],
-      ) : null,
+      appBar: _selectedIndex == 0
+          ? AppBar(
+              title: Text(_shopName),
+              automaticallyImplyLeading: false,
+              actions: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.grey.withOpacity(0.2),
+                  ),
+                  height: 40,
+                  width: 40,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.account_circle, size: 35),
+                    onPressed: () async {
+                      AppNavigator.push(context, const MyProfile());
+                    },
+                    tooltip: 'My Profile',
+                  ),
+                ),
+                const SizedBox(width: 14),
+              ],
+            )
+          : null,
       body: IndexedStack(index: _selectedIndex, children: _screens),
 
       floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3
@@ -399,7 +401,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
               ],
             ),
-            label: 'Products',
+            label: 'Availability',
           ),
           const BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long),
