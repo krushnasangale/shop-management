@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
@@ -27,7 +28,7 @@ class _EditProfileState extends State<EditProfile> {
   late TextEditingController _shopEmailController;
   late TextEditingController _licenseNumberController;
   late TextEditingController _ownerSignatureController;
-  
+
   String? _ownerSignatureBase64;
   bool _hasSignature = false;
 
@@ -64,7 +65,9 @@ class _EditProfileState extends State<EditProfile> {
           _shopEmailController.text = data['shopEmail'] ?? '';
           _licenseNumberController.text = data['licenseNumber'] ?? '';
           _ownerSignatureBase64 = data['ownerSignature'];
-          _hasSignature = _ownerSignatureBase64 != null && _ownerSignatureBase64!.isNotEmpty;
+          _hasSignature =
+              _ownerSignatureBase64 != null &&
+              _ownerSignatureBase64!.isNotEmpty;
         });
       }
     } catch (e) {
@@ -138,12 +141,11 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   void _showSignatureDialog(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Add/Update Signature', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryTextColor)),
+          title: Text('Add/Update Signature', style: context.titleLarge),
           content: const Text(
             'Choose how to add your signature:',
             style: TextStyle(fontSize: 14),
@@ -214,153 +216,188 @@ class _EditProfileState extends State<EditProfile> {
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
       barrierColor: Colors.black.withOpacity(0.5),
       transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (BuildContext buildContext, Animation<double> animation,
-          Animation<double> secondaryAnimation) {
-        return WillPopScope(
-          onWillPop: () async {
-            // Reset to portrait when closing
-            SystemChrome.setPreferredOrientations([
-              DeviceOrientation.portraitUp,
-              DeviceOrientation.portraitDown,
-            ]);
-            return true;
-          },
-          child: SafeArea(
-            child: Scaffold(
-              backgroundColor: Colors.white,
-              appBar: AppBar(
-                title: const Text('Draw Your Signature'),
-                elevation: 0,
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      controller.clear();
-                      if (buildContext.mounted) {
-                        ScaffoldMessenger.of(buildContext).showSnackBar(
-                          const SnackBar(
-                            content: Text('Signature cleared'),
-                            duration: Duration(seconds: 1),
-                          ),
-                        );
-                      }
-                    },
-                    child: const Text('Clear', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-              body: Column(
-                children: [
-                  Expanded(
-                    child: Container(
-                      color: Colors.grey[100],
-                      child: Signature(
-                        controller: controller,
-                        backgroundColor: Colors.grey[100]!,
+      pageBuilder:
+          (
+            BuildContext buildContext,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+          ) {
+            return WillPopScope(
+              onWillPop: () async {
+                // Reset to portrait when closing
+                SystemChrome.setPreferredOrientations([
+                  DeviceOrientation.portraitUp,
+                  DeviceOrientation.portraitDown,
+                ]);
+                return true;
+              },
+              child: SafeArea(
+                child: Scaffold(
+                  backgroundColor: Colors.white,
+                  appBar: AppBar(
+                    title: const Text('Draw Your Signature'),
+                    elevation: 0,
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          controller.clear();
+                          if (buildContext.mounted) {
+                            ScaffoldMessenger.of(buildContext).showSnackBar(
+                              const SnackBar(
+                                content: Text('Signature cleared'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Clear',
+                          style: TextStyle(color: Colors.white),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      border: Border(
-                        top: BorderSide(color: Colors.grey[300]!, width: 1),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Reset to portrait when closing
-                              SystemChrome.setPreferredOrientations([
-                                DeviceOrientation.portraitUp,
-                                DeviceOrientation.portraitDown,
-                              ]);
-                              Navigator.pop(buildContext);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.grey[400],
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(color: Colors.white),
-                            ),
+                  body: Column(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          color: Colors.grey[100],
+                          child: Signature(
+                            controller: controller,
+                            backgroundColor: Colors.grey[100]!,
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              if (controller.isNotEmpty) {
-                                final signature = await controller.toImage();
-                                if (signature != null) {
-                                  final bytes = await signature.toByteData(
-                                      format: ui.ImageByteFormat.png);
-                                  if (bytes != null && mounted) {
-                                    setState(() {
-                                      _ownerSignatureBase64 = base64Encode(
-                                          bytes.buffer.asUint8List());
-                                      _hasSignature = true;
-                                    });
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 8,
+                          horizontal: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border(
+                            top: BorderSide(color: Colors.grey[300]!, width: 1),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  // Reset to portrait when closing
+                                  SystemChrome.setPreferredOrientations([
+                                    DeviceOrientation.portraitUp,
+                                    DeviceOrientation.portraitDown,
+                                  ]);
+                                  Navigator.pop(buildContext);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[400],
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Cancel',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  if (controller.isNotEmpty) {
+                                    final signature = await controller
+                                        .toImage();
+                                    if (signature != null) {
+                                      final bytes = await signature.toByteData(
+                                        format: ui.ImageByteFormat.png,
+                                      );
+                                      if (bytes != null && mounted) {
+                                        setState(() {
+                                          _ownerSignatureBase64 = base64Encode(
+                                            bytes.buffer.asUint8List(),
+                                          );
+                                          _hasSignature = true;
+                                        });
+                                        if (buildContext.mounted) {
+                                          // Reset to portrait when closing
+                                          SystemChrome.setPreferredOrientations(
+                                            [
+                                              DeviceOrientation.portraitUp,
+                                              DeviceOrientation.portraitDown,
+                                            ],
+                                          );
+                                          // Use rootNavigator to pop the dialog
+                                          Navigator.of(
+                                            buildContext,
+                                            rootNavigator: true,
+                                          ).pop();
+                                          ScaffoldMessenger.of(
+                                            buildContext,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Signature saved successfully',
+                                              ),
+                                              duration: Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    }
+                                  } else {
                                     if (buildContext.mounted) {
-                                      // Reset to portrait when closing
-                                      SystemChrome.setPreferredOrientations([
-                                        DeviceOrientation.portraitUp,
-                                        DeviceOrientation.portraitDown,
-                                      ]);
-                                      // Use rootNavigator to pop the dialog
-                                      Navigator.of(buildContext, rootNavigator: true).pop();
-                                      ScaffoldMessenger.of(buildContext).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        buildContext,
+                                      ).showSnackBar(
                                         const SnackBar(
                                           content: Text(
-                                              'Signature saved successfully'),
-                                          duration: Duration(seconds: 2),
+                                            'Please draw your signature',
+                                          ),
+                                          backgroundColor: Colors.red,
                                         ),
                                       );
                                     }
                                   }
-                                }
-                              } else {
-                                if (buildContext.mounted) {
-                                  ScaffoldMessenger.of(buildContext).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Please draw your signature'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                                child: const Text(
+                                  'Save Signature',
+                                  style: TextStyle(color: Colors.white),
+                                ),
+                              ),
                             ),
-                            child: const Text(
-                              'Save Signature',
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-        );
-      },
-      transitionBuilder: (BuildContext context, Animation<double> animation,
-          Animation<double> secondaryAnimation, Widget child) {
-        return SlideTransition(
-          position:
-              Tween<Offset>(begin: const Offset(0, 1), end: Offset.zero)
-                  .animate(animation),
-          child: child,
-        );
-      },
+            );
+          },
+      transitionBuilder:
+          (
+            BuildContext context,
+            Animation<double> animation,
+            Animation<double> secondaryAnimation,
+            Widget child,
+          ) {
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            );
+          },
     );
   }
 
@@ -387,10 +424,7 @@ class _EditProfileState extends State<EditProfile> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -419,10 +453,7 @@ class _EditProfileState extends State<EditProfile> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -506,10 +537,7 @@ class _EditProfileState extends State<EditProfile> {
                 // Shop Name Field
                 const Text(
                   'Shop Name',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 Card(
                   child: TextFormField(
@@ -526,11 +554,17 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 1,
+                        ),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -546,10 +580,7 @@ class _EditProfileState extends State<EditProfile> {
                 // Owner Name Field
                 const Text(
                   'Owner Name',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 Card(
                   child: TextFormField(
@@ -566,11 +597,17 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 1,
+                        ),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -586,10 +623,7 @@ class _EditProfileState extends State<EditProfile> {
                 // Shop Address Field
                 const Text(
                   'Shop Address',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 Card(
                   child: TextFormField(
@@ -607,11 +641,17 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 1,
+                        ),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -627,10 +667,7 @@ class _EditProfileState extends State<EditProfile> {
                 // Shop Phone Field
                 const Text(
                   'Shop Phone Number',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 Card(
                   child: TextFormField(
@@ -648,11 +685,17 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 1,
+                        ),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -673,10 +716,7 @@ class _EditProfileState extends State<EditProfile> {
                 // Shop Email Field
                 const Text(
                   'Shop Email',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 Card(
                   child: TextFormField(
@@ -694,11 +734,17 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 1,
+                        ),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {
@@ -716,10 +762,7 @@ class _EditProfileState extends State<EditProfile> {
                 // Owner Signature Field
                 const Text(
                   'Owner Signature',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
                 Container(
@@ -771,9 +814,7 @@ class _EditProfileState extends State<EditProfile> {
                                 const SizedBox(height: 8),
                                 Text(
                                   'No signature added',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                  ),
+                                  style: TextStyle(color: Colors.grey[600]),
                                 ),
                               ],
                             ),
@@ -787,11 +828,17 @@ class _EditProfileState extends State<EditProfile> {
                             child: ElevatedButton.icon(
                               onPressed: () => _showSignatureDialog(context),
                               icon: const Icon(Icons.edit),
-                              label: Text(_hasSignature ? 'Update Signature' : 'Add Signature'),
+                              label: Text(
+                                _hasSignature
+                                    ? 'Update Signature'
+                                    : 'Add Signature',
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
                               ),
                             ),
                           ),
@@ -804,10 +851,7 @@ class _EditProfileState extends State<EditProfile> {
                 // License/Registration Number Field
                 const Text(
                   'License/Registration Number',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
                 Card(
                   child: TextFormField(
@@ -824,11 +868,17 @@ class _EditProfileState extends State<EditProfile> {
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 1),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 1,
+                        ),
                       ),
                       focusedErrorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
-                        borderSide: const BorderSide(color: Colors.red, width: 2),
+                        borderSide: const BorderSide(
+                          color: Colors.red,
+                          width: 2,
+                        ),
                       ),
                     ),
                     validator: (value) {

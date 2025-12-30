@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/add_purchase_review.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 class AddPurchaseEntry extends StatefulWidget {
   final String? purchaseId;
@@ -234,7 +235,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _totalBoughtAmount = _boughtItems.fold(0, (sum, item) => sum + item.total);
   }
 
-  void _showEditBoughtItemDialog(BoughtItem item, Color primaryTextColor) {
+  void _showEditBoughtItemDialog(BoughtItem item) {
     final quantityController = TextEditingController(
       text: item.quantity.toString(),
     );
@@ -252,10 +253,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            'Edit ${item.productName}',
-            style: TextStyle(color: primaryTextColor),
-          ),
+          title: Text('Edit ${item.productName}', style: context.bodyLargeText),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -663,7 +661,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   ) {
     final productNameController = TextEditingController();
     String productNameError = '';
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
@@ -671,10 +668,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(
-                'Add New Product Name',
-                style: TextStyle(color: primaryTextColor),
-              ),
+              title: Text('Add New Product Name', style: context.bodyLargeText),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -799,7 +793,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   void _showAddUnitDialog(BuildContext context, StateSetter setModalState) {
     final unitNameController = TextEditingController();
     String unitNameError = '';
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
@@ -807,10 +800,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(
-                'Add New Unit',
-                style: TextStyle(color: primaryTextColor),
-              ),
+              title: Text('Add New Unit', style: context.bodyLargeText),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1181,7 +1171,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     final newSupplierController = TextEditingController();
     final contactController = TextEditingController();
     final locationController = TextEditingController();
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     String nameError = '';
     String contactError = '';
@@ -1195,9 +1184,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             return AlertDialog(
               title: Text(
                 'Add New Supplier',
-                style: TextStyle(
+                style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: primaryTextColor,
                 ),
               ),
               content: SingleChildScrollView(
@@ -1669,7 +1657,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final isEditMode = widget.purchaseId != null;
     return Scaffold(
       appBar: AppBar(
@@ -1866,10 +1853,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           itemBuilder: (context, index) {
                             final item = _boughtItems[index];
                             return InkWell(
-                              onTap: () => _showEditBoughtItemDialog(
-                                item,
-                                primaryTextColor!,
-                              ),
+                              onTap: () => _showEditBoughtItemDialog(item),
                               child: Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: Card(
@@ -1882,11 +1866,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                       children: [
                                         Text(
                                           item.productName,
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: primaryTextColor,
-                                          ),
+                                          style: context.bodyLargeText
+                                              ?.copyWith(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),

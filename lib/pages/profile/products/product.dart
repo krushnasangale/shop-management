@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 class Product {
   final String id;
@@ -75,30 +76,26 @@ class _ProductNameState extends State<ProductName> {
   }
 
   void _loadProductsFromDatabase() {
-    _productsSubscription = _productsRef.snapshots().listen(
-      (snapshot) {
-        // Early return if widget is disposed
-        if (!mounted) return;
+    _productsSubscription = _productsRef.snapshots().listen((snapshot) {
+      // Early return if widget is disposed
+      if (!mounted) return;
 
-        final loadedProducts = <Product>[];
+      final loadedProducts = <Product>[];
 
-        for (var doc in snapshot.docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          loadedProducts.add(
-            Product.fromMap(doc.id, data),
-          );
-        }
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        loadedProducts.add(Product.fromMap(doc.id, data));
+      }
 
-        // Single setState call with all updates
-        if (mounted) {
-          setState(() {
-            _products = loadedProducts;
-            _isLoading = false;
-          });
-          _filterProducts();
-        }
-      },
-    );
+      // Single setState call with all updates
+      if (mounted) {
+        setState(() {
+          _products = loadedProducts;
+          _isLoading = false;
+        });
+        _filterProducts();
+      }
+    });
   }
 
   void _filterProducts() {
@@ -215,13 +212,12 @@ class _ProductNameState extends State<ProductName> {
 
   void _showAddProductPopup() {
     _productNameController.clear();
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Add Product Name', style: TextStyle(color: primaryTextColor),),
+          title: Text('Add Product Name', style: context.bodyLargeText),
           content: TextField(
             controller: _productNameController,
             textCapitalization: TextCapitalization.characters,
@@ -248,7 +244,9 @@ class _ProductNameState extends State<ProductName> {
               onPressed: () async {
                 if (_productNameController.text.isNotEmpty) {
                   try {
-                    await _productsRef.add({'name': _productNameController.text.trim()});
+                    await _productsRef.add({
+                      'name': _productNameController.text.trim(),
+                    });
                     if (context.mounted) {
                       Navigator.pop(context);
                     }

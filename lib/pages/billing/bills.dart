@@ -1,5 +1,6 @@
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -210,17 +211,13 @@ class _BillsState extends State<Bills> {
   }
 
   void _showReportOptionsDialog(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text(
-                'Generate Report',
-                style: TextStyle(color: primaryTextColor),
-              ),
+              title: Text('Generate Report', style: context.bodyLargeText),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -861,9 +858,6 @@ class _BillsState extends State<Bills> {
 
   // Helper to build a single bill card
   Widget _buildBillCard(Bill bill) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
       elevation: 1,
@@ -897,11 +891,7 @@ class _BillsState extends State<Bills> {
                 children: [
                   Text(
                     bill.customerName,
-                    style: TextStyle(
-                      color: primaryTextColor,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                    ),
+                    style: context.titleLarge?.copyWith(fontSize: 18),
                   ),
                   _buildStatusBadge(bill.status),
                 ],
@@ -912,15 +902,11 @@ class _BillsState extends State<Bills> {
                 children: [
                   Text(
                     'Bill Date: ${bill.date}',
-                    style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                    style: context.subtitleMedium,
                   ),
                   Text(
                     bill.amount,
-                    style: TextStyle(
-                      color: primaryTextColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                    style: context.titleLarge?.copyWith(fontSize: 18),
                   ),
                 ],
               ),

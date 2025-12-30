@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -210,15 +211,11 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
   }
 
   void _showRemoveConfirmation(String itemId, String productName) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            'Remove Product',
-            style: TextStyle(color: primaryTextColor),
-          ),
+          title: Text('Remove Product', style: context.bodyLargeText),
           content: Text(
             _items.length <= 1
                 ? 'This is the last product. Removing it will delete the entire purchase entry. Continue?'
@@ -244,9 +241,6 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
     // Use totalAmount and totalUnits from real-time purchase data
     final totalAmount = (_purchaseData['totalAmount'] ?? 0) as num;
     final totalUnits = (_purchaseData['totalUnits'] ?? 0) as num;
@@ -292,7 +286,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: secondaryTextColor!.withOpacity(0.1),
+                  color: context.secondaryTextColor!.withOpacity(0.1),
                   width: 1,
                 ),
               ),
@@ -303,11 +297,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                   children: [
                     Text(
                       _purchaseData['supplierName'] ?? 'Unknown Supplier',
-                      style: TextStyle(
-                        color: primaryTextColor,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
+                      style: context.headingMedium,
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -316,43 +306,20 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              'Purchase Date',
-                              style: TextStyle(
-                                color: secondaryTextColor,
-                                fontSize: 12,
-                              ),
-                            ),
+                            Text('Purchase Date', style: context.subtitleSmall),
                             const SizedBox(height: 4),
                             Text(
                               _purchaseData['date'] ?? 'N/A',
-                              style: TextStyle(
-                                color: primaryTextColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
+                              style: context.titleMedium,
                             ),
                           ],
                         ),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(
-                              'Total Units',
-                              style: TextStyle(
-                                color: secondaryTextColor,
-                                fontSize: 12,
-                              ),
-                            ),
+                            Text('Total Units', style: context.subtitleSmall),
                             const SizedBox(height: 4),
-                            Text(
-                              '$totalUnits',
-                              style: TextStyle(
-                                color: primaryTextColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
+                            Text('$totalUnits', style: context.titleMedium),
                           ],
                         ),
                       ],
@@ -362,14 +329,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               ),
             ),
             const SizedBox(height: 16),
-            Text(
-              'Purchased Items',
-              style: TextStyle(
-                color: primaryTextColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
+            Text('Purchased Items', style: context.titleLarge),
             const SizedBox(height: 8),
             ..._items.asMap().entries.map((mapEntry) {
               final index = mapEntry.key;
@@ -397,7 +357,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                     side: BorderSide(
-                      color: secondaryTextColor.withOpacity(0.1),
+                      color: context.secondaryTextColor!.withOpacity(0.1),
                       width: 1,
                     ),
                   ),
@@ -430,11 +390,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                             Expanded(
                               child: Text(
                                 productName,
-                                style: TextStyle(
-                                  color: primaryTextColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
+                                style: context.titleMedium,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -484,15 +440,12 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                 Icon(
                                   Icons.straighten,
                                   size: 16,
-                                  color: secondaryTextColor,
+                                  color: context.secondaryTextColor,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Unit: $unit',
-                                  style: TextStyle(
-                                    color: secondaryTextColor,
-                                    fontSize: 12,
-                                  ),
+                                  style: context.subtitleSmall,
                                 ),
                               ],
                             ),
@@ -529,20 +482,12 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               children: [
                                 Text(
                                   'Quantity',
-                                  style: TextStyle(
-                                    color: secondaryTextColor,
+                                  style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  '$quantity',
-                                  style: TextStyle(
-                                    color: primaryTextColor,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
+                                Text('$quantity', style: context.titleMedium),
                               ],
                             ),
                             Column(
@@ -550,8 +495,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               children: [
                                 Text(
                                   'Buying Price',
-                                  style: TextStyle(
-                                    color: secondaryTextColor,
+                                  style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
                                 ),
@@ -571,8 +515,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               children: [
                                 Text(
                                   'Selling Price',
-                                  style: TextStyle(
-                                    color: secondaryTextColor,
+                                  style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
                                 ),
@@ -598,8 +541,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               children: [
                                 Text(
                                   'Profit per Unit',
-                                  style: TextStyle(
-                                    color: secondaryTextColor,
+                                  style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
                                 ),
@@ -618,16 +560,16 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        Divider(color: secondaryTextColor.withOpacity(0.1)),
+                        Divider(
+                          color: context.secondaryTextColor?.withOpacity(0.1),
+                        ),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'Item Total',
-                              style: TextStyle(
-                                color: secondaryTextColor,
-                                fontSize: 12,
+                              style: context.subtitleMedium?.copyWith(
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -670,14 +612,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Grand Total',
-                    style: TextStyle(
-                      color: primaryTextColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
+                  Text('Grand Total', style: context.titleLarge),
                   Text(
                     '₹$totalAmount',
                     style: TextStyle(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -9,24 +10,16 @@ class UnitOfMeasure {
   final String id;
   final String name;
 
-  UnitOfMeasure({
-    required this.id,
-    required this.name,
-  });
+  UnitOfMeasure({required this.id, required this.name});
 
   // Convert to Map for Firebase
   Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-    };
+    return {'name': name};
   }
 
   // Create from Map
   factory UnitOfMeasure.fromMap(String id, Map<dynamic, dynamic> data) {
-    return UnitOfMeasure(
-      id: id,
-      name: data['name'] ?? '',
-    );
+    return UnitOfMeasure(id: id, name: data['name'] ?? '');
   }
 }
 
@@ -85,22 +78,22 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
         .collection('items')
         .snapshots()
         .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
-      // Early return if widget is disposed
-      if (!mounted) return;
-      
-      final loadedUnits = snapshot.docs
-          .map((doc) => UnitOfMeasure.fromMap(doc.id, doc.data()))
-          .toList();
-      
-      // Single setState call with all updates
-      if (mounted) {
-        setState(() {
-          _units = loadedUnits;
-          _isLoading = false;
+          // Early return if widget is disposed
+          if (!mounted) return;
+
+          final loadedUnits = snapshot.docs
+              .map((doc) => UnitOfMeasure.fromMap(doc.id, doc.data()))
+              .toList();
+
+          // Single setState call with all updates
+          if (mounted) {
+            setState(() {
+              _units = loadedUnits;
+              _isLoading = false;
+            });
+            _filterUnits();
+          }
         });
-        _filterUnits();
-      }
-    });
   }
 
   void _filterUnits() {
@@ -126,35 +119,32 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
       context: context,
       builder: (BuildContext context) {
         // Theme colors for the dialog
-        final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-        final cardColor = Theme.of(context).cardColor;
+        final cardColor = context.cardColor;
 
         return AlertDialog(
           backgroundColor: cardColor,
-          title: Text(
-            'Add New Unit',
-            style: TextStyle(color: primaryTextColor),
-          ),
+          title: Text('Add New Unit', style: context.bodyLargeText),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 TextField(
                   controller: _unitNameController,
-                  style: TextStyle(color: primaryTextColor),
+                  style: context.bodyLargeText,
                   textCapitalization: TextCapitalization.characters,
                   onChanged: (value) {
                     if (value != value.toUpperCase()) {
                       _unitNameController.text = value.toUpperCase();
-                      _unitNameController.selection = TextSelection.fromPosition(
-                        TextPosition(offset: value.toUpperCase().length),
-                      );
+                      _unitNameController.selection =
+                          TextSelection.fromPosition(
+                            TextPosition(offset: value.toUpperCase().length),
+                          );
                     }
                   },
                   decoration: InputDecoration(
                     labelText: 'Unit Name (e.g., METER, PIECE)',
                     labelStyle: TextStyle(
-                      color: primaryTextColor!.withOpacity(0.7),
+                      color: context.primaryTextColor!.withOpacity(0.7),
                     ),
                   ),
                 ),
@@ -178,9 +168,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                         .collection('units')
                         .doc(_userId)
                         .collection('items')
-                        .add({
-                          'name': _unitNameController.text.trim(),
-                        });
+                        .add({'name': _unitNameController.text.trim()});
                     if (context.mounted) {
                       Navigator.of(context).pop();
                     }
@@ -202,9 +190,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
 
   // --- Helper Widget for the Unit List Item (Card) ---
   Widget _buildUnitCard(BuildContext context, UnitOfMeasure unit, int index) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-    final cardColor = Theme.of(context).cardTheme.color;
+    final cardColor = context.cardColor;
 
     return Card(
       color: cardColor,
@@ -213,7 +199,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
         side: BorderSide(
-          color: secondaryTextColor!.withOpacity(0.1),
+          color: context.secondaryTextColor!.withOpacity(0.1),
           width: 1.0,
         ),
       ),
@@ -230,11 +216,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                     children: [
                       Text(
                         unit.name,
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
-                        ),
+                        style: context.titleLarge?.copyWith(fontSize: 18),
                       ),
                       const SizedBox(
                         height: 4,
@@ -271,59 +253,68 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
         title: const Text('Measurement Units'),
         centerTitle: false,
         actions: [
-            IconButton(
-              icon: Icon(_showSearchBar ? Icons.close : Icons.search),
-              onPressed: () {
-                setState(() {
-                  _showSearchBar = !_showSearchBar;
-                  if (!_showSearchBar) {
-                    _searchController.clear();
-                  }
-                });
-              },
-            ),
-            const SizedBox(width: 8),
-          ],
+          IconButton(
+            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                _showSearchBar = !_showSearchBar;
+                if (!_showSearchBar) {
+                  _searchController.clear();
+                }
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
                 // --- Search Bar ---
-                if(_showSearchBar) Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-                  child: Card(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search units...',
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () => _searchController.clear(),
-                              )
-                            : null,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                if (_showSearchBar)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                      vertical: 8.0,
+                    ),
+                    child: Card(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search units...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () => _searchController.clear(),
+                                )
+                              : null,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          filled: false,
+                          fillColor: Colors.grey[200],
                         ),
-                        filled: false,
-                        fillColor: Colors.grey[200],
                       ),
                     ),
                   ),
-                ),
                 // --- Units List ---
                 Expanded(
                   child: _filteredUnits.isEmpty
                       ? Center(
-                          child: Text(_searchQuery.isEmpty
-                              ? 'No units yet. Add one to get started!'
-                              : 'No units found for "$_searchQuery"'),
+                          child: Text(
+                            _searchQuery.isEmpty
+                                ? 'No units yet. Add one to get started!'
+                                : 'No units found for "$_searchQuery"',
+                          ),
                         )
                       : ListView.builder(
-                          padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: !_showSearchBar ? 8.0 : 0.0),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12.0,
+                            vertical: !_showSearchBar ? 8.0 : 0.0,
+                          ),
                           itemCount: _filteredUnits.length,
                           itemBuilder: (context, index) {
                             final unit = _filteredUnits[index];
@@ -363,11 +354,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              buildFormField(
-                'Unit Name',
-                'Enter unit name',
-                nameController,
-              ),
+              buildFormField('Unit Name', 'Enter unit name', nameController),
             ],
           ),
           actions: [
@@ -383,9 +370,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                       .doc(_userId)
                       .collection('items')
                       .doc(unit.id)
-                      .update({
-                        'name': nameController.text,
-                      });
+                      .update({'name': nameController.text});
                   if (context.mounted) {
                     Navigator.pop(context);
                   }

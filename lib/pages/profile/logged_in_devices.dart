@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:io' show Platform;
@@ -107,15 +108,11 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
     String deviceId,
     String deviceName,
   ) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            'Remove Device',
-            style: TextStyle(color: primaryTextColor),
-          ),
+          title: Text('Remove Device', style: context.bodyLargeText),
           content: Text('Remove "$deviceName" from logged-in devices?'),
           actions: [
             TextButton(

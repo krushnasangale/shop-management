@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -93,9 +94,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-    final cardColor = Theme.of(context).cardTheme.color;
+    final cardColor = context.cardColor;
 
     return Scaffold(
       appBar: AppBar(
@@ -132,17 +131,13 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 Text(
                   'Bill Created Successfully!',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: primaryTextColor,
-                  ),
+                  style: context.headingLarge,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Your bill has been saved to the system',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: secondaryTextColor),
+                  style: context.subtitleMedium,
                 ),
                 const SizedBox(height: 40),
 
@@ -154,7 +149,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
                       color:
-                          secondaryTextColor?.withOpacity(0.1) ?? Colors.grey,
+                          context.secondaryTextColor?.withOpacity(0.1) ??
+                          Colors.grey,
                       width: 1,
                     ),
                   ),
@@ -163,14 +159,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Bill Status',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: primaryTextColor,
-                          ),
-                        ),
+                        Text('Bill Status', style: context.titleLarge),
                         const SizedBox(height: 16),
                         _buildStatusRow(
                           'Status',
@@ -283,10 +272,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   children: [
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
-                    Text(
-                      'Generating PDF...',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
+                    Text('Generating PDF...', style: context.bodyLargeText),
                   ],
                 ),
               ),
@@ -790,12 +776,10 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     Color valueColor,
     BuildContext context,
   ) {
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(fontSize: 14, color: secondaryTextColor)),
+        Text(label, style: context.subtitleMedium),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
@@ -804,11 +788,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
           ),
           child: Text(
             value,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: valueColor,
-            ),
+            style: context.titleMedium?.copyWith(color: valueColor),
           ),
         ),
       ],

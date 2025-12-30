@@ -10,6 +10,7 @@ import 'dart:io';
 import 'dart:convert' as convert;
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -958,8 +959,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     // Determine the color scheme for dynamic styling
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
     final cardColor = Theme.of(context).cardTheme.color;
 
     return Scaffold(
@@ -991,48 +990,23 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // --- 1. Bill/Customer Info Card ---
-                  _buildCustomerInfoCard(
-                    context,
-                    cardColor,
-                    primaryTextColor,
-                    secondaryTextColor,
-                  ),
+                  _buildCustomerInfoCard(context, cardColor),
                   const SizedBox(height: 10),
 
                   // --- 2. Products List Card ---
-                  _buildProductsCard(
-                    context,
-                    cardColor,
-                    primaryTextColor,
-                    secondaryTextColor,
-                  ),
+                  _buildProductsCard(context, cardColor),
                   const SizedBox(height: 10),
 
                   // --- 3. Financial Summary Card ---
-                  _buildSummaryCard(
-                    context,
-                    cardColor,
-                    primaryTextColor,
-                    secondaryTextColor,
-                  ),
+                  _buildSummaryCard(context, cardColor),
                   const SizedBox(height: 10),
 
                   // --- 4. Profit & Loss Card ---
-                  _buildProfitLossCard(
-                    context,
-                    cardColor,
-                    primaryTextColor,
-                    secondaryTextColor,
-                  ),
+                  _buildProfitLossCard(context, cardColor),
                   const SizedBox(height: 10),
 
                   // --- 5. Payment History Card ---
-                  _buildPaymentHistoryCard(
-                    context,
-                    cardColor,
-                    primaryTextColor,
-                    secondaryTextColor,
-                  ),
+                  _buildPaymentHistoryCard(context, cardColor),
 
                   // --- 6. Fixed Bottom Action (e.g., Record Payment) ---
                   const SizedBox(height: 16),
@@ -1048,7 +1022,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   void _showAddPaymentDialog() {
     final TextEditingController amountController = TextEditingController();
     final remainingAmount = int.parse(amountRemaining.replaceAll('₹ ', ''));
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     String selectedPaymentMethod = 'cash';
 
     showDialog(
@@ -1059,9 +1032,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 'Record Payment',
-                style: TextStyle(
+                style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: primaryTextColor,
                 ),
               ),
               content: SingleChildScrollView(
@@ -1114,10 +1086,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       children: [
                         Text(
                           'Payment Method',
-                          style: TextStyle(
+                          style: context.titleMedium?.copyWith(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: primaryTextColor,
                           ),
                         ),
                         const SizedBox(height: 8),
@@ -1220,18 +1191,13 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditNextPaymentDateDialog() {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           title: Text(
             'Edit Next Payment Date',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: primaryTextColor,
-            ),
+            style: context.bodyLargeText?.copyWith(fontWeight: FontWeight.bold),
           ),
           content: GestureDetector(
             onTap: () async {
@@ -1318,7 +1284,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     final TextEditingController mobileController = TextEditingController(
       text: customerMobile,
     );
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     String? errorText;
 
     showDialog(
@@ -1329,9 +1294,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 'Edit Mobile Number',
-                style: TextStyle(
+                style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: primaryTextColor,
                 ),
               ),
               content: TextField(
@@ -1416,7 +1380,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     final TextEditingController vehicleController = TextEditingController(
       text: customerVehicle ?? '',
     );
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     String? errorText;
 
     showDialog(
@@ -1427,9 +1390,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 'Edit Vehicle Number',
-                style: TextStyle(
+                style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: primaryTextColor,
                 ),
               ),
               content: TextField(
@@ -1598,7 +1560,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
   void _showEditDiscountDialog() {
     final TextEditingController discountController = TextEditingController();
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     String? errorText;
     final remainingAmountValue = int.parse(
       amountRemaining.replaceAll('₹ ', ''),
@@ -1612,9 +1573,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 'Edit Discount',
-                style: TextStyle(
+                style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: primaryTextColor,
                 ),
               ),
               content: Column(
@@ -1781,12 +1741,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   // --- Helper 5: Payment History Card ---
-  Widget _buildPaymentHistoryCard(
-    BuildContext context,
-    Color? cardColor,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildPaymentHistoryCard(BuildContext context, Color? cardColor) {
     return Card(
       color: cardColor,
       child: Padding(
@@ -1800,8 +1755,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 Expanded(
                   child: Text(
                     'Payment History',
-                    style: TextStyle(
-                      color: primaryTextColor,
+                    style: context.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
                     ),
@@ -1827,14 +1781,17 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   ),
               ],
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 20),
+            Divider(
+              color: context.secondaryTextColor?.withOpacity(0.3),
+              height: 20,
+            ),
             if (paymentRecords.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: Center(
                   child: Text(
                     'No payments recorded',
-                    style: TextStyle(color: secondaryTextColor),
+                    style: context.subtitleMedium,
                   ),
                 ),
               )
@@ -1860,8 +1817,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                 children: [
                                   Text(
                                     '₹ ${payment.amount}',
-                                    style: TextStyle(
-                                      color: primaryTextColor,
+                                    style: context.titleMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 16,
                                     ),
@@ -1905,8 +1861,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 payment.date,
-                                style: TextStyle(
-                                  color: secondaryTextColor,
+                                style: context.subtitleMedium?.copyWith(
                                   fontSize: 13,
                                 ),
                               ),
@@ -1925,12 +1880,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   // --- REST OF THE PREVIOUS HELPERS (Unchanged) ---
-  Widget _buildCustomerInfoCard(
-    BuildContext context,
-    Color? cardColor,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildCustomerInfoCard(BuildContext context, Color? cardColor) {
     return Card(
       color: cardColor,
       child: Padding(
@@ -1948,8 +1898,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     'Bill Date',
                     billDate,
                     Icons.calendar_month,
-                    primaryTextColor,
-                    secondaryTextColor,
                   ),
                 ),
                 // Only show payment method if amount paid is greater than 0
@@ -1977,8 +1925,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         children: [
                           Text(
                             'Payment Method',
-                            style: TextStyle(
-                              color: secondaryTextColor,
+                            style: context.subtitleMedium?.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -2015,15 +1962,17 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   ),
               ],
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 20),
+            Divider(
+              color: context.secondaryTextColor?.withOpacity(0.3),
+              height: 20,
+            ),
             Text(
               'Customer Name',
-              style: TextStyle(color: secondaryTextColor, fontSize: 14),
+              style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             Text(
               customerName,
-              style: TextStyle(
-                color: primaryTextColor,
+              style: context.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 18,
               ),
@@ -2031,7 +1980,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             const SizedBox(height: 12),
             Text(
               'Customer Mobile Number',
-              style: TextStyle(color: secondaryTextColor, fontSize: 14),
+              style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             Row(
               children: [
@@ -2053,8 +2002,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         children: [
                           Text(
                             customerMobile,
-                            style: TextStyle(
-                              color: primaryTextColor,
+                            style: context.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               fontSize: 18,
                             ),
@@ -2109,7 +2057,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             const SizedBox(height: 12),
             Text(
               'Customer Vehicle Number',
-              style: TextStyle(color: secondaryTextColor, fontSize: 14),
+              style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             GestureDetector(
               onTap: _showEditVehicleDialog,
@@ -2125,8 +2073,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   children: [
                     Text(
                       customerVehicle ?? 'N/A',
-                      style: TextStyle(
-                        color: primaryTextColor,
+                      style: context.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
                       ),
@@ -2148,8 +2095,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     String title,
     String subtitle,
     IconData icon,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2158,17 +2103,13 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           children: [
             Icon(icon, color: Colors.blue, size: 20),
             const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(color: secondaryTextColor, fontSize: 12),
-            ),
+            Text(title, style: context.subtitleMedium?.copyWith(fontSize: 12)),
           ],
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: TextStyle(
-            color: primaryTextColor,
+          style: context.bodyLargeText?.copyWith(
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -2177,12 +2118,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
-  Widget _buildProductsCard(
-    BuildContext context,
-    Color? cardColor,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildProductsCard(BuildContext context, Color? cardColor) {
     return Card(
       color: cardColor,
       child: Padding(
@@ -2192,8 +2128,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           children: [
             Text(
               'Products',
-              style: TextStyle(
-                color: primaryTextColor,
+              style: context.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -2280,8 +2215,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             Expanded(
                               child: Text(
                                 product['name']!,
-                                style: TextStyle(
-                                  color: primaryTextColor,
+                                style: context.titleMedium?.copyWith(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -2298,8 +2232,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           children: [
                             Text(
                               'Qty: ${quantity.toInt()}',
-                              style: TextStyle(
-                                color: secondaryTextColor,
+                              style: context.subtitleMedium?.copyWith(
                                 fontSize: 12,
                               ),
                             ),
@@ -2354,13 +2287,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             'Selling Price',
                             product['price']!,
                             Colors.green,
-                            secondaryTextColor,
                           ),
                           _buildDetailBox(
                             'Buying Price',
                             product['boughtPrice']!,
                             Colors.orange,
-                            secondaryTextColor,
                           ),
                         ],
                       ),
@@ -2372,13 +2303,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             'Profit Per Unit',
                             '₹${profitPerUnit.toStringAsFixed(2)}',
                             profitPerUnit >= 0 ? Colors.green : Colors.red,
-                            secondaryTextColor,
                           ),
                           _buildDetailBox(
                             'Total Profit',
                             '₹${totalProfit.toStringAsFixed(0)}',
                             totalProfit >= 0 ? Colors.green : Colors.red,
-                            secondaryTextColor,
                           ),
                         ],
                       ),
@@ -2393,12 +2322,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
-  Widget _buildDetailBox(
-    String label,
-    String value,
-    Color accentColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildDetailBox(String label, String value, Color accentColor) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -2413,7 +2337,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             Text(
               label,
               style: TextStyle(
-                color: secondaryTextColor,
+                color: context.secondaryTextColor,
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
               ),
@@ -2435,12 +2359,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
-  Widget _buildSummaryCard(
-    BuildContext context,
-    Color? cardColor,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildSummaryCard(BuildContext context, Color? cardColor) {
     Color getStatusColor() {
       if (paymentStatus == 'Paid') return Colors.green;
       if (paymentStatus == 'Partially Paid') return Colors.orange;
@@ -2528,8 +2447,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 children: [
                   Text(
                     'Discount',
-                    style: TextStyle(
-                      color: primaryTextColor,
+                    style: context.titleMedium?.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.normal,
                     ),
@@ -2593,13 +2511,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ],
               ),
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 16),
-            _buildSummaryRow(
-              'Amount Paid',
-              amountPaid,
-              primaryTextColor,
-              secondaryTextColor,
+            Divider(
+              color: context.secondaryTextColor?.withOpacity(0.3),
+              height: 16,
             ),
+            _buildSummaryRow('Amount Paid', amountPaid, null),
 
             _buildSummaryRow(
               'Amount Remaining',
@@ -2607,17 +2523,19 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               (amountRemaining != '₹ 0')
                   ? Colors.red[400]!
                   : Colors.green[400]!,
-              secondaryTextColor,
               isBold: true,
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 16),
+            Divider(
+              color: context.secondaryTextColor?.withOpacity(0.3),
+              height: 16,
+            ),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Payment Status',
-                  style: TextStyle(color: primaryTextColor, fontSize: 16),
+                  style: context.bodyLargeText?.copyWith(fontSize: 16),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -2643,13 +2561,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 nextPaymentDate != null &&
                 nextPaymentDate!.isNotEmpty) ...[
               const SizedBox(height: 12),
-              Divider(color: secondaryTextColor?.withOpacity(0.3), height: 16),
+              Divider(
+                color: context.secondaryTextColor?.withOpacity(0.3),
+                height: 16,
+              ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Next Payment Date',
-                    style: TextStyle(color: primaryTextColor, fontSize: 16),
+                    style: context.bodyLargeText?.copyWith(fontSize: 16),
                   ),
                   GestureDetector(
                     onTap: _showEditNextPaymentDateDialog,
@@ -2668,8 +2589,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         children: [
                           Text(
                             nextPaymentDate!,
-                            style: TextStyle(
-                              color: primaryTextColor,
+                            style: context.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                             ),
@@ -2689,12 +2609,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
   }
 
-  Widget _buildProfitLossCard(
-    BuildContext context,
-    Color? cardColor,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildProfitLossCard(BuildContext context, Color? cardColor) {
     final isProfitable = totalProfit >= 0;
     final profitColor = isProfitable ? Colors.green : Colors.red;
     final profitLossLabel = isProfitable ? 'Profit' : 'Loss';
@@ -2708,8 +2623,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           children: [
             Text(
               'Profit & Loss',
-              style: TextStyle(
-                color: primaryTextColor,
+              style: context.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
@@ -2769,13 +2683,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   Widget _buildSummaryRow(
     String title,
     String value,
-    Color? primaryTextColor,
-    Color? secondaryTextColor, {
+    Color? valueColor, {
     bool isBold = false,
   }) {
-    Color displayColor = isBold
-        ? (title == 'Amount Remaining' ? primaryTextColor! : primaryTextColor!)
-        : secondaryTextColor!;
+    Color displayColor =
+        valueColor ??
+        (isBold ? context.primaryTextColor! : context.secondaryTextColor!);
     double fontSize = isBold ? 18 : 16;
 
     return Padding(
@@ -2785,8 +2698,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         children: [
           Text(
             title,
-            style: TextStyle(
-              color: primaryTextColor,
+            style: context.bodyLargeText?.copyWith(
               fontSize: fontSize,
               fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
             ),

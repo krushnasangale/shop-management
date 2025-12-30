@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 class ReviewBillingDetails extends StatefulWidget {
   final String billDate;
@@ -47,8 +48,6 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
     final cardColor = Theme.of(context).cardTheme.color;
 
     return SafeArea(
@@ -69,30 +68,15 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Customer Info Card
-              _buildCustomerInfoCard(
-                context,
-                cardColor,
-                primaryTextColor,
-                secondaryTextColor,
-              ),
+              _buildCustomerInfoCard(context, cardColor),
               const SizedBox(height: 12),
 
               // Products Card
-              _buildProductsCard(
-                context,
-                cardColor,
-                primaryTextColor,
-                secondaryTextColor,
-              ),
+              _buildProductsCard(context, cardColor),
               const SizedBox(height: 12),
 
               // Financial Summary Card
-              _buildSummaryCard(
-                context,
-                cardColor,
-                primaryTextColor,
-                secondaryTextColor,
-              ),
+              _buildSummaryCard(context, cardColor),
 
               const SizedBox(height: 12),
 
@@ -106,12 +90,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     );
   }
 
-  Widget _buildCustomerInfoCard(
-    BuildContext context,
-    Color? cardColor,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildCustomerInfoCard(BuildContext context, Color? cardColor) {
     return Card(
       color: cardColor,
       child: Padding(
@@ -129,8 +108,6 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                     'Bill Date',
                     widget.billDate,
                     Icons.calendar_month,
-                    primaryTextColor,
-                    secondaryTextColor,
                   ),
                 ),
                 // Only show payment method if amount paid is greater than 0
@@ -158,8 +135,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                         children: [
                           Text(
                             'Payment Method',
-                            style: TextStyle(
-                              color: secondaryTextColor,
+                            style: context.subtitleMedium?.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -198,17 +174,19 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ),
               ],
             ),
-            Divider(color: secondaryTextColor?.withOpacity(0.3), height: 20),
+            Divider(
+              color: context.secondaryTextColor?.withOpacity(0.3),
+              height: 20,
+            ),
 
             // Customer Name
             Text(
               'Customer Name',
-              style: TextStyle(color: secondaryTextColor, fontSize: 14),
+              style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             Text(
               widget.customerName,
-              style: TextStyle(
-                color: primaryTextColor,
+              style: context.headingMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 18,
               ),
@@ -218,12 +196,11 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             // Customer Mobile Number
             Text(
               'Customer Mobile Number',
-              style: TextStyle(color: secondaryTextColor, fontSize: 14),
+              style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             Text(
               widget.customerMobile,
-              style: TextStyle(
-                color: primaryTextColor,
+              style: context.headingMedium?.copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: 18,
               ),
@@ -236,12 +213,11 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   const SizedBox(height: 12),
                   Text(
                     'Vehicle Number',
-                    style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                    style: context.subtitleMedium?.copyWith(fontSize: 14),
                   ),
                   Text(
                     widget.customerVehicle!,
-                    style: TextStyle(
-                      color: primaryTextColor,
+                    style: context.headingMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 18,
                     ),
@@ -259,8 +235,6 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     String title,
     String subtitle,
     IconData icon,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,17 +243,13 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           children: [
             Icon(icon, color: Colors.blue, size: 20),
             const SizedBox(width: 8),
-            Text(
-              title,
-              style: TextStyle(color: secondaryTextColor, fontSize: 12),
-            ),
+            Text(title, style: context.subtitleMedium?.copyWith(fontSize: 12)),
           ],
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: TextStyle(
-            color: primaryTextColor,
+          style: context.bodyLargeText?.copyWith(
             fontWeight: FontWeight.w600,
             fontSize: 14,
           ),
@@ -288,12 +258,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     );
   }
 
-  Widget _buildProductsCard(
-    BuildContext context,
-    Color? cardColor,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildProductsCard(BuildContext context, Color? cardColor) {
     return Card(
       color: cardColor,
       child: Padding(
@@ -303,10 +268,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           children: [
             Text(
               'Products',
-              style: TextStyle(
-                color: primaryTextColor,
+              style: context.headingMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
               ),
             ),
             const SizedBox(height: 12),
@@ -315,7 +278,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               physics: const NeverScrollableScrollPhysics(),
               itemCount: widget.products.length,
               separatorBuilder: (context, index) =>
-                  Divider(color: secondaryTextColor?.withOpacity(0.3)),
+                  Divider(color: context.secondaryTextColor?.withOpacity(0.3)),
               itemBuilder: (context, index) {
                 final product = widget.products[index];
                 return Padding(
@@ -332,16 +295,14 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                               children: [
                                 Text(
                                   product.productName,
-                                  style: TextStyle(
-                                    color: primaryTextColor,
+                                  style: context.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                     fontSize: 16,
                                   ),
                                 ),
                                 Text(
                                   'Supplier: ${product.supplierName}',
-                                  style: TextStyle(
-                                    color: secondaryTextColor,
+                                  style: context.subtitleMedium?.copyWith(
                                     fontSize: 13,
                                   ),
                                 ),
@@ -356,23 +317,20 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                         children: [
                           Text(
                             'Qty: ${product.quantity.toStringAsFixed(0)} ${product.unit}',
-                            style: TextStyle(
-                              color: secondaryTextColor,
+                            style: context.subtitleMedium?.copyWith(
                               fontSize: 14,
                             ),
                           ),
                           Text(
                             '₹${product.price} each',
-                            style: TextStyle(
-                              color: primaryTextColor,
+                            style: context.bodyLargeText?.copyWith(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
                             ),
                           ),
                           Text(
                             '₹${product.total.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              color: primaryTextColor,
+                            style: context.bodyLargeText?.copyWith(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                             ),
@@ -390,12 +348,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     );
   }
 
-  Widget _buildSummaryCard(
-    BuildContext context,
-    Color? cardColor,
-    Color? primaryTextColor,
-    Color? secondaryTextColor,
-  ) {
+  Widget _buildSummaryCard(BuildContext context, Color? cardColor) {
     return Card(
       color: cardColor,
       child: Padding(
@@ -405,10 +358,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           children: [
             Text(
               'Summary',
-              style: TextStyle(
-                color: primaryTextColor,
+              style: context.headingMedium?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
               ),
             ),
             const SizedBox(height: 16),
@@ -417,12 +368,11 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               children: [
                 Text(
                   'Total Amount',
-                  style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                  style: context.subtitleMedium?.copyWith(fontSize: 14),
                 ),
                 Text(
                   '₹${widget.totalAmount}',
-                  style: TextStyle(
-                    color: primaryTextColor,
+                  style: context.bodyLargeText?.copyWith(
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
@@ -437,7 +387,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   children: [
                     Text(
                       'Amount Paid',
-                      style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                      style: context.subtitleMedium?.copyWith(fontSize: 14),
                     ),
                     Text(
                       '₹${widget.amountPaid ?? 0}',
@@ -450,15 +400,14 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Divider(color: secondaryTextColor?.withOpacity(0.3)),
+                Divider(color: context.secondaryTextColor?.withOpacity(0.3)),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       'Amount Due',
-                      style: TextStyle(
-                        color: secondaryTextColor,
+                      style: context.subtitleMedium?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                       ),
@@ -476,14 +425,14 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               ],
             ),
             const SizedBox(height: 12),
-            Divider(color: secondaryTextColor?.withOpacity(0.3)),
+            Divider(color: context.secondaryTextColor?.withOpacity(0.3)),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   'Payment Status',
-                  style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                  style: context.subtitleMedium?.copyWith(fontSize: 14),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -511,21 +460,20 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             ),
             if ((widget.amountRemaining ?? 0) > 0) ...[
               const SizedBox(height: 12),
-              Divider(color: secondaryTextColor?.withOpacity(0.3)),
+              Divider(color: context.secondaryTextColor?.withOpacity(0.3)),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Next Payment Date',
-                    style: TextStyle(color: secondaryTextColor, fontSize: 14),
+                    style: context.subtitleMedium?.copyWith(fontSize: 14),
                   ),
                   Text(
                     widget.nextPaymentDate.isNotEmpty
                         ? widget.nextPaymentDate
                         : 'Not set',
-                    style: TextStyle(
-                      color: primaryTextColor,
+                    style: context.bodyLargeText?.copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -586,7 +534,6 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
   }
 
   void _showConfirmDialog(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -594,10 +541,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
         return AlertDialog(
           title: Text(
             widget.isEditMode ? 'Update Bill' : 'Confirm Bill',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: primaryTextColor,
-            ),
+            style: context.bodyLargeText?.copyWith(fontWeight: FontWeight.bold),
           ),
           content: Text(
             widget.isEditMode

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -263,9 +264,7 @@ class _SuppliersState extends State<Suppliers> {
     String initials,
     Color avatarColor,
   ) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-    final cardColor = Theme.of(context).cardTheme.color;
+    final cardColor = context.cardColor;
 
     return Card(
       color: cardColor,
@@ -274,7 +273,7 @@ class _SuppliersState extends State<Suppliers> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
         side: BorderSide(
-          color: secondaryTextColor!.withOpacity(0.1),
+          color: context.secondaryTextColor!.withOpacity(0.1),
           width: 1.0,
         ),
       ),
@@ -311,29 +310,16 @@ class _SuppliersState extends State<Suppliers> {
                     children: [
                       Text(
                         supplier.name,
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
-                        ),
+                        style: context.titleLarge?.copyWith(fontSize: 18),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            supplier.contact,
-                            style: TextStyle(
-                              color: secondaryTextColor,
-                              fontSize: 14,
-                            ),
-                          ),
+                          Text(supplier.contact, style: context.subtitleMedium),
                           Text(
                             supplier.location,
-                            style: TextStyle(
-                              color: secondaryTextColor,
-                              fontSize: 14,
-                            ),
+                            style: context.subtitleMedium,
                           ),
                         ],
                       ),
@@ -376,16 +362,12 @@ class _SuppliersState extends State<Suppliers> {
     final nameController = TextEditingController();
     final contactController = TextEditingController();
     final locationController = TextEditingController();
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            'Add Supplier',
-            style: TextStyle(color: primaryTextColor),
-          ),
+          title: Text('Add Supplier', style: context.bodyLargeText),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -525,16 +507,12 @@ class _SuppliersState extends State<Suppliers> {
     final nameController = TextEditingController(text: supplier.name);
     final contactController = TextEditingController(text: supplier.contact);
     final locationController = TextEditingController(text: supplier.location);
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            'Edit Supplier',
-            style: TextStyle(color: primaryTextColor),
-          ),
+          title: Text('Edit Supplier', style: context.bodyLargeText),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -606,15 +584,11 @@ class _SuppliersState extends State<Suppliers> {
   }
 
   void _showDeleteConfirmation(Supplier supplier) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            'Delete Supplier',
-            style: TextStyle(color: primaryTextColor),
-          ),
+          title: Text('Delete Supplier', style: context.bodyLargeText),
           content: Text('Are you sure you want to delete ${supplier.name}?'),
           actions: [
             TextButton(

@@ -1,5 +1,6 @@
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
@@ -202,8 +203,6 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
 
     return Scaffold(
       appBar: AppBar(
@@ -382,7 +381,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
               child: Card(
                 child: TextField(
                   controller: _searchController,
-                  style: TextStyle(color: primaryTextColor),
+                  style: context.bodyLargeText,
                   decoration: InputDecoration(
                     hintText: 'Search by name, mobile...',
                     prefixIcon: const Icon(Icons.search),
@@ -425,9 +424,8 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                           _searchQuery.isEmpty
                               ? 'No pending payments'
                               : 'No results found',
-                          style: TextStyle(
+                          style: context.subtitleMedium?.copyWith(
                             fontSize: 18,
-                            color: secondaryTextColor,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -474,11 +472,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                         children: [
                                           Text(
                                             payment['customerName'],
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w700,
-                                              color: primaryTextColor,
-                                            ),
+                                            style: context.titleLarge,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                           ),
@@ -488,15 +482,14 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                               Icon(
                                                 Icons.phone,
                                                 size: 12,
-                                                color: secondaryTextColor,
+                                                color:
+                                                    context.secondaryTextColor,
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
                                                 payment['customerMobile'],
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: secondaryTextColor,
-                                                ),
+                                                style: context.subtitleMedium
+                                                    ?.copyWith(fontSize: 12),
                                               ),
                                               if (payment['customerVehicle'] !=
                                                       null &&
@@ -507,15 +500,14 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                                 Icon(
                                                   Icons.directions_car,
                                                   size: 12,
-                                                  color: secondaryTextColor,
+                                                  color: context
+                                                      .secondaryTextColor,
                                                 ),
                                                 const SizedBox(width: 4),
                                                 Text(
                                                   payment['customerVehicle'],
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: secondaryTextColor,
-                                                  ),
+                                                  style: context.subtitleMedium
+                                                      ?.copyWith(fontSize: 12),
                                                 ),
                                               ],
                                             ],
@@ -558,18 +550,16 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                       children: [
                                         Text(
                                           'Bill Date',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: secondaryTextColor,
-                                          ),
+                                          style: context.subtitleMedium
+                                              ?.copyWith(fontSize: 11),
                                         ),
                                         Text(
                                           payment['billDate'],
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: primaryTextColor,
-                                          ),
+                                          style: context.bodySmallText
+                                              ?.copyWith(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                         ),
                                       ],
                                     ),
@@ -579,18 +569,16 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                       children: [
                                         Text(
                                           'Total Amount',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: secondaryTextColor,
-                                          ),
+                                          style: context.subtitleSmall
+                                              ?.copyWith(fontSize: 11),
                                         ),
                                         Text(
                                           '₹$totalAmount',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: primaryTextColor,
-                                          ),
+                                          style: context.bodySmallText
+                                              ?.copyWith(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                         ),
                                       ],
                                     ),
@@ -600,10 +588,8 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                       children: [
                                         Text(
                                           'Paid',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: secondaryTextColor,
-                                          ),
+                                          style: context.subtitleMedium
+                                              ?.copyWith(fontSize: 11),
                                         ),
                                         Text(
                                           '₹$amountPaid',
@@ -628,11 +614,11 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                       children: [
                                         Text(
                                           'Payment Progress',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: secondaryTextColor,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                          style: context.subtitleMedium
+                                              ?.copyWith(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w500,
+                                              ),
                                         ),
                                         Text(
                                           '$percentage%',

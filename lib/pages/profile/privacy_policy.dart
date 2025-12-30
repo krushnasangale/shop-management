@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
     return Scaffold(
       appBar: AppBar(title: const Text('Privacy Policy'), centerTitle: false),
       body: SingleChildScrollView(
@@ -16,22 +14,11 @@ class PrivacyPolicyPage extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            Text(
-              'Privacy Policy',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: primaryTextColor,
-              ),
-            ),
+            Text('Privacy Policy', style: context.headingLarge),
             const SizedBox(height: 8),
             Text(
               'Last Updated: December 29, 2025',
-              style: TextStyle(
-                fontSize: 12,
-                color: secondaryTextColor,
-                fontStyle: FontStyle.italic,
-              ),
+              style: context.subtitleSmall,
             ),
             const SizedBox(height: 24),
 
@@ -186,11 +173,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'These services have their own privacy policies governing their use of your information.',
-              style: TextStyle(
-                fontSize: 14,
-                color: secondaryTextColor,
-                height: 1.5,
-              ),
+              style: context.subtitleMedium?.copyWith(height: 1.5),
             ),
 
             const SizedBox(height: 16),
@@ -239,7 +222,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         'Email: support@flashbill.com',
-                        style: TextStyle(fontSize: 14, color: primaryTextColor),
+                        style: context.bodyMediumText,
                       ),
                     ],
                   ),
@@ -251,10 +234,7 @@ class PrivacyPolicyPage extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'FlashBill - Shop Management',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: primaryTextColor,
-                          ),
+                          style: context.bodyMediumText,
                         ),
                       ),
                     ],
@@ -269,11 +249,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             Center(
               child: Text(
                 '© 2025 FlashBill. All rights reserved.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: secondaryTextColor,
-                  fontStyle: FontStyle.italic,
-                ),
+                style: context.captionLarge,
               ),
             ),
 
@@ -285,60 +261,30 @@ class PrivacyPolicyPage extends StatelessWidget {
   }
 
   Widget _buildSection(BuildContext context, String title, String content) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryTextColor,
-            ),
-          ),
+          Text(title, style: context.headingSmall),
           const SizedBox(height: 8),
-          Text(
-            content,
-            style: TextStyle(
-              fontSize: 14,
-              color: secondaryTextColor,
-              height: 1.5,
-            ),
-          ),
+          Text(content, style: context.subtitleMedium?.copyWith(height: 1.5)),
         ],
       ),
     );
   }
 
   Widget _buildBulletPoint(BuildContext context, String text) {
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
     return Padding(
       padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '• ',
-            style: TextStyle(
-              fontSize: 14,
-              color: secondaryTextColor,
-              height: 1.5,
-            ),
-          ),
+          Text('• ', style: context.subtitleMedium?.copyWith(height: 1.5)),
           Expanded(
             child: Text(
               text,
-              style: TextStyle(
-                fontSize: 14,
-                color: secondaryTextColor,
-                height: 1.5,
-              ),
+              style: context.subtitleMedium?.copyWith(height: 1.5),
             ),
           ),
         ],

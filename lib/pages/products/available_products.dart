@@ -1,5 +1,6 @@
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -222,15 +223,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
   }
 
   void _showReportOptionsDialog(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            'Generate Report',
-            style: TextStyle(color: primaryTextColor),
-          ),
+          title: Text('Generate Report', style: context.bodyLargeText),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -551,10 +548,6 @@ class _AvailableProductsState extends State<AvailableProducts> {
       );
     }
 
-    // Get theme colors
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Available Products'),
@@ -609,7 +602,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               child: Card(
                 child: TextField(
                   controller: _searchController,
-                  style: TextStyle(color: primaryTextColor),
+                  style: context.bodyLargeText,
                   decoration: InputDecoration(
                     hintText: 'Search product or supplier',
                     prefixIcon: const Icon(Icons.search),
@@ -664,7 +657,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                 ? Center(
                     child: Text(
                       'No products found',
-                      style: TextStyle(color: secondaryTextColor),
+                      style: context.subtitleMedium,
                     ),
                   )
                 : _buildGroupedProductList(context),
@@ -786,9 +779,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final sortedProductNames = groupedByName.keys.toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-    final cardColor = Theme.of(context).cardTheme.color;
+    final cardColor = context.cardColor;
 
     return ListView.builder(
       itemCount: sortedProductNames.length,
@@ -859,7 +850,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         }
 
         // Determine border color based on expiry status
-        Color borderColor = secondaryTextColor!.withOpacity(0.1);
+        Color borderColor = context.secondaryTextColor!.withOpacity(0.1);
         double borderWidth = 1.0;
 
         if (hasExpired) {
@@ -905,11 +896,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                         Text(
                           productName[0].toUpperCase() +
                               productName.substring(1),
-                          style: TextStyle(
-                            color: primaryTextColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 15,
-                          ),
+                          style: context.titleLarge?.copyWith(fontSize: 15),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -920,16 +907,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
                             Icon(
                               Icons.straighten,
                               size: 14,
-                              color: secondaryTextColor,
+                              color: context.secondaryTextColor,
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              unit,
-                              style: TextStyle(
-                                color: secondaryTextColor,
-                                fontSize: 12,
-                              ),
-                            ),
+                            Text(unit, style: context.subtitleSmall),
                             const SizedBox(width: 12),
                             Icon(
                               Icons.inventory_2_outlined,

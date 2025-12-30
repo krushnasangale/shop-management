@@ -9,6 +9,7 @@ import 'package:flashbill/pages/billing/review_billing_details.dart';
 import 'package:flashbill/ui%20helpers/ui_helper.dart';
 import 'package:fast_contacts/fast_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 class CreateNewBill extends StatefulWidget {
   final bool isEditMode;
@@ -330,7 +331,6 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -372,10 +372,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     'Select Customer From',
-                    style: TextStyle(
+                    style: context.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: primaryTextColor,
                     ),
                   ),
                 ),
@@ -615,11 +614,12 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             Expanded(
                                               child: Text(
                                                 billItem.productName,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: primaryTextColor,
-                                                ),
+                                                style: context.bodyLargeText
+                                                    ?.copyWith(
+                                                      fontSize: 14,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
@@ -641,10 +641,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           children: [
                                             Text(
                                               'Qty:',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: primaryTextColor,
-                                              ),
+                                              style: context.bodyMediumText
+                                                  ?.copyWith(fontSize: 12),
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
@@ -1316,16 +1314,13 @@ class _CreateNewBillState extends State<CreateNewBill> {
       return dateA.compareTo(dateB);
     });
 
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(
             'Select Batch: $productName',
-            style: TextStyle(color: primaryTextColor),
+            style: context.bodyLargeText,
           ),
           content: ConstrainedBox(
             constraints: BoxConstraints(
@@ -1357,7 +1352,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               style: TextStyle(
                                 color: isFifo
                                     ? Colors.orange
-                                    : secondaryTextColor,
+                                    : context.secondaryTextColor,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1365,8 +1360,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           const SizedBox(height: 4),
                           Text(
                             'Buy: ₹${batch.buyingPrice.toStringAsFixed(2)} | Sell: ₹${batch.sellingPrice.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              color: primaryTextColor,
+                            style: context.bodyLargeText?.copyWith(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
@@ -1425,7 +1419,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: TextStyle(color: primaryTextColor)),
+              child: Text('Cancel', style: context.bodyLargeText),
             ),
           ],
         );
@@ -1446,7 +1440,6 @@ class _CreateNewBillState extends State<CreateNewBill> {
     final priceController = TextEditingController(
       text: billItem.billPrice.toString(),
     );
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     String quantityError = '';
     String priceError = '';
 
@@ -1456,20 +1449,16 @@ class _CreateNewBillState extends State<CreateNewBill> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(
-                'Edit Product',
-                style: TextStyle(color: primaryTextColor),
-              ),
+              title: Text('Edit Product', style: context.bodyLargeText),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       billItem.productName,
-                      style: TextStyle(
+                      style: context.titleLarge?.copyWith(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: primaryTextColor,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1507,10 +1496,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Quantity',
-                          style: TextStyle(color: primaryTextColor),
-                        ),
+                        Text('Quantity', style: context.bodyLargeText),
                         const SizedBox(height: 8),
                         Row(
                           children: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -15,7 +16,8 @@ class Customers extends StatefulWidget {
 class _CustomersState extends State<Customers> {
   List<Map<String, dynamic>> _customers = [];
   bool _isLoading = true;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _customersSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _customersSubscription;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   bool _showSearchBar = false;
@@ -48,21 +50,21 @@ class _CustomersState extends State<Customers> {
         .collection('items')
         .snapshots()
         .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
-      if (mounted) {
-        final customers = snapshot.docs.map((doc) {
-          return {
-            'id': doc.id,
-            'name': doc.data()['name'] ?? '',
-            'mobileNumber': doc.data()['mobileNumber'] ?? '',
-            'vehicleNumber': doc.data()['vehicleNumber'] ?? '',
-          };
-        }).toList();
-        setState(() {
-          _customers = customers;
-          _isLoading = false;
+          if (mounted) {
+            final customers = snapshot.docs.map((doc) {
+              return {
+                'id': doc.id,
+                'name': doc.data()['name'] ?? '',
+                'mobileNumber': doc.data()['mobileNumber'] ?? '',
+                'vehicleNumber': doc.data()['vehicleNumber'] ?? '',
+              };
+            }).toList();
+            setState(() {
+              _customers = customers;
+              _isLoading = false;
+            });
+          }
         });
-      }
-    });
   }
 
   Future<void> _deleteCustomer(String customerId) async {
@@ -125,11 +127,7 @@ class _CustomersState extends State<Customers> {
         children: [
           if (_showSearchBar)
             Padding(
-              padding: const EdgeInsets.only(
-                left: 14.0,
-                right: 14.0,
-                top: 8.0,
-              ),
+              padding: const EdgeInsets.only(left: 14.0, right: 14.0, top: 8.0),
               child: Card(
                 child: TextField(
                   controller: _searchController,
@@ -145,9 +143,7 @@ class _CustomersState extends State<Customers> {
                           )
                         : null,
                     filled: false,
-                    fillColor: Theme.of(
-                      context,
-                    ).inputDecorationTheme.fillColor,
+                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12.0),
                       borderSide: BorderSide.none,
@@ -160,28 +156,28 @@ class _CustomersState extends State<Customers> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _filteredCustomers.isEmpty
-                    ? Center(
-                        child: Text(
-                          _searchQuery.isEmpty
-                              ? 'No customers added yet'
-                              : 'No customers found',
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(8),
-                        itemCount: _filteredCustomers.length,
-                        itemBuilder: (context, index) {
-                          final customer = _filteredCustomers[index];
-                          final initials = _getInitials(customer['name']);
-                          final avatarColor = _getAvatarColor(index);
-                          return _buildCustomerCard(
-                            context,
-                            customer,
-                            initials,
-                            avatarColor,
-                          );
-                        },
-                      ),
+                ? Center(
+                    child: Text(
+                      _searchQuery.isEmpty
+                          ? 'No customers added yet'
+                          : 'No customers found',
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: _filteredCustomers.length,
+                    itemBuilder: (context, index) {
+                      final customer = _filteredCustomers[index];
+                      final initials = _getInitials(customer['name']);
+                      final avatarColor = _getAvatarColor(index);
+                      return _buildCustomerCard(
+                        context,
+                        customer,
+                        initials,
+                        avatarColor,
+                      );
+                    },
+                  ),
           ),
         ],
       ),
@@ -220,9 +216,7 @@ class _CustomersState extends State<Customers> {
     String initials,
     Color avatarColor,
   ) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
-    final cardColor = Theme.of(context).cardTheme.color;
+    final cardColor = context.cardColor;
 
     return Card(
       color: cardColor,
@@ -231,7 +225,7 @@ class _CustomersState extends State<Customers> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
         side: BorderSide(
-          color: secondaryTextColor!.withOpacity(0.1),
+          color: context.secondaryTextColor!.withOpacity(0.1),
           width: 1.0,
         ),
       ),
@@ -268,31 +262,21 @@ class _CustomersState extends State<Customers> {
                     children: [
                       Text(
                         customer['name'],
-                        style: TextStyle(
-                          color: primaryTextColor,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 18,
-                        ),
+                        style: context.titleLarge?.copyWith(fontSize: 18),
                       ),
                       const SizedBox(height: 4),
                       Row(
                         children: [
                           Text(
                             customer['mobileNumber'],
-                            style: TextStyle(
-                              color: secondaryTextColor,
-                              fontSize: 14,
-                            ),
+                            style: context.subtitleMedium,
                           ),
                           const Spacer(),
                           Text(
                             customer['vehicleNumber'].isEmpty
                                 ? 'No vehicle'
                                 : customer['vehicleNumber'],
-                            style: TextStyle(
-                              color: secondaryTextColor,
-                              fontSize: 14,
-                            ),
+                            style: context.subtitleMedium,
                           ),
                         ],
                       ),
@@ -333,18 +317,11 @@ class _CustomersState extends State<Customers> {
   }
 
   Future<void> _showDeleteConfirmation(Map<String, dynamic> customer) async {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(
-            'Delete Customer',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: primaryTextColor,
-            ),
-          ),
+          title: Text('Delete Customer', style: context.titleLarge),
           content: const Text('Are you sure you want to delete this customer?'),
           actions: [
             TextButton(
@@ -372,7 +349,6 @@ class _CustomersState extends State<Customers> {
     BuildContext context, {
     Map<String, dynamic>? customer,
   }) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final isEditing = customer != null;
     final nameController = TextEditingController(
       text: isEditing ? customer['name'] : '',
@@ -396,7 +372,7 @@ class _CustomersState extends State<Customers> {
             return AlertDialog(
               title: Text(
                 isEditing ? 'Edit Customer' : 'Add Customer',
-                style: TextStyle(color: primaryTextColor),
+                style: context.bodyLargeText,
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -469,7 +445,8 @@ class _CustomersState extends State<Customers> {
                         // Convert to uppercase
                         if (value != value.toUpperCase()) {
                           vehicleController.text = value.toUpperCase();
-                          vehicleController.selection = TextSelection.fromPosition(
+                          vehicleController
+                              .selection = TextSelection.fromPosition(
                             TextPosition(offset: value.toUpperCase().length),
                           );
                         }
@@ -590,7 +567,10 @@ class _CustomersState extends State<Customers> {
     }
   }
 
-  void _showCustomerHistory(BuildContext context, Map<String, dynamic> customer) {
+  void _showCustomerHistory(
+    BuildContext context,
+    Map<String, dynamic> customer,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(

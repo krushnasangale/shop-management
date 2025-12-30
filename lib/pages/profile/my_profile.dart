@@ -1,5 +1,6 @@
 import 'package:flashbill/pages/profile/logged_in_devices.dart';
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
@@ -90,7 +91,6 @@ class _MyProfileState extends State<MyProfile> {
     bool showCurrentPassword = false;
     bool showNewPassword = false;
     bool showConfirmPassword = false;
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
@@ -98,10 +98,7 @@ class _MyProfileState extends State<MyProfile> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(
-                'Change Password',
-                style: TextStyle(color: primaryTextColor),
-              ),
+              title: Text('Change Password', style: context.bodyLargeText),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

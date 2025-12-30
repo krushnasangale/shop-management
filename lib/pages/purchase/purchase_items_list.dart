@@ -1,6 +1,7 @@
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flutter/material.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
@@ -121,7 +122,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Purchased Entries'),
@@ -253,12 +253,13 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                                                   children: [
                                                     Text(
                                                       supplierName,
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: primaryTextColor,
-                                                      ),
+                                                      style: context
+                                                          .bodyLargeText
+                                                          ?.copyWith(
+                                                            fontSize: 14,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                          ),
                                                       maxLines: 1,
                                                       overflow:
                                                           TextOverflow.ellipsis,

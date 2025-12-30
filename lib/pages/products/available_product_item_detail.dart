@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:flashbill/pages/products/available_products.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
@@ -205,12 +206,11 @@ class _AvailableProductDetailScreenState
     final quantityController = TextEditingController(
       text: batch.quantity.toString(),
     );
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit Quantity', style: TextStyle(color: primaryTextColor)),
+        title: Text('Edit Quantity', style: context.bodyLargeText),
         content: TextField(
           controller: quantityController,
           keyboardType: TextInputType.number,
@@ -250,15 +250,11 @@ class _AvailableProductDetailScreenState
     final priceController = TextEditingController(
       text: batch.sellingPrice.toStringAsFixed(2),
     );
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(
-          'Edit Selling Price',
-          style: TextStyle(color: primaryTextColor),
-        ),
+        title: Text('Edit Selling Price', style: context.bodyLargeText),
         content: TextField(
           controller: priceController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -448,15 +444,13 @@ class _AvailableProductDetailScreenState
     Color? valueColor,
   }) {
     // ... (implementation remains the same) ...
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
-    final secondaryTextColor = Theme.of(context).textTheme.bodyMedium?.color;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, color: secondaryTextColor, size: 20),
+            Icon(icon, color: context.secondaryTextColor, size: 20),
             const SizedBox(width: 8),
           ],
           Expanded(
@@ -465,13 +459,16 @@ class _AvailableProductDetailScreenState
               children: [
                 Text(
                   title,
-                  style: TextStyle(color: secondaryTextColor, fontSize: 13),
+                  style: TextStyle(
+                    color: context.secondaryTextColor,
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: valueColor ?? primaryTextColor,
+                    color: valueColor ?? context.primaryTextColor,
                     fontWeight: FontWeight.w600,
                     fontSize: 16,
                   ),
@@ -487,7 +484,6 @@ class _AvailableProductDetailScreenState
   // --- Main Build Method ---
   @override
   Widget build(BuildContext context) {
-    final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
     final cardColor = Theme.of(context).cardTheme.color;
 
     // Capitalize product name for display
@@ -507,10 +503,7 @@ class _AvailableProductDetailScreenState
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text(
-                    'Delete Product',
-                    style: TextStyle(color: primaryTextColor),
-                  ),
+                  title: Text('Delete Product', style: context.bodyLargeText),
                   content: const Text(
                     'Are you sure you want to delete this product? This action cannot be undone.',
                   ),
@@ -650,10 +643,8 @@ class _AvailableProductDetailScreenState
                         children: [
                           Text(
                             'Financial Metrics (Current Stock)',
-                            style: TextStyle(
-                              color: primaryTextColor,
+                            style: context.headingMedium?.copyWith(
                               fontWeight: FontWeight.bold,
-                              fontSize: 18,
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -713,8 +704,7 @@ class _AvailableProductDetailScreenState
                                     const SizedBox(width: 8),
                                     Text(
                                       'Total Quantity',
-                                      style: TextStyle(
-                                        color: primaryTextColor,
+                                      style: context.bodyLargeText?.copyWith(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 14,
                                       ),
@@ -840,11 +830,11 @@ class _AvailableProductDetailScreenState
                                                       vertical: 6,
                                                     ),
                                               ),
-                                              style: TextStyle(
-                                                color: primaryTextColor,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
-                                              ),
+                                              style: context.bodyLargeText
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                  ),
                                             ),
                                           )
                                         : Container(
@@ -1032,10 +1022,8 @@ class _AvailableProductDetailScreenState
                                 _allBatches.length > 1
                                     ? 'All Batches (FIFO Order)'
                                     : 'Batch Details',
-                                style: TextStyle(
-                                  color: primaryTextColor,
+                                style: context.headingMedium?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 18,
                                 ),
                               ),
                             ],
@@ -1155,12 +1143,13 @@ class _AvailableProductDetailScreenState
                                                     // Supplier name
                                                     Text(
                                                       batch.supplierName,
-                                                      style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        color: primaryTextColor,
-                                                        fontSize: 13,
-                                                      ),
+                                                      style: context
+                                                          .bodyLargeText
+                                                          ?.copyWith(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 13,
+                                                          ),
                                                       maxLines: 1,
                                                       overflow:
                                                           TextOverflow.ellipsis,
@@ -1612,8 +1601,7 @@ class _AvailableProductDetailScreenState
                                     children: [
                                       Text(
                                         'Purchase History',
-                                        style: TextStyle(
-                                          color: primaryTextColor,
+                                        style: context.titleLarge?.copyWith(
                                           fontWeight: FontWeight.w700,
                                           fontSize: 16,
                                         ),
@@ -1781,8 +1769,8 @@ class _AvailableProductDetailScreenState
                                                               fontWeight:
                                                                   FontWeight
                                                                       .w600,
-                                                              color:
-                                                                  primaryTextColor,
+                                                              color: context
+                                                                  .primaryTextColor,
                                                               fontSize: 13,
                                                             ),
                                                             maxLines: 1,
