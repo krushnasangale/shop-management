@@ -194,7 +194,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
 
     return Card(
       color: cardColor,
-      margin: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 6.0),
+      margin: const EdgeInsets.symmetric(vertical: 6.0),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
@@ -275,7 +275,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                 if (_showSearchBar)
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12.0,
+                      horizontal: 10.0,
                       vertical: 8.0,
                     ),
                     child: Card(
@@ -312,7 +312,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                         )
                       : ListView.builder(
                           padding: EdgeInsets.symmetric(
-                            horizontal: 12.0,
+                            horizontal: 10.0,
                             vertical: !_showSearchBar ? 8.0 : 0.0,
                           ),
                           itemCount: _filteredUnits.length,

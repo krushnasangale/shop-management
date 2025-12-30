@@ -209,7 +209,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                       ? const Center(child: Text('No matching entries found'))
                       : ListView.builder(
                           itemCount: _filteredEntries.length,
-                          padding: const EdgeInsets.fromLTRB(16, 5, 16, 5),
+                          padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
                           itemBuilder: (context, index) {
                             final entry = _filteredEntries[index];
                             final date = entry['date'] ?? 'N/A';
@@ -236,7 +236,10 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                                       );
                                     },
                                     child: Padding(
-                                      padding: const EdgeInsets.all(12),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 8,
+                                      ),
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,

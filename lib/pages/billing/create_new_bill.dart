@@ -432,9 +432,20 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       'Customer Full Name *',
                       _customerNameController,
                       onChanged: (value) {
+                        // Convert to uppercase
+                        if (value != value.toUpperCase()) {
+                          _customerNameController.text = value.toUpperCase();
+                          _customerNameController
+                              .selection = TextSelection.fromPosition(
+                            TextPosition(offset: value.toUpperCase().length),
+                          );
+                        }
                         setState(() {
                           _customerNameError =
-                              _validateCustomerName(value) ?? '';
+                              _validateCustomerName(
+                                _customerNameController.text,
+                              ) ??
+                              '';
                         });
                       },
                     ),
