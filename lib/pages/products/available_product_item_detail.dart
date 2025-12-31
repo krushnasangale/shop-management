@@ -20,30 +20,33 @@ class AvailableProductDetailScreen extends StatefulWidget {
 }
 
 class _AvailableProductDetailScreenState
-    extends State<AvailableProductDetailScreen> {
+    extends State<AvailableProductDetailScreen>
+    with SingleTickerProviderStateMixin {
   // Local state for editable fields
   late TextEditingController _quantityController;
   late TextEditingController _minLimitController;
+  late TabController _tabController;
   List<BoughtProduct> _allBatches = [];
   bool _isLoadingBatches = true;
   bool _editingMinLimit = false;
-  Map<String, bool> _editingBatchPrices =
-      {}; // Track which batches are being edited
-  Map<String, TextEditingController> _batchPriceControllers =
-      {}; // Per-batch price controllers
-  Map<String, bool> _editingBatchQuantities =
-      {}; // Track which batches quantities are being edited
-  Map<String, TextEditingController> _batchQuantityControllers =
-      {}; // Per-batch quantity controllers
+  final Map<String, bool> _editingBatchPrices = {};
+  final Map<String, TextEditingController> _batchPriceControllers = {};
+  final Map<String, bool> _editingBatchQuantities = {};
+  final Map<String, TextEditingController> _batchQuantityControllers = {};
   List<Map<String, dynamic>> _purchaseHistory = []; // Complete purchase history
   bool _isLoadingHistory = true;
-  Map<int, bool> _expandedPurchaseHistory =
-      {}; // Track which purchase history items are expanded
-  Map<int, bool> _expandedBatches = {}; // Track which batch items are expanded
+  final Map<int, bool> _expandedPurchaseHistory = {};
+  List<Map<String, dynamic>> _soldHistory = []; // Complete sold history
+  bool _isLoadingSoldHistory = true;
+  final Map<int, bool> _expandedSoldHistory = {};
+  final Map<int, bool> _expandedBatches = {};
 
   @override
   void initState() {
     super.initState();
+
+    // Initialize TabController
+    _tabController = TabController(length: 3, vsync: this);
 
     // Initialize controllers with current product values
     _quantityController = TextEditingController(
@@ -58,6 +61,9 @@ class _AvailableProductDetailScreenState
 
     // Load complete purchase history for this product
     _loadPurchaseHistory();
+
+    // Load complete sold history for this product
+    _loadSoldHistory();
   }
 
   Future<void> _loadAllBatches() async {
@@ -156,8 +162,70 @@ class _AvailableProductDetailScreenState
     }
   }
 
+  Future<void> _loadSoldHistory() async {
+    try {
+      // Read from the bills collection and extract products sold
+      final snapshot = await FirebaseFirestore.instance
+          .collection('bills')
+          .doc(widget.userId)
+          .collection('items')
+          .get();
+
+      final history = <Map<String, dynamic>>[];
+      for (var billDoc in snapshot.docs) {
+        final billData = billDoc.data();
+        final productsMap = billData['products'] as Map<String, dynamic>?;
+
+        if (productsMap != null) {
+          // Iterate through products in this bill
+          for (var productEntry in productsMap.entries) {
+            final product = productEntry.value as Map<String, dynamic>;
+
+            // Match by product name
+            if (product['productName'] == widget.product.productName) {
+              history.add({
+                'id': billDoc.id,
+                'billId': billDoc.id,
+                'date': billData['billDate'] ?? 'N/A',
+                'timestamp': billData['timestamp'] ?? '',
+                'customerName': billData['customerName'] ?? 'Unknown',
+                'customerMobile': billData['customerMobile'] ?? '',
+                'quantity': product['quantity'] ?? 0,
+                'sellingPrice': product['price'] ?? 0,
+                'total': product['total'] ?? 0,
+                'unit': product['unit'] ?? 'units',
+                'buyingPrice': product['boughtPrice'] ?? 0,
+              });
+            }
+          }
+        }
+      }
+
+      // Sort by timestamp (newest first)
+      history.sort((a, b) {
+        final timestampA = a['timestamp'] ?? '';
+        final timestampB = b['timestamp'] ?? '';
+        return timestampB.compareTo(timestampA);
+      });
+
+      if (mounted) {
+        setState(() {
+          _soldHistory = history;
+          _isLoadingSoldHistory = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingSoldHistory = false;
+        });
+      }
+    }
+  }
+
   @override
   void dispose() {
+    _tabController.dispose();
     _quantityController.dispose();
     _minLimitController.dispose();
     // Dispose all batch price controllers
@@ -391,7 +459,7 @@ class _AvailableProductDetailScreenState
   // --- FINANCIAL CALCULATIONS (From all batches with their individual prices) ---
   double get totalStockQty {
     if (_isLoadingBatches) return 0;
-    return _allBatches.fold<double>(0, (sum, b) => sum + b.quantity);
+    return _allBatches.fold<double>(0, (double sum, b) => sum + b.quantity);
   }
 
   double get totalPotentialRevenue {
@@ -413,8 +481,9 @@ class _AvailableProductDetailScreenState
   }
 
   double get averageBuyingPrice {
-    if (_isLoadingBatches || totalStockQty == 0)
+    if (_isLoadingBatches || totalStockQty == 0) {
       return widget.product.buyingPrice;
+    }
     double totalCost = 0;
     for (var batch in _allBatches) {
       totalCost += batch.buyingPrice * batch.quantity;
@@ -423,8 +492,9 @@ class _AvailableProductDetailScreenState
   }
 
   double get averageSellingPrice {
-    if (_isLoadingBatches || totalStockQty == 0)
+    if (_isLoadingBatches || totalStockQty == 0) {
       return widget.product.sellingPrice;
+    }
     return totalPotentialRevenue / totalStockQty;
   }
 
@@ -484,7 +554,29 @@ class _AvailableProductDetailScreenState
   // --- Main Build Method ---
   @override
   Widget build(BuildContext context) {
-    final cardColor = Theme.of(context).cardTheme.color;
+    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+
+    // Calculate financial metrics
+    final totalPotentialRevenue = this.totalPotentialRevenue;
+    final totalPotentialProfit = this.totalPotentialProfit;
+    final profitMargin = this.profitMargin;
+    final avgBuyingPrice = averageBuyingPrice;
+    final avgSellingPrice = averageSellingPrice;
+
+    // Calculate total invested amount
+    final totalInvestedAmount = _allBatches.fold<double>(
+      0,
+      (double sum, batch) => sum + (batch.buyingPrice * batch.quantity),
+    );
+
+    // Calculate total quantity by unit
+    final totalQuantityByUnit = _allBatches.fold<Map<String, int>>({}, (
+      map,
+      batch,
+    ) {
+      map[batch.unit] = (map[batch.unit] ?? 0) + batch.quantity;
+      return map;
+    });
 
     // Capitalize product name for display
     final displayedProductName =
@@ -493,8 +585,121 @@ class _AvailableProductDetailScreenState
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
         title: Text(displayedProductName),
         centerTitle: false,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(68),
+          child: Container(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: Theme.of(context).brightness == Brightness.dark
+                      ? [Colors.grey[850]!, Colors.grey[800]!]
+                      : [Colors.white, Colors.grey[50]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+                border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[700]!
+                      : Colors.grey[200]!,
+                  width: 1.5,
+                ),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                padding: const EdgeInsets.all(4),
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade500, Colors.blue.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.blue.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                labelColor: Colors.white,
+                unselectedLabelColor:
+                    Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey[400]
+                    : Colors.grey[600],
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+                tabs: [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.info_outline, size: 18),
+                        const SizedBox(width: 6),
+                        Text('Info'),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.history, size: 16),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            'Purchases',
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.receipt_long, size: 16),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text('Sales', overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete),
@@ -626,1192 +831,1109 @@ class _AvailableProductDetailScreenState
           ),
         ],
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                children: [
-                  // --- 1. Financial Metrics Card (Current Stock) ---
-                  Card(
-                    color: cardColor,
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Financial Metrics (Current Stock)',
-                            style: context.headingMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+          // Info Tab
+          _buildInfoTab(
+            context,
+            cardColor,
+            totalPotentialRevenue,
+            totalPotentialProfit,
+            profitMargin,
+            totalInvestedAmount,
+            avgBuyingPrice,
+            avgSellingPrice,
+            totalQuantityByUnit,
+          ),
+          // Purchase History Tab
+          _buildPurchaseHistoryTab(context, cardColor),
+          // Sold History Tab
+          _buildSoldHistoryTab(context, cardColor),
+        ],
+      ),
+    );
+  }
+
+  // Build Info Tab
+  Widget _buildInfoTab(
+    BuildContext context,
+    Color cardColor,
+    double totalPotentialRevenue,
+    double totalPotentialProfit,
+    double profitMargin,
+    double totalInvestedAmount,
+    double avgBuyingPrice,
+    double avgSellingPrice,
+    Map<String, int> totalQuantityByUnit,
+  ) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(right: 12, left: 12, top: 0, bottom: 12),
+      child: Column(
+        children: [
+          // --- Total Quantity By Unit ---
+          if (_allBatches.isNotEmpty)
+            Card(
+              color: cardColor,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.inventory_outlined,
+                              color: Colors.indigo,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Total Quantity',
+                              style: context.bodyLargeText?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Text(
+                            _allBatches
+                                .fold(
+                                  0,
+                                  (int sum, batch) => sum + batch.quantity,
+                                )
+                                .toString(),
+                            style: TextStyle(
+                              color: Colors.purple[700],
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
                             ),
                           ),
-                          const SizedBox(height: 10),
-
-                          _buildDetailRow(
-                            context,
-                            'Total Potential Revenue',
-                            '₹${totalPotentialRevenue.toStringAsFixed(2)}',
-                            icon: Icons.trending_up,
-                            valueColor: Colors.green,
-                          ),
-                          Divider(),
-
-                          _buildDetailRow(
-                            context,
-                            'Total Potential Profit',
-                            '₹${totalPotentialProfit.toStringAsFixed(2)}',
-                            icon: Icons.paid_outlined,
-                            valueColor: Colors.blue,
-                          ),
-                          Divider(),
-
-                          _buildDetailRow(
-                            context,
-                            'Profit Margin (per unit)',
-                            '${profitMargin.toStringAsFixed(1)}%',
-                            icon: Icons.percent,
-                            valueColor: profitMargin >= 0
-                                ? Colors.green
-                                : Colors.red,
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                  // --- Total Quantity By Unit ---
-                  if (_allBatches.isNotEmpty)
-                    Card(
-                      color: cardColor,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                    // Group by unit and show individual totals
+                    ..._allBatches
+                        .fold<Map<String, int>>({}, (map, batch) {
+                          map[batch.unit] =
+                              (map[batch.unit] ?? 0) + batch.quantity;
+                          return map;
+                        })
+                        .entries
+                        .map(
+                          (entry) => Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6.0),
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.inventory_outlined,
-                                      color: Colors.indigo,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Total Quantity',
-                                      style: context.bodyLargeText?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  entry.key,
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 13,
+                                  ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 6,
+                                    horizontal: 12,
+                                    vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.purple.withOpacity(0.1),
+                                    color: Colors.blue.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Text(
-                                    _allBatches
-                                        .fold(
-                                          0,
-                                          (sum, batch) => sum + batch.quantity,
-                                        )
-                                        .toString(),
+                                    entry.value.toString(),
                                     style: TextStyle(
-                                      color: Colors.purple[700],
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 14,
+                                      color: Colors.blue[700],
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 13,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
+                          ),
+                        ),
 
-                            // Group by unit and show individual totals
-                            ..._allBatches
-                                .fold<Map<String, int>>({}, (map, batch) {
-                                  map[batch.unit] =
-                                      (map[batch.unit] ?? 0) + batch.quantity;
-                                  return map;
-                                })
-                                .entries
-                                .map(
-                                  (entry) => Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 6.0,
+                    Divider(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[700]
+                          : Colors.grey[300],
+                      height: 12,
+                    ),
+
+                    // Minimum Limit Section
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Minimum Limit',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            _editingMinLimit
+                                ? SizedBox(
+                                    width: 100,
+                                    child: TextField(
+                                      controller: _minLimitController,
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 6,
+                                            ),
+                                      ),
+                                      style: context.bodyLargeText?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
                                     ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          entry.key,
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              16,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            entry.value.toString(),
-                                            style: TextStyle(
-                                              color: Colors.blue[700],
-                                              fontWeight: FontWeight.w600,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  )
+                                : Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Text(
+                                      _minLimitController.text,
+                                      style: TextStyle(
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            if (_editingMinLimit)
+                              GestureDetector(
+                                onTap: () {
+                                  // Reload the original min limit
+                                  int minLimit = 0;
+                                  for (var batch in _allBatches) {
+                                    if (batch.minLimit > 0) {
+                                      minLimit = batch.minLimit;
+                                      break;
+                                    }
+                                  }
+                                  setState(() {
+                                    _minLimitController.text = minLimit
+                                        .toString();
+                                    _editingMinLimit = false;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    Icons.close,
+                                    color: Colors.red[600],
+                                    size: 18,
+                                  ),
                                 ),
+                              ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () {
+                                if (_editingMinLimit) {
+                                  // Save the new min limit
+                                  final newMinLimit =
+                                      int.tryParse(_minLimitController.text) ??
+                                      0;
+                                  if (newMinLimit >= 0) {
+                                    // Find the batch that stores minLimit and update it
+                                    BoughtProduct? batchWithMinLimit;
+                                    for (var batch in _allBatches) {
+                                      if (batch.minLimit > 0) {
+                                        batchWithMinLimit = batch;
+                                        break;
+                                      }
+                                    }
 
-                            Divider(
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey[700]
-                                  : Colors.grey[300],
-                              height: 12,
-                            ),
+                                    // If no batch has minLimit, use the first one
+                                    batchWithMinLimit ??= _allBatches.isNotEmpty
+                                        ? _allBatches.first
+                                        : null;
 
-                            // Minimum Limit Section
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Minimum Limit',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    _editingMinLimit
-                                        ? SizedBox(
-                                            width: 100,
-                                            child: TextField(
-                                              controller: _minLimitController,
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              decoration: InputDecoration(
-                                                isDense: true,
-                                                border: OutlineInputBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                contentPadding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 6,
-                                                    ),
-                                              ),
-                                              style: context.bodyLargeText
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 13,
-                                                  ),
-                                            ),
-                                          )
-                                        : Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green.withOpacity(
-                                                0.1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                            child: Text(
-                                              _minLimitController.text,
-                                              style: TextStyle(
-                                                color: Colors.green[700],
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 13,
-                                              ),
-                                            ),
-                                          ),
-                                  ],
-                                ),
-                                Row(
-                                  children: [
-                                    if (_editingMinLimit)
-                                      GestureDetector(
-                                        onTap: () {
-                                          // Reload the original min limit
-                                          int minLimit = 0;
-                                          for (var batch in _allBatches) {
-                                            if (batch.minLimit > 0) {
-                                              minLimit = batch.minLimit;
-                                              break;
-                                            }
-                                          }
-                                          setState(() {
-                                            _minLimitController.text = minLimit
-                                                .toString();
-                                            _editingMinLimit = false;
-                                          });
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.red.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                          child: Icon(
-                                            Icons.close,
-                                            color: Colors.red[600],
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () {
-                                        if (_editingMinLimit) {
-                                          // Save the new min limit
-                                          final newMinLimit =
-                                              int.tryParse(
-                                                _minLimitController.text,
-                                              ) ??
-                                              0;
-                                          if (newMinLimit >= 0) {
-                                            // Find the batch that stores minLimit and update it
-                                            BoughtProduct? batchWithMinLimit;
-                                            for (var batch in _allBatches) {
-                                              if (batch.minLimit > 0) {
-                                                batchWithMinLimit = batch;
-                                                break;
-                                              }
-                                            }
-
-                                            // If no batch has minLimit, use the first one
-                                            batchWithMinLimit ??=
-                                                _allBatches.isNotEmpty
-                                                ? _allBatches.first
-                                                : null;
-
-                                            if (batchWithMinLimit != null) {
-                                              FirebaseFirestore.instance
-                                                  .collection(
-                                                    'purchased-products',
-                                                  )
-                                                  .doc(widget.userId)
-                                                  .collection('items')
-                                                  .doc(batchWithMinLimit.id)
-                                                  .update({
-                                                    'minLimit': newMinLimit,
-                                                  })
-                                                  .then((_) {
-                                                    setState(() {
-                                                      _editingMinLimit = false;
-                                                    });
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      const SnackBar(
-                                                        content: Text(
-                                                          'Minimum limit updated',
-                                                        ),
-                                                      ),
-                                                    );
-                                                  })
-                                                  .catchError((e) {
-                                                    ScaffoldMessenger.of(
-                                                      context,
-                                                    ).showSnackBar(
-                                                      SnackBar(
-                                                        content: Text(
-                                                          'Error: $e',
-                                                        ),
-                                                      ),
-                                                    );
-                                                  });
-                                            }
-                                          } else {
+                                    if (batchWithMinLimit != null) {
+                                      FirebaseFirestore.instance
+                                          .collection('purchased-products')
+                                          .doc(widget.userId)
+                                          .collection('items')
+                                          .doc(batchWithMinLimit.id)
+                                          .update({'minLimit': newMinLimit})
+                                          .then((_) {
+                                            setState(() {
+                                              _editingMinLimit = false;
+                                            });
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
                                               const SnackBar(
                                                 content: Text(
-                                                  'Enter a valid number',
+                                                  'Minimum limit updated',
                                                 ),
                                               ),
                                             );
-                                          }
-                                        } else {
-                                          setState(() {
-                                            _editingMinLimit = true;
+                                          })
+                                          .catchError((e) {
+                                            ScaffoldMessenger.of(
+                                              context,
+                                            ).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Error: $e'),
+                                              ),
+                                            );
                                           });
-                                        }
-                                      },
-                                      child: Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.blue.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          _editingMinLimit
-                                              ? Icons.check
-                                              : Icons.edit,
-                                          color: Colors.blue[600],
-                                          size: 18,
-                                        ),
+                                    }
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Enter a valid number'),
                                       ),
-                                    ),
-                                  ],
+                                    );
+                                  }
+                                } else {
+                                  setState(() {
+                                    _editingMinLimit = true;
+                                  });
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                              ],
+                                child: Icon(
+                                  _editingMinLimit ? Icons.check : Icons.edit,
+                                  color: Colors.blue[600],
+                                  size: 18,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                      ],
                     ),
-                  const SizedBox(height: 10),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 10),
 
-                  // --- 2. All Batches Card (Always show) ---
-                  Card(
-                    color: cardColor,
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        right: 12.0,
-                        left: 12.0,
-                        top: 12.0,
-                        bottom: 0,
+          // --- 2. All Batches Card (Always show) ---
+          Card(
+            color: cardColor,
+            child: Padding(
+              padding: const EdgeInsets.only(
+                right: 12.0,
+                left: 12.0,
+                top: 12.0,
+                bottom: 0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with title
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        _allBatches.length > 1
+                            ? 'All Batches (FIFO Order)'
+                            : 'Batch Details',
+                        style: context.headingMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Header with title
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+
+                  if (_isLoadingBatches)
+                    const Center(child: CircularProgressIndicator())
+                  else if (_allBatches.isEmpty)
+                    Center(
+                      child: Text(
+                        'No batches found',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _allBatches.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 6),
+                      itemBuilder: (context, index) {
+                        final batch = _allBatches[index];
+                        final isFirstBatch = index == 0;
+                        final isLastBatch = index == _allBatches.length - 1;
+                        final isExpanded = _expandedBatches[index] ?? false;
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey[800] : Colors.grey[50],
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.grey[700]!
+                                  : Colors.grey[200]!,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Column(
                             children: [
-                              Text(
-                                _allBatches.length > 1
-                                    ? 'All Batches (FIFO Order)'
-                                    : 'Batch Details',
-                                style: context.headingMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                              // Batch Tile (Always visible)
+                              InkWell(
+                                onTap: () => setState(() {
+                                  _expandedBatches[index] = !isExpanded;
+                                }),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(10),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Batch label with FIFO indicator
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color: isFirstBatch
+                                                        ? Colors.orange
+                                                              .withOpacity(0.15)
+                                                        : Colors.blue
+                                                              .withOpacity(
+                                                                0.15,
+                                                              ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
+                                                  ),
+                                                  child: Text(
+                                                    isFirstBatch
+                                                        ? 'OLDEST (Sell First)'
+                                                        : isLastBatch
+                                                        ? 'NEWEST'
+                                                        : 'Batch ${index + 1}',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: isFirstBatch
+                                                          ? Colors.orange[700]
+                                                          : Colors.blue[700],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 8),
+
+                                            // Supplier name
+                                            Text(
+                                              batch.supplierName,
+                                              style: context.bodyLargeText
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13,
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+
+                                            // Quick info: Date and Quantity
+                                            Text(
+                                              '${batch.purchaseDate} • ${batch.quantity} ${batch.unit}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey[500],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '₹${batch.sellingPrice.toStringAsFixed(0)}',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.green[600],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Icon(
+                                            isExpanded
+                                                ? Icons.expand_less
+                                                : Icons.expand_more,
+                                            color: Colors.blue[600],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
 
-                          if (_isLoadingBatches)
-                            const Center(child: CircularProgressIndicator())
-                          else if (_allBatches.isEmpty)
-                            Center(
-                              child: Text(
-                                'No batches found',
-                                style: TextStyle(color: Colors.grey),
-                              ),
-                            )
-                          else
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _allBatches.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 6),
-                              itemBuilder: (context, index) {
-                                final batch = _allBatches[index];
-                                final isFirstBatch = index == 0;
-                                final isLastBatch =
-                                    index == _allBatches.length - 1;
-                                final isExpanded =
-                                    _expandedBatches[index] ?? false;
-                                final isDark =
-                                    Theme.of(context).brightness ==
-                                    Brightness.dark;
-
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? Colors.grey[800]
-                                        : Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isDark
-                                          ? Colors.grey[700]!
-                                          : Colors.grey[200]!,
-                                      width: 0.5,
-                                    ),
-                                  ),
+                              // Expanded content
+                              if (isExpanded) ...[
+                                Divider(
+                                  color: isDark
+                                      ? Colors.grey[700]
+                                      : Colors.grey[300],
+                                  height: 1,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8.0),
                                   child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      // Batch Tile (Always visible)
-                                      InkWell(
-                                        onTap: () => setState(() {
-                                          _expandedBatches[index] = !isExpanded;
-                                        }),
-                                        borderRadius:
-                                            const BorderRadius.vertical(
-                                              top: Radius.circular(10),
-                                            ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    // Batch label with FIFO indicator
-                                                    Row(
+                                      // Row 1: Quantity and Profit/Unit
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 4.0,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            // Quantity
+                                            Expanded(
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.inventory_2_outlined,
+                                                    color: Colors.grey,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 8,
-                                                                vertical: 4,
-                                                              ),
-                                                          decoration: BoxDecoration(
-                                                            color: isFirstBatch
-                                                                ? Colors.orange
-                                                                      .withOpacity(
-                                                                        0.15,
-                                                                      )
-                                                                : Colors.blue
-                                                                      .withOpacity(
-                                                                        0.15,
-                                                                      ),
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  6,
-                                                                ),
+                                                        Text(
+                                                          'Quantity',
+                                                          style: TextStyle(
+                                                            color: Colors.grey,
+                                                            fontSize: 13,
                                                           ),
-                                                          child: Text(
-                                                            isFirstBatch
-                                                                ? 'OLDEST (Sell First)'
-                                                                : isLastBatch
-                                                                ? 'NEWEST'
-                                                                : 'Batch ${index + 1}',
-                                                            style: TextStyle(
-                                                              fontSize: 11,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              color:
-                                                                  isFirstBatch
-                                                                  ? Colors
-                                                                        .orange[700]
-                                                                  : Colors
-                                                                        .blue[700],
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 2,
+                                                        ),
+                                                        GestureDetector(
+                                                          onTap: () =>
+                                                              _showEditQuantityDialog(
+                                                                batch,
+                                                              ),
+                                                          child: Container(
+                                                            padding:
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal:
+                                                                      12,
+                                                                  vertical: 4,
+                                                                ),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.blue
+                                                                  .withOpacity(
+                                                                    0.1,
+                                                                  ),
+                                                              border: Border.all(
+                                                                color:
+                                                                    Colors.blue,
+                                                                width: 1.5,
+                                                              ),
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    6,
+                                                                  ),
+                                                            ),
+                                                            child: Row(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
+                                                              children: [
+                                                                Text(
+                                                                  '${batch.quantity} ${batch.unit}',
+                                                                  style: TextStyle(
+                                                                    color: Colors
+                                                                        .blue[400],
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                    fontSize:
+                                                                        16,
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 8,
+                                                                ),
+                                                                Icon(
+                                                                  Icons.edit,
+                                                                  color: Colors
+                                                                      .blue,
+                                                                  size: 20,
+                                                                ),
+                                                              ],
                                                             ),
                                                           ),
                                                         ),
                                                       ],
                                                     ),
-                                                    const SizedBox(height: 8),
-
-                                                    // Supplier name
-                                                    Text(
-                                                      batch.supplierName,
-                                                      style: context
-                                                          .bodyLargeText
-                                                          ?.copyWith(
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            fontSize: 13,
-                                                          ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                    const SizedBox(height: 2),
-
-                                                    // Quick info: Date and Quantity
-                                                    Text(
-                                                      '${batch.purchaseDate} • ${batch.quantity} ${batch.unit}',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color: Colors.grey[500],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
-                                                children: [
-                                                  Text(
-                                                    '₹${batch.sellingPrice.toStringAsFixed(0)}',
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: Colors.green[600],
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  Icon(
-                                                    isExpanded
-                                                        ? Icons.expand_less
-                                                        : Icons.expand_more,
-                                                    color: Colors.blue[600],
                                                   ),
                                                 ],
                                               ),
-                                            ],
-                                          ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            // Profit/Unit
+                                            Expanded(
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.trending_up,
+                                                    color: Colors.grey,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          'Profit/Unit',
+                                                          style: TextStyle(
+                                                            color: Colors.grey,
+                                                            fontSize: 13,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 2,
+                                                        ),
+                                                        Text(
+                                                          '₹${batch.profitMargin.toStringAsFixed(2)}',
+                                                          style: TextStyle(
+                                                            color:
+                                                                batch.profitMargin >=
+                                                                    0
+                                                                ? Colors
+                                                                      .green[400]
+                                                                : Colors
+                                                                      .red[400],
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 14,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-
-                                      // Expanded content
-                                      if (isExpanded) ...[
-                                        Divider(
-                                          color: isDark
-                                              ? Colors.grey[700]
-                                              : Colors.grey[300],
-                                          height: 1,
+                                      const SizedBox(height: 4),
+                                      // Row 2: Buying Price and Selling Price
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 4.0,
                                         ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              // Row 1: Quantity and Profit/Unit
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 4.0,
-                                                    ),
-                                                child: Row(
-                                                  children: [
-                                                    // Quantity
-                                                    Expanded(
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .inventory_2_outlined,
+                                        child: Row(
+                                          children: [
+                                            // Buying Price
+                                            Expanded(
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.shopping_cart,
+                                                    color: Colors.grey,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          'Buying Price',
+                                                          style: TextStyle(
                                                             color: Colors.grey,
-                                                            size: 20,
+                                                            fontSize: 13,
                                                           ),
-                                                          const SizedBox(
-                                                            width: 8,
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 2,
+                                                        ),
+                                                        Text(
+                                                          '₹${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                          style: TextStyle(
+                                                            color:
+                                                                Colors.red[400],
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                            fontSize: 14,
                                                           ),
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Text(
-                                                                  'Quantity',
-                                                                  style: TextStyle(
-                                                                    color: Colors
-                                                                        .grey,
-                                                                    fontSize:
-                                                                        13,
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 2,
-                                                                ),
-                                                                GestureDetector(
-                                                                  onTap: () =>
-                                                                      _showEditQuantityDialog(
-                                                                        batch,
-                                                                      ),
-                                                                  child: Container(
-                                                                    padding: const EdgeInsets.symmetric(
-                                                                      horizontal:
-                                                                          12,
-                                                                      vertical:
-                                                                          4,
-                                                                    ),
-                                                                    decoration: BoxDecoration(
-                                                                      color: Colors
-                                                                          .blue
-                                                                          .withOpacity(
-                                                                            0.1,
-                                                                          ),
-                                                                      border: Border.all(
-                                                                        color: Colors
-                                                                            .blue,
-                                                                        width:
-                                                                            1.5,
-                                                                      ),
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                            6,
-                                                                          ),
-                                                                    ),
-                                                                    child: Row(
-                                                                      mainAxisSize:
-                                                                          MainAxisSize
-                                                                              .min,
-                                                                      children: [
-                                                                        Text(
-                                                                          '${batch.quantity} ${batch.unit}',
-                                                                          style: TextStyle(
-                                                                            color:
-                                                                                Colors.blue[400],
-                                                                            fontWeight:
-                                                                                FontWeight.w600,
-                                                                            fontSize:
-                                                                                16,
-                                                                          ),
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          width:
-                                                                              8,
-                                                                        ),
-                                                                        Icon(
-                                                                          Icons
-                                                                              .edit,
-                                                                          color:
-                                                                              Colors.blue,
-                                                                          size:
-                                                                              20,
-                                                                        ),
-                                                                      ],
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    const SizedBox(width: 12),
-                                                    // Profit/Unit
-                                                    Expanded(
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons.trending_up,
-                                                            color: Colors.grey,
-                                                            size: 20,
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 8,
-                                                          ),
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Text(
-                                                                  'Profit/Unit',
-                                                                  style: TextStyle(
-                                                                    color: Colors
-                                                                        .grey,
-                                                                    fontSize:
-                                                                        13,
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 2,
-                                                                ),
-                                                                Text(
-                                                                  '₹${batch.profitMargin.toStringAsFixed(2)}',
-                                                                  style: TextStyle(
-                                                                    color:
-                                                                        batch.profitMargin >=
-                                                                            0
-                                                                        ? Colors
-                                                                              .green[400]
-                                                                        : Colors
-                                                                              .red[400],
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w600,
-                                                                    fontSize:
-                                                                        14,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                ],
                                               ),
-                                              const SizedBox(height: 4),
-                                              // Row 2: Buying Price and Selling Price
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      vertical: 4.0,
-                                                    ),
-                                                child: Row(
-                                                  children: [
-                                                    // Buying Price
-                                                    Expanded(
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons.shopping_cart,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            // Selling Price
+                                            Expanded(
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.sell_outlined,
+                                                    color: Colors.grey,
+                                                    size: 20,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          'Selling Price',
+                                                          style: TextStyle(
                                                             color: Colors.grey,
-                                                            size: 20,
+                                                            fontSize: 13,
                                                           ),
-                                                          const SizedBox(
-                                                            width: 8,
-                                                          ),
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Text(
-                                                                  'Buying Price',
-                                                                  style: TextStyle(
-                                                                    color: Colors
-                                                                        .grey,
-                                                                    fontSize:
-                                                                        13,
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 2,
+                                                        ),
+                                                        GestureDetector(
+                                                          onTap: () =>
+                                                              _showEditSellingPriceDialog(
+                                                                batch,
+                                                              ),
+                                                          child: Container(
+                                                            padding:
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal:
+                                                                      12,
+                                                                  vertical: 4,
+                                                                ),
+                                                            decoration: BoxDecoration(
+                                                              color: Colors.blue
+                                                                  .withOpacity(
+                                                                    0.1,
                                                                   ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 2,
-                                                                ),
-                                                                Text(
-                                                                  '₹${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
-                                                                  style: TextStyle(
-                                                                    color: Colors
-                                                                        .red[400],
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w600,
-                                                                    fontSize:
-                                                                        14,
+                                                              border: Border.all(
+                                                                color:
+                                                                    Colors.blue,
+                                                                width: 1.5,
+                                                              ),
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    6,
                                                                   ),
-                                                                ),
-                                                              ],
                                                             ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 12),
-                                                    // Selling Price
-                                                    Expanded(
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons.sell_outlined,
-                                                            color: Colors.grey,
-                                                            size: 20,
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 8,
-                                                          ),
-                                                          Expanded(
-                                                            child: Column(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
+                                                            child: Row(
+                                                              mainAxisSize:
+                                                                  MainAxisSize
+                                                                      .min,
                                                               children: [
-                                                                Text(
-                                                                  'Selling Price',
-                                                                  style: TextStyle(
-                                                                    color: Colors
-                                                                        .grey,
-                                                                    fontSize:
-                                                                        13,
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  height: 2,
-                                                                ),
-                                                                GestureDetector(
-                                                                  onTap: () =>
-                                                                      _showEditSellingPriceDialog(
-                                                                        batch,
-                                                                      ),
-                                                                  child: Container(
-                                                                    padding: const EdgeInsets.symmetric(
-                                                                      horizontal:
-                                                                          12,
-                                                                      vertical:
-                                                                          4,
-                                                                    ),
-                                                                    decoration: BoxDecoration(
+                                                                Flexible(
+                                                                  child: Text(
+                                                                    '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                                    style: TextStyle(
                                                                       color: Colors
-                                                                          .blue
-                                                                          .withOpacity(
-                                                                            0.1,
-                                                                          ),
-                                                                      border: Border.all(
-                                                                        color: Colors
-                                                                            .blue,
-                                                                        width:
-                                                                            1.5,
-                                                                      ),
-                                                                      borderRadius:
-                                                                          BorderRadius.circular(
-                                                                            6,
-                                                                          ),
+                                                                          .green[400],
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w600,
+                                                                      fontSize:
+                                                                          14,
                                                                     ),
-                                                                    child: Row(
-                                                                      mainAxisSize:
-                                                                          MainAxisSize
-                                                                              .min,
-                                                                      children: [
-                                                                        Flexible(
-                                                                          child: Text(
-                                                                            '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
-                                                                            style: TextStyle(
-                                                                              color: Colors.green[400],
-                                                                              fontWeight: FontWeight.w600,
-                                                                              fontSize: 14,
-                                                                            ),
-                                                                            overflow:
-                                                                                TextOverflow.ellipsis,
-                                                                          ),
-                                                                        ),
-                                                                        const SizedBox(
-                                                                          width:
-                                                                              8,
-                                                                        ),
-                                                                        Icon(
-                                                                          Icons
-                                                                              .edit,
-                                                                          color:
-                                                                              Colors.blue,
-                                                                          size:
-                                                                              18,
-                                                                        ),
-                                                                      ],
-                                                                    ),
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
                                                                   ),
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 8,
+                                                                ),
+                                                                Icon(
+                                                                  Icons.edit,
+                                                                  color: Colors
+                                                                      .blue,
+                                                                  size: 18,
                                                                 ),
                                                               ],
                                                             ),
                                                           ),
-                                                        ],
-                                                      ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                  ],
-                                                ),
+                                                  ),
+                                                ],
                                               ),
-                                              if (batch.expiryDate != null &&
-                                                  batch
-                                                      .expiryDate!
-                                                      .isNotEmpty) ...[
-                                                const SizedBox(height: 4),
-                                                _buildDetailRow(
-                                                  context,
-                                                  'Expiry Date',
-                                                  batch.expiryDate!,
-                                                  icon: Icons.calendar_today,
-                                                  valueColor:
-                                                      Colors.orange[700],
-                                                ),
-                                              ],
-                                            ],
-                                          ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (batch.expiryDate != null &&
+                                          batch.expiryDate!.isNotEmpty) ...[
+                                        const SizedBox(height: 4),
+                                        _buildDetailRow(
+                                          context,
+                                          'Expiry Date',
+                                          batch.expiryDate!,
+                                          icon: Icons.calendar_today,
+                                          valueColor: Colors.orange[700],
                                         ),
                                       ],
                                     ],
                                   ),
-                                );
-                              },
-                            ),
-                        ],
-                      ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // --- 3. Financial Metrics Card (Current Stock) ---
+          Card(
+            color: cardColor,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Financial Metrics (Current Stock)',
+                    style: context.headingMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 10),
 
-                  // --- 3. Complete Purchase History Card ---
-                  Card(
-                    color: cardColor,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        right: 12.0,
-                        left: 12.0,
-                        top: 12.0,
-                        bottom: 0,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  _buildDetailRow(
+                    context,
+                    'Total Potential Revenue',
+                    '₹${totalPotentialRevenue.toStringAsFixed(2)}',
+                    icon: Icons.trending_up,
+                    valueColor: Colors.green,
+                  ),
+                  Divider(),
+
+                  _buildDetailRow(
+                    context,
+                    'Total Potential Profit',
+                    '₹${totalPotentialProfit.toStringAsFixed(2)}',
+                    icon: Icons.paid_outlined,
+                    valueColor: Colors.blue,
+                  ),
+                  Divider(),
+
+                  _buildDetailRow(
+                    context,
+                    'Profit Margin (per unit)',
+                    '${profitMargin.toStringAsFixed(1)}%',
+                    icon: Icons.percent,
+                    valueColor: profitMargin >= 0 ? Colors.green : Colors.red,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+      ),
+    );
+  }
+
+  // Build Purchase History Tab
+  Widget _buildPurchaseHistoryTab(BuildContext context, Color cardColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(right: 12, left: 12, top: 0, bottom: 12),
+      child: Column(
+        children: [
+          // --- 3. Complete Purchase History Card ---
+          Card(
+            color: cardColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(
+                right: 12.0,
+                left: 12.0,
+                top: 12.0,
+                bottom: 0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with title and history count
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
                         children: [
-                          // Header with title and history count
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.history,
+                              color: Colors.blue[600],
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(
-                                      Icons.history,
-                                      color: Colors.blue[600],
-                                      size: 20,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Purchase History',
-                                        style: context.titleLarge?.copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      Text(
-                                        '${_purchaseHistory.length} purchases total',
-                                        style: TextStyle(
-                                          color: Colors.grey[500],
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                              Text(
+                                'Purchase History',
+                                style: context.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  _purchaseHistory.length.toString(),
-                                  style: TextStyle(
-                                    color: Colors.blue[700],
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
+                              Text(
+                                '${_purchaseHistory.length} purchases total',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _purchaseHistory.length.toString(),
+                          style: TextStyle(
+                            color: Colors.blue[700],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
-                          // Content
-                          if (_isLoadingHistory)
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.symmetric(vertical: 32.0),
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
+                  // Content
+                  if (_isLoadingHistory)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32.0),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  else if (_purchaseHistory.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.history_outlined,
+                              color: Colors.grey[400],
+                              size: 48,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No purchase history yet',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
                               ),
-                            )
-                          else if (_purchaseHistory.isEmpty)
-                            Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 32.0,
-                                ),
-                                child: Column(
-                                  children: [
-                                    Icon(
-                                      Icons.history_outlined,
-                                      color: Colors.grey[400],
-                                      size: 48,
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Text(
-                                      'No purchase history yet',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            )
-                          else
-                            ListView.separated(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _purchaseHistory.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 8),
-                              itemBuilder: (context, index) {
-                                final purchase = _purchaseHistory[index];
-                                final profitPerUnit =
-                                    (purchase['sellingPrice'] ?? 0) -
-                                    (purchase['buyingPrice'] ?? 0);
-                                final totalProfit =
-                                    profitPerUnit * (purchase['quantity'] ?? 0);
-                                final isDark =
-                                    Theme.of(context).brightness ==
-                                    Brightness.dark;
-                                final isExpanded =
-                                    _expandedPurchaseHistory[index] ?? false;
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _purchaseHistory.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final purchase = _purchaseHistory.reversed
+                            .toList()[index];
+                        final profitPerUnit =
+                            (purchase['sellingPrice'] ?? 0) -
+                            (purchase['buyingPrice'] ?? 0);
+                        final totalProfit =
+                            profitPerUnit * (purchase['quantity'] ?? 0);
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
+                        final isExpanded =
+                            _expandedPurchaseHistory[index] ?? false;
 
-                                return Container(
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? Colors.grey[800]
-                                        : Colors.grey[50],
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: isDark
-                                          ? Colors.grey[700]!
-                                          : Colors.grey[200]!,
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                  child: Column(
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey[800] : Colors.grey[50],
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.grey[700]!
+                                  : Colors.grey[200]!,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              // Tile (Always visible)
+                              InkWell(
+                                onTap: () => setState(() {
+                                  _expandedPurchaseHistory[index] = !isExpanded;
+                                }),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(10),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      // Tile (Always visible)
-                                      InkWell(
-                                        onTap: () => setState(() {
-                                          _expandedPurchaseHistory[index] =
-                                              !isExpanded;
-                                        }),
-                                        borderRadius:
-                                            const BorderRadius.vertical(
-                                              top: Radius.circular(10),
-                                            ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(12.0),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Row(
-                                                  children: [
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 8,
-                                                            vertical: 4,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.blue
-                                                            .withOpacity(0.15),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        '#${_purchaseHistory.length - index}',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          color:
-                                                              Colors.blue[700],
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 12),
-                                                    Expanded(
-                                                      child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
-                                                        children: [
-                                                          Text(
-                                                            purchase['supplierName'] ??
-                                                                'Unknown Supplier',
-                                                            style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              color: context
-                                                                  .primaryTextColor,
-                                                              fontSize: 13,
-                                                            ),
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                          ),
-                                                          const SizedBox(
-                                                            height: 2,
-                                                          ),
-                                                          Text(
-                                                            purchase['unit'] ??
-                                                                'units',
-                                                            style: TextStyle(
-                                                              fontSize: 11,
-                                                              color: Colors
-                                                                  .grey[500],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue.withOpacity(
+                                                  0.15,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                '#${_purchaseHistory.length - index}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.blue[700],
                                                 ),
                                               ),
-                                              Column(
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
                                                 crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    purchase['date'] ?? 'N/A',
+                                                    purchase['supplierName'] ??
+                                                        'Unknown Supplier',
                                                     style: TextStyle(
-                                                      fontSize: 12,
                                                       fontWeight:
                                                           FontWeight.w600,
-                                                      color: Colors.grey[600],
+                                                      color: context
+                                                          .primaryTextColor,
+                                                      fontSize: 13,
                                                     ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
-                                                    '${purchase['quantity']} units',
+                                                    purchase['unit'] ?? 'units',
                                                     style: TextStyle(
                                                       fontSize: 11,
                                                       color: Colors.grey[500],
@@ -1819,133 +1941,153 @@ class _AvailableProductDetailScreenState
                                                   ),
                                                 ],
                                               ),
-                                              const SizedBox(width: 8),
-                                              Icon(
-                                                isExpanded
-                                                    ? Icons.expand_less
-                                                    : Icons.expand_more,
-                                                color: Colors.blue[600],
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
                                       ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            purchase['date'] ?? 'N/A',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${purchase['quantity']} units',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey[500],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        isExpanded
+                                            ? Icons.expand_less
+                                            : Icons.expand_more,
+                                        color: Colors.blue[600],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
 
-                                      // Expanded content
-                                      if (isExpanded) ...[
-                                        Divider(
-                                          color: isDark
-                                              ? Colors.grey[700]
-                                              : Colors.grey[300],
-                                          height: 1,
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(12.0),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                              // Expanded content
+                              if (isExpanded) ...[
+                                Divider(
+                                  color: isDark
+                                      ? Colors.grey[700]
+                                      : Colors.grey[300],
+                                  height: 1,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Pricing details grid
+                                      Column(
+                                        children: [
+                                          // Row 1: Buying and Selling Price
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
-                                              // Pricing details grid
-                                              Column(
-                                                children: [
-                                                  // Row 1: Buying and Selling Price
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      _buildPriceInfo(
-                                                        context,
-                                                        'Buy Price',
-                                                        '₹${purchase['buyingPrice']}',
-                                                        Colors.orange[600]!,
-                                                      ),
-                                                      Container(
-                                                        width: 1,
-                                                        height: 30,
-                                                        color: Colors.grey[300],
-                                                      ),
-                                                      _buildPriceInfo(
-                                                        context,
-                                                        'Sell Price',
-                                                        '₹${purchase['sellingPrice']}',
-                                                        Colors.green[600]!,
-                                                      ),
-                                                      Container(
-                                                        width: 1,
-                                                        height: 30,
-                                                        color: Colors.grey[300],
-                                                      ),
-                                                      _buildPriceInfo(
-                                                        context,
-                                                        'Margin',
-                                                        '₹${profitPerUnit.toStringAsFixed(0)}',
-                                                        profitPerUnit >= 0
-                                                            ? Colors.green[600]!
-                                                            : Colors.red[600]!,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 16),
-
-                                                  // Row 2: Totals
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    children: [
-                                                      _buildTotalInfo(
-                                                        context,
-                                                        'Total Cost',
-                                                        '₹${(purchase['buyingPrice'] ?? 0) * (purchase['quantity'] ?? 0)}',
-                                                        Colors.orange,
-                                                      ),
-                                                      Container(
-                                                        width: 1,
-                                                        height: 30,
-                                                        color: Colors.grey[300],
-                                                      ),
-                                                      _buildTotalInfo(
-                                                        context,
-                                                        'Total Revenue',
-                                                        '₹${purchase['total'] ?? 0}',
-                                                        Colors.green,
-                                                      ),
-                                                      Container(
-                                                        width: 1,
-                                                        height: 30,
-                                                        color: Colors.grey[300],
-                                                      ),
-                                                      _buildTotalInfo(
-                                                        context,
-                                                        'Total Profit',
-                                                        '₹${totalProfit.toStringAsFixed(0)}',
-                                                        totalProfit >= 0
-                                                            ? Colors.green
-                                                            : Colors.red,
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
+                                              _buildPriceInfo(
+                                                context,
+                                                'Buy Price',
+                                                '₹${purchase['buyingPrice']}',
+                                                Colors.orange[600]!,
+                                              ),
+                                              Container(
+                                                width: 1,
+                                                height: 30,
+                                                color: Colors.grey[300],
+                                              ),
+                                              _buildPriceInfo(
+                                                context,
+                                                'Sell Price',
+                                                '₹${purchase['sellingPrice']}',
+                                                Colors.green[600]!,
+                                              ),
+                                              Container(
+                                                width: 1,
+                                                height: 30,
+                                                color: Colors.grey[300],
+                                              ),
+                                              _buildPriceInfo(
+                                                context,
+                                                'Margin',
+                                                '₹${profitPerUnit.toStringAsFixed(0)}',
+                                                profitPerUnit >= 0
+                                                    ? Colors.green[600]!
+                                                    : Colors.red[600]!,
                                               ),
                                             ],
                                           ),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 16),
+
+                                          // Row 2: Totals
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              _buildTotalInfo(
+                                                context,
+                                                'Total Cost',
+                                                '₹${(purchase['buyingPrice'] ?? 0) * (purchase['quantity'] ?? 0)}',
+                                                Colors.orange,
+                                              ),
+                                              Container(
+                                                width: 1,
+                                                height: 30,
+                                                color: Colors.grey[300],
+                                              ),
+                                              _buildTotalInfo(
+                                                context,
+                                                'Total Revenue',
+                                                '₹${purchase['total'] ?? 0}',
+                                                Colors.green,
+                                              ),
+                                              Container(
+                                                width: 1,
+                                                height: 30,
+                                                color: Colors.grey[300],
+                                              ),
+                                              _buildTotalInfo(
+                                                context,
+                                                'Total Profit',
+                                                '₹${totalProfit.toStringAsFixed(0)}',
+                                                totalProfit >= 0
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
                                     ],
                                   ),
-                                );
-                              },
-                            ),
-                        ],
-                      ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  ),
-                  const SizedBox(height: 16),
                 ],
               ),
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -1978,6 +2120,375 @@ class _AvailableProductDetailScreenState
               color: color,
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  // Build Sold History Tab
+  Widget _buildSoldHistoryTab(BuildContext context, Color cardColor) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(right: 12, left: 12, top: 0, bottom: 12),
+      child: Column(
+        children: [
+          // --- Sold History Card ---
+          Card(
+            color: cardColor,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(
+                right: 12.0,
+                left: 12.0,
+                top: 12.0,
+                bottom: 0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header with title and history count
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.receipt_long,
+                              color: Colors.green[600],
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sold History',
+                                style: context.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              Text(
+                                '${_soldHistory.length} sales total',
+                                style: TextStyle(
+                                  color: Colors.grey[500],
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          _soldHistory.length.toString(),
+                          style: TextStyle(
+                            color: Colors.green[700],
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Content
+                  if (_isLoadingSoldHistory)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 32.0),
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  else if (_soldHistory.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.receipt_long_outlined,
+                              color: Colors.grey[400],
+                              size: 48,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No sales yet',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _soldHistory.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder: (context, index) {
+                        final sale = _soldHistory.toList()[index];
+                        final profitPerUnit =
+                            (sale['sellingPrice'] ?? 0) -
+                            (sale['buyingPrice'] ?? 0);
+                        final totalProfit =
+                            profitPerUnit * (sale['quantity'] ?? 0);
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
+                        final isExpanded = _expandedSoldHistory[index] ?? false;
+
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.grey[800] : Colors.grey[50],
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.grey[700]!
+                                  : Colors.grey[200]!,
+                              width: 0.5,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              // Tile (Always visible)
+                              InkWell(
+                                onTap: () => setState(() {
+                                  _expandedSoldHistory[index] = !isExpanded;
+                                }),
+                                borderRadius: const BorderRadius.vertical(
+                                  top: Radius.circular(10),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.withOpacity(
+                                                  0.15,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                '#${_soldHistory.length - index}',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.green[700],
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    sale['customerName'] ??
+                                                        'Unknown Customer',
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: context
+                                                          .primaryTextColor,
+                                                      fontSize: 13,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    sale['unit'] ?? 'units',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            sale['date'] ?? 'N/A',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${sale['quantity']} units',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey[500],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Icon(
+                                        isExpanded
+                                            ? Icons.expand_less
+                                            : Icons.expand_more,
+                                        color: Colors.green[600],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              // Expanded content
+                              if (isExpanded) ...[
+                                Divider(
+                                  color: isDark
+                                      ? Colors.grey[700]
+                                      : Colors.grey[300],
+                                  height: 1,
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Pricing details grid
+                                      Column(
+                                        children: [
+                                          // Row 1: Buying and Selling Price
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              _buildPriceInfo(
+                                                context,
+                                                'Cost Price',
+                                                '₹${sale['buyingPrice']}',
+                                                Colors.orange[600]!,
+                                              ),
+                                              Container(
+                                                width: 1,
+                                                height: 30,
+                                                color: Colors.grey[300],
+                                              ),
+                                              _buildPriceInfo(
+                                                context,
+                                                'Sell Price',
+                                                '₹${sale['sellingPrice']}',
+                                                Colors.green[600]!,
+                                              ),
+                                              Container(
+                                                width: 1,
+                                                height: 30,
+                                                color: Colors.grey[300],
+                                              ),
+                                              _buildPriceInfo(
+                                                context,
+                                                'Margin',
+                                                '₹${profitPerUnit.toStringAsFixed(0)}',
+                                                profitPerUnit >= 0
+                                                    ? Colors.green[600]!
+                                                    : Colors.red[600]!,
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 16),
+
+                                          // Row 2: Totals
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              _buildTotalInfo(
+                                                context,
+                                                'Total Cost',
+                                                '₹${(sale['buyingPrice'] ?? 0) * (sale['quantity'] ?? 0)}',
+                                                Colors.orange,
+                                              ),
+                                              Container(
+                                                width: 1,
+                                                height: 30,
+                                                color: Colors.grey[300],
+                                              ),
+                                              _buildTotalInfo(
+                                                context,
+                                                'Total Revenue',
+                                                '₹${sale['total'] ?? 0}',
+                                                Colors.green,
+                                              ),
+                                              Container(
+                                                width: 1,
+                                                height: 30,
+                                                color: Colors.grey[300],
+                                              ),
+                                              _buildTotalInfo(
+                                                context,
+                                                'Total Profit',
+                                                '₹${totalProfit.toStringAsFixed(0)}',
+                                                totalProfit >= 0
+                                                    ? Colors.green
+                                                    : Colors.red,
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
