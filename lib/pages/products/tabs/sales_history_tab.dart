@@ -523,6 +523,716 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
     );
   }
 
+  Widget _buildSearchAndFilterBar(BuildContext context, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      color: isDark ? Colors.grey[900] : Colors.grey[100],
+      child: Column(
+        children: [
+          TextField(
+            controller: _searchSalesController,
+            decoration: InputDecoration(
+              hintText: 'Search by customer name...',
+              prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+              suffixIcon: _searchSalesController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchSalesController.clear();
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: isDark ? Colors.grey[800] : Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 35,
+            child: Row(
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _showCustomerFilterSheet(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.grey[800] : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _filterCustomer == 'all'
+                                  ? 'All Customers'
+                                  : _filterCustomer,
+                              style: TextStyle(fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(
+                            Icons.filter_list,
+                            size: 20,
+                            color: Colors.grey[600],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: InkWell(
+                    onTap: () => _showSalesSortSheet(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.grey[800] : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _sortSalesBy == 'date'
+                                  ? 'Date'
+                                  : _sortSalesBy == 'amount'
+                                  ? 'Amount'
+                                  : _sortSalesBy == 'customer'
+                                  ? 'Customer'
+                                  : 'Profit',
+                              style: TextStyle(fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Icon(Icons.sort, size: 20, color: Colors.grey[600]),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey[800] : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: IconButton(
+                    icon: Icon(
+                      _sortSalesAscending
+                          ? Icons.arrow_upward
+                          : Icons.arrow_downward,
+                      color: Colors.green[600],
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _sortSalesAscending = !_sortSalesAscending;
+                      });
+                      _filterAndSortSoldHistory();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard(
+    BuildContext context,
+    Map<String, dynamic> stats,
+    Color cardColor,
+  ) {
+    return Card(
+      color: cardColor,
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.green[400]!, Colors.green[700]!],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.analytics_outlined,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  'Sales Summary',
+                  style: context.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildStatCard(
+                    context,
+                    'Total',
+                    stats['totalSales'].toString(),
+                    Icons.receipt_long,
+                    Colors.green,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildStatCard(
+                    context,
+                    'Revenue',
+                    '₹${stats['totalRevenue'].toStringAsFixed(0)}',
+                    Icons.attach_money,
+                    Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildStatCard(
+                    context,
+                    'Profit',
+                    '₹${stats['totalProfit'].toStringAsFixed(0)}',
+                    Icons.trending_up,
+                    stats['totalProfit'] >= 0 ? Colors.green : Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40.0),
+        child: Column(
+          children: [
+            Icon(
+              _searchSalesController.text.isNotEmpty || _filterCustomer != 'all'
+                  ? Icons.search_off
+                  : Icons.receipt_long_outlined,
+              color: Colors.grey[400],
+              size: 64,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _searchSalesController.text.isNotEmpty || _filterCustomer != 'all'
+                  ? 'No sales found'
+                  : 'No sales yet',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGroupHeader(String groupKey, int itemCount) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.green[400]!, Colors.green[600]!],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.green.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              groupKey,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$itemCount',
+              style: TextStyle(
+                color: Colors.green[700],
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getMarginColor(double margin) {
+    if (margin < 0) return Colors.red;
+    if (margin < 10) return Colors.orange;
+    if (margin < 30) return Colors.amber;
+    return Colors.green;
+  }
+
+  Widget _buildSaleCard(
+    BuildContext context,
+    Map<String, dynamic> sale,
+    int index,
+    bool isDark,
+  ) {
+    final profitPerUnit =
+        ((sale['sellingPrice'] ?? 0) as num).toDouble() -
+        ((sale['buyingPrice'] ?? 0) as num).toDouble();
+    final totalProfit =
+        profitPerUnit * ((sale['quantity'] ?? 0) as num).toDouble();
+    final isExpanded = _expandedSoldHistory[index] ?? false;
+    final profitMargin = ((sale['buyingPrice'] ?? 0) as num).toDouble() > 0
+        ? (profitPerUnit / ((sale['buyingPrice'] ?? 1) as num).toDouble()) * 100
+        : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? Colors.grey[850] : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            _buildSaleCardHeader(
+              context,
+              sale,
+              index,
+              isExpanded,
+              profitMargin,
+              totalProfit,
+            ),
+            if (isExpanded)
+              _buildSaleCardDetails(
+                context,
+                sale,
+                isDark,
+                profitPerUnit,
+                totalProfit,
+                profitMargin,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaleCardHeader(
+    BuildContext context,
+    Map<String, dynamic> sale,
+    int index,
+    bool isExpanded,
+    double profitMargin,
+    double totalProfit,
+  ) {
+    return InkWell(
+      onTap: () => setState(() {
+        _expandedSoldHistory[index] = !isExpanded;
+      }),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.green[400]!, Colors.green[600]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  (sale['customerName'] ?? 'U').toString()[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          sale['customerName'] ?? 'Unknown',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                            color: context.primaryTextColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getMarginColor(
+                            profitMargin,
+                          ).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${profitMargin.toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _getMarginColor(profitMargin),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 11,
+                        color: Colors.grey[500],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        sale['date'] ?? 'N/A',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 11,
+                        color: Colors.grey[500],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${sale['quantity']} ${sale['unit'] ?? 'units'}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '₹${sale['total'] ?? 0}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.green[700],
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: totalProfit >= 0
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        totalProfit >= 0
+                            ? Icons.trending_up
+                            : Icons.trending_down,
+                        size: 10,
+                        color: totalProfit >= 0 ? Colors.green : Colors.red,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '₹${totalProfit.toStringAsFixed(0)}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: totalProfit >= 0 ? Colors.green : Colors.red,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 8),
+            Icon(
+              isExpanded ? Icons.expand_less : Icons.expand_more,
+              color: Colors.green[600],
+              size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaleCardDetails(
+    BuildContext context,
+    Map<String, dynamic> sale,
+    bool isDark,
+    double profitPerUnit,
+    double totalProfit,
+    double profitMargin,
+  ) {
+    return Column(
+      children: [
+        Divider(color: isDark ? Colors.grey[700] : Colors.grey[200], height: 1),
+        Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.grey[800]?.withOpacity(0.5)
+                      : Colors.grey[50],
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        _buildDetailChip(
+                          'Buy',
+                          '₹${sale['buyingPrice']}',
+                          Icons.shopping_bag_outlined,
+                          Colors.orange,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildDetailChip(
+                          'Sell',
+                          '₹${sale['sellingPrice']}',
+                          Icons.sell_outlined,
+                          Colors.green,
+                        ),
+                        const SizedBox(width: 8),
+                        _buildDetailChip(
+                          'Margin',
+                          '₹$profitPerUnit',
+                          Icons.attach_money,
+                          profitPerUnit >= 0 ? Colors.green : Colors.red,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Profit Margin',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            Text(
+                              '${profitMargin.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: _getMarginColor(profitMargin),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (profitMargin.clamp(0, 100) / 100),
+                            backgroundColor: Colors.grey[300],
+                            valueColor: AlwaysStoppedAnimation(
+                              _getMarginColor(profitMargin),
+                            ),
+                            minHeight: 6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.green.withOpacity(0.05),
+                      Colors.green.withOpacity(0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.green.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.monetization_on,
+                                size: 16,
+                                color: Colors.green[700],
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Total Profit',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '₹${totalProfit.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: totalProfit >= 0
+                                  ? Colors.green[700]
+                                  : Colors.red,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green[700],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        sale['paymentMethod'] ?? 'N/A',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final stats = _calculateSalesSummaryStats();
@@ -532,232 +1242,16 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
 
     return Column(
       children: [
-        // Search and Filter Bar
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          color: isDark ? Colors.grey[900] : Colors.grey[100],
-          child: Column(
-            children: [
-              TextField(
-                controller: _searchSalesController,
-                decoration: InputDecoration(
-                  hintText: 'Search by customer name...',
-                  prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-                  suffixIcon: _searchSalesController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchSalesController.clear();
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: isDark ? Colors.grey[800] : Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                height: 35,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _showCustomerFilterSheet(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.grey[800] : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _filterCustomer == 'all'
-                                      ? 'All Customers'
-                                      : _filterCustomer,
-                                  style: TextStyle(fontSize: 13),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Icon(
-                                Icons.filter_list,
-                                size: 20,
-                                color: Colors.grey[600],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: InkWell(
-                        onTap: () => _showSalesSortSheet(context),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.grey[800] : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _sortSalesBy == 'date'
-                                      ? 'Date'
-                                      : _sortSalesBy == 'amount'
-                                      ? 'Amount'
-                                      : _sortSalesBy == 'customer'
-                                      ? 'Customer'
-                                      : 'Profit',
-                                  style: TextStyle(fontSize: 13),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Icon(
-                                Icons.sort,
-                                size: 20,
-                                color: Colors.grey[600],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.grey[800] : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: Icon(
-                          _sortSalesAscending
-                              ? Icons.arrow_upward
-                              : Icons.arrow_downward,
-                          color: Colors.green[600],
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _sortSalesAscending = !_sortSalesAscending;
-                          });
-                          _filterAndSortSoldHistory();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        _buildSearchAndFilterBar(context, isDark),
         const SizedBox(height: 4),
-
         Expanded(
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(right: 10, left: 10, bottom: 8),
             child: Column(
               children: [
-                // Summary Statistics Card
                 if (widget.soldHistory.isNotEmpty)
-                  Card(
-                    color: cardColor,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.green[400]!,
-                                      Colors.green[700]!,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(
-                                  Icons.analytics_outlined,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                'Sales Summary',
-                                style: context.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildStatCard(
-                                  context,
-                                  'Total',
-                                  stats['totalSales'].toString(),
-                                  Icons.receipt_long,
-                                  Colors.green,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildStatCard(
-                                  context,
-                                  'Revenue',
-                                  '₹${stats['totalRevenue'].toStringAsFixed(0)}',
-                                  Icons.attach_money,
-                                  Colors.blue,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: _buildStatCard(
-                                  context,
-                                  'Profit',
-                                  '₹${stats['totalProfit'].toStringAsFixed(0)}',
-                                  Icons.trending_up,
-                                  stats['totalProfit'] >= 0
-                                      ? Colors.green
-                                      : Colors.red,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  _buildSummaryCard(context, stats, cardColor),
                 const SizedBox(height: 4),
-
-                // Sales History List
                 if (widget.isLoading)
                   const Center(
                     child: Padding(
@@ -766,572 +1260,22 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                     ),
                   )
                 else if (_filteredSoldHistory.isEmpty)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 40.0),
-                      child: Column(
-                        children: [
-                          Icon(
-                            _searchSalesController.text.isNotEmpty ||
-                                    _filterCustomer != 'all'
-                                ? Icons.search_off
-                                : Icons.receipt_long_outlined,
-                            color: Colors.grey[400],
-                            size: 64,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _searchSalesController.text.isNotEmpty ||
-                                    _filterCustomer != 'all'
-                                ? 'No sales found'
-                                : 'No sales yet',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w600,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
+                  _buildEmptyState(context)
                 else
                   ...groupedSales.entries.map((group) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 4,
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      Colors.green[400]!,
-                                      Colors.green[600]!,
-                                    ],
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.green.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  group.key,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '${group.value.length}',
-                                  style: TextStyle(
-                                    color: Colors.green[700],
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildGroupHeader(group.key, group.value.length),
                         ...group.value.asMap().entries.map((entry) {
                           final index = _filteredSoldHistory.indexOf(
                             entry.value,
                           );
-                          final sale = entry.value;
-                          final profitPerUnit =
-                              (sale['sellingPrice'] ?? 0) -
-                              (sale['buyingPrice'] ?? 0);
-                          final totalProfit =
-                              profitPerUnit * (sale['quantity'] ?? 0);
-                          final isExpanded =
-                              _expandedSoldHistory[index] ?? false;
-
-                          final profitMargin = (sale['buyingPrice'] ?? 0) > 0
-                              ? (profitPerUnit / (sale['buyingPrice'] ?? 1)) *
-                                    100
-                              : 0.0;
-
-                          Color getMarginColor(double margin) {
-                            if (margin < 0) return Colors.red;
-                            if (margin < 10) return Colors.orange;
-                            if (margin < 30) return Colors.amber;
-                            return Colors.green;
-                          }
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: isDark ? Colors.grey[850] : Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: isDark
-                                      ? Colors.grey[700]!
-                                      : Colors.grey[200]!,
-                                  width: 1,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.03),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  InkWell(
-                                    onTap: () => setState(() {
-                                      _expandedSoldHistory[index] = !isExpanded;
-                                    }),
-                                    borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(12),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(10.0),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 38,
-                                            height: 38,
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  Colors.green[400]!,
-                                                  Colors.green[600]!,
-                                                ],
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                (sale['customerName'] ?? 'U')
-                                                    .toString()[0]
-                                                    .toUpperCase(),
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 16,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    Flexible(
-                                                      child: Text(
-                                                        sale['customerName'] ??
-                                                            'Unknown',
-                                                        style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          fontSize: 15,
-                                                          color: context
-                                                              .primaryTextColor,
-                                                        ),
-                                                        maxLines: 1,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 6),
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 6,
-                                                            vertical: 2,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: getMarginColor(
-                                                          profitMargin,
-                                                        ).withOpacity(0.15),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              6,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        '${profitMargin.toStringAsFixed(0)}%',
-                                                        style: TextStyle(
-                                                          fontSize: 10,
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          color: getMarginColor(
-                                                            profitMargin,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.calendar_today,
-                                                      size: 11,
-                                                      color: Colors.grey[500],
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      sale['date'] ?? 'N/A',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey[600],
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 12),
-                                                    Icon(
-                                                      Icons
-                                                          .inventory_2_outlined,
-                                                      size: 11,
-                                                      color: Colors.grey[500],
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      '${sale['quantity']} ${sale['unit'] ?? 'units'}',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.grey[600],
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              Text(
-                                                '₹${sale['total'] ?? 0}',
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: Colors.green[700],
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 6,
-                                                      vertical: 2,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: totalProfit >= 0
-                                                      ? Colors.green
-                                                            .withOpacity(0.1)
-                                                      : Colors.red.withOpacity(
-                                                          0.1,
-                                                        ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      totalProfit >= 0
-                                                          ? Icons.trending_up
-                                                          : Icons.trending_down,
-                                                      size: 10,
-                                                      color: totalProfit >= 0
-                                                          ? Colors.green
-                                                          : Colors.red,
-                                                    ),
-                                                    const SizedBox(width: 2),
-                                                    Text(
-                                                      '₹${totalProfit.toStringAsFixed(0)}',
-                                                      style: TextStyle(
-                                                        fontSize: 10,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        color: totalProfit >= 0
-                                                            ? Colors.green
-                                                            : Colors.red,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Icon(
-                                            isExpanded
-                                                ? Icons.expand_less
-                                                : Icons.expand_more,
-                                            color: Colors.green[600],
-                                            size: 24,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  if (isExpanded) ...[
-                                    Divider(
-                                      color: isDark
-                                          ? Colors.grey[700]
-                                          : Colors.grey[200],
-                                      height: 1,
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(10.0),
-                                      child: Column(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              color: isDark
-                                                  ? Colors.grey[800]
-                                                        ?.withOpacity(0.5)
-                                                  : Colors.grey[50],
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                Row(
-                                                  children: [
-                                                    _buildDetailChip(
-                                                      'Buy',
-                                                      '₹${sale['buyingPrice']}',
-                                                      Icons
-                                                          .shopping_bag_outlined,
-                                                      Colors.orange,
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    _buildDetailChip(
-                                                      'Sell',
-                                                      '₹${sale['sellingPrice']}',
-                                                      Icons.sell_outlined,
-                                                      Colors.green,
-                                                    ),
-                                                    const SizedBox(width: 8),
-                                                    _buildDetailChip(
-                                                      'Margin',
-                                                      '₹$profitPerUnit',
-                                                      Icons.attach_money,
-                                                      profitPerUnit >= 0
-                                                          ? Colors.green
-                                                          : Colors.red,
-                                                    ),
-                                                  ],
-                                                ),
-                                                const SizedBox(height: 8),
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .spaceBetween,
-                                                      children: [
-                                                        Text(
-                                                          'Profit Margin',
-                                                          style: TextStyle(
-                                                            fontSize: 11,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: Colors
-                                                                .grey[600],
-                                                          ),
-                                                        ),
-                                                        Text(
-                                                          '${profitMargin.toStringAsFixed(1)}%',
-                                                          style: TextStyle(
-                                                            fontSize: 12,
-                                                            fontWeight:
-                                                                FontWeight.w700,
-                                                            color:
-                                                                getMarginColor(
-                                                                  profitMargin,
-                                                                ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                    const SizedBox(height: 6),
-                                                    ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            4,
-                                                          ),
-                                                      child: LinearProgressIndicator(
-                                                        value:
-                                                            (profitMargin.clamp(
-                                                              0,
-                                                              100,
-                                                            ) /
-                                                            100),
-                                                        backgroundColor:
-                                                            Colors.grey[300],
-                                                        valueColor:
-                                                            AlwaysStoppedAnimation(
-                                                              getMarginColor(
-                                                                profitMargin,
-                                                              ),
-                                                            ),
-                                                        minHeight: 6,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Container(
-                                            padding: const EdgeInsets.all(10),
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  Colors.green.withOpacity(
-                                                    0.05,
-                                                  ),
-                                                  Colors.green.withOpacity(0.1),
-                                                ],
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              border: Border.all(
-                                                color: Colors.green.withOpacity(
-                                                  0.2,
-                                                ),
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: [
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Row(
-                                                        children: [
-                                                          Icon(
-                                                            Icons
-                                                                .monetization_on,
-                                                            size: 16,
-                                                            color: Colors
-                                                                .green[700],
-                                                          ),
-                                                          const SizedBox(
-                                                            width: 6,
-                                                          ),
-                                                          Text(
-                                                            'Total Profit',
-                                                            style: TextStyle(
-                                                              fontSize: 12,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w600,
-                                                              color: Colors
-                                                                  .grey[700],
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                      const SizedBox(height: 4),
-                                                      Text(
-                                                        '₹${totalProfit.toStringAsFixed(2)}',
-                                                        style: TextStyle(
-                                                          fontSize: 18,
-                                                          fontWeight:
-                                                              FontWeight.w800,
-                                                          color:
-                                                              totalProfit >= 0
-                                                              ? Colors
-                                                                    .green[700]
-                                                              : Colors.red,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 12,
-                                                        vertical: 6,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.green[700],
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    sale['paymentMethod'] ??
-                                                        'N/A',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
+                          return _buildSaleCard(
+                            context,
+                            entry.value,
+                            index,
+                            isDark,
                           );
                         }),
                       ],
