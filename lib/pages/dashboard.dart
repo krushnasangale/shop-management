@@ -17,7 +17,9 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
   DateTime selectedDate = DateTime.now();
-  String filterType = 'month'; // 'month', 'year', or 'day'
+  String filterType = 'month'; // 'month', 'year', 'day', 'range', or 'all'
+  DateTime? _rangeStartDate;
+  DateTime? _rangeEndDate;
   bool _isLoading = true;
   int _totalSales = 0;
   int _totalBuying = 0;
@@ -76,6 +78,14 @@ class _DashboardState extends State<Dashboard> {
     if (savedFilterType != null) {
       setState(() {
         filterType = savedFilterType;
+        if (savedFilterType == 'range') {
+          final startDateStr = prefs.getString('dashboard_range_start');
+          final endDateStr = prefs.getString('dashboard_range_end');
+          if (startDateStr != null && endDateStr != null) {
+            _rangeStartDate = DateTime.parse(startDateStr);
+            _rangeEndDate = DateTime.parse(endDateStr);
+          }
+        }
       });
     }
     _loadSalesReport();
@@ -84,6 +94,16 @@ class _DashboardState extends State<Dashboard> {
   Future<void> _saveFilterPreference(String filter) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('dashboard_filter_type', filter);
+    if (filter == 'range' && _rangeStartDate != null && _rangeEndDate != null) {
+      await prefs.setString(
+        'dashboard_range_start',
+        _rangeStartDate!.toIso8601String(),
+      );
+      await prefs.setString(
+        'dashboard_range_end',
+        _rangeEndDate!.toIso8601String(),
+      );
+    }
   }
 
   void _loadSalesReport() {
@@ -617,8 +637,15 @@ class _DashboardState extends State<Dashboard> {
       final day = int.parse(parts[0]);
       final month = int.parse(parts[1]);
       final year = int.parse(parts[2]);
+      final date = DateTime(year, month, day);
 
-      if (filterType == 'month') {
+      if (filterType == 'range') {
+        if (_rangeStartDate == null || _rangeEndDate == null) return false;
+        return date.isAfter(
+              _rangeStartDate!.subtract(const Duration(days: 1)),
+            ) &&
+            date.isBefore(_rangeEndDate!.add(const Duration(days: 1)));
+      } else if (filterType == 'month') {
         return month == selectedDate.month && year == selectedDate.year;
       } else if (filterType == 'year') {
         return year == selectedDate.year;
@@ -1227,7 +1254,7 @@ class _DashboardState extends State<Dashboard> {
                     ],
                   ),
                   Text(
-                    _getMonthYear(),
+                    '${getMonthName(DateTime.now().month)} ${DateTime.now().year}',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -1560,7 +1587,7 @@ class _DashboardState extends State<Dashboard> {
                                     decoration: BoxDecoration(
                                       color: isDark
                                           ? Colors.grey[750]
-                                          : Colors.grey[100],
+                                          : Colors.white,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isDark
@@ -1597,6 +1624,41 @@ class _DashboardState extends State<Dashboard> {
                                                 ),
                                               ),
                                               if (filterType == 'all') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'range',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.date_range,
+                                                size: 18,
+                                                color: filterType == 'range'
+                                                    ? Colors.blue[600]
+                                                    : null,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Date Range',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'range'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'range'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'range') ...[
                                                 const SizedBox(width: 8),
                                                 Icon(
                                                   Icons.check,
@@ -1758,7 +1820,7 @@ class _DashboardState extends State<Dashboard> {
                                       style: IconButton.styleFrom(
                                         backgroundColor: isDark
                                             ? Colors.grey[750]
-                                            : Colors.grey[100],
+                                            : Colors.white,
                                         side: isDark
                                             ? BorderSide(
                                                 color: Colors.grey[600]!,
@@ -1772,6 +1834,8 @@ class _DashboardState extends State<Dashboard> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 4),
+
                           // Two Column Layout
                           Row(
                             children: [
@@ -1806,7 +1870,7 @@ class _DashboardState extends State<Dashboard> {
 
                           // Profit/Loss Card
                           _buildProfitLossCard(),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 12),
 
                           // Section 2 Title: Inventory & Payments
                           Padding(
@@ -1932,7 +1996,7 @@ class _DashboardState extends State<Dashboard> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
@@ -1942,7 +2006,7 @@ class _DashboardState extends State<Dashboard> {
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Text(
             subtitle,
             style: TextStyle(
@@ -2028,6 +2092,29 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void _showMonthPicker(BuildContext context) {
+    // If range filter is selected, show date range picker
+    if (filterType == 'range') {
+      showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2100),
+        initialDateRange: _rangeStartDate != null && _rangeEndDate != null
+            ? DateTimeRange(start: _rangeStartDate!, end: _rangeEndDate!)
+            : null,
+      ).then((pickedRange) {
+        if (pickedRange != null) {
+          setState(() {
+            _rangeStartDate = pickedRange.start;
+            _rangeEndDate = pickedRange.end;
+            _isLoading = true;
+          });
+          _saveFilterPreference('range');
+          _loadSalesReport();
+        }
+      });
+      return;
+    }
+
     // If day filter is selected, show calendar picker instead
     if (filterType == 'day') {
       showDatePicker(
@@ -2175,6 +2262,11 @@ class _DashboardState extends State<Dashboard> {
   String _getMonthYear() {
     if (filterType == 'all') {
       return 'All Time';
+    } else if (filterType == 'range') {
+      if (_rangeStartDate != null && _rangeEndDate != null) {
+        return '${_rangeStartDate!.day}/${_rangeStartDate!.month}/${_rangeStartDate!.year} - ${_rangeEndDate!.day}/${_rangeEndDate!.month}/${_rangeEndDate!.year}';
+      }
+      return 'Select Range';
     } else if (filterType == 'year') {
       return '${selectedDate.year}';
     } else if (filterType == 'day') {
