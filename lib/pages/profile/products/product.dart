@@ -87,6 +87,11 @@ class _ProductNameState extends State<ProductName> {
         loadedProducts.add(Product.fromMap(doc.id, data));
       }
 
+      // Sort products alphabetically by name (A to Z)
+      loadedProducts.sort(
+        (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      );
+
       // Single setState call with all updates
       if (mounted) {
         setState(() {
@@ -120,92 +125,88 @@ class _ProductNameState extends State<ProductName> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Products'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.pop(context);
-            },
-          ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Product Names'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
         ),
-        body: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Card(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search products...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: false,
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Card(
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search products...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
                   ),
+                  filled: false,
                 ),
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                padding: const EdgeInsets.all(8.0),
-                itemCount: _filteredProducts.length,
-                itemBuilder: (context, index) {
-                  final product = _filteredProducts[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8.0,
-                      vertical: 4.0,
-                    ),
-                    child: ListTile(
-                      title: Text(
-                        product.name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 16,
-                        ),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue),
-                            onPressed: () => _showEditProductPopup(product),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _showDeleteConfirmation(product),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
           ),
-          onPressed: _showAddProductPopup,
-          backgroundColor: const Color(0xFF2196F3),
-          tooltip: 'Add Product Name',
-          child: const Icon(Icons.add, color: Colors.white, size: 45),
-        ),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.all(8.0),
+              itemCount: _filteredProducts.length,
+              itemBuilder: (context, index) {
+                final product = _filteredProducts[index];
+                return Card(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 8.0,
+                    vertical: 4.0,
+                  ),
+                  child: ListTile(
+                    title: Text(
+                      product.name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 16,
+                      ),
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _showEditProductPopup(product),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _showDeleteConfirmation(product),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onPressed: _showAddProductPopup,
+        backgroundColor: const Color(0xFF2196F3),
+        tooltip: 'Add Product Name',
+        child: const Icon(Icons.add, color: Colors.white, size: 45),
       ),
     );
   }

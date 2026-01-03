@@ -91,216 +91,217 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('${widget.supplierName} - History'),
-          centerTitle: false,
-        ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _supplierHistory.isEmpty
-            ? Center(
-                child: Text(
-                  'No purchase history for this supplier',
-                  style: context.subtitleMedium,
-                ),
-              )
-            : Column(
-                children: [
-                  // Summary Card
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Total Transactions',
-                                      style: context.subtitleMedium,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.supplierName} - History'),
+        centerTitle: false,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _supplierHistory.isEmpty
+          ? Center(
+              child: Text(
+                'No purchase history for this supplier',
+                style: context.subtitleMedium,
+              ),
+            )
+          : Column(
+              children: [
+                // Summary Card
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Total Transactions',
+                                    style: context.subtitleMedium,
+                                  ),
+                                  Text(
+                                    '$_totalTransactions',
+                                    style: context.titleLarge?.copyWith(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    Text(
-                                      '$_totalTransactions',
-                                      style: context.titleLarge?.copyWith(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Total Amount Spent',
+                                    style: context.subtitleMedium,
+                                  ),
+                                  Text(
+                                    '₹${_totalSpent.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      color: Colors.green[400],
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Total Amount Spent',
-                                      style: context.subtitleMedium,
-                                    ),
-                                    Text(
-                                      '₹${_totalSpent.toStringAsFixed(2)}',
-                                      style: TextStyle(
-                                        color: Colors.green[400],
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  // History List
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: _supplierHistory.length,
-                      itemBuilder: (context, index) {
-                        final transaction = _supplierHistory[index];
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Product Name
-                                Text(
-                                  transaction['productName'],
-                                  style: context.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                ),
+                // History List
+                Expanded(
+                  child: ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _supplierHistory.length,
+                    itemBuilder: (context, index) {
+                      final transaction = _supplierHistory[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Product Name
+                              Text(
+                                transaction['productName'],
+                                style: context.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              // Date, Quantity, Price Row
+                              Row(
+                                children: [
+                                  Text(
+                                    'Date: ',
+                                    style: context.bodyLargeText?.copyWith(
+                                      fontSize: 12,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 8),
-                                // Date, Quantity, Price Row
-                                Row(
-                                  children: [
-                                    Text(
-                                      'Date: ',
-                                      style: context.bodyLargeText?.copyWith(
-                                        fontSize: 12,
-                                      ),
+                                  Text(
+                                    '${transaction['date']}  ',
+                                    style: context.subtitleMedium?.copyWith(
+                                      fontSize: 12,
                                     ),
-                                    Text(
-                                      '${transaction['date']}  ',
-                                      style: context.subtitleMedium?.copyWith(
-                                        fontSize: 12,
-                                      ),
+                                  ),
+                                  Text(
+                                    'QTY: ',
+                                    style: context.bodyLargeText?.copyWith(
+                                      fontSize: 12,
                                     ),
-                                    Text(
-                                      'QTY: ',
-                                      style: context.bodyLargeText?.copyWith(
-                                        fontSize: 12,
-                                      ),
+                                  ),
+                                  Text(
+                                    '${transaction['quantity']} ${transaction['unit']}',
+                                    style: context.subtitleMedium?.copyWith(
+                                      fontSize: 12,
                                     ),
-                                    Text(
-                                      '${transaction['quantity']} ${transaction['unit']}',
-                                      style: context.subtitleMedium?.copyWith(
-                                        fontSize: 12,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              // Amount and Buying Price Row
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        '₹${transaction['amount'].toStringAsFixed(2)}',
+                                        style: context.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                // Amount and Buying Price Row
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '₹${transaction['amount'].toStringAsFixed(2)}',
-                                          style: context.titleMedium?.copyWith(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13,
+                                      Text(
+                                        '₹${transaction['buyingPrice']} each',
+                                        style: context.subtitleMedium?.copyWith(
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  // Batch Badges
+                                  Wrap(
+                                    spacing: 6,
+                                    children: [
+                                      if (transaction['batchId']
+                                          .toString()
+                                          .isNotEmpty)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.purple.withOpacity(
+                                              0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Batch: ${transaction['batchId'].toString().substring(0, transaction['batchId'].toString().length > 8 ? 8 : transaction['batchId'].toString().length)}...',
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.purple,
+                                            ),
                                           ),
                                         ),
-                                        Text(
-                                          '₹${transaction['buyingPrice']} each',
-                                          style: context.subtitleMedium
-                                              ?.copyWith(fontSize: 11),
+                                      if (transaction['profitMargin']
+                                              as double >
+                                          0)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.withOpacity(
+                                              0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              4,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '₹${(transaction['profitMargin'] as double).toStringAsFixed(1)}/unit',
+                                            style: const TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.green,
+                                            ),
+                                          ),
                                         ),
-                                      ],
-                                    ),
-                                    // Batch Badges
-                                    Wrap(
-                                      spacing: 6,
-                                      children: [
-                                        if (transaction['batchId']
-                                            .toString()
-                                            .isNotEmpty)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.purple.withOpacity(
-                                                0.1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              'Batch: ${transaction['batchId'].toString().substring(0, transaction['batchId'].toString().length > 8 ? 8 : transaction['batchId'].toString().length)}...',
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.purple,
-                                              ),
-                                            ),
-                                          ),
-                                        if (transaction['profitMargin']
-                                                as double >
-                                            0)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green.withOpacity(
-                                                0.1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              '₹${(transaction['profitMargin'] as double).toStringAsFixed(1)}/unit',
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.green,
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                ],
-              ),
-      ),
+                ),
+              ],
+            ),
     );
   }
 }

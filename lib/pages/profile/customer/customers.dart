@@ -105,6 +105,14 @@ class _CustomersState extends State<Customers> {
                 'vehicleNumber': doc.data()['vehicleNumber'] ?? '',
               };
             }).toList();
+
+            // Sort customers alphabetically by name (A to Z)
+            customers.sort(
+              (a, b) => a['name'].toString().toLowerCase().compareTo(
+                b['name'].toString().toLowerCase(),
+              ),
+            );
+
             setState(() {
               _customers = customers;
               _isLoading = false;

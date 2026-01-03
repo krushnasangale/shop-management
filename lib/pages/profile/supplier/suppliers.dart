@@ -135,6 +135,11 @@ class _SuppliersState extends State<Suppliers> {
           final loadedSuppliers = snapshot.docs
               .map((doc) => Supplier.fromMap(doc.id, doc.data()))
               .toList();
+
+          // Sort suppliers alphabetically by name (A to Z)
+          loadedSuppliers.sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
           if (mounted) {
             setState(() {
               _suppliers = loadedSuppliers;
@@ -147,112 +152,108 @@ class _SuppliersState extends State<Suppliers> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Suppliers'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Suppliers'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: () {
-              Navigator.of(context).pop();
+              setState(() {
+                _showSearchBar = !_showSearchBar;
+                if (!_showSearchBar) {
+                  _searchController.clear();
+                }
+              });
             },
           ),
-          actions: [
-            IconButton(
-              icon: Icon(_showSearchBar ? Icons.close : Icons.search),
-              onPressed: () {
-                setState(() {
-                  _showSearchBar = !_showSearchBar;
-                  if (!_showSearchBar) {
-                    _searchController.clear();
-                  }
-                });
-              },
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  // --- Search Bar ---
-                  if (_showSearchBar)
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        left: 14.0,
-                        right: 14.0,
-                        bottom: 8.0,
-                        top: 8.0,
-                      ),
-                      child: Card(
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Search Suppliers...',
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: const Icon(Icons.clear),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                    },
-                                  )
-                                : null,
-                            filled: false,
-                            fillColor: Theme.of(
-                              context,
-                            ).inputDecorationTheme.fillColor,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12.0),
-                              borderSide: BorderSide.none,
-                            ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                // --- Search Bar ---
+                if (_showSearchBar)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      left: 14.0,
+                      right: 14.0,
+                      bottom: 8.0,
+                      top: 8.0,
+                    ),
+                    child: Card(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search Suppliers...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _searchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                  },
+                                )
+                              : null,
+                          filled: false,
+                          fillColor: Theme.of(
+                            context,
+                          ).inputDecorationTheme.fillColor,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                            borderSide: BorderSide.none,
                           ),
                         ),
                       ),
                     ),
-
-                  // --- Suppliers List ---
-                  Expanded(
-                    child: _filteredSuppliers.isEmpty
-                        ? Center(
-                            child: Text(
-                              _searchQuery.isEmpty
-                                  ? 'No suppliers yet. Add one to get started!'
-                                  : 'No suppliers found for "$_searchQuery"',
-                            ),
-                          )
-                        : ListView.builder(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8.0,
-                              vertical: !_showSearchBar ? 8.0 : 0.0,
-                            ),
-                            itemCount: _filteredSuppliers.length,
-                            itemBuilder: (context, index) {
-                              final supplier = _filteredSuppliers[index];
-                              final initials = _getInitials(supplier.name);
-                              final avatarColor = _generateRandomColor();
-
-                              return _buildSupplierCard(
-                                context,
-                                supplier,
-                                initials,
-                                avatarColor,
-                              );
-                            },
-                          ),
                   ),
-                ],
-              ),
-        floatingActionButton: FloatingActionButton(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          onPressed: () => addNewSupplier(),
-          backgroundColor: const Color(0xFF2196F3),
-          tooltip: 'Add Supplier',
-          child: const Icon(Icons.add, color: Colors.white, size: 45),
-        ),
+
+                // --- Suppliers List ---
+                Expanded(
+                  child: _filteredSuppliers.isEmpty
+                      ? Center(
+                          child: Text(
+                            _searchQuery.isEmpty
+                                ? 'No suppliers yet. Add one to get started!'
+                                : 'No suppliers found for "$_searchQuery"',
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8.0,
+                            vertical: !_showSearchBar ? 8.0 : 0.0,
+                          ),
+                          itemCount: _filteredSuppliers.length,
+                          itemBuilder: (context, index) {
+                            final supplier = _filteredSuppliers[index];
+                            final initials = _getInitials(supplier.name);
+                            final avatarColor = _generateRandomColor();
+
+                            return _buildSupplierCard(
+                              context,
+                              supplier,
+                              initials,
+                              avatarColor,
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+      floatingActionButton: FloatingActionButton(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        onPressed: () => addNewSupplier(),
+        backgroundColor: const Color(0xFF2196F3),
+        tooltip: 'Add Supplier',
+        child: const Icon(Icons.add, color: Colors.white, size: 45),
       ),
     );
   }
@@ -268,7 +269,7 @@ class _SuppliersState extends State<Suppliers> {
 
     return Card(
       color: cardColor,
-      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
@@ -279,10 +280,10 @@ class _SuppliersState extends State<Suppliers> {
       ),
       child: Padding(
         padding: const EdgeInsets.only(
-          top: 10.0,
+          top: 8.0,
           bottom: 0.0,
-          left: 20.0,
-          right: 20.0,
+          left: 10.0,
+          right: 10.0,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,18 +292,18 @@ class _SuppliersState extends State<Suppliers> {
               children: [
                 // Initials Avatar
                 CircleAvatar(
-                  radius: 24,
+                  radius: 20,
                   backgroundColor: avatarColor,
                   child: Text(
                     initials,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontSize: 16,
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 // Supplier Info
                 Expanded(
                   child: Column(
@@ -310,9 +311,9 @@ class _SuppliersState extends State<Suppliers> {
                     children: [
                       Text(
                         supplier.name,
-                        style: context.titleLarge?.copyWith(fontSize: 18),
+                        style: context.titleLarge?.copyWith(fontSize: 16),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 3),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
