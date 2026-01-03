@@ -378,7 +378,7 @@ class _DashboardState extends State<Dashboard> {
 
       if (mounted) {
         setState(() {
-          _upcomingPayments = upcomingBills.take(5).toList();
+          _upcomingPayments = upcomingBills;
         });
       }
     } catch (e) {
