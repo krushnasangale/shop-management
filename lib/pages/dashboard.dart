@@ -6,6 +6,7 @@ import 'package:flashbill/pages/helpers/utils.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/pending_payments_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -58,7 +59,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
-    _loadSalesReport();
+    _loadFilterPreference();
   }
 
   @override
@@ -67,6 +68,22 @@ class _DashboardState extends State<Dashboard> {
     _purchasesSubscription?.cancel();
     _productsSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadFilterPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedFilterType = prefs.getString('dashboard_filter_type');
+    if (savedFilterType != null) {
+      setState(() {
+        filterType = savedFilterType;
+      });
+    }
+    _loadSalesReport();
+  }
+
+  Future<void> _saveFilterPreference(String filter) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('dashboard_filter_type', filter);
   }
 
   void _loadSalesReport() {
@@ -588,6 +605,11 @@ class _DashboardState extends State<Dashboard> {
 
   bool _isFromSelectedMonth(String billDate) {
     try {
+      // If 'all' is selected, show all data
+      if (filterType == 'all') {
+        return true;
+      }
+
       // Expected format: "dd/MM/yyyy" (e.g., "18/11/2025")
       final parts = billDate.split('/');
       if (parts.length != 3) return false;
@@ -1551,15 +1573,72 @@ class _DashboardState extends State<Dashboard> {
                                       offset: const Offset(0, 40),
                                       itemBuilder: (BuildContext context) => [
                                         PopupMenuItem(
+                                          value: 'all',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.all_inclusive,
+                                                size: 18,
+                                                color: filterType == 'all'
+                                                    ? Colors.blue[600]
+                                                    : null,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'All Data',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'all'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'all'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'all') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
                                           value: 'day',
                                           child: Row(
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.calendar_today,
                                                 size: 18,
+                                                color: filterType == 'day'
+                                                    ? Colors.blue[600]
+                                                    : null,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('Day'),
+                                              Text(
+                                                'Day',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'day'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'day'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'day') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),
@@ -1567,12 +1646,34 @@ class _DashboardState extends State<Dashboard> {
                                           value: 'month',
                                           child: Row(
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.calendar_month,
                                                 size: 18,
+                                                color: filterType == 'month'
+                                                    ? Colors.blue[600]
+                                                    : null,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('Month'),
+                                              Text(
+                                                'Month',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'month'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'month'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'month') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),
@@ -1580,12 +1681,34 @@ class _DashboardState extends State<Dashboard> {
                                           value: 'year',
                                           child: Row(
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.calendar_month,
                                                 size: 18,
+                                                color: filterType == 'year'
+                                                    ? Colors.blue[600]
+                                                    : null,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('Year'),
+                                              Text(
+                                                'Year',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'year'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'year'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'year') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),
@@ -1595,6 +1718,7 @@ class _DashboardState extends State<Dashboard> {
                                           filterType = newValue;
                                           _isLoading = true;
                                         });
+                                        _saveFilterPreference(newValue);
                                         _loadSalesReport();
                                       },
                                       child: Padding(
@@ -2049,7 +2173,9 @@ class _DashboardState extends State<Dashboard> {
   }
 
   String _getMonthYear() {
-    if (filterType == 'year') {
+    if (filterType == 'all') {
+      return 'All Time';
+    } else if (filterType == 'year') {
       return '${selectedDate.year}';
     } else if (filterType == 'day') {
       return '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}';
