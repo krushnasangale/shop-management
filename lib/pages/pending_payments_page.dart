@@ -299,8 +299,8 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
         children: [
           // Summary Card
           Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [Colors.orange.shade400, Colors.orange.shade600],
@@ -433,7 +433,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                     ),
                   )
                 : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
                     itemCount: _filteredPayments.length,
                     itemBuilder: (context, index) {
                       final payment = _filteredPayments[index];
@@ -445,7 +445,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                           : 0;
 
                       return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
+                        margin: const EdgeInsets.only(bottom: 10),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(
@@ -479,18 +479,24 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                           const SizedBox(height: 4),
                                           Row(
                                             children: [
-                                              Icon(
-                                                Icons.phone,
-                                                size: 12,
-                                                color:
-                                                    context.secondaryTextColor,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                payment['customerMobile'],
-                                                style: context.subtitleMedium
-                                                    ?.copyWith(fontSize: 12),
-                                              ),
+                                              if (payment['customerMobile'] !=
+                                                      null &&
+                                                  payment['customerMobile']
+                                                      .toString()
+                                                      .isNotEmpty) ...[
+                                                Icon(
+                                                  Icons.phone,
+                                                  size: 12,
+                                                  color: context
+                                                      .secondaryTextColor,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  payment['customerMobile'],
+                                                  style: context.subtitleMedium
+                                                      ?.copyWith(fontSize: 12),
+                                                ),
+                                              ],
                                               if (payment['customerVehicle'] !=
                                                       null &&
                                                   payment['customerVehicle']

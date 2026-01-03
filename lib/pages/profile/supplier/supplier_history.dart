@@ -1,7 +1,5 @@
-// --- Supplier History Screen ---
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 
@@ -439,28 +437,6 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                 ),
               ],
             ),
-    );
-  }
-
-  Widget _buildStatItem(String value, String label, IconData icon) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white.withOpacity(0.9), size: 20),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12),
-        ),
-      ],
     );
   }
 
