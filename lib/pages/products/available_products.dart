@@ -27,27 +27,76 @@ class _AvailableProductsState extends State<AvailableProducts> {
   bool _isLoading = true;
   bool _showSearchBar = false;
   String _searchQuery = '';
-  String _selectedFilter =
-      'All'; // 'All', 'Reorder Now', 'Order Soon', 'Well Stocked'
+  String _selectedFilter = 'All';
   late TextEditingController _searchController;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _productsSubscription;
   String _shopName = '--';
   String get _currentUserId => FirebaseAuth.instance.currentUser!.uid;
 
+  // Infinite scroll variables
+  final ScrollController _scrollController = ScrollController();
+  int _itemsPerPage = 100;
+  int _currentlyLoadedItems = 100;
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _searchController.addListener(_filterProducts);
+    _scrollController.addListener(_onScroll);
     _getUserAndLoadProducts();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     _productsSubscription?.cancel();
     super.dispose();
+  }
+
+  // Handle scroll events for infinite loading
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      _loadMoreItems();
+    }
+  }
+
+  // Load more items when scrolled near bottom
+  void _loadMoreItems() {
+    // Get the total count of unique products (grouped by name)
+    Map<String, List<BoughtProduct>> groupedByName = {};
+    for (var product in _filteredProducts) {
+      if (!groupedByName.containsKey(product.productName)) {
+        groupedByName[product.productName] = [];
+      }
+      groupedByName[product.productName]!.add(product);
+    }
+    final totalProducts = groupedByName.keys.length;
+
+    if (_isLoadingMore || _currentlyLoadedItems >= totalProducts) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    // Simulate loading delay for smooth UX
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _currentlyLoadedItems = (_currentlyLoadedItems + _itemsPerPage).clamp(
+            0,
+            totalProducts,
+          );
+          _isLoadingMore = false;
+        });
+      }
+    });
   }
 
   void _getUserAndLoadProducts() {
@@ -219,6 +268,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
       }
 
       _filteredProducts = filtered;
+
+      // Reset loaded items count for infinite scroll
+      // Reuse the existing groupedByName map to count unique products
+      _currentlyLoadedItems = _itemsPerPage.clamp(0, groupedByName.keys.length);
     });
   }
 
@@ -781,10 +834,25 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     final cardColor = context.cardColor;
 
+    // Limit products to currently loaded items
+    final displayedProductNames = sortedProductNames
+        .take(_currentlyLoadedItems)
+        .toList();
+
     return ListView.builder(
-      itemCount: sortedProductNames.length,
+      controller: _scrollController,
+      itemCount: displayedProductNames.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
-        final productName = sortedProductNames[index];
+        if (index >= displayedProductNames.length) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        final productName = displayedProductNames[index];
         final batches = groupedByName[productName]!;
         final totalQty = batches.fold<int>(0, (sum, p) => sum + p.quantity);
 

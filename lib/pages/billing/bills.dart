@@ -34,19 +34,59 @@ class _BillsState extends State<Bills> {
   DateTime? _reportStartDate;
   DateTime? _reportEndDate;
 
+  // Infinite scroll variables
+  final ScrollController _scrollController = ScrollController();
+  int _itemsPerPage = 100;
+  int _currentlyLoadedItems = 100;
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _searchController.addListener(_filterBills);
+    _scrollController.addListener(_onScroll);
     _loadBills();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     _billsSubscription.cancel();
     super.dispose();
+  }
+
+  // Handle scroll events for infinite loading
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      _loadMoreItems();
+    }
+  }
+
+  // Load more items when scrolled near bottom
+  void _loadMoreItems() {
+    if (_isLoadingMore || _currentlyLoadedItems >= _filteredBills.length) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    // Simulate loading delay for smooth UX
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _currentlyLoadedItems = (_currentlyLoadedItems + _itemsPerPage).clamp(
+            0,
+            _filteredBills.length,
+          );
+          _isLoadingMore = false;
+        });
+      }
+    });
   }
 
   void _loadBills() {
@@ -171,6 +211,7 @@ class _BillsState extends State<Bills> {
     if (mounted) {
       setState(() {
         _filteredBills = filtered;
+        _currentlyLoadedItems = _itemsPerPage.clamp(0, filtered.length);
       });
     }
   }
@@ -764,8 +805,18 @@ class _BillsState extends State<Bills> {
                           ),
                         )
                       : ListView.builder(
-                          itemCount: _filteredBills.length,
+                          controller: _scrollController,
+                          itemCount:
+                              _currentlyLoadedItems + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            if (index >= _currentlyLoadedItems) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
                             return _buildBillCard(_filteredBills[index]);
                           },
                         ),
