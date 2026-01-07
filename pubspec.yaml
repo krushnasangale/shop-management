@@ -51,6 +51,7 @@ dependencies:
   google_mlkit_text_recognition: ^0.13.1
   file_picker: ^8.1.6
   shared_preferences: ^2.3.4
+  syncfusion_flutter_pdf: ^28.1.36
 
 dev_dependencies:
   flutter_test:

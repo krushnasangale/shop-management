@@ -27,8 +27,8 @@ class BoughtItem {
   final int minLimit;
   int initialQuantity; // Original quantity bought (for purchase history)
   int quantity; // Current quantity (decreases as items are sold)
-  int buyingPrice;
-  int sellingPrice;
+  double buyingPrice;
+  double sellingPrice;
 
   BoughtItem({
     required this.productName,
@@ -43,7 +43,7 @@ class BoughtItem {
     this.sellingPrice = 0,
   });
 
-  int get total => quantity * buyingPrice;
+  double get total => quantity * buyingPrice;
 }
 
 class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
@@ -68,7 +68,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _unitsSubscription;
   String _supplierNameError = '';
   String _selectedSupplierId = '';
-  int _totalBoughtAmount = 0;
+  double _totalBoughtAmount = 0.0;
 
   late TextEditingController _minLimitController;
 
@@ -91,8 +91,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _loadSupplierDetails();
     _loadUnits();
 
-    // Load existing data if editing
-    if (widget.purchaseId != null && widget.existingEntry != null) {
+    // Load existing data if editing or from scanned invoice
+    if (widget.existingEntry != null) {
       _loadExistingPurchaseData();
     }
   }
@@ -100,7 +100,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   Future<void> _loadExistingPurchaseData() async {
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user == null || widget.purchaseId == null) return;
+      if (user == null) return;
 
       // Set basic entry info
       setState(() {
@@ -109,32 +109,58 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             widget.existingEntry!['supplierName'] ?? '';
       });
 
-      // Load items for this purchase
-      final itemsSnapshot = await FirebaseFirestore.instance
-          .collection('purchased-products')
-          .doc(user.uid)
-          .collection('items')
-          .where('purchaseId', isEqualTo: widget.purchaseId)
-          .get();
-
       List<BoughtItem> loadedItems = [];
-      for (var doc in itemsSnapshot.docs) {
-        final data = doc.data();
-        loadedItems.add(
-          BoughtItem(
-            productName: data['productName'] ?? '',
-            supplierName: data['supplierName'] ?? '',
-            supplierId: data['supplierId'] ?? '',
-            unit: data['unit'] ?? '',
-            expiryDate: data['expiryDate'],
-            minLimit: (data['minLimit'] ?? 0) as int,
-            initialQuantity: (data['initialQuantity'] ?? 0) as int,
-            quantity: (data['quantity'] ?? 0) as int,
-            buyingPrice: (data['buyingPrice'] ?? 0) as int,
-            sellingPrice: (data['sellingPrice'] ?? 0) as int,
-          ),
-        );
-        _selectedSupplierId = data['supplierId'] ?? '';
+
+      // Check if this is a scanned invoice (has products array) or existing purchase (needs Firebase load)
+      if (widget.existingEntry!.containsKey('products') &&
+          widget.existingEntry!['products'] != null) {
+        // Scanned invoice data - convert products to BoughtItem
+        final products = widget.existingEntry!['products'] as List<dynamic>;
+
+        for (var product in products) {
+          final productMap = product as Map<String, dynamic>;
+          loadedItems.add(
+            BoughtItem(
+              productName: productMap['name'] ?? '',
+              supplierName: widget.existingEntry!['supplierName'] ?? '',
+              supplierId: '', // Will be set when supplier is selected
+              unit: productMap['unit'] ?? 'Pcs',
+              expiryDate: null,
+              minLimit: 0,
+              initialQuantity: (productMap['quantity'] ?? 1) as int,
+              quantity: (productMap['quantity'] ?? 1) as int,
+              buyingPrice: (productMap['price'] ?? 0).toDouble(),
+              sellingPrice: 0.0, // User will set this
+            ),
+          );
+        }
+      } else if (widget.purchaseId != null) {
+        // Existing purchase - load from Firebase
+        final itemsSnapshot = await FirebaseFirestore.instance
+            .collection('purchased-products')
+            .doc(user.uid)
+            .collection('items')
+            .where('purchaseId', isEqualTo: widget.purchaseId)
+            .get();
+
+        for (var doc in itemsSnapshot.docs) {
+          final data = doc.data();
+          loadedItems.add(
+            BoughtItem(
+              productName: data['productName'] ?? '',
+              supplierName: data['supplierName'] ?? '',
+              supplierId: data['supplierId'] ?? '',
+              unit: data['unit'] ?? '',
+              expiryDate: data['expiryDate'],
+              minLimit: (data['minLimit'] ?? 0) as int,
+              initialQuantity: (data['initialQuantity'] ?? 0) as int,
+              quantity: (data['quantity'] ?? 0) as int,
+              buyingPrice: (data['buyingPrice'] ?? 0) as double,
+              sellingPrice: (data['sellingPrice'] ?? 0) as double,
+            ),
+          );
+          _selectedSupplierId = data['supplierId'] ?? '';
+        }
       }
 
       setState(() {
@@ -232,7 +258,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   }
 
   void _calculateTotalBoughtAmount() {
-    _totalBoughtAmount = _boughtItems.fold(0, (sum, item) => sum + item.total);
+    _totalBoughtAmount = _boughtItems.fold(
+      0.0,
+      (sum, item) => sum + item.total,
+    );
   }
 
   void _showEditBoughtItemDialog(BoughtItem item) {
@@ -375,9 +404,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             TextButton(
               onPressed: () {
                 final quantity = int.tryParse(quantityController.text) ?? 0;
-                final price = int.tryParse(priceController.text) ?? 0;
+                final price = double.tryParse(priceController.text) ?? 0.0;
                 final sellingPrice =
-                    int.tryParse(sellingPriceController.text) ?? 0;
+                    double.tryParse(sellingPriceController.text) ?? 0.0;
 
                 if (quantity > 0 && price > 0 && sellingPrice > 0) {
                   setState(() {
@@ -451,8 +480,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
     // Parse values
     final quantity = int.tryParse(_quantityController.text) ?? 0;
-    final buyingPrice = int.tryParse(_buyingPriceController.text) ?? 0;
-    final sellingPrice = int.tryParse(_sellingPriceController.text) ?? 0;
+    final buyingPrice = double.tryParse(_buyingPriceController.text) ?? 0.0;
+    final sellingPrice = double.tryParse(_sellingPriceController.text) ?? 0.0;
 
     if (quantity <= 0 || buyingPrice <= 0 || sellingPrice <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
