@@ -1943,254 +1943,350 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           ),
                         ),
                       )
-                    : ConstrainedBox(
-                        constraints: const BoxConstraints(
-                          minHeight: 150,
-                          maxHeight: 180,
-                        ),
+                    : SizedBox(
+                        height:
+                            _boughtItems.any(
+                              (item) =>
+                                  item.sellingPrice <= 0 || item.minLimit <= 0,
+                            )
+                            ? 215
+                            : 165,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          shrinkWrap: true,
+                          shrinkWrap: false,
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           itemCount: _boughtItems.length,
                           itemBuilder: (context, index) {
                             final item = _boughtItems[index];
+                            final hasSellingPriceError = item.sellingPrice <= 0;
+                            final hasMinLimitError = item.minLimit <= 0;
+
                             return Padding(
                               padding: const EdgeInsets.only(right: 12),
-                              child: Container(
-                                width: 180,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [Colors.blue.shade50, Colors.white],
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Colors.blue.withOpacity(0.2),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.blue.withOpacity(0.1),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Stack(
+                              child: SizedBox(
+                                height:
+                                    _boughtItems.any(
+                                      (item) =>
+                                          item.sellingPrice <= 0 ||
+                                          item.minLimit <= 0,
+                                    )
+                                    ? 220
+                                    : 165,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    // Index Badge
-                                    Positioned(
-                                      top: 8,
-                                      left: 8,
+                                    Expanded(
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 5,
-                                          vertical: 3,
-                                        ),
+                                        width: 180,
                                         decoration: BoxDecoration(
                                           gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
                                             colors: [
-                                              Colors.blue.shade600,
-                                              Colors.blue.shade400,
+                                              Colors.blue.shade50,
+                                              Colors.white,
                                             ],
                                           ),
                                           borderRadius: BorderRadius.circular(
-                                            8,
+                                            16,
+                                          ),
+                                          border: Border.all(
+                                            color:
+                                                hasSellingPriceError ||
+                                                    hasMinLimitError
+                                                ? Colors.red.withOpacity(0.5)
+                                                : Colors.blue.withOpacity(0.2),
+                                            width: 1.5,
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.blue.withOpacity(
-                                                0.3,
-                                              ),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
+                                              color:
+                                                  hasSellingPriceError ||
+                                                      hasMinLimitError
+                                                  ? Colors.red.withOpacity(0.1)
+                                                  : Colors.blue.withOpacity(
+                                                      0.1,
+                                                    ),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4),
                                             ),
                                           ],
                                         ),
-                                        child: Text(
-                                          '#${index + 1}',
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    // edit button
-                                    Positioned(
-                                      top: 8,
-                                      left: 50,
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        child: InkWell(
-                                          onTap: () =>
-                                              _showEditBoughtItemDialog(item),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange.shade50,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.edit,
-                                              color: Colors.orange.shade600,
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    // Delete Button
-                                    Positioned(
-                                      top: 8,
-                                      right: 8,
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        child: InkWell(
-                                          onTap: () => _removeBoughtItem(index),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            decoration: BoxDecoration(
-                                              color: Colors.red.shade50,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.close,
-                                              color: Colors.red.shade600,
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    // Content
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        12,
-                                        40,
-                                        12,
-                                        12,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          // Product Name
-                                          Text(
-                                            item.productName,
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black87,
-                                            ),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 4),
-                                          // Quantity and Price Row
-                                          Row(
-                                            children: [
-                                              // Quantity Badge
-                                              Container(
+                                        child: Stack(
+                                          children: [
+                                            // Index Badge
+                                            Positioned(
+                                              top: 8,
+                                              left: 8,
+                                              child: Container(
                                                 padding:
                                                     const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4,
+                                                      horizontal: 5,
+                                                      vertical: 3,
                                                     ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.green.shade50,
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                  border: Border.all(
-                                                    color:
-                                                        Colors.green.shade200,
+                                                  gradient: LinearGradient(
+                                                    colors: [
+                                                      Colors.blue.shade600,
+                                                      Colors.blue.shade400,
+                                                    ],
                                                   ),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      Icons
-                                                          .inventory_2_outlined,
-                                                      size: 14,
-                                                      color:
-                                                          Colors.green.shade700,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      item.quantity
-                                                          .toStringAsFixed(0),
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: Colors
-                                                            .green
-                                                            .shade700,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.blue
+                                                          .withOpacity(0.3),
+                                                      blurRadius: 4,
+                                                      offset: const Offset(
+                                                        0,
+                                                        2,
                                                       ),
                                                     ),
                                                   ],
                                                 ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              // Price
-                                              Expanded(
                                                 child: Text(
-                                                  '₹${item.buyingPrice.toStringAsFixed(2)}',
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.grey.shade700,
-                                                    fontWeight: FontWeight.w600,
+                                                  '#${index + 1}',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
                                                   ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          // Total Amount
-                                          Container(
-                                            width: double.infinity,
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 6,
                                             ),
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  Colors.blue.shade600,
-                                                  Colors.blue.shade500,
+                                            // edit button
+                                            Positioned(
+                                              top: 8,
+                                              left: 50,
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: InkWell(
+                                                  onTap: () =>
+                                                      _showEditBoughtItemDialog(
+                                                        item,
+                                                      ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(4),
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          Colors.orange.shade50,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.edit,
+                                                      color: Colors
+                                                          .orange
+                                                          .shade600,
+                                                      size: 18,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            // Delete Button
+                                            Positioned(
+                                              top: 8,
+                                              right: 8,
+                                              child: Material(
+                                                color: Colors.transparent,
+                                                child: InkWell(
+                                                  onTap: () =>
+                                                      _removeBoughtItem(index),
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(4),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.red.shade50,
+                                                      shape: BoxShape.circle,
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.close,
+                                                      color:
+                                                          Colors.red.shade600,
+                                                      size: 18,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            // Content
+                                            Padding(
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                    12,
+                                                    40,
+                                                    12,
+                                                    12,
+                                                  ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
+                                                children: [
+                                                  // Product Name
+                                                  Text(
+                                                    item.productName,
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.black87,
+                                                    ),
+                                                    maxLines: 2,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  // Quantity and Price Row
+                                                  Row(
+                                                    children: [
+                                                      // Quantity Badge
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 8,
+                                                              vertical: 4,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors
+                                                              .green
+                                                              .shade50,
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                6,
+                                                              ),
+                                                          border: Border.all(
+                                                            color: Colors
+                                                                .green
+                                                                .shade200,
+                                                          ),
+                                                        ),
+                                                        child: Row(
+                                                          mainAxisSize:
+                                                              MainAxisSize.min,
+                                                          children: [
+                                                            Icon(
+                                                              Icons
+                                                                  .inventory_2_outlined,
+                                                              size: 14,
+                                                              color: Colors
+                                                                  .green
+                                                                  .shade700,
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 4,
+                                                            ),
+                                                            Text(
+                                                              item.quantity
+                                                                  .toStringAsFixed(
+                                                                    0,
+                                                                  ),
+                                                              style: TextStyle(
+                                                                fontSize: 14,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                                color: Colors
+                                                                    .green
+                                                                    .shade700,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      // Price
+                                                      Expanded(
+                                                        child: Text(
+                                                          '₹${item.buyingPrice.toStringAsFixed(2)}',
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            color: Colors
+                                                                .grey
+                                                                .shade700,
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                          ),
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  // Total Amount
+                                                  Container(
+                                                    width: double.infinity,
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 10,
+                                                          vertical: 6,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      gradient: LinearGradient(
+                                                        colors: [
+                                                          Colors.blue.shade600,
+                                                          Colors.blue.shade500,
+                                                        ],
+                                                      ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      '₹${item.total.toStringAsFixed(2)}',
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.white,
+                                                      ),
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                    ),
+                                                  ),
                                                 ],
                                               ),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
                                             ),
-                                            child: Text(
-                                              '₹${item.total.toStringAsFixed(2)}',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ),
+                                    // Individual validation messages below each tile
+                                    if (hasSellingPriceError ||
+                                        hasMinLimitError)
+                                      const SizedBox(height: 6),
+                                    if (hasSellingPriceError)
+                                      Text(
+                                        'Selling price is 0',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    if (hasSellingPriceError &&
+                                        hasMinLimitError)
+                                      const SizedBox(height: 4),
+                                    if (hasMinLimitError)
+                                      Text(
+                                        'Min limit is 0',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -2263,7 +2359,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       child: SizedBox(
                         height: 45,
                         child: ElevatedButton(
-                          onPressed: _boughtItems.isEmpty
+                          onPressed:
+                              _boughtItems.isEmpty ||
+                                  _boughtItems.any(
+                                    (item) =>
+                                        item.sellingPrice <= 0 ||
+                                        item.minLimit <= 0,
+                                  )
                               ? null
                               : () {
                                   if (_supplierNameController.text.isEmpty) {
