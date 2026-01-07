@@ -6,6 +6,7 @@ import 'package:flashbill/pages/helpers/utils.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/pending_payments_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -16,7 +17,9 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
   DateTime selectedDate = DateTime.now();
-  String filterType = 'month'; // 'month', 'year', or 'day'
+  String filterType = 'month'; // 'month', 'year', 'day', 'range', or 'all'
+  DateTime? _rangeStartDate;
+  DateTime? _rangeEndDate;
   bool _isLoading = true;
   int _totalSales = 0;
   int _totalBuying = 0;
@@ -58,7 +61,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   void initState() {
     super.initState();
-    _loadSalesReport();
+    _loadFilterPreference();
   }
 
   @override
@@ -67,6 +70,40 @@ class _DashboardState extends State<Dashboard> {
     _purchasesSubscription?.cancel();
     _productsSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadFilterPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedFilterType = prefs.getString('dashboard_filter_type');
+    if (savedFilterType != null) {
+      setState(() {
+        filterType = savedFilterType;
+        if (savedFilterType == 'range') {
+          final startDateStr = prefs.getString('dashboard_range_start');
+          final endDateStr = prefs.getString('dashboard_range_end');
+          if (startDateStr != null && endDateStr != null) {
+            _rangeStartDate = DateTime.parse(startDateStr);
+            _rangeEndDate = DateTime.parse(endDateStr);
+          }
+        }
+      });
+    }
+    _loadSalesReport();
+  }
+
+  Future<void> _saveFilterPreference(String filter) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('dashboard_filter_type', filter);
+    if (filter == 'range' && _rangeStartDate != null && _rangeEndDate != null) {
+      await prefs.setString(
+        'dashboard_range_start',
+        _rangeStartDate!.toIso8601String(),
+      );
+      await prefs.setString(
+        'dashboard_range_end',
+        _rangeEndDate!.toIso8601String(),
+      );
+    }
   }
 
   void _loadSalesReport() {
@@ -341,7 +378,7 @@ class _DashboardState extends State<Dashboard> {
 
       if (mounted) {
         setState(() {
-          _upcomingPayments = upcomingBills.take(5).toList();
+          _upcomingPayments = upcomingBills;
         });
       }
     } catch (e) {
@@ -492,8 +529,11 @@ class _DashboardState extends State<Dashboard> {
             });
           }
 
-          // Subtract discount from bill profit
-          totalProfit += (billProfit - discount);
+          // IMPORTANT: Discount reduces profit, never increases it
+          // Ensure discount is always positive before subtracting
+          final validDiscount = discount > 0 ? discount : 0;
+          final netBillProfit = billProfit - validDiscount;
+          totalProfit += netBillProfit;
         }
       }
 
@@ -588,6 +628,11 @@ class _DashboardState extends State<Dashboard> {
 
   bool _isFromSelectedMonth(String billDate) {
     try {
+      // If 'all' is selected, show all data
+      if (filterType == 'all') {
+        return true;
+      }
+
       // Expected format: "dd/MM/yyyy" (e.g., "18/11/2025")
       final parts = billDate.split('/');
       if (parts.length != 3) return false;
@@ -595,8 +640,15 @@ class _DashboardState extends State<Dashboard> {
       final day = int.parse(parts[0]);
       final month = int.parse(parts[1]);
       final year = int.parse(parts[2]);
+      final date = DateTime(year, month, day);
 
-      if (filterType == 'month') {
+      if (filterType == 'range') {
+        if (_rangeStartDate == null || _rangeEndDate == null) return false;
+        return date.isAfter(
+              _rangeStartDate!.subtract(const Duration(days: 1)),
+            ) &&
+            date.isBefore(_rangeEndDate!.add(const Duration(days: 1)));
+      } else if (filterType == 'month') {
         return month == selectedDate.month && year == selectedDate.year;
       } else if (filterType == 'year') {
         return year == selectedDate.year;
@@ -1205,7 +1257,7 @@ class _DashboardState extends State<Dashboard> {
                     ],
                   ),
                   Text(
-                    _getMonthYear(),
+                    '${getMonthName(DateTime.now().month)} ${DateTime.now().year}',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -1538,7 +1590,7 @@ class _DashboardState extends State<Dashboard> {
                                     decoration: BoxDecoration(
                                       color: isDark
                                           ? Colors.grey[750]
-                                          : Colors.grey[100],
+                                          : Colors.white,
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(
                                         color: isDark
@@ -1551,15 +1603,107 @@ class _DashboardState extends State<Dashboard> {
                                       offset: const Offset(0, 40),
                                       itemBuilder: (BuildContext context) => [
                                         PopupMenuItem(
+                                          value: 'all',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.all_inclusive,
+                                                size: 18,
+                                                color: filterType == 'all'
+                                                    ? Colors.blue[600]
+                                                    : null,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'All Data',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'all'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'all'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'all') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
+                                          value: 'range',
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.date_range,
+                                                size: 18,
+                                                color: filterType == 'range'
+                                                    ? Colors.blue[600]
+                                                    : null,
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Date Range',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'range'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'range'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'range') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                        PopupMenuItem(
                                           value: 'day',
                                           child: Row(
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.calendar_today,
                                                 size: 18,
+                                                color: filterType == 'day'
+                                                    ? Colors.blue[600]
+                                                    : null,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('Day'),
+                                              Text(
+                                                'Day',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'day'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'day'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'day') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),
@@ -1567,12 +1711,34 @@ class _DashboardState extends State<Dashboard> {
                                           value: 'month',
                                           child: Row(
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.calendar_month,
                                                 size: 18,
+                                                color: filterType == 'month'
+                                                    ? Colors.blue[600]
+                                                    : null,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('Month'),
+                                              Text(
+                                                'Month',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'month'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'month'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'month') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),
@@ -1580,12 +1746,34 @@ class _DashboardState extends State<Dashboard> {
                                           value: 'year',
                                           child: Row(
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.calendar_month,
                                                 size: 18,
+                                                color: filterType == 'year'
+                                                    ? Colors.blue[600]
+                                                    : null,
                                               ),
                                               const SizedBox(width: 8),
-                                              const Text('Year'),
+                                              Text(
+                                                'Year',
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      filterType == 'year'
+                                                      ? FontWeight.bold
+                                                      : FontWeight.normal,
+                                                  color: filterType == 'year'
+                                                      ? Colors.blue[600]
+                                                      : null,
+                                                ),
+                                              ),
+                                              if (filterType == 'year') ...[
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.check,
+                                                  size: 18,
+                                                  color: Colors.blue[600],
+                                                ),
+                                              ],
                                             ],
                                           ),
                                         ),
@@ -1595,6 +1783,7 @@ class _DashboardState extends State<Dashboard> {
                                           filterType = newValue;
                                           _isLoading = true;
                                         });
+                                        _saveFilterPreference(newValue);
                                         _loadSalesReport();
                                       },
                                       child: Padding(
@@ -1634,7 +1823,7 @@ class _DashboardState extends State<Dashboard> {
                                       style: IconButton.styleFrom(
                                         backgroundColor: isDark
                                             ? Colors.grey[750]
-                                            : Colors.grey[100],
+                                            : Colors.white,
                                         side: isDark
                                             ? BorderSide(
                                                 color: Colors.grey[600]!,
@@ -1648,6 +1837,8 @@ class _DashboardState extends State<Dashboard> {
                               ),
                             ],
                           ),
+                          const SizedBox(height: 4),
+
                           // Two Column Layout
                           Row(
                             children: [
@@ -1682,7 +1873,7 @@ class _DashboardState extends State<Dashboard> {
 
                           // Profit/Loss Card
                           _buildProfitLossCard(),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 12),
 
                           // Section 2 Title: Inventory & Payments
                           Padding(
@@ -1808,7 +1999,7 @@ class _DashboardState extends State<Dashboard> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Text(
             value,
             style: TextStyle(
@@ -1818,7 +2009,7 @@ class _DashboardState extends State<Dashboard> {
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 6),
           Text(
             subtitle,
             style: TextStyle(
@@ -1904,6 +2095,29 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void _showMonthPicker(BuildContext context) {
+    // If range filter is selected, show date range picker
+    if (filterType == 'range') {
+      showDateRangePicker(
+        context: context,
+        firstDate: DateTime(2020),
+        lastDate: DateTime(2100),
+        initialDateRange: _rangeStartDate != null && _rangeEndDate != null
+            ? DateTimeRange(start: _rangeStartDate!, end: _rangeEndDate!)
+            : null,
+      ).then((pickedRange) {
+        if (pickedRange != null) {
+          setState(() {
+            _rangeStartDate = pickedRange.start;
+            _rangeEndDate = pickedRange.end;
+            _isLoading = true;
+          });
+          _saveFilterPreference('range');
+          _loadSalesReport();
+        }
+      });
+      return;
+    }
+
     // If day filter is selected, show calendar picker instead
     if (filterType == 'day') {
       showDatePicker(
@@ -2049,7 +2263,14 @@ class _DashboardState extends State<Dashboard> {
   }
 
   String _getMonthYear() {
-    if (filterType == 'year') {
+    if (filterType == 'all') {
+      return 'All Time';
+    } else if (filterType == 'range') {
+      if (_rangeStartDate != null && _rangeEndDate != null) {
+        return '${_rangeStartDate!.day}/${_rangeStartDate!.month}/${_rangeStartDate!.year} - ${_rangeEndDate!.day}/${_rangeEndDate!.month}/${_rangeEndDate!.year}';
+      }
+      return 'Select Range';
+    } else if (filterType == 'year') {
       return '${selectedDate.year}';
     } else if (filterType == 'day') {
       return '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}';

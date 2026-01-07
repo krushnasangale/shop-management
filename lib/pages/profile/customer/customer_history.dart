@@ -195,271 +195,265 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('${widget.customerName} - Bills'),
-          centerTitle: false,
-        ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _customerBills.isEmpty
-            ? Center(
-                child: Text(
-                  'No bills for this customer',
-                  style: context.subtitleMedium,
-                ),
-              )
-            : Column(
-                children: [
-                  // Summary Card
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(15.0),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Total Bills',
-                                      style: context.subtitleMedium,
-                                    ),
-                                    Text(
-                                      _totalBills.toString(),
-                                      style: context.displayMedium?.copyWith(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Total Amount',
-                                      style: context.subtitleMedium,
-                                    ),
-                                    Text(
-                                      '₹ ${_totalBilledAmount.toStringAsFixed(0)}',
-                                      style: context.displayMedium?.copyWith(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Total Paid',
-                                      style: TextStyle(
-                                        color: Colors.green.shade400,
-                                      ),
-                                    ),
-                                    Text(
-                                      '₹ ${_totalPaidAmount.toStringAsFixed(0)}',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.green.shade400,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      'Total Remaining',
-                                      style: TextStyle(
-                                        color: Colors.orange.shade400,
-                                      ),
-                                    ),
-                                    Text(
-                                      '₹ ${(_totalBilledAmount - _totalPaidAmount).toStringAsFixed(0)}',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.orange.shade400,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Bills list
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _customerBills.length,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      itemBuilder: (context, index) {
-                        final bill = _customerBills[index];
-                        final totalAmount =
-                            (bill['totalAmount'] as num?)?.toInt() ?? 0;
-                        final amountPaid =
-                            (bill['amountPaid'] as num?)?.toInt() ?? 0;
-                        final amountRemaining =
-                            (bill['amountRemaining'] as num?)?.toInt() ?? 0;
-                        final isFullyPaid = bill['totalAmountPaid'] as bool;
-
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          child: InkWell(
-                            onTap: () {
-                              AppNavigator.push(
-                                context,
-                                ViewBillDetailsScreen(
-                                  billId: bill['billId'] ?? '',
-                                  billDate: bill['billDate'] ?? '',
-                                  customerName: bill['customerName'] ?? '',
-                                  customerMobile: bill['customerMobile'] ?? '',
-                                  customerVehicle:
-                                      bill['customerVehicle'] ?? '',
-                                  totalAmount: totalAmount,
-                                  totalAmountPaid: isFullyPaid,
-                                  amountPaid: amountPaid,
-                                  amountRemaining: amountRemaining,
-                                  products: _convertProductsToList(
-                                    bill['products']
-                                            as Map<dynamic, dynamic>? ??
-                                        {},
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Column(
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('${widget.customerName} - Bills'),
+        centerTitle: false,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _customerBills.isEmpty
+          ? Center(
+              child: Text(
+                'No bills for this customer',
+                style: context.subtitleMedium,
+              ),
+            )
+          : Column(
+              children: [
+                // Summary Card
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(15.0),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Bill Date: ${bill['date']}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: isFullyPaid
-                                              ? Colors.green.shade100
-                                              : amountRemaining == totalAmount
-                                              ? Colors.red.shade100
-                                              : Colors.orange.shade100,
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          isFullyPaid
-                                              ? 'Paid'
-                                              : amountRemaining == totalAmount
-                                              ? 'Unpaid'
-                                              : 'Partial',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: isFullyPaid
-                                                ? Colors.green.shade700
-                                                : amountRemaining == totalAmount
-                                                ? Colors.red.shade700
-                                                : Colors.orange.shade700,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  Text(
+                                    'Total Bills',
+                                    style: context.subtitleMedium,
                                   ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Amount: ₹ $totalAmount',
-                                        style: context.subtitleMedium?.copyWith(
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Paid: ₹ $amountPaid',
-                                        style: TextStyle(
-                                          color: Colors.green.shade400,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (amountRemaining > 0)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Text(
-                                        'Remaining: ₹ $amountRemaining',
-                                        style: TextStyle(
-                                          color: Colors.orange.shade400,
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
+                                  Text(
+                                    _totalBills.toString(),
+                                    style: context.displayMedium?.copyWith(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  const SizedBox(height: 8),
-                                  // Items count and Profit/Loss badges
-                                  Row(
-                                    children: [
-                                      _buildItemsCountBadge(
-                                        bill['products']
-                                                as Map<dynamic, dynamic>? ??
-                                            {},
-                                      ),
-                                      const SizedBox(width: 8),
-                                      _buildProfitBadge(
-                                        bill['products']
-                                                as Map<dynamic, dynamic>? ??
-                                            {},
-                                      ),
-                                    ],
                                   ),
                                 ],
                               ),
-                            ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Total Amount',
+                                    style: context.subtitleMedium,
+                                  ),
+                                  Text(
+                                    '₹ ${_totalBilledAmount.toStringAsFixed(0)}',
+                                    style: context.displayMedium?.copyWith(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                        );
-                      },
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Total Paid',
+                                    style: TextStyle(
+                                      color: Colors.green.shade400,
+                                    ),
+                                  ),
+                                  Text(
+                                    '₹ ${_totalPaidAmount.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green.shade400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Total Remaining',
+                                    style: TextStyle(
+                                      color: Colors.orange.shade400,
+                                    ),
+                                  ),
+                                  Text(
+                                    '₹ ${(_totalBilledAmount - _totalPaidAmount).toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange.shade400,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ],
-              ),
-      ),
+                ),
+                // Bills list
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _customerBills.length,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    itemBuilder: (context, index) {
+                      final bill = _customerBills[index];
+                      final totalAmount =
+                          (bill['totalAmount'] as num?)?.toInt() ?? 0;
+                      final amountPaid =
+                          (bill['amountPaid'] as num?)?.toInt() ?? 0;
+                      final amountRemaining =
+                          (bill['amountRemaining'] as num?)?.toInt() ?? 0;
+                      final isFullyPaid = bill['totalAmountPaid'] as bool;
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: InkWell(
+                          onTap: () {
+                            AppNavigator.push(
+                              context,
+                              ViewBillDetailsScreen(
+                                billId: bill['billId'] ?? '',
+                                billDate: bill['billDate'] ?? '',
+                                customerName: bill['customerName'] ?? '',
+                                customerMobile: bill['customerMobile'] ?? '',
+                                customerVehicle: bill['customerVehicle'] ?? '',
+                                totalAmount: totalAmount,
+                                totalAmountPaid: isFullyPaid,
+                                amountPaid: amountPaid,
+                                amountRemaining: amountRemaining,
+                                products: _convertProductsToList(
+                                  bill['products'] as Map<dynamic, dynamic>? ??
+                                      {},
+                                ),
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Bill Date: ${bill['date']}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isFullyPaid
+                                            ? Colors.green.shade100
+                                            : amountRemaining == totalAmount
+                                            ? Colors.red.shade100
+                                            : Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        isFullyPaid
+                                            ? 'Paid'
+                                            : amountRemaining == totalAmount
+                                            ? 'Unpaid'
+                                            : 'Partial',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isFullyPaid
+                                              ? Colors.green.shade700
+                                              : amountRemaining == totalAmount
+                                              ? Colors.red.shade700
+                                              : Colors.orange.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Amount: ₹ $totalAmount',
+                                      style: context.subtitleMedium?.copyWith(
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Paid: ₹ $amountPaid',
+                                      style: TextStyle(
+                                        color: Colors.green.shade400,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (amountRemaining > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8),
+                                    child: Text(
+                                      'Remaining: ₹ $amountRemaining',
+                                      style: TextStyle(
+                                        color: Colors.orange.shade400,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                const SizedBox(height: 8),
+                                // Items count and Profit/Loss badges
+                                Row(
+                                  children: [
+                                    _buildItemsCountBadge(
+                                      bill['products']
+                                              as Map<dynamic, dynamic>? ??
+                                          {},
+                                    ),
+                                    const SizedBox(width: 8),
+                                    _buildProfitBadge(
+                                      bill['products']
+                                              as Map<dynamic, dynamic>? ??
+                                          {},
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
     );
   }
 

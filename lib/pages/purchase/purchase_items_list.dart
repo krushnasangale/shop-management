@@ -25,16 +25,21 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   late CollectionReference _boughtRef;
   List<Map<String, dynamic>> _boughtEntries = [];
   List<Map<String, dynamic>> _filteredEntries = [];
+  List<Map<String, dynamic>> _displayedEntries = [];
   bool _isLoading = true;
   StreamSubscription<QuerySnapshot>? _streamSubscription;
   late TextEditingController _searchController;
   bool _showSearchBar = false;
+  final ScrollController _scrollController = ScrollController();
+  int _displayedItemCount = 50;
+  bool _isLoadingMore = false;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _searchController.addListener(_filterEntries);
+    _scrollController.addListener(_onScroll);
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _boughtRef = FirebaseFirestore.instance
@@ -43,6 +48,38 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           .collection('items');
       _loadBoughtEntriesRealtime();
     }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      _loadMoreItems();
+    }
+  }
+
+  void _loadMoreItems() {
+    if (_isLoadingMore || _displayedItemCount >= _filteredEntries.length) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _displayedItemCount = (_displayedItemCount + 50).clamp(
+            0,
+            _filteredEntries.length,
+          );
+          _displayedEntries = _filteredEntries
+              .take(_displayedItemCount)
+              .toList();
+          _isLoadingMore = false;
+        });
+      }
+    });
   }
 
   void _loadBoughtEntriesRealtime() {
@@ -61,6 +98,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
               setState(() {
                 _boughtEntries = entries;
                 _filteredEntries = entries;
+                _displayedItemCount = 50;
+                _displayedEntries = entries.take(_displayedItemCount).toList();
                 _isLoading = false;
               });
             }
@@ -79,6 +118,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
     if (query.isEmpty) {
       setState(() {
         _filteredEntries = _boughtEntries;
+        _displayedItemCount = 50;
+        _displayedEntries = _filteredEntries.take(_displayedItemCount).toList();
       });
     } else {
       setState(() {
@@ -89,6 +130,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           final totalAmount = (entry['totalAmount'] ?? '').toString();
           return supplierName.contains(query) || totalAmount.contains(query);
         }).toList();
+        _displayedItemCount = 50;
+        _displayedEntries = _filteredEntries.take(_displayedItemCount).toList();
       });
     }
   }
@@ -97,6 +140,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   void dispose() {
     _streamSubscription?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -223,10 +267,21 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                   child: _filteredEntries.isEmpty
                       ? const Center(child: Text('No matching entries found'))
                       : ListView.builder(
-                          itemCount: _filteredEntries.length,
+                          controller: _scrollController,
+                          itemCount:
+                              _displayedEntries.length +
+                              (_isLoadingMore ? 1 : 0),
                           padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
                           itemBuilder: (context, index) {
-                            final entry = _filteredEntries[index];
+                            if (index == _displayedEntries.length) {
+                              return const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(16.0),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+                            final entry = _displayedEntries[index];
                             final date = entry['date'] ?? 'N/A';
                             final supplierName =
                                 entry['supplierName'] ?? 'Unknown';

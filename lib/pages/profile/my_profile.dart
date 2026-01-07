@@ -494,18 +494,20 @@ class _MyProfileState extends State<MyProfile> {
 
                   // Add
                   _buildSectionHeader('Add', context),
-                  _buildMenuItem(
+                  _buildCountMenuItem(
                     Icons.person_add_outlined,
-                    'Supplier',
+                    'Suppliers',
                     context,
+                    'suppliers',
                     onTap: () {
                       AppNavigator.push(context, const Suppliers());
                     },
                   ),
-                  _buildMenuItem(
+                  _buildCountMenuItem(
                     Icons.scale_outlined,
-                    'Unit',
+                    'Units',
                     context,
+                    'units',
                     onTap: () {
                       AppNavigator.push(
                         context,
@@ -513,18 +515,20 @@ class _MyProfileState extends State<MyProfile> {
                       );
                     },
                   ),
-                  _buildMenuItem(
+                  _buildCountMenuItem(
                     Icons.shopping_bag_outlined,
-                    'Product Name',
+                    'Product Names',
                     context,
+                    'product-names',
                     onTap: () {
                       AppNavigator.push(context, const ProductName());
                     },
                   ),
-                  _buildMenuItem(
+                  _buildCountMenuItem(
                     Icons.people_alt_outlined,
-                    'Customer',
+                    'Customers',
                     context,
+                    'customers',
                     onTap: () {
                       AppNavigator.push(context, const Customers());
                     },
@@ -729,6 +733,74 @@ class _MyProfileState extends State<MyProfile> {
                   ),
                   child: Text(
                     '$deviceCount',
+                    style: const TextStyle(
+                      color: Colors.blue,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCountMenuItem(
+    IconData icon,
+    String title,
+    BuildContext context,
+    String collectionName, {
+    GestureTapCallback? onTap,
+  }) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return _buildMenuItem(icon, title, context, onTap: onTap);
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(collectionName)
+          .doc(user.uid)
+          .collection('items')
+          .snapshots(),
+      builder: (context, snapshot) {
+        int count = 0;
+
+        if (snapshot.hasData) {
+          count = snapshot.data!.docs.length;
+        }
+
+        return _buildMenuItem(
+          icon,
+          title,
+          context,
+          onTap: onTap,
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$count',
                     style: const TextStyle(
                       color: Colors.blue,
                       fontWeight: FontWeight.bold,

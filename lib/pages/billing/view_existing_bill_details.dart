@@ -210,9 +210,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         setState(() {
           discount = loadedDiscount;
           billNumber = loadedBillNumber;
-          // Recalculate profit with discount subtracted from base profit
-          // Formula: Profit = Base Profit (already calculated from products) - Total Discount
-          totalProfit = _calculateBaseProfit() - loadedDiscount;
+          // IMPORTANT: Discount ALWAYS reduces profit, never increases it
+          // Formula: Profit = Base Profit - Discount
+          // Ensure discount is positive (negative discount would incorrectly add to profit)
+          final validDiscount = loadedDiscount > 0 ? loadedDiscount : 0;
+          totalProfit = _calculateBaseProfit() - validDiscount;
         });
       }
     } catch (e) {
@@ -1717,8 +1719,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         amountPaid = '₹ ${isFullyPaid ? totalAmountValue : newAmountPaid}';
         isTotalAmountPaid = isFullyPaid;
         paymentStatus = isFullyPaid ? 'Paid' : 'Partially Paid';
-        // Update profit by subtracting total discount
-        totalProfit = _calculateBaseProfit() - newTotalDiscount;
+        // IMPORTANT: Discount ALWAYS reduces profit
+        // Ensure discount is positive (negative would incorrectly increase profit)
+        final validDiscount = newTotalDiscount > 0 ? newTotalDiscount : 0;
+        totalProfit = _calculateBaseProfit() - validDiscount;
       });
 
       // Reload payment records to show the discount

@@ -84,6 +84,10 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
           final loadedUnits = snapshot.docs
               .map((doc) => UnitOfMeasure.fromMap(doc.id, doc.data()))
               .toList();
+          // Sort units alphabetically by name (A to Z)
+          loadedUnits.sort(
+            (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+          );
 
           // Single setState call with all updates
           if (mounted) {

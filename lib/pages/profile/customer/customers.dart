@@ -22,6 +22,12 @@ class _CustomersState extends State<Customers> {
   String _searchQuery = '';
   bool _showSearchBar = false;
 
+  // Infinite scroll variables
+  final ScrollController _scrollController = ScrollController();
+  final int _itemsPerPage = 100;
+  int _currentlyLoadedItems = 100;
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
@@ -29,15 +35,55 @@ class _CustomersState extends State<Customers> {
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text.toLowerCase();
+        _currentlyLoadedItems = _itemsPerPage.clamp(
+          0,
+          _filteredCustomers.length,
+        );
       });
     });
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _customersSubscription?.cancel();
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // Handle scroll events for infinite loading
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      _loadMoreItems();
+    }
+  }
+
+  // Load more items when scrolled near bottom
+  void _loadMoreItems() {
+    final totalCustomers = _filteredCustomers.length;
+
+    if (_isLoadingMore || _currentlyLoadedItems >= totalCustomers) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    // Simulate loading delay for smooth UX
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _currentlyLoadedItems = (_currentlyLoadedItems + _itemsPerPage).clamp(
+            0,
+            totalCustomers,
+          );
+          _isLoadingMore = false;
+        });
+      }
+    });
   }
 
   void _loadCustomers() {
@@ -59,9 +105,18 @@ class _CustomersState extends State<Customers> {
                 'vehicleNumber': doc.data()['vehicleNumber'] ?? '',
               };
             }).toList();
+
+            // Sort customers alphabetically by name (A to Z)
+            customers.sort(
+              (a, b) => a['name'].toString().toLowerCase().compareTo(
+                b['name'].toString().toLowerCase(),
+              ),
+            );
+
             setState(() {
               _customers = customers;
               _isLoading = false;
+              _currentlyLoadedItems = _itemsPerPage.clamp(0, customers.length);
             });
           }
         });
@@ -164,9 +219,23 @@ class _CustomersState extends State<Customers> {
                     ),
                   )
                 : ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(8),
-                    itemCount: _filteredCustomers.length,
+                    itemCount:
+                        _currentlyLoadedItems.clamp(
+                          0,
+                          _filteredCustomers.length,
+                        ) +
+                        (_isLoadingMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      if (index >= _currentlyLoadedItems) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16.0),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      }
                       final customer = _filteredCustomers[index];
                       final initials = _getInitials(customer['name']);
                       final avatarColor = _getAvatarColor(index);
@@ -220,7 +289,7 @@ class _CustomersState extends State<Customers> {
 
     return Card(
       color: cardColor,
-      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
@@ -231,7 +300,7 @@ class _CustomersState extends State<Customers> {
       ),
       child: Padding(
         padding: const EdgeInsets.only(
-          top: 10.0,
+          top: 8.0,
           bottom: 0.0,
           left: 10.0,
           right: 10.0,
@@ -243,18 +312,18 @@ class _CustomersState extends State<Customers> {
               children: [
                 // Initials Avatar
                 CircleAvatar(
-                  radius: 24,
+                  radius: 20,
                   backgroundColor: avatarColor,
                   child: Text(
                     initials,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      fontSize: 16,
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 // Customer Info
                 Expanded(
                   child: Column(
@@ -262,9 +331,9 @@ class _CustomersState extends State<Customers> {
                     children: [
                       Text(
                         customer['name'],
-                        style: context.titleLarge?.copyWith(fontSize: 18),
+                        style: context.titleLarge?.copyWith(fontSize: 16),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
@@ -285,7 +354,6 @@ class _CustomersState extends State<Customers> {
                 ),
               ],
             ),
-            const SizedBox(height: 5),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
