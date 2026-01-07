@@ -6,7 +6,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
-import 'package:flashbill/pages/purchase/invoice_review_screen.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -1186,8 +1185,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           double price = 0.0;
           bool foundUnit = false;
           String unitMarker = 'Pcs'; // Default unit
-          int lastProcessedLine = i + 1; // Track the last line we processed
-
           // Scan next 10 lines to find Unit marker (Pcs, Nos, Roll, etc.) first
           // Then get quantity before it and price after it
           for (int j = i + 2; j < i + 12 && j < lines.length; j++) {
@@ -1236,8 +1233,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                       potentialPrice < 100000 &&
                       price == 0.0) {
                     price = potentialPrice;
-                    lastProcessedLine =
-                        k + 2; // After price, there's usually amount
+                    // After price, there's usually amount
                     print('Found price at line $k: ₹$price (after unit)');
                     break;
                   }
