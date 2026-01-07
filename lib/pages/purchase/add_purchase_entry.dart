@@ -22,9 +22,9 @@ class BoughtItem {
   final String productName;
   final String supplierName;
   final String supplierId;
-  final String unit;
+  String unit;
   String? expiryDate;
-  final int minLimit;
+  int minLimit;
   int initialQuantity; // Original quantity bought (for purchase history)
   int quantity; // Current quantity (decreases as items are sold)
   double buyingPrice;
@@ -274,6 +274,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     final sellingPriceController = TextEditingController(
       text: item.sellingPrice.toString(),
     );
+    final minLimitController = TextEditingController(
+      text: item.minLimit.toString(),
+    );
+    final unitController = TextEditingController(text: item.unit);
     final expiryDateController = TextEditingController(
       text: item.expiryDate ?? '',
     );
@@ -309,13 +313,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Unit: ${item.unit}',
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          fontSize: 14,
-                        ),
-                      ),
-                      Text(
                         'Supplier: ${item.supplierName}',
                         style: const TextStyle(
                           color: Colors.blue,
@@ -341,31 +338,76 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     ],
                   ),
                 ),
+                // Unit Selection
                 TextField(
-                  controller: quantityController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Current Quantity (Available)',
-                    border: OutlineInputBorder(),
+                  controller: unitController,
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    labelText: 'Unit',
+                    border: const OutlineInputBorder(),
+                    suffixIcon: const Icon(Icons.arrow_drop_down),
                   ),
+                  onTap: () {
+                    _showSelectionSheet('Units', _allUnits, unitController);
+                  },
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Buying Price (₹)',
-                    border: OutlineInputBorder(),
-                  ),
+                // Current Quantity and Min Stock Limit in one row
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: quantityController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Current Quantity',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: minLimitController,
+                        keyboardType: TextInputType.number,
+                        decoration: const InputDecoration(
+                          labelText: 'Min. Stock',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: sellingPriceController,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(
-                    labelText: 'Selling Price (₹)',
-                    border: OutlineInputBorder(),
-                  ),
+                // Buying Price and Selling Price in one row
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: priceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Buying Price (₹)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextField(
+                        controller: sellingPriceController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        decoration: const InputDecoration(
+                          labelText: 'Selling Price (₹)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -407,6 +449,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 final price = double.tryParse(priceController.text) ?? 0.0;
                 final sellingPrice =
                     double.tryParse(sellingPriceController.text) ?? 0.0;
+                final minLimit = int.tryParse(minLimitController.text) ?? 0;
 
                 if (quantity > 0 && price > 0 && sellingPrice > 0) {
                   setState(() {
@@ -414,6 +457,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     item.initialQuantity = quantity;
                     item.buyingPrice = price;
                     item.sellingPrice = sellingPrice;
+                    item.minLimit = minLimit;
+                    item.unit = unitController.text;
                     item.expiryDate = expiryDateController.text.isNotEmpty
                         ? expiryDateController.text
                         : null;
