@@ -747,7 +747,7 @@ class _AvailableProductDetailScreenState
           preferredSize: const Size.fromHeight(68),
           child: Container(
             color: Theme.of(context).scaffoldBackgroundColor,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Container(
               height: 50,
               decoration: BoxDecoration(

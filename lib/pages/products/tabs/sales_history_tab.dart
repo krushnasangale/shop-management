@@ -556,7 +556,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
           ),
           const SizedBox(height: 8),
           SizedBox(
-            height: 35,
+            height: 30,
             child: Row(
               children: [
                 Expanded(
