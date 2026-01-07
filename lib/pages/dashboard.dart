@@ -529,8 +529,11 @@ class _DashboardState extends State<Dashboard> {
             });
           }
 
-          // Subtract discount from bill profit
-          totalProfit += (billProfit - discount);
+          // IMPORTANT: Discount reduces profit, never increases it
+          // Ensure discount is always positive before subtracting
+          final validDiscount = discount > 0 ? discount : 0;
+          final netBillProfit = billProfit - validDiscount;
+          totalProfit += netBillProfit;
         }
       }
 
