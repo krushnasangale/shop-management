@@ -22,6 +22,7 @@ class Bills extends StatefulWidget {
 
 class _BillsState extends State<Bills> {
   PaymentFilter _selectedFilter = PaymentFilter.all;
+  SortOption _selectedSort = SortOption.dateNewest;
   late StreamSubscription<QuerySnapshot<Map<String, dynamic>>>
   _billsSubscription;
   late String _userId;
@@ -208,11 +209,158 @@ class _BillsState extends State<Bills> {
       }).toList();
     }
 
+    // Apply sorting
+    _sortBills(filtered);
+
     if (mounted) {
       setState(() {
         _filteredBills = filtered;
         _currentlyLoadedItems = _itemsPerPage.clamp(0, filtered.length);
       });
+    }
+  }
+
+  void _sortBills(List<Bill> bills) {
+    switch (_selectedSort) {
+      case SortOption.dateNewest:
+        bills.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        break;
+      case SortOption.dateOldest:
+        bills.sort((a, b) => a.timestamp.compareTo(b.timestamp));
+        break;
+      case SortOption.amountHighest:
+        bills.sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
+        break;
+      case SortOption.amountLowest:
+        bills.sort((a, b) => a.totalAmount.compareTo(b.totalAmount));
+        break;
+      case SortOption.customerAZ:
+        bills.sort((a, b) => a.customerName.compareTo(b.customerName));
+        break;
+      case SortOption.customerZA:
+        bills.sort((a, b) => b.customerName.compareTo(a.customerName));
+        break;
+    }
+  }
+
+  void _showFilterSortBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Filter & Sort Options',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Sort Section
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Sort By',
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                        if (_selectedSort != SortOption.dateNewest)
+                          TextButton.icon(
+                            onPressed: () {
+                              setModalState(() {
+                                setState(() {
+                                  _selectedSort = SortOption.dateNewest;
+                                  _filterBills();
+                                });
+                              });
+                            },
+                            icon: const Icon(Icons.clear, size: 16),
+                            label: const Text('Reset'),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    ...SortOption.values.map((option) {
+                      final isSelected = _selectedSort == option;
+                      return RadioListTile<SortOption>(
+                        title: Text(
+                          _getSortText(option),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        value: option,
+                        groupValue: _selectedSort,
+                        onChanged: (value) {
+                          if (value != null) {
+                            setModalState(() {
+                              Navigator.pop(context);
+                              setState(() {
+                                _selectedSort = value;
+                                _filterBills();
+                              });
+                            });
+                          }
+                        },
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      );
+                    }).toList(),
+
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _getSortText(SortOption option) {
+    switch (option) {
+      case SortOption.dateNewest:
+        return 'Date (Newest First)';
+      case SortOption.dateOldest:
+        return 'Date (Oldest First)';
+      case SortOption.amountHighest:
+        return 'Amount (Highest First)';
+      case SortOption.amountLowest:
+        return 'Amount (Lowest First)';
+      case SortOption.customerAZ:
+        return 'Customer Name (A-Z)';
+      case SortOption.customerZA:
+        return 'Customer Name (Z-A)';
     }
   }
 
@@ -779,12 +927,46 @@ class _BillsState extends State<Bills> {
                   padding: const EdgeInsets.only(left: 12.0, right: 12.0),
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4.0,
-                      vertical: 2.0,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: Row(
                       children: [
+                        // Combined Filter & Sort Button
+                        InkWell(
+                          onTap: _showFilterSortBottomSheet,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            height: 26,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardTheme.color,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.blue.withOpacity(0.6),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.tune,
+                                  size: 14,
+                                  color: Colors.blue[700],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Filter & Sort',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         _buildFilterChip(PaymentFilter.all),
                         const SizedBox(width: 8),
                         _buildFilterChip(PaymentFilter.paid),
@@ -909,59 +1091,186 @@ class _BillsState extends State<Bills> {
 
   // Helper to build a single bill card
   Widget _buildBillCard(Bill bill) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
-      elevation: 1,
-      child: InkWell(
-        onTap: () {
-          AppNavigator.push(
-            context,
-            ViewBillDetailsScreen(
-              billId: bill.billId,
-              billDate: bill.date,
-              customerName: bill.customerName,
-              customerMobile: bill.customerMobile,
-              customerVehicle: bill.customerVehicle,
-              totalAmount: bill.totalAmount,
-              totalAmountPaid: bill.totalAmountPaid,
-              amountPaid: bill.amountPaid,
-              amountRemaining: bill.amountRemaining,
-              products: bill.products,
-              nextPaymentDate: bill.nextPaymentDate,
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark
+              ? Colors.grey.withOpacity(0.2)
+              : Colors.grey.withOpacity(0.15),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: isDark
+                ? Colors.black.withOpacity(0.2)
+                : Colors.grey.withOpacity(0.08),
+            blurRadius: 6,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            AppNavigator.push(
+              context,
+              ViewBillDetailsScreen(
+                billId: bill.billId,
+                billDate: bill.date,
+                customerName: bill.customerName,
+                customerMobile: bill.customerMobile,
+                customerVehicle: bill.customerVehicle,
+                totalAmount: bill.totalAmount,
+                totalAmountPaid: bill.totalAmountPaid,
+                amountPaid: bill.amountPaid,
+                amountRemaining: bill.amountRemaining,
+                products: bill.products,
+                nextPaymentDate: bill.nextPaymentDate,
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header Row: Customer Name and Status Badge
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        bill.customerName,
+                        style: context.titleLarge?.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    _buildStatusBadge(bill.status),
+                  ],
+                ),
+
+                const SizedBox(height: 4),
+
+                // Bottom Row: Date and Amount
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Date Section
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 13,
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          bill.date,
+                          style: context.subtitleMedium?.copyWith(fontSize: 12),
+                        ),
+                      ],
+                    ),
+
+                    // Amount Section
+                    Text(
+                      bill.amount,
+                      style: context.titleLarge?.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.green[600],
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Show payment details if partially paid or unpaid
+                if (bill.status == PaymentFilter.partial ||
+                    bill.status == PaymentFilter.unpaid) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: bill.status == PaymentFilter.unpaid
+                          ? Colors.red.withOpacity(0.08)
+                          : Colors.orange.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: bill.status == PaymentFilter.unpaid
+                            ? Colors.red.withOpacity(0.2)
+                            : Colors.orange.withOpacity(0.2),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        if (bill.amountPaid > 0) ...[
+                          Row(
+                            children: [
+                              Text(
+                                'Paid: ',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                '₹${bill.amountPaid}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        Row(
+                          children: [
+                            Text(
+                              'Remaining: ',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                            Text(
+                              '₹${bill.amountRemaining}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: bill.status == PaymentFilter.unpaid
+                                    ? Colors.red[700]
+                                    : Colors.orange[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
             ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Bottom Row: Customer Name and Status
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    bill.customerName,
-                    style: context.titleLarge?.copyWith(fontSize: 18),
-                  ),
-                  _buildStatusBadge(bill.status),
-                ],
-              ),
-              // Top Row: Date and Amount
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Bill Date: ${bill.date}',
-                    style: context.subtitleMedium,
-                  ),
-                  Text(
-                    bill.amount,
-                    style: context.titleLarge?.copyWith(fontSize: 18),
-                  ),
-                ],
-              ),
-            ],
           ),
         ),
       ),
@@ -971,6 +1280,16 @@ class _BillsState extends State<Bills> {
 
 // --- Data Model for Bill Status ---
 enum PaymentFilter { all, paid, partial, unpaid }
+
+// --- Sort Options ---
+enum SortOption {
+  dateNewest,
+  dateOldest,
+  amountHighest,
+  amountLowest,
+  customerAZ,
+  customerZA,
+}
 
 // --- Product Data Structure (Simplified) ---
 class Bill {

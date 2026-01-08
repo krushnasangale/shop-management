@@ -487,40 +487,40 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             children: [
               Text('Scan Invoice', style: context.headingMedium),
               const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.camera_alt, color: Colors.blue),
-                ),
-                title: const Text('Take Photo'),
-                subtitle: const Text('Capture invoice with camera'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _scanFromCamera();
-                },
-              ),
-              const Divider(),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.photo_library, color: Colors.green),
-                ),
-                title: const Text('Choose from Gallery'),
-                subtitle: const Text('Select invoice from photos'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _scanFromGallery();
-                },
-              ),
-              const Divider(),
+              // ListTile(
+              //   leading: Container(
+              //     padding: const EdgeInsets.all(10),
+              //     decoration: BoxDecoration(
+              //       color: Colors.blue.withOpacity(0.1),
+              //       borderRadius: BorderRadius.circular(10),
+              //     ),
+              //     child: const Icon(Icons.camera_alt, color: Colors.blue),
+              //   ),
+              //   title: const Text('Take Photo'),
+              //   subtitle: const Text('Capture invoice with camera'),
+              //   onTap: () {
+              //     Navigator.pop(context);
+              //     _scanFromCamera();
+              //   },
+              // ),
+              // const Divider(),
+              // ListTile(
+              //   leading: Container(
+              //     padding: const EdgeInsets.all(10),
+              //     decoration: BoxDecoration(
+              //       color: Colors.green.withOpacity(0.1),
+              //       borderRadius: BorderRadius.circular(10),
+              //     ),
+              //     child: const Icon(Icons.photo_library, color: Colors.green),
+              //   ),
+              //   title: const Text('Choose from Gallery'),
+              //   subtitle: const Text('Select invoice from photos'),
+              //   onTap: () {
+              //     Navigator.pop(context);
+              //     _scanFromGallery();
+              //   },
+              // ),
+              // const Divider(),
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(10),
