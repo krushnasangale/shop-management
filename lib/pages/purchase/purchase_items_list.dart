@@ -180,13 +180,13 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         automaticallyImplyLeading: false,
         actions: [
           // Scan Invoice Button
-          IconButton(
-            icon: const Icon(Icons.document_scanner),
-            tooltip: 'Scan Invoice',
-            onPressed: () {
-              _showScanOptions(context);
-            },
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.document_scanner),
+          //   tooltip: 'Scan Invoice',
+          //   onPressed: () {
+          //     _showScanOptions(context);
+          //   },
+          // ),
           IconButton(
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: () {
