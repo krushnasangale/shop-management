@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _loading = false;
+  bool _showPassword = false;
 
   @override
   void dispose() {
@@ -164,7 +165,11 @@ class _LoginScreenState extends State<LoginScreen> {
     final hintColor = Theme.of(context).textTheme.bodyMedium?.color;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Login'), centerTitle: true),
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Hides the back button
+        title: const Text('Login'),
+        centerTitle: true,
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32.0),
@@ -226,7 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8.0),
                 TextFormField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_showPassword,
                   decoration: InputDecoration(
                     hintText: 'Enter your password',
                     hintStyle: TextStyle(color: hintColor),
@@ -241,6 +246,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderSide: BorderSide.none,
                     ),
                     prefixIcon: Icon(Icons.lock_outline, color: hintColor),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _showPassword ? Icons.visibility : Icons.visibility_off,
+                        color: hintColor,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _showPassword = !_showPassword;
+                        });
+                      },
+                    ),
                   ),
                   validator: (v) {
                     if (v == null || v.isEmpty) return 'Please enter password';
