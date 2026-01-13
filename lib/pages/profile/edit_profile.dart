@@ -28,6 +28,7 @@ class _EditProfileState extends State<EditProfile> {
   late TextEditingController _shopEmailController;
   late TextEditingController _licenseNumberController;
   late TextEditingController _ownerSignatureController;
+  late TextEditingController _subscriptionExpiryController;
 
   String? _ownerSignatureBase64;
   bool _hasSignature = false;
@@ -42,6 +43,7 @@ class _EditProfileState extends State<EditProfile> {
     _shopEmailController = TextEditingController();
     _licenseNumberController = TextEditingController();
     _ownerSignatureController = TextEditingController();
+    _subscriptionExpiryController = TextEditingController();
     _loadShopDetails();
   }
 
@@ -68,6 +70,27 @@ class _EditProfileState extends State<EditProfile> {
           _hasSignature =
               _ownerSignatureBase64 != null &&
               _ownerSignatureBase64!.isNotEmpty;
+
+          // Load subscription expiry date
+          if (data['subscriptionExpiry'] != null) {
+            try {
+              DateTime expiryDate;
+              if (data['subscriptionExpiry'] is Timestamp) {
+                expiryDate = (data['subscriptionExpiry'] as Timestamp).toDate();
+              } else if (data['subscriptionExpiry'] is String) {
+                expiryDate = DateTime.parse(data['subscriptionExpiry']);
+              } else {
+                throw Exception('Invalid subscription expiry format');
+              }
+
+              _subscriptionExpiryController.text =
+                  '${expiryDate.day.toString().padLeft(2, '0')}/${expiryDate.month.toString().padLeft(2, '0')}/${expiryDate.year}';
+            } catch (e) {
+              _subscriptionExpiryController.text = 'Not set';
+            }
+          } else {
+            _subscriptionExpiryController.text = 'Not set';
+          }
         });
       }
     } catch (e) {
@@ -529,7 +552,7 @@ class _EditProfileState extends State<EditProfile> {
                   ],
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 6),
 
               // Shop Name Field
               const Text(
@@ -814,40 +837,71 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 16),
 
               // License/Registration Number Field
+              // const Text(
+              //   'License/Registration Number',
+              //   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              // ),
+              // Card(
+              //   child: TextFormField(
+              //     controller: _licenseNumberController,
+              //     enabled: _isEditMode,
+              //     decoration: InputDecoration(
+              //       hintText: 'GST Number or License ID',
+              //       prefixIcon: const Icon(Icons.assignment),
+              //       filled: false,
+              //       fillColor: Theme.of(context).cardColor,
+              //       border: OutlineInputBorder(
+              //         borderRadius: BorderRadius.circular(8),
+              //         borderSide: BorderSide.none,
+              //       ),
+              //       errorBorder: OutlineInputBorder(
+              //         borderRadius: BorderRadius.circular(8),
+              //         borderSide: const BorderSide(color: Colors.red, width: 1),
+              //       ),
+              //       focusedErrorBorder: OutlineInputBorder(
+              //         borderRadius: BorderRadius.circular(8),
+              //         borderSide: const BorderSide(color: Colors.red, width: 2),
+              //       ),
+              //     ),
+              //     validator: (value) {
+              //       if (_isEditMode && (value == null || value.isEmpty)) {
+              //         return 'Please enter license/registration number';
+              //       }
+              //       return null;
+              //     },
+              //   ),
+              // ),
+
+              // Subscription Expiry Date Field (Non-editable)
               const Text(
-                'License/Registration Number',
+                'Subscription Expiry',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Card(
                 child: TextFormField(
-                  controller: _licenseNumberController,
-                  enabled: _isEditMode,
+                  controller: _subscriptionExpiryController,
+                  enabled: false, // Always disabled - not editable
                   decoration: InputDecoration(
-                    hintText: 'GST Number or License ID',
-                    prefixIcon: const Icon(Icons.assignment),
+                    hintText: 'Not set',
+                    prefixIcon: const Icon(Icons.calendar_today),
                     filled: false,
                     fillColor: Theme.of(context).cardColor,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: BorderSide.none,
                     ),
-                    errorBorder: OutlineInputBorder(
+                    disabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 1),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 2),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                  validator: (value) {
-                    if (_isEditMode && (value == null || value.isEmpty)) {
-                      return 'Please enter license/registration number';
-                    }
-                    return null;
-                  },
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
+              const SizedBox(height: 6),
               const SizedBox(height: 32),
 
               // Save Button - Only show in edit mode
