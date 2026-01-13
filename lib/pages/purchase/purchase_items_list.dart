@@ -180,13 +180,13 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         automaticallyImplyLeading: false,
         actions: [
           // Scan Invoice Button
-          // IconButton(
-          //   icon: const Icon(Icons.document_scanner),
-          //   tooltip: 'Scan Invoice',
-          //   onPressed: () {
-          //     _showScanOptions(context);
-          //   },
-          // ),
+          IconButton(
+            icon: const Icon(Icons.document_scanner),
+            tooltip: 'Scan Invoice',
+            onPressed: () {
+              _showScanOptions(context);
+            },
+          ),
           IconButton(
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: () {
@@ -637,7 +637,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Detected only $textLength characters from the document.',
+                'This PDF is not giving us good results. Please try a different PDF.',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
@@ -698,7 +698,10 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.pop(context);
+              _showScanOptions(context); // Open PDF selection popup again
+            },
             child: Text('Retry Scan'),
           ),
           ElevatedButton(
@@ -731,7 +734,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 
   Future<void> _scanFromPDF() async {
     try {
-      print('Opening PDF picker...');
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf'],
@@ -739,12 +741,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        print('PDF selected: ${file.path}');
-
         if (file.path != null && mounted) {
           await _processPDF(file.path!);
         } else {
-          print('PDF path is null');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -754,13 +753,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             );
           }
         }
-      } else {
-        print('No PDF selected');
       }
-    } catch (e, stackTrace) {
-      print('Error in _scanFromPDF: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -773,8 +767,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   }
 
   Future<void> _processPDF(String pdfPath) async {
-    print('Starting PDF processing for: $pdfPath');
-
     // Show loading dialog with enhanced UI
     if (mounted) {
       showDialog(
@@ -829,41 +821,25 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 
     try {
       // Load the PDF document
-      print('Loading PDF file...');
       final File file = File(pdfPath);
       final bytes = await file.readAsBytes();
-
-      print('Parsing PDF document...');
       final PdfDocument document = PdfDocument(inputBytes: bytes);
-
-      print('PDF has ${document.pages.count} pages');
-
       // Extract text from all pages
       String extractedText = '';
       final PdfTextExtractor extractor = PdfTextExtractor(document);
-
       for (int i = 0; i < document.pages.count; i++) {
-        print('Extracting text from page ${i + 1}...');
         final String pageText = extractor.extractText(
           startPageIndex: i,
           endPageIndex: i,
         );
-        extractedText += pageText + '\n';
+        extractedText += '$pageText\n';
       }
 
       // Clean up
       document.dispose();
 
-      print('Total extracted text length: ${extractedText.length}');
-      print(
-        'Extracted text preview: ${extractedText.substring(0, extractedText.length > 300 ? 300 : extractedText.length)}',
-      );
-
       // Parse invoice data
-      print('Parsing invoice data...');
       final invoiceData = _parseInvoiceText(extractedText);
-      print('Parsed ${invoiceData['products'].length} products');
-
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
@@ -883,10 +859,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           );
         }
       }
-    } catch (e, stackTrace) {
-      print('Error in _processPDF: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e) {
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
@@ -903,8 +876,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   }
 
   Future<void> _processImage(String imagePath) async {
-    print('Starting image processing for: $imagePath');
-
     // Show loading dialog with enhanced UI
     if (mounted) {
       showDialog(
@@ -966,34 +937,22 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       // Check if running on mobile platforms (Android/iOS)
       if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
         // Mobile: Use Google ML Kit
-        print('Initializing Google ML Kit text recognizer...');
         final textRecognizer = TextRecognizer(
           script: TextRecognitionScript.latin,
         );
 
-        print('Creating input image...');
         final inputImage = InputImage.fromFilePath(imagePath);
-
-        print('Processing image with OCR...');
         final RecognizedText recognizedText = await textRecognizer.processImage(
           inputImage,
         );
-
-        // IMPROVED: Extract text at multiple levels for better table detection
-        print('OCR completed - Total blocks: ${recognizedText.blocks.length}');
-
         // Method 1: Get simple text (original method)
         String simpleText = recognizedText.text;
-        print('Method 1 - Simple text length: ${simpleText.length}');
-
         // Method 2: Extract line by line from all blocks (better for tables)
         StringBuffer detailedText = StringBuffer();
         int totalLines = 0;
 
         for (int i = 0; i < recognizedText.blocks.length; i++) {
           final block = recognizedText.blocks[i];
-          print('Block $i: ${block.text}');
-
           // Process each line in the block
           for (int j = 0; j < block.lines.length; j++) {
             final line = block.lines[j];
@@ -1011,26 +970,20 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
               detailedText.writeln(lineText);
               if (totalLines <= 20) {
                 // Log first 20 lines
-                print('  Line $j: $lineText');
+                debugPrint('  Line $j: $lineText');
               }
             }
           }
         }
-
-        print('Method 2 - Detailed extraction: $totalLines lines');
-
         // Use the method that extracted more text
         if (detailedText.length > simpleText.length) {
           extractedText = detailedText.toString();
-          print('Using detailed extraction (${extractedText.length} chars)');
         } else {
           extractedText = simpleText;
-          print('Using simple extraction (${extractedText.length} chars)');
         }
 
         // Clean up
         await textRecognizer.close();
-        print('Text recognizer closed');
       } else {
         // Desktop/Web: OCR not supported
         throw Exception(
@@ -1039,19 +992,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         );
       }
 
-      print('Extracted text length: ${extractedText.length}');
-      print('=== FULL EXTRACTED TEXT START ===');
-      print(extractedText);
-      print('=== FULL EXTRACTED TEXT END ===');
-      print(
-        'Extracted text preview: ${extractedText.substring(0, extractedText.length > 200 ? 200 : extractedText.length)}',
-      );
-
       // Parse invoice data
-      print('Parsing invoice data...');
       final invoiceData = _parseInvoiceText(extractedText);
-      print('Parsed ${invoiceData['products'].length} products');
-
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
@@ -1070,10 +1012,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           );
         }
       }
-    } catch (e, stackTrace) {
-      print('Error in _processImage: $e');
-      print('Stack trace: $stackTrace');
-
+    } catch (e) {
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
@@ -1090,18 +1029,12 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   }
 
   Map<String, dynamic> _parseInvoiceText(String text) {
-    print('=== Starting Invoice Parsing ===');
-    print('Raw text length: ${text.length}');
-
     // Enhanced parser with better pattern matching
     final lines = text
         .split('\n')
         .map((l) => l.trim())
         .where((l) => l.isNotEmpty)
         .toList();
-
-    print('Total lines: ${lines.length}');
-
     String? supplierName;
     String? date;
     double? total;
@@ -1136,15 +1069,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       RegExp(r'₹\s*([0-9,]+\.?\d*)\s*total', caseSensitive: false),
       RegExp(r'\$\s*([0-9,]+\.?\d*)\s*total', caseSensitive: false),
     ];
-
-    // Enhanced product name patterns to catch fragmented names
-    final productNamePatterns = [
-      RegExp(
-        r'^[A-Z][A-Z\s]{2,}$',
-      ), // ALL CAPS product names (e.g., "TEFLON WONDER")
-      RegExp(r'^[A-Z][a-zA-Z\s]{2,}$'), // Title case names
-    ];
-
     // Multiple product line patterns to handle various formats
     final productPatterns = [
       // Format: "Product Name 2 pcs $100.00"
@@ -1165,8 +1089,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
     // Usually in first few lines, longer text without keywords
     for (int i = 0; i < lines.length && i < 10; i++) {
       final line = lines[i];
-      print('Line $i: $line');
-
       // Skip common headers and keywords
       if (line.toLowerCase().contains('invoice') ||
           line.toLowerCase().contains('bill to') ||
@@ -1191,7 +1113,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 
         if (!hasNumber && !hasSpecialChars) {
           supplierName = line;
-          print('Found supplier name: $supplierName');
         }
       }
     }
@@ -1203,24 +1124,19 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         final match = pattern.firstMatch(line);
         if (match != null) {
           date = match.group(1) ?? match.group(0);
-          print('Found date: $date');
           break;
         }
       }
     }
 
     // Extract total amount - scan more lines and check adjacent lines
-    print('=== Searching for Total Amount ===');
     for (int i = lines.length - 1; i >= 0 && i >= lines.length - 30; i--) {
       final line = lines[i];
       if (total != null) break;
-
       // Check if line contains total-related keywords
       if (line.toLowerCase().contains('total') ||
           line.toLowerCase().contains('amount') ||
           line.toLowerCase().contains('payable')) {
-        print('Total keyword found at line $i: $line');
-
         // Check current line and next 3 lines for amount
         for (int j = i; j < i + 4 && j < lines.length; j++) {
           final checkLine = lines[j];
@@ -1232,9 +1148,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             final potentialTotal = double.tryParse(totalStr);
             if (potentialTotal != null && potentialTotal > 100) {
               total = potentialTotal;
-              print(
-                'Found total at line $j: ₹$total (after keyword at line $i)',
-              );
               break;
             }
           }
@@ -1249,7 +1162,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           final totalStr = match.group(1)?.replaceAll(',', '') ?? '';
           total = double.tryParse(totalStr);
           if (total != null && total > 0) {
-            print('Found total via pattern: $total at line $i');
             break;
           }
         }
@@ -1257,12 +1169,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
     }
 
     if (total == null || total == 0.0) {
-      print('WARNING: Total not found in last 30 lines');
-      print('Last 10 lines of document:');
-      for (int i = lines.length - 10; i < lines.length && i >= 0; i++) {
-        print('  Line $i: ${lines[i]}');
-      }
-
       // NEW: Try to find any large amount with ₹ symbol as potential total
       // Scan entire document for amounts > 1000
       List<double> largeAmounts = [];
@@ -1273,7 +1179,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           final amount = double.tryParse(amountStr);
           if (amount != null && amount > 500) {
             largeAmounts.add(amount);
-            print('Found large amount: ₹$amount in line: $line');
           }
         }
       }
@@ -1281,276 +1186,193 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       // Use the largest amount as total if available
       if (largeAmounts.isNotEmpty) {
         total = largeAmounts.reduce((a, b) => a > b ? a : b);
-        print('Using largest amount as total: ₹$total');
       }
     }
 
-    // Extract products - improved approach for both inline and tabular formats
-    print('=== Extracting Products ===');
+    // Find where the product table section starts
+    bool inProductSection = false;
+    int productCount = 0;
+    int productSectionStartLine = -1;
 
-    // NEW: Try to extract products from fragmented/incomplete OCR text
-    // Look for potential product names (ALL CAPS or Title Case lines)
-    // followed by numbers that could be quantities or prices
-    List<String> potentialProductNames = [];
-
+    // Find the table header with "Item name"
     for (int i = 0; i < lines.length; i++) {
       final line = lines[i].trim();
 
-      // Skip too short or header lines
-      if (line.length < 3) continue;
-      if (line.toLowerCase().contains('invoice') ||
-          line.toLowerCase().contains('bill to') ||
-          line.toLowerCase().contains('ship to') ||
-          line.toLowerCase().contains('thanks') ||
-          line.toLowerCase().contains('hsn') ||
-          line.toLowerCase().contains('sac') ||
-          line.toLowerCase().contains('driver') ||
-          line.toLowerCase().contains('round'))
-        continue;
-
-      // Check if line looks like a product name
-      for (var pattern in productNamePatterns) {
-        if (pattern.hasMatch(line)) {
-          // Check if it's not the supplier name (already captured)
-          if (supplierName != null &&
-              line.toLowerCase().contains(
-                supplierName.toLowerCase().split('/')[0].toLowerCase(),
-              )) {
-            continue;
-          }
-
-          // Additional validation - should not be address/location terms
-          if (line.toLowerCase().contains('nagar') ||
-              line.toLowerCase().contains('road') ||
-              line.toLowerCase().contains('street') ||
-              line.toLowerCase().contains('city') ||
-              line.contains('%')) {
-            continue;
-          }
-
-          potentialProductNames.add(line);
-          print('Potential product name found at line $i: $line');
-
-          // Look at next few lines for quantity/price information
-          double foundPrice = 0.0;
-          int foundQuantity = 1;
-
-          for (int j = i + 1; j < i + 5 && j < lines.length; j++) {
-            final nextLine = lines[j].trim();
-
-            // Look for standalone numbers that could be quantity
-            if (foundQuantity == 1 && RegExp(r'^\d{1,3}$').hasMatch(nextLine)) {
-              final qty = int.tryParse(nextLine);
-              if (qty != null && qty > 0 && qty < 1000) {
-                foundQuantity = qty;
-                print('  Found quantity: $foundQuantity');
-              }
-            }
-
-            // Look for price with ₹ symbol
-            final priceMatch = RegExp(
-              r'₹\s*([0-9,]+\.?\d*)',
-            ).firstMatch(nextLine);
-            if (priceMatch != null && foundPrice == 0.0) {
-              final priceStr = priceMatch.group(1)?.replaceAll(',', '') ?? '0';
-              final price = double.tryParse(priceStr);
-              if (price != null && price > 0 && price < 100000) {
-                foundPrice = price;
-                print('  Found price: ₹$foundPrice');
-              }
-            }
-          }
-
-          // Add product if we have enough information
-          if (foundPrice > 0) {
-            products.add({
-              'name': line,
-              'quantity': foundQuantity,
-              'price': foundPrice,
-              'unit': 'Pcs',
-            });
-            print(
-              'Product added (fragmented): $line x$foundQuantity @ ₹$foundPrice',
-            );
-          }
-
-          break;
-        }
-      }
-    }
-
-    // Continue with existing extraction methods if no products found yet
-    bool inProductSection = false;
-    int productCount = products.length; // Start from existing count
-    int productSectionStartLine = -1;
-
-    // First, find where the product section starts (only if no products found yet)
-    if (products.isEmpty) {
-      for (int i = 0; i < lines.length; i++) {
-        final line = lines[i].trim();
-
-        if (line.toLowerCase().contains('item name') ||
-            line.toLowerCase().contains('description') ||
-            (line.toLowerCase().contains('item') &&
-                (line.toLowerCase().contains('quantity') ||
-                    line.toLowerCase().contains('unit')))) {
-          inProductSection = true;
-          productSectionStartLine = i;
-          print('Product section started at line $i: $line');
-          break;
-        }
+      if (line.toLowerCase().contains('item name') ||
+          line.toLowerCase().contains('description') ||
+          (line.toLowerCase().contains('item') &&
+              (line.toLowerCase().contains('quantity') ||
+                  line.toLowerCase().contains('unit')))) {
+        inProductSection = true;
+        productSectionStartLine = i;
+        break;
       }
     }
 
     if (inProductSection && productSectionStartLine >= 0) {
-      // Try to detect if this is a tabular format (PDF table extracted line-by-line)
-      // Look for pattern: number, name, then other values
-      int expectedRowNumber = 1; // Track sequential row numbers
+      // Use row number sequencing for accurate product extraction
+      int expectedRowNumber = 1;
 
-      for (int i = productSectionStartLine + 1; i < lines.length - 7; i++) {
+      for (int i = productSectionStartLine + 1; i < lines.length; i++) {
         final line = lines[i].trim();
 
-        // Stop if we've reached the totals/footer section
+        // Stop at footer section - look for "Total" with large quantity or amount
+        if (line.toLowerCase() == 'total') {
+          // Check if next few lines have large numbers (143 items, ₹10,000+)
+          bool isFooterTotal = false;
+          for (int j = i + 1; j < i + 3 && j < lines.length; j++) {
+            final checkLine = lines[j].trim();
+            // If we see a very large quantity (>100) or the total amount, it's footer
+            final largeQty = RegExp(r'^(\d{3,})$').hasMatch(checkLine); // 100+
+            final hasTotal = RegExp(
+              r'₹\s*([0-9,]{4,})',
+            ).hasMatch(checkLine); // ₹1000+
+            if (largeQty || hasTotal) {
+              isFooterTotal = true;
+              break;
+            }
+          }
+          if (isFooterTotal) {
+            break;
+          }
+        }
+
+        // Also stop at other footer markers
         if (line.toLowerCase().contains('sub total') ||
             line.toLowerCase().contains('subtotal') ||
-            line.toLowerCase().contains('grand total') ||
             line.toLowerCase().contains('invoice amount') ||
-            line.toLowerCase().contains('net amount') ||
-            line.toLowerCase().contains('taxable') ||
-            line.toLowerCase().contains('cgst') ||
-            line.toLowerCase().contains('sgst') ||
-            line.toLowerCase().contains('igst') ||
-            (line.toLowerCase().contains('total') &&
-                RegExp(r'₹\s*[0-9,]+\.?\d*').hasMatch(line))) {
-          print(
-            'Reached totals section at line $i: $line - stopping product extraction',
-          );
+            line.toLowerCase().contains('payment mode') ||
+            line.toLowerCase().contains('description') ||
+            line.toLowerCase().contains('terms and conditions')) {
           break;
         }
 
-        // Check if line is a row number (1, 2, 3, etc.)
-        // Must be sequential to avoid confusing quantities with row numbers
-        final isRowNumber = RegExp(r'^\d{1,3}$').hasMatch(line);
+        // Check if this line is the next sequential row number
+        final isRowNumber = RegExp(r'^\d{1,2}$').hasMatch(line);
         final lineNumber = int.tryParse(line) ?? -1;
         final isSequentialRowNumber =
             isRowNumber && lineNumber == expectedRowNumber;
 
         if (isSequentialRowNumber) {
-          print('Processing row $lineNumber at line $i');
+          // Next line should be product name
+          if (i + 1 >= lines.length) break;
+          var productName = lines[i + 1].trim();
+          // Validate product name - must not be a unit marker or empty
+          final unitPattern = RegExp(
+            r'^(pcs?|nos?|piece|unit|hrs?|hours?|box|boxes|kg|kgs|ltr|litre|rolls?|rol|set|sets|pair|pairs|mtr|meter|metres)$',
+            caseSensitive: false,
+          );
 
-          // Tabular format detected - next line should be product name
-          var productName = (i + 1 < lines.length) ? lines[i + 1].trim() : '';
-
-          // Skip if product name looks like header or invalid
           if (productName.isEmpty ||
               productName.length < 2 ||
-              productName.toLowerCase().contains('total') ||
-              productName.toLowerCase().contains('sub total') ||
-              productName.toLowerCase().contains('invoice amount') ||
-              productName.toLowerCase().contains('terns') ||
-              productName.toLowerCase().contains('payment') ||
-              // Also skip if product name is just a unit marker
-              RegExp(
-                r'^(pcs?|nos?|piece|unit|hrs?|hours?|box|boxes|kg|kgs|ltr|litre|rolls?|rol|-|set|sets|pair|pairs|mtr|meter|metres)$',
-                caseSensitive: false,
-              ).hasMatch(productName)) {
-            print(
-              'Skipping invalid product name at row $lineNumber: $productName (false row match)',
-            );
-            // Don't increment expectedRowNumber - this was a false match
-            continue;
+              unitPattern.hasMatch(productName)) {
+            continue; // Don't increment expectedRowNumber
           }
 
-          // Check if next line might be a continuation of product name (not a number or unit)
+          // Check if next line is a continuation of product name
+          // (not a number, unit, or price - just more text)
+          int nameEndOffset = 2; // Default: product name ends at i+1
           if (i + 2 < lines.length) {
             final nextLine = lines[i + 2].trim();
             final isNotNumber = !RegExp(r'^\d+(\.\d+)?$').hasMatch(nextLine);
-            final isNotUnit = !RegExp(
-              r'^(pcs?|nos?|piece|unit|hrs?|hours?|box|boxes|kg|kgs|ltr|litre|rolls?|rol|-|set|sets|pair|pairs|mtr|meter|metres|₹)$',
-              caseSensitive: false,
-            ).hasMatch(nextLine);
+            final isNotUnit = !unitPattern.hasMatch(nextLine);
             final isNotPrice = !nextLine.contains('₹');
 
+            // If next line is 2-30 chars of text (not number/unit/price), it's a continuation
             if (isNotNumber &&
                 isNotUnit &&
                 isNotPrice &&
-                nextLine.length > 1 &&
-                nextLine.length < 50) {
-              // Likely a continuation of product name
+                nextLine.length >= 2 &&
+                nextLine.length <= 30) {
               productName = '$productName $nextLine';
-              print('Multi-line product detected: combined to $productName');
+              nameEndOffset = 3; // Product name ends at i+2
             }
           }
 
-          print('Valid product name found: $productName');
-
-          // In tabular format, look ahead for quantity and price
-          // Expected pattern after product name:
-          // [HSN/SAC], [MRP], Quantity, Unit (Pcs), Price/Unit (₹), Amount (₹)
+          // Extract quantity, unit, and price from lines after product name
           int quantity = 1;
           double price = 0.0;
+          String unitMarker = 'Pcs'; // Default to Pcs
           bool foundUnit = false;
-          String unitMarker = 'Pcs'; // Default unit
-          // Scan next 10 lines to find Unit marker (Pcs, Nos, Roll, etc.) first
-          // Then get quantity before it and price after it
-          for (int j = i + 2; j < i + 12 && j < lines.length; j++) {
-            final nextLine = lines[j].trim();
 
-            // Look for unit marker (Pcs, Nos, Unit, Roll, Rol, -, Box, etc.)
-            if (!foundUnit &&
-                RegExp(
-                  r'^(pcs?|nos?|piece|unit|hrs?|hours?|box|boxes|kg|kgs|ltr|litre|rolls?|rol|-|set|sets|pair|pairs|mtr|meter|metres)$',
-                  caseSensitive: false,
-                ).hasMatch(nextLine)) {
+          for (int j = i + nameEndOffset; j < i + 15 && j < lines.length; j++) {
+            final checkLine = lines[j].trim();
+
+            // Look for unit marker (Pcs, Nos, etc.)
+            if (!foundUnit && unitPattern.hasMatch(checkLine)) {
+              unitMarker = checkLine;
               foundUnit = true;
-              unitMarker = nextLine; // Store the actual unit marker
-              print('Found unit marker at line $j: $nextLine');
-
-              // Quantity should be 1-2 lines before the unit marker
-              for (int k = j - 1; k >= i + 2 && k >= j - 3; k--) {
-                final prevLine = lines[k].trim();
-                final qtyMatch = RegExp(
-                  r'^(\d{1,4})(?:\.0)?$',
-                ).firstMatch(prevLine);
-                if (qtyMatch != null) {
-                  final potentialQty =
-                      int.tryParse(qtyMatch.group(1) ?? '1') ?? 1;
-                  if (potentialQty > 0 && potentialQty < 10000) {
-                    quantity = potentialQty;
-                    print('Found quantity at line $k: $quantity (before unit)');
+              // Quantity is 1-3 lines before unit (after product name)
+              for (int k = j - 1; k >= i + nameEndOffset && k >= j - 3; k--) {
+                final qtyLine = lines[k].trim();
+                // Match standalone numbers 1-999
+                if (RegExp(r'^\d{1,3}$').hasMatch(qtyLine)) {
+                  quantity = int.tryParse(qtyLine) ?? 1;
+                  if (quantity > 0 && quantity < 1000) {
                     break;
                   }
                 }
               }
 
-              // Price/Unit should be 1-2 lines after unit marker with ₹ symbol
+              // Price is 1-3 lines after unit (with ₹ symbol)
               for (int k = j + 1; k < j + 4 && k < lines.length; k++) {
-                final afterLine = lines[k].trim();
-                // Look specifically for price with ₹ symbol
+                final priceLine = lines[k].trim();
                 final priceMatch = RegExp(
                   r'₹\s*([0-9,]+\.?\d*)',
-                ).firstMatch(afterLine);
-                if (priceMatch != null) {
+                ).firstMatch(priceLine);
+                if (priceMatch != null && price == 0.0) {
                   final priceStr =
                       priceMatch.group(1)?.replaceAll(',', '') ?? '0';
-                  final potentialPrice = double.tryParse(priceStr) ?? 0.0;
-                  // First ₹ value after unit is Price/Unit (not Amount)
-                  if (potentialPrice > 0 &&
-                      potentialPrice < 100000 &&
-                      price == 0.0) {
-                    price = potentialPrice;
-                    // After price, there's usually amount
-                    print('Found price at line $k: ₹$price (after unit)');
+                  price = double.tryParse(priceStr) ?? 0.0;
+                  if (price > 0 && price < 100000) {
                     break;
                   }
                 }
               }
-
-              break; // Found unit, no need to continue
+              break; // Found unit, stop searching
             }
           }
 
-          // Add product if we have valid data
+          // Fallback: If no unit found, search for quantity and price directly
+          if (!foundUnit) {
+            // Search for quantity (first standalone number 1-999)
+            for (
+              int j = i + nameEndOffset;
+              j < i + nameEndOffset + 5 && j < lines.length;
+              j++
+            ) {
+              final qtyLine = lines[j].trim();
+              if (RegExp(r'^\d{1,3}$').hasMatch(qtyLine)) {
+                final qty = int.tryParse(qtyLine);
+                if (qty != null && qty > 0 && qty < 1000) {
+                  quantity = qty;
+                  break;
+                }
+              }
+            }
+
+            // Search for price (line with ₹ symbol)
+            for (
+              int j = i + nameEndOffset;
+              j < i + nameEndOffset + 8 && j < lines.length;
+              j++
+            ) {
+              final priceLine = lines[j].trim();
+              final priceMatch = RegExp(
+                r'₹\s*([0-9,]+\.?\d*)',
+              ).firstMatch(priceLine);
+              if (priceMatch != null && price == 0.0) {
+                final priceStr =
+                    priceMatch.group(1)?.replaceAll(',', '') ?? '0';
+                price = double.tryParse(priceStr) ?? 0.0;
+                if (price > 0 && price < 100000) {
+                  break;
+                }
+              }
+            }
+          }
+
+          // Add product if valid
           if (productName.isNotEmpty && price > 0) {
             products.add({
               'name': productName,
@@ -1559,27 +1381,18 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
               'unit': unitMarker,
             });
             productCount++;
-            print(
-              'Product $productCount (table): $productName x$quantity $unitMarker @ ₹$price',
-            );
-
-            // Increment expected row number for next product
-            expectedRowNumber++;
-
-            // Don't skip - just continue normally, the sequential check will handle it
+            expectedRowNumber++; // Move to next row number
           }
         }
       }
     }
 
-    // If no products found with tabular method, try inline patterns
+    // If no products found with table method, try inline patterns
     if (products.isEmpty) {
-      print('Trying inline pattern extraction...');
       inProductSection = false;
 
       for (int i = 0; i < lines.length; i++) {
         final line = lines[i].trim();
-
         // Skip empty or very short lines
         if (line.length < 3) continue;
 
@@ -1589,7 +1402,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             line.toLowerCase().contains('product') ||
             line.toLowerCase().contains('service')) {
           inProductSection = true;
-          print('Product section started at line $i');
           continue;
         }
 
@@ -1599,7 +1411,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                 line.toLowerCase().contains('tax') ||
                 line.toLowerCase().contains('discount')) &&
             RegExp(r'[\$₹]\s*[0-9,]+\.?\d*').hasMatch(line)) {
-          print('Product section ended at line $i');
           break;
         }
 
@@ -1654,7 +1465,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                 'unit': 'Pcs', // Default unit for inline products
               });
               productCount++;
-              print('Product $productCount: $productName x$quantity @ ₹$price');
               matched = true;
               break;
             }
@@ -1712,21 +1522,12 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                   'unit': 'Pcs', // Default unit for flexible extraction
                 });
                 productCount++;
-                print(
-                  'Product $productCount (flexible): $productName x$quantity @ ₹$price',
-                );
               }
             }
           }
         }
       }
     } // End of if (products.isEmpty) block
-
-    print('=== Parsing Complete ===');
-    print('Supplier: ${supplierName ?? "Unknown"}');
-    print('Date: ${date ?? "Not found"}');
-    print('Total: ${total ?? 0}');
-    print('Products found: ${products.length}');
 
     // If no date found, use current date
     if (date == null || date.isEmpty) {
