@@ -1,4 +1,9 @@
 {
+    "top_selling_products": "Top Selling Products",
+    "no_sales_data_yet": "No sales data yet",
+    "qty": "Qty",
+    "revenue": "Revenue",
+    "profit": "Profit",
     "app_name": "FlashBill",
     "dashboard": "Dashboard",
     "bills": "Bills",

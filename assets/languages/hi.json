@@ -1,4 +1,9 @@
 {
+    "top_selling_products": "शीर्ष बिक्री उत्पाद",
+    "no_sales_data_yet": "अभी तक कोई बिक्री डेटा नहीं है",
+    "qty": "मात्रा",
+    "revenue": "राजस्व",
+    "profit": "लाभ",
     "app_name": "फ्लैशबिल",
     "dashboard": "डैशबोर्ड",
     "bills": "बिल",

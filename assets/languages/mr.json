@@ -1,4 +1,9 @@
 {
+    "top_selling_products": "सर्वाधिक विक्री उत्पादने",
+    "no_sales_data_yet": "अजून कोणताही विक्री डेटा नाही",
+    "qty": "प्रमाण",
+    "revenue": "उत्पन्न",
+    "profit": "नफा",
     "app_name": "फ्लॅशबिल",
     "dashboard": "डॅशबोर्ड",
     "bills": "बिल",
