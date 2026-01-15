@@ -119,6 +119,8 @@ class AppLocalizations {
   String get logging_out => translate('logging_out');
   String get dark => translate('dark');
   String get light => translate('light');
+  String get apply => translate('apply');
+  String get clear => translate('clear');
 }
 
 class _AppLocalizationsDelegate
