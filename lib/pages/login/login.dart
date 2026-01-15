@@ -57,16 +57,17 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       debugPrint('FirebaseAuthException during login: ${e.code} ${e.message}');
       debugPrint('$st');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(message)));
+      }
     } catch (e) {
-      debugPrint('Unhandled exception during login: $e');
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -193,29 +194,44 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8.0),
-                TextFormField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    hintText: 'Enter your username or email',
-                    hintStyle: TextStyle(color: hintColor),
-                    filled: true,
-                    fillColor: fillColor,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 16.0,
-                      horizontal: 12.0,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      borderSide: BorderSide.none,
-                    ),
-                    prefixIcon: Icon(Icons.email, color: hintColor),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDarkMode
+                            ? Colors.black.withOpacity(0.2)
+                            : Colors.grey.withOpacity(0.2),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty)
-                      return 'Please enter email';
-                    return null;
-                  },
+                  child: TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your username or email',
+                      hintStyle: TextStyle(color: hintColor),
+                      filled: true,
+                      fillColor: fillColor,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 16.0,
+                        horizontal: 12.0,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: Icon(Icons.email, color: hintColor),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) {
+                        return 'Please enter email';
+                      }
+                      return null;
+                    },
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -229,39 +245,56 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 8.0),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: !_showPassword,
-                  decoration: InputDecoration(
-                    hintText: 'Enter your password',
-                    hintStyle: TextStyle(color: hintColor),
-                    filled: true,
-                    fillColor: fillColor,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 16.0,
-                      horizontal: 12.0,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10.0),
-                      borderSide: BorderSide.none,
-                    ),
-                    prefixIcon: Icon(Icons.lock_outline, color: hintColor),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _showPassword ? Icons.visibility : Icons.visibility_off,
-                        color: hintColor,
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDarkMode
+                            ? Colors.black.withOpacity(0.2)
+                            : Colors.grey.withOpacity(0.2),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _showPassword = !_showPassword;
-                        });
-                      },
-                    ),
+                    ],
                   ),
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Please enter password';
-                    return null;
-                  },
+                  child: TextFormField(
+                    controller: _passwordController,
+                    obscureText: !_showPassword,
+                    decoration: InputDecoration(
+                      hintText: 'Enter your password',
+                      hintStyle: TextStyle(color: hintColor),
+                      filled: true,
+                      fillColor: fillColor,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 16.0,
+                        horizontal: 12.0,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                        borderSide: BorderSide.none,
+                      ),
+                      prefixIcon: Icon(Icons.lock_outline, color: hintColor),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _showPassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
+                          color: hintColor,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _showPassword = !_showPassword;
+                          });
+                        },
+                      ),
+                    ),
+                    validator: (v) {
+                      if (v == null || v.isEmpty)
+                        return 'Please enter password';
+                      return null;
+                    },
+                  ),
                 ),
                 const SizedBox(height: 32),
 
