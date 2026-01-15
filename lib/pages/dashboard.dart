@@ -677,7 +677,7 @@ class _DashboardState extends State<Dashboard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Top Selling Products',
+                    loc?.topSellingProducts ?? 'Top Selling Products',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -728,7 +728,7 @@ class _DashboardState extends State<Dashboard> {
               child: _topSellingProducts.isEmpty
                   ? Center(
                       child: Text(
-                        'No sales data yet',
+                        loc?.noSalesDataYet ?? 'No sales data yet',
                         style: TextStyle(color: Colors.grey[500]),
                       ),
                     )
@@ -769,7 +769,7 @@ class _DashboardState extends State<Dashboard> {
                                         MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        'Qty: ${product['quantity']} • Revenue: ₹${product['revenue']}',
+                                        '${loc?.qty ?? 'Qty'}: ${product['quantity']} • ${loc?.revenue ?? 'Revenue'}: ₹${product['revenue']}',
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: isDark
@@ -779,7 +779,7 @@ class _DashboardState extends State<Dashboard> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Profit: ₹$profit',
+                                        '${loc?.profit ?? 'Profit'}: ₹$profit',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
@@ -804,7 +804,7 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget _buildPendingPaymentsCard() {
+  Widget _buildPendingPaymentsCard(AppLocalizations? loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -831,7 +831,7 @@ class _DashboardState extends State<Dashboard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Pending Payments',
+                    loc?.pendingPayments ?? 'Pending Payments',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -850,7 +850,7 @@ class _DashboardState extends State<Dashboard> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '₹${_formatCurrency(_totalPendingAmount)}',
+                          '₹${_formatCurrency(_totalPendingAmount, loc: AppLocalizations.of(context))}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -882,7 +882,7 @@ class _DashboardState extends State<Dashboard> {
               child: _pendingPayments.isEmpty
                   ? Center(
                       child: Text(
-                        'No pending payments',
+                        loc?.noPendingPayments ?? 'No pending payments',
                         style: TextStyle(color: Colors.grey[500]),
                       ),
                     )
@@ -919,7 +919,7 @@ class _DashboardState extends State<Dashboard> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Bill: ₹${payment['totalAmount']} • Remaining: ₹${payment['amountRemaining']}',
+                                      '${loc?.bill ?? 'Bill'}: ₹${payment['totalAmount']} • ${loc?.remaining ?? 'Remaining'}: ₹${payment['amountRemaining']}',
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: isDark
@@ -950,7 +950,10 @@ class _DashboardState extends State<Dashboard> {
                       AppNavigator.push(context, const PendingPaymentsPage());
                     },
                     icon: const Icon(Icons.visibility, size: 18),
-                    label: const Text('View All Pending Payments'),
+                    label: Text(
+                      loc?.viewAllPendingPayments ??
+                          'View All Pending Payments',
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.orange[600],
                       side: BorderSide(color: Colors.orange.withOpacity(0.5)),
@@ -1148,7 +1151,7 @@ class _DashboardState extends State<Dashboard> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '₹${_formatCurrency(_totalAvailableAmount.toInt())}',
+                          '₹${_formatCurrency(_totalAvailableAmount.toInt(), loc: AppLocalizations.of(context))}',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
@@ -1244,7 +1247,7 @@ class _DashboardState extends State<Dashboard> {
                     ],
                   ),
                   Text(
-                    '${getMonthName(DateTime.now().month)} ${DateTime.now().year}',
+                    '${loc?.getFullMonthName(DateTime.now().month) ?? getMonthName(DateTime.now().month)} ${DateTime.now().year}',
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -1324,7 +1327,7 @@ class _DashboardState extends State<Dashboard> {
 
                                         const Spacer(),
                                         Text(
-                                          'Remaining: ₹${payment['amountRemaining']}',
+                                          '${loc?.remaining ?? 'Remaining'}: ₹${payment['amountRemaining']}',
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w500,
@@ -1348,7 +1351,7 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget _buildOrderNowCard() {
+  Widget _buildOrderNowCard(AppLocalizations? loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -1373,7 +1376,7 @@ class _DashboardState extends State<Dashboard> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Order Now',
+                    loc?.orderNow ?? 'Order Now',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -1422,7 +1425,7 @@ class _DashboardState extends State<Dashboard> {
               child: _orderNowProducts.isEmpty
                   ? Center(
                       child: Text(
-                        'No products to order',
+                        loc?.noProductsToOrder ?? 'No products to order',
                         style: TextStyle(color: Colors.grey[500]),
                       ),
                     )
@@ -1478,7 +1481,7 @@ class _DashboardState extends State<Dashboard> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                'Stock: 0',
+                                loc?.stock0 ?? 'Stock: 0',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -1744,7 +1747,7 @@ class _DashboardState extends State<Dashboard> {
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                'Year',
+                                                loc?.year ?? 'Year',
                                                 style: TextStyle(
                                                   fontWeight:
                                                       filterType == 'year'
@@ -1808,7 +1811,7 @@ class _DashboardState extends State<Dashboard> {
                                         size: 22,
                                       ),
                                       onPressed: () =>
-                                          _showMonthPicker(context),
+                                          _showMonthPicker(context, loc),
                                       style: IconButton.styleFrom(
                                         backgroundColor: isDark
                                             ? Colors.grey[750]
@@ -1834,7 +1837,8 @@ class _DashboardState extends State<Dashboard> {
                               Expanded(
                                 child: _buildModernCard(
                                   title: loc?.totalSales ?? 'Total Sales',
-                                  value: '₹${_formatCurrency(_totalSales)}',
+                                  value:
+                                      '₹${_formatCurrency(_totalSales, loc: loc)}',
                                   subtitle:
                                       '${loc?.bills ?? "Bills"}: $_totalSalesCount • ${loc?.items ?? "Items"}: $_totalItemsSold',
                                   backgroundColor: Colors.blue.withOpacity(0.1),
@@ -1846,7 +1850,8 @@ class _DashboardState extends State<Dashboard> {
                               Expanded(
                                 child: _buildModernCard(
                                   title: loc?.totalPurchase ?? 'Total Purchase',
-                                  value: '₹${_formatCurrency(_totalBuying)}',
+                                  value:
+                                      '₹${_formatCurrency(_totalBuying, loc: loc)}',
                                   subtitle:
                                       '${loc?.orders ?? "Orders"}: $_totalBuyingCount • ${loc?.qtyLabel ?? "Qty"}: $_totalQuantityBought',
                                   backgroundColor: Colors.orange.withOpacity(
@@ -1920,11 +1925,11 @@ class _DashboardState extends State<Dashboard> {
                           const SizedBox(height: 12),
 
                           // Pending Payments
-                          _buildPendingPaymentsCard(),
+                          _buildPendingPaymentsCard(loc),
                           const SizedBox(height: 12),
 
                           // Order Now
-                          _buildOrderNowCard(),
+                          _buildOrderNowCard(loc),
                           const SizedBox(height: 80),
                         ],
                       ),
@@ -2049,7 +2054,7 @@ class _DashboardState extends State<Dashboard> {
               ),
               const SizedBox(height: 8),
               Text(
-                '₹${_formatCurrency(_totalProfitLoss.abs())}',
+                '₹${_formatCurrency(_totalProfitLoss.abs(), loc: loc)}',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
@@ -2078,16 +2083,16 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  String _formatCurrency(int amount) {
+  String _formatCurrency(int amount, {AppLocalizations? loc}) {
     if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(1)}L';
+      return '${(amount / 100000).toStringAsFixed(1)}${loc?.currencyLakh ?? ' L'}';
     } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}K';
+      return '${(amount / 1000).toStringAsFixed(1)}${loc?.currencyThousand ?? ' K'}';
     }
     return amount.toString();
   }
 
-  void _showMonthPicker(BuildContext context) {
+  void _showMonthPicker(BuildContext context, AppLocalizations? loc) {
     // If range filter is selected, show date range picker
     if (filterType == 'range') {
       showDateRangePicker(
@@ -2132,16 +2137,17 @@ class _DashboardState extends State<Dashboard> {
 
     int selectedYear = selectedDate.year;
     int selectedMonth = selectedDate.month;
+    Color primaryColor = Theme.of(context).primaryColor;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         String dialogTitle = filterType == 'year'
-            ? 'Select Year'
-            : 'Select Month & Year';
+            ? (loc?.selectYear ?? 'Select Year')
+            : (loc?.selectMonthYear ?? 'Select Month & Year');
 
         return AlertDialog(
-          title: Text(dialogTitle),
+          title: Text(dialogTitle, style: TextStyle(color: primaryColor)),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
               return SizedBox(
@@ -2212,7 +2218,8 @@ class _DashboardState extends State<Dashboard> {
                               ),
                               child: Center(
                                 child: Text(
-                                  getMonthName(index + 1).substring(0, 3),
+                                  loc?.getFullMonthName(index + 1) ??
+                                      getMonthName(index + 1),
                                   style: TextStyle(
                                     color: selectedMonth == index + 1
                                         ? Colors.white
@@ -2236,7 +2243,7 @@ class _DashboardState extends State<Dashboard> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(loc?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -2247,7 +2254,7 @@ class _DashboardState extends State<Dashboard> {
                 Navigator.of(context).pop();
                 _loadSalesReport();
               },
-              child: const Text('Select'),
+              child: Text(loc?.select ?? 'Select'),
             ),
           ],
         );
@@ -2256,19 +2263,20 @@ class _DashboardState extends State<Dashboard> {
   }
 
   String _getMonthYear() {
+    final loc = AppLocalizations.of(context);
     if (filterType == 'all') {
-      return 'All Time';
+      return loc?.allTime ?? 'All Time';
     } else if (filterType == 'range') {
       if (_rangeStartDate != null && _rangeEndDate != null) {
         return '${_rangeStartDate!.day}/${_rangeStartDate!.month}/${_rangeStartDate!.year} - ${_rangeEndDate!.day}/${_rangeEndDate!.month}/${_rangeEndDate!.year}';
       }
-      return 'Select Range';
+      return loc?.selectRange ?? 'Select Range';
     } else if (filterType == 'year') {
       return '${selectedDate.year}';
     } else if (filterType == 'day') {
       return '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}';
     } else {
-      return '${getMonthName(selectedDate.month)} ${selectedDate.year}';
+      return '${loc?.getFullMonthName(selectedDate.month) ?? getMonthName(selectedDate.month)} ${selectedDate.year}';
     }
   }
 

@@ -38,6 +38,8 @@ class AppLocalizations {
 
   // Common translations getters for easy access
   String get appName => translate('app_name');
+  String get topSellingProducts => translate('top_selling_products');
+  String get noSalesDataYet => translate('no_sales_data_yet');
   String get dashboard => translate('dashboard');
   String get bills => translate('bills');
   String get products => translate('products');
@@ -60,6 +62,9 @@ class AppLocalizations {
   String get addProduct => translate('add_product');
   String get productName => translate('product_name');
   String get quantity => translate('quantity');
+  String get qty => translate('qty');
+  String get revenue => translate('revenue');
+  String get profit => translate('profit');
   String get price => translate('price');
   String get buyingPrice => translate('buying_price');
   String get sellingPrice => translate('selling_price');
@@ -164,6 +169,74 @@ class AppLocalizations {
   String get noProductsToOrder => translate('no_products_to_order');
   String get stock0 => translate('stock_0');
   String get viewAllPendingPayments => translate('view_all_pending_payments');
+  String get bill => translate('bill');
+  String get remaining => translate('remaining');
+  String get select => translate('select');
+  String get allTime => translate('all_time');
+  String get selectYear => translate('select_year');
+  String get selectMonthYear => translate('select_month_year');
+  String get monthJan => translate('month_jan');
+  String get monthFeb => translate('month_feb');
+  String get monthMar => translate('month_mar');
+  String get monthApr => translate('month_apr');
+  String get monthMay => translate('month_may');
+  String get monthJun => translate('month_jun');
+  String get monthJul => translate('month_jul');
+  String get monthAug => translate('month_aug');
+  String get monthSep => translate('month_sep');
+  String get monthOct => translate('month_oct');
+  String get monthNov => translate('month_nov');
+  String get monthDec => translate('month_dec');
+
+  // Full month names
+  String get monthJanuary => translate('month_january');
+  String get monthFebruary => translate('month_february');
+  String get monthMarch => translate('month_march');
+  String get monthApril => translate('month_april');
+  String get monthMayFull => translate('month_may_full');
+  String get monthJune => translate('month_june');
+  String get monthJuly => translate('month_july');
+  String get monthAugust => translate('month_august');
+  String get monthSeptember => translate('month_september');
+  String get monthOctober => translate('month_october');
+  String get monthNovember => translate('month_november');
+  String get monthDecember => translate('month_december');
+
+  // Currency abbreviations
+  String get currencyLakh => translate('currency_lakh');
+  String get currencyThousand => translate('currency_thousand');
+
+  // Helper method to get localized full month name
+  String getFullMonthName(int monthIndex) {
+    switch (monthIndex) {
+      case 1:
+        return monthJanuary;
+      case 2:
+        return monthFebruary;
+      case 3:
+        return monthMarch;
+      case 4:
+        return monthApril;
+      case 5:
+        return monthMayFull;
+      case 6:
+        return monthJune;
+      case 7:
+        return monthJuly;
+      case 8:
+        return monthAugust;
+      case 9:
+        return monthSeptember;
+      case 10:
+        return monthOctober;
+      case 11:
+        return monthNovember;
+      case 12:
+        return monthDecember;
+      default:
+        return '';
+    }
+  }
 }
 
 class _AppLocalizationsDelegate
