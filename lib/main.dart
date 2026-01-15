@@ -7,8 +7,10 @@ import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/pages/purchase/purchase_items_list.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/dashboard.dart';
+import 'package:flashbill/pages/admin_dashboard.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/providers/theme_provider.dart';
+import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -22,8 +24,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+      ],
       child: const MyApp(),
     ),
   );
@@ -301,6 +306,7 @@ class _MyHomePageState extends State<MyHomePage> {
     AvailableProducts(),
     Bills(),
     PurchaseItemsList(),
+    AdminDashboard(),
   ];
 
   void _onItemTapped(int index) {
@@ -410,6 +416,10 @@ class _MyHomePageState extends State<MyHomePage> {
           const BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag),
             label: 'Purchases',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.admin_panel_settings),
+            label: 'Admin',
           ),
         ],
       ),
