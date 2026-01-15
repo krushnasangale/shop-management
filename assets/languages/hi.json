@@ -100,5 +100,16 @@
     "log_out": "लॉग आउट",
     "logging_out": "लॉग आउट हो रहा है...",
     "dark": "गहरा",
-    "light": "हल्का"
+    "light": "हल्का",
+    "welcome_back": "वापसी पर स्वागत है",
+    "sign_in_to_continue": "जारी रखने के लिए साइन इन करें",
+    "enter_email_or_username": "अपना ईमेल या उपयोगकर्ता नाम दर्ज करें",
+    "enter_password": "अपना पासवर्ड दर्ज करें",
+    "sign_in": "साइन इन",
+    "please_enter_email_or_username": "कृपया ईमेल या उपयोगकर्ता नाम दर्ज करें",
+    "please_enter_password": "कृपया पासवर्ड दर्ज करें",
+    "login_failed": "लॉगिन विफल रहा। कृपया पुन: प्रयास करें।",
+    "user_not_found": "उस ईमेल के लिए कोई उपयोगकर्ता नहीं मिला।",
+    "incorrect_password": "गलत पासवर्ड प्रदान किया गया।",
+    "invalid_email": "ईमेल पता अमान्य है।"
 }

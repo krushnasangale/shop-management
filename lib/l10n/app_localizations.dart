@@ -121,6 +121,18 @@ class AppLocalizations {
   String get light => translate('light');
   String get apply => translate('apply');
   String get clear => translate('clear');
+  String get welcomeBack => translate('welcome_back');
+  String get signInToContinue => translate('sign_in_to_continue');
+  String get enterEmailOrUsername => translate('enter_email_or_username');
+  String get enterPassword => translate('enter_password');
+  String get signIn => translate('sign_in');
+  String get pleaseEnterEmailOrUsername =>
+      translate('please_enter_email_or_username');
+  String get pleaseEnterPassword => translate('please_enter_password');
+  String get loginFailed => translate('login_failed');
+  String get userNotFound => translate('user_not_found');
+  String get incorrectPassword => translate('incorrect_password');
+  String get invalidEmail => translate('invalid_email');
 }
 
 class _AppLocalizationsDelegate

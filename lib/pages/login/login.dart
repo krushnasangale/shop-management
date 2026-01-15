@@ -4,6 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:provider/provider.dart';
+import 'package:flashbill/providers/language_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -47,13 +50,14 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
     } on FirebaseAuthException catch (e, st) {
-      String message = 'Login failed. Please try again.';
+      final loc = AppLocalizations.of(context);
+      String message = loc?.loginFailed ?? 'Login failed. Please try again.';
       if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
+        message = loc?.userNotFound ?? 'No user found for that email.';
       } else if (e.code == 'wrong-password') {
-        message = 'Incorrect password provided.';
+        message = loc?.incorrectPassword ?? 'Incorrect password provided.';
       } else if (e.code == 'invalid-email') {
-        message = 'The email address is invalid.';
+        message = loc?.invalidEmail ?? 'The email address is invalid.';
       }
       debugPrint('FirebaseAuthException during login: ${e.code} ${e.message}');
       debugPrint('$st');
@@ -158,6 +162,193 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _showLanguageSelector() {
+    final languageProvider = Provider.of<LanguageProvider>(
+      context,
+      listen: false,
+    );
+    final loc = AppLocalizations.of(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: isDarkMode ? const Color(0xFF1e1e30) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withAlpha(40),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with icon and close button
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2196f3).withAlpha(30),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.language_rounded,
+                        color: Color(0xFF2196f3),
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        loc?.selectLanguage ?? 'Select Language',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: isDarkMode ? Colors.white70 : Colors.black54,
+                      ),
+                      tooltip: 'Close',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Language options
+                ...languageProvider.supportedLanguages.map((language) {
+                  final isSelected =
+                      languageProvider.currentLocale.languageCode ==
+                      language['code'];
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: InkWell(
+                      onTap: () async {
+                        await languageProvider.changeLanguage(
+                          language['code'] ?? 'en',
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF2196f3).withAlpha(20)
+                              : (isDarkMode
+                                    ? const Color(0xFF2a2a40)
+                                    : Colors.grey[50]),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF2196f3)
+                                : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            // Radio indicator
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF2196f3)
+                                      : (isDarkMode
+                                            ? Colors.grey[600]!
+                                            : Colors.grey[400]!),
+                                  width: 2,
+                                ),
+                                color: isSelected
+                                    ? const Color(0xFF2196f3)
+                                    : Colors.transparent,
+                              ),
+                              child: isSelected
+                                  ? const Icon(
+                                      Icons.check,
+                                      size: 16,
+                                      color: Colors.white,
+                                    )
+                                  : null,
+                            ),
+                            const SizedBox(width: 16),
+
+                            // Language names
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    language['nativeName'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDarkMode
+                                          ? Colors.white
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    language['name'] ?? '',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: isDarkMode
+                                          ? Colors.grey[400]
+                                          : Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Selected indicator
+                            if (isSelected)
+                              const Icon(
+                                Icons.check_circle,
+                                color: Color(0xFF2196f3),
+                                size: 24,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
@@ -185,26 +376,60 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: size.width > 600 ? 450 : double.infinity,
-                ),
+          child: Stack(
+            children: [
+              // Language selector button
+              Positioned(
+                top: 16,
+                right: 16,
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    // Logo and Welcome Text
-                    _buildHeader(),
-                    const SizedBox(height: 48),
-
-                    // Login Card
-                    _buildLoginCard(isDarkMode),
+                    Text(
+                      AppLocalizations.of(context)?.selectLanguage ??
+                          'Select Language',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    IconButton(
+                      onPressed: _showLanguageSelector,
+                      icon: const Icon(
+                        Icons.language_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                      tooltip: 'Change Language',
+                    ),
                   ],
                 ),
               ),
-            ),
+              // Main content
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxWidth: size.width > 600 ? 450 : double.infinity,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Logo and Welcome Text
+                        _buildHeader(),
+                        const SizedBox(height: 48),
+
+                        // Login Card
+                        _buildLoginCard(isDarkMode),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -212,6 +437,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildHeader() {
+    final loc = AppLocalizations.of(context);
     return Column(
       children: [
         // Modern Logo Container
@@ -238,9 +464,9 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 24),
 
         // Welcome Text
-        const Text(
-          'Welcome Back',
-          style: TextStyle(
+        Text(
+          loc?.welcomeBack ?? 'Welcome Back',
+          style: const TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -249,7 +475,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Sign in to continue',
+          loc?.signInToContinue ?? 'Sign in to continue',
           style: TextStyle(
             fontSize: 16,
             color: Colors.white.withAlpha(204),
@@ -261,6 +487,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginCard(bool isDarkMode) {
+    final loc = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(32.0),
       decoration: BoxDecoration(
@@ -284,13 +511,14 @@ class _LoginScreenState extends State<LoginScreen> {
             // Email Field
             _buildTextField(
               controller: _emailController,
-              label: 'Email',
-              hint: 'Enter your email or username',
+              label: loc?.email ?? 'Email',
+              hint: loc?.enterEmailOrUsername ?? 'Enter your email or username',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (v) {
                 if (v == null || v.trim().isEmpty) {
-                  return 'Please enter email or username';
+                  return loc?.pleaseEnterEmailOrUsername ??
+                      'Please enter email or username';
                 }
                 return null;
               },
@@ -301,8 +529,8 @@ class _LoginScreenState extends State<LoginScreen> {
             // Password Field
             _buildTextField(
               controller: _passwordController,
-              label: 'Password',
-              hint: 'Enter your password',
+              label: loc?.password ?? 'Password',
+              hint: loc?.enterPassword ?? 'Enter your password',
               icon: Icons.lock_outline_rounded,
               obscureText: !_showPassword,
               isDarkMode: isDarkMode,
@@ -322,7 +550,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               validator: (v) {
                 if (v == null || v.isEmpty) {
-                  return 'Please enter password';
+                  return loc?.pleaseEnterPassword ?? 'Please enter password';
                 }
                 return null;
               },
@@ -420,6 +648,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginButton() {
+    final loc = AppLocalizations.of(context);
     return Container(
       height: 56,
       decoration: BoxDecoration(
@@ -453,9 +682,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   strokeWidth: 2.5,
                 ),
               )
-            : const Text(
-                'Sign In',
-                style: TextStyle(
+            : Text(
+                loc?.signIn ?? 'Sign In',
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,

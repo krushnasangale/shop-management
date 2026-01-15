@@ -100,5 +100,16 @@
     "log_out": "Log Out",
     "logging_out": "Logging Out...",
     "dark": "Dark",
-    "light": "Light"
+    "light": "Light",
+    "welcome_back": "Welcome Back",
+    "sign_in_to_continue": "Sign in to continue",
+    "enter_email_or_username": "Enter your email or username",
+    "enter_password": "Enter your password",
+    "sign_in": "Sign In",
+    "please_enter_email_or_username": "Please enter email or username",
+    "please_enter_password": "Please enter password",
+    "login_failed": "Login failed. Please try again.",
+    "user_not_found": "No user found for that email.",
+    "incorrect_password": "Incorrect password provided.",
+    "invalid_email": "The email address is invalid."
 }
