@@ -5,8 +5,8 @@ class BoughtItemReview {
   final String unit;
   final String? expiryDate;
   final int quantity;
-  final int buyingPrice;
-  final int sellingPrice;
+  final double buyingPrice;
+  final double sellingPrice;
 
   BoughtItemReview({
     required this.productName,
@@ -17,14 +17,14 @@ class BoughtItemReview {
     required this.sellingPrice,
   });
 
-  int get total => quantity * buyingPrice;
+  double get total => quantity * buyingPrice;
 }
 
 class AddPurchaseReview extends StatefulWidget {
   final String date;
   final String supplierName;
   final List<BoughtItemReview> items;
-  final int totalAmount;
+  final double totalAmount;
   final Future<void> Function() onConfirm;
 
   const AddPurchaseReview({

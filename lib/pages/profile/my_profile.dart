@@ -13,6 +13,9 @@ import 'package:flashbill/pages/profile/units/units.dart';
 import 'package:flashbill/pages/profile/edit_profile.dart';
 import 'package:flashbill/pages/profile/privacy_policy.dart';
 import 'package:flashbill/providers/theme_provider.dart';
+import 'package:flashbill/providers/language_provider.dart';
+import 'package:flashbill/widgets/language_selector.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 
 class MyProfile extends StatefulWidget {
@@ -439,8 +442,9 @@ class _MyProfileState extends State<MyProfile> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('My Profile')),
+      appBar: AppBar(title: Text(localizations?.my_profile ?? 'My Profile')),
       body: Column(
         children: [
           Expanded(
@@ -478,7 +482,8 @@ class _MyProfileState extends State<MyProfile> {
                         ),
                       ),
                       subtitle: Text(
-                        'View and edit profile',
+                        localizations?.view_and_edit_profile ??
+                            'View and edit profile',
                         style: TextStyle(
                           color: Theme.of(
                             context,
@@ -493,10 +498,13 @@ class _MyProfileState extends State<MyProfile> {
                   ),
 
                   // Add
-                  _buildSectionHeader('Add', context),
+                  _buildSectionHeader(
+                    localizations?.add.toUpperCase() ?? 'ADD',
+                    context,
+                  ),
                   _buildCountMenuItem(
                     Icons.person_add_outlined,
-                    'Suppliers',
+                    localizations?.suppliers ?? 'Suppliers',
                     context,
                     'suppliers',
                     onTap: () {
@@ -505,7 +513,7 @@ class _MyProfileState extends State<MyProfile> {
                   ),
                   _buildCountMenuItem(
                     Icons.scale_outlined,
-                    'Units',
+                    localizations?.units ?? 'Units',
                     context,
                     'units',
                     onTap: () {
@@ -517,7 +525,7 @@ class _MyProfileState extends State<MyProfile> {
                   ),
                   _buildCountMenuItem(
                     Icons.shopping_bag_outlined,
-                    'Product Names',
+                    localizations?.product_names ?? 'Product Names',
                     context,
                     'product-names',
                     onTap: () {
@@ -526,7 +534,7 @@ class _MyProfileState extends State<MyProfile> {
                   ),
                   _buildCountMenuItem(
                     Icons.people_alt_outlined,
-                    'Customers',
+                    localizations?.customers ?? 'Customers',
                     context,
                     'customers',
                     onTap: () {
@@ -535,17 +543,20 @@ class _MyProfileState extends State<MyProfile> {
                   ),
 
                   // Privacy Section
-                  _buildSectionHeader('PRIVACY', context),
+                  _buildSectionHeader(
+                    localizations?.privacy.toUpperCase() ?? 'PRIVACY',
+                    context,
+                  ),
                   _buildLoggedInDevicesMenuItem(context),
                   _buildMenuItem(
                     Icons.lock_outline,
-                    'Change Password',
+                    localizations?.change_password ?? 'Change Password',
                     context,
                     onTap: () => _showChangePasswordDialog(context),
                   ),
                   _buildMenuItem(
                     Icons.policy_outlined,
-                    'Privacy Policy',
+                    localizations?.privacy_policy ?? 'Privacy Policy',
                     context,
                     onTap: () {
                       AppNavigator.push(context, const PrivacyPolicyPage());
@@ -553,35 +564,47 @@ class _MyProfileState extends State<MyProfile> {
                   ),
 
                   // General Section
-                  _buildSectionHeader('GENERAL', context),
-                  _buildMenuItem(
-                    Icons.language,
-                    'Language',
+                  _buildSectionHeader(
+                    localizations?.general.toUpperCase() ?? 'GENERAL',
                     context,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'English',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
-                          ),
+                  ),
+                  Consumer<LanguageProvider>(
+                    builder: (context, languageProvider, _) {
+                      return _buildMenuItem(
+                        Icons.language,
+                        localizations?.language ?? 'Language',
+                        context,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              languageProvider.getNativeLanguageName(
+                                languageProvider.currentLocale.languageCode,
+                              ),
+                              style: TextStyle(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withOpacity(0.6),
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right, color: Colors.grey),
+                          ],
                         ),
-                        const Icon(Icons.chevron_right, color: Colors.grey),
-                      ],
-                    ),
+                        onTap: () {
+                          AppNavigator.push(context, const LanguageSelector());
+                        },
+                      );
+                    },
                   ),
                   _buildMenuItem(
                     Icons.brightness_6_outlined,
-                    'Theme',
+                    localizations?.theme ?? 'Theme',
                     context,
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          'Dark',
+                          localizations?.dark ?? 'Dark',
                           style: TextStyle(
                             color: Theme.of(
                               context,
@@ -604,7 +627,7 @@ class _MyProfileState extends State<MyProfile> {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          'Light',
+                          localizations?.light ?? 'Light',
                           style: TextStyle(
                             color: Theme.of(
                               context,
@@ -632,7 +655,9 @@ class _MyProfileState extends State<MyProfile> {
                             )
                           : const Icon(Icons.logout, color: Colors.redAccent),
                       label: Text(
-                        _isLoggingOut ? 'Logging Out...' : 'Log Out',
+                        _isLoggingOut
+                            ? (localizations?.logging_out ?? 'Logging Out...')
+                            : (localizations?.log_out ?? 'Log Out'),
                         style: const TextStyle(color: Colors.redAccent),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -676,11 +701,12 @@ class _MyProfileState extends State<MyProfile> {
 
   Widget _buildLoggedInDevicesMenuItem(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    final localizations = AppLocalizations.of(context);
 
     if (user == null) {
       return _buildMenuItem(
         Icons.device_unknown,
-        'Logged In Devices',
+        localizations?.logged_in_devices ?? 'Logged In Devices',
         context,
         onTap: () {
           AppNavigator.push(context, const LoggedInDevicesScreen());
@@ -707,7 +733,7 @@ class _MyProfileState extends State<MyProfile> {
 
         return _buildMenuItem(
           Icons.device_unknown,
-          'Logged In Devices',
+          localizations?.logged_in_devices ?? 'Logged In Devices',
           context,
           onTap: () {
             AppNavigator.push(context, const LoggedInDevicesScreen());

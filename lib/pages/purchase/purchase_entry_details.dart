@@ -129,6 +129,18 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
           .doc(itemId)
           .delete();
 
+      // Delete the corresponding entry from product-purchase-history
+      final historySnapshot = await FirebaseFirestore.instance
+          .collection('product-purchase-history')
+          .doc(user.uid)
+          .collection('items')
+          .where('productId', isEqualTo: itemId)
+          .get();
+
+      for (var doc in historySnapshot.docs) {
+        await doc.reference.delete();
+      }
+
       // Check how many products remain in Firestore for this purchase
       final remainingItems = await FirebaseFirestore.instance
           .collection('purchased-products')

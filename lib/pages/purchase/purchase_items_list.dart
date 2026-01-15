@@ -1,11 +1,18 @@
+import 'dart:async';
+import 'dart:io' show Platform, File;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
-import 'package:flutter/material.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async';
+import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class PurchaseItemsList extends StatefulWidget {
   const PurchaseItemsList({super.key});
@@ -172,6 +179,14 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
+          // Scan Invoice Button
+          IconButton(
+            icon: const Icon(Icons.document_scanner),
+            tooltip: 'Scan Invoice',
+            onPressed: () {
+              _showScanOptions(context);
+            },
+          ),
           IconButton(
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: () {
@@ -456,5 +471,1077 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
               ],
             ),
     );
+  }
+
+  void _showScanOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Scan Invoice', style: context.headingMedium),
+              const SizedBox(height: 20),
+              // ListTile(
+              //   leading: Container(
+              //     padding: const EdgeInsets.all(10),
+              //     decoration: BoxDecoration(
+              //       color: Colors.blue.withOpacity(0.1),
+              //       borderRadius: BorderRadius.circular(10),
+              //     ),
+              //     child: const Icon(Icons.camera_alt, color: Colors.blue),
+              //   ),
+              //   title: const Text('Take Photo'),
+              //   subtitle: const Text('Capture invoice with camera'),
+              //   onTap: () {
+              //     Navigator.pop(context);
+              //     _scanFromCamera();
+              //   },
+              // ),
+              // const Divider(),
+              // ListTile(
+              //   leading: Container(
+              //     padding: const EdgeInsets.all(10),
+              //     decoration: BoxDecoration(
+              //       color: Colors.green.withOpacity(0.1),
+              //       borderRadius: BorderRadius.circular(10),
+              //     ),
+              //     child: const Icon(Icons.photo_library, color: Colors.green),
+              //   ),
+              //   title: const Text('Choose from Gallery'),
+              //   subtitle: const Text('Select invoice from photos'),
+              //   onTap: () {
+              //     Navigator.pop(context);
+              //     _scanFromGallery();
+              //   },
+              // ),
+              // const Divider(),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.picture_as_pdf, color: Colors.orange),
+                ),
+                title: const Text('Select PDF'),
+                subtitle: const Text('Choose PDF invoice'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _scanFromPDF();
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _scanFromCamera() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      print('Opening camera...');
+
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 100,
+        maxWidth: 3000, // Increase max resolution for better OCR
+        maxHeight: 4000,
+        preferredCameraDevice: CameraDevice.rear,
+      );
+
+      print('Photo captured: ${image?.path}');
+
+      if (image != null && mounted) {
+        await _processImage(image.path);
+      } else {
+        print('No photo captured or widget not mounted');
+      }
+    } catch (e, stackTrace) {
+      print('Error in _scanFromCamera: $e');
+      print('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error capturing image: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _scanFromGallery() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      print('Opening gallery picker...');
+
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 100,
+        maxWidth: 3000, // Increase max resolution for better OCR
+        maxHeight: 4000,
+      );
+
+      print('Image selected: ${image?.path}');
+
+      if (image != null && mounted) {
+        await _processImage(image.path);
+      } else {
+        print('No image selected or widget not mounted');
+      }
+    } catch (e, stackTrace) {
+      print('Error in _scanFromGallery: $e');
+      print('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  // Helper method to show limited data detection dialog
+  void _showLimitedDataDialog(
+    int textLength,
+    Map<String, dynamic> invoiceData,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber, color: Colors.orange),
+            SizedBox(width: 8),
+            Expanded(child: Text('Limited Data Detected')),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'This PDF is not giving us good results. Please try a different PDF.',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'For better results, try:',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              SizedBox(height: 12),
+              _buildSuggestionRow(
+                Icons.camera_alt,
+                Colors.blue,
+                'Take a clear photo with good lighting',
+              ),
+              SizedBox(height: 8),
+              _buildSuggestionRow(
+                Icons.picture_as_pdf,
+                Colors.orange,
+                'Use PDF scan for better table extraction',
+              ),
+              SizedBox(height: 8),
+              _buildSuggestionRow(
+                Icons.zoom_in,
+                Colors.purple,
+                'Ensure text is large and readable in photo',
+              ),
+              SizedBox(height: 8),
+              _buildSuggestionRow(
+                Icons.edit,
+                Colors.green,
+                'Manually enter the purchase details',
+              ),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 20, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tip: PDF scanning works best for table-based invoices',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.blue.shade900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _showScanOptions(context); // Open PDF selection popup again
+            },
+            child: Text('Retry Scan'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      AddPurchaseEntry(existingEntry: invoiceData),
+                ),
+              );
+            },
+            child: Text('Continue Anyway'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionRow(IconData icon, Color color, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        SizedBox(width: 12),
+        Expanded(child: Text(text, style: TextStyle(fontSize: 14))),
+      ],
+    );
+  }
+
+  Future<void> _scanFromPDF() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.path != null && mounted) {
+          await _processPDF(file.path!);
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Could not access PDF file'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _processPDF(String pdfPath) async {
+    // Show loading dialog with enhanced UI
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => WillPopScope(
+          onWillPop: () async => false,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Processing Invoice',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Extracting text from PDF...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Please wait',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    try {
+      // Load the PDF document
+      final File file = File(pdfPath);
+      final bytes = await file.readAsBytes();
+      final PdfDocument document = PdfDocument(inputBytes: bytes);
+      // Extract text from all pages
+      String extractedText = '';
+      final PdfTextExtractor extractor = PdfTextExtractor(document);
+      for (int i = 0; i < document.pages.count; i++) {
+        final String pageText = extractor.extractText(
+          startPageIndex: i,
+          endPageIndex: i,
+        );
+        extractedText += '$pageText\n';
+      }
+
+      // Clean up
+      document.dispose();
+
+      // Parse invoice data
+      final invoiceData = _parseInvoiceText(extractedText);
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Check if PDF extraction failed to get meaningful data
+        if (invoiceData['products'].length == 0 && extractedText.length < 500) {
+          // Show helpful dialog
+          _showLimitedDataDialog(extractedText.length, invoiceData);
+        } else {
+          // Navigate directly to purchase entry form with parsed invoice data
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  AddPurchaseEntry(existingEntry: invoiceData),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing PDF: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _processImage(String imagePath) async {
+    // Show loading dialog with enhanced UI
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => WillPopScope(
+          onWillPop: () async => false,
+          child: Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const CircularProgressIndicator(
+                      strokeWidth: 3,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    'Scanning Invoice',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Analyzing image with OCR...',
+                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Please wait',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    try {
+      String extractedText = '';
+
+      // Check if running on mobile platforms (Android/iOS)
+      if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+        // Mobile: Use Google ML Kit
+        final textRecognizer = TextRecognizer(
+          script: TextRecognitionScript.latin,
+        );
+
+        final inputImage = InputImage.fromFilePath(imagePath);
+        final RecognizedText recognizedText = await textRecognizer.processImage(
+          inputImage,
+        );
+        // Method 1: Get simple text (original method)
+        String simpleText = recognizedText.text;
+        // Method 2: Extract line by line from all blocks (better for tables)
+        StringBuffer detailedText = StringBuffer();
+        int totalLines = 0;
+
+        for (int i = 0; i < recognizedText.blocks.length; i++) {
+          final block = recognizedText.blocks[i];
+          // Process each line in the block
+          for (int j = 0; j < block.lines.length; j++) {
+            final line = block.lines[j];
+            totalLines++;
+
+            // Extract elements (words) from the line
+            List<String> lineElements = [];
+            for (var element in line.elements) {
+              lineElements.add(element.text);
+            }
+
+            // Join elements with spaces for this line
+            String lineText = lineElements.join(' ');
+            if (lineText.isNotEmpty) {
+              detailedText.writeln(lineText);
+              if (totalLines <= 20) {
+                // Log first 20 lines
+                debugPrint('  Line $j: $lineText');
+              }
+            }
+          }
+        }
+        // Use the method that extracted more text
+        if (detailedText.length > simpleText.length) {
+          extractedText = detailedText.toString();
+        } else {
+          extractedText = simpleText;
+        }
+
+        // Clean up
+        await textRecognizer.close();
+      } else {
+        // Desktop/Web: OCR not supported
+        throw Exception(
+          'Invoice scanning with OCR is only available on Android and iOS devices. '
+          'Please run this app on a mobile device to use the invoice scanning feature.',
+        );
+      }
+
+      // Parse invoice data
+      final invoiceData = _parseInvoiceText(extractedText);
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Check if OCR failed to extract meaningful data
+        if (invoiceData['products'].length == 0 && extractedText.length < 500) {
+          _showLimitedDataDialog(extractedText.length, invoiceData);
+        } else {
+          // Navigate directly to purchase entry form with parsed invoice data
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  AddPurchaseEntry(existingEntry: invoiceData),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error processing invoice: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
+  Map<String, dynamic> _parseInvoiceText(String text) {
+    // Enhanced parser with better pattern matching
+    final lines = text
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    String? supplierName;
+    String? date;
+    double? total;
+    List<Map<String, dynamic>> products = [];
+
+    // Enhanced patterns for better detection
+    final datePatterns = [
+      RegExp(r'(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})'), // DD-MM-YYYY or DD/MM/YYYY
+      RegExp(r'(\d{4}[-/]\d{1,2}[-/]\d{1,2})'), // YYYY-MM-DD
+      RegExp(
+        r'date[:\s]*(\d{1,2}[-/]\d{1,2}[-/]\d{2,4})',
+        caseSensitive: false,
+      ),
+    ];
+
+    final totalPatterns = [
+      RegExp(
+        r'invoice\s*amount[:\s]*₹?\$?\s*([0-9,]+\.?\d*)',
+        caseSensitive: false,
+      ),
+      RegExp(r'total[:\s]*₹?\$?\s*([0-9,]+\.?\d*)', caseSensitive: false),
+      RegExp(r'sub\s*total[:\s]*₹?\$?\s*([0-9,]+\.?\d*)', caseSensitive: false),
+      RegExp(
+        r'grand\s*total[:\s]*₹?\$?\s*([0-9,]+\.?\d*)',
+        caseSensitive: false,
+      ),
+      RegExp(
+        r'net\s*amount[:\s]*₹?\$?\s*([0-9,]+\.?\d*)',
+        caseSensitive: false,
+      ),
+      RegExp(r'amount[:\s]*₹?\$?\s*([0-9,]+\.?\d*)', caseSensitive: false),
+      RegExp(r'₹\s*([0-9,]+\.?\d*)\s*total', caseSensitive: false),
+      RegExp(r'\$\s*([0-9,]+\.?\d*)\s*total', caseSensitive: false),
+    ];
+    // Multiple product line patterns to handle various formats
+    final productPatterns = [
+      // Format: "Product Name 2 pcs $100.00"
+      RegExp(
+        r'^(.+?)\s+(\d+)\s*(?:pcs?|pc|nos?|no|piece|units?|hrs?|hours?)\s*(?:at\s*)?[\$₹]?\s*([0-9,]+\.?\d*)',
+        caseSensitive: false,
+      ),
+      // Format: "Product Name $100.00"
+      RegExp(r'^(.+?)[\$₹]\s*([0-9,]+\.?\d*)$', caseSensitive: false),
+      // Format: "Product: 5 hours at $75/hr"
+      RegExp(
+        r'^(.+?):\s*(\d+)\s*(?:hours?|hrs?)\s*at\s*[\$₹]?\s*([0-9,]+\.?\d*)',
+        caseSensitive: false,
+      ),
+    ];
+
+    // Extract supplier name - look for company/business names
+    // Usually in first few lines, longer text without keywords
+    for (int i = 0; i < lines.length && i < 10; i++) {
+      final line = lines[i];
+      // Skip common headers and keywords
+      if (line.toLowerCase().contains('invoice') ||
+          line.toLowerCase().contains('bill to') ||
+          line.toLowerCase().contains('ship to') ||
+          line.toLowerCase().contains('order') ||
+          line.toLowerCase().contains('date') ||
+          line.toLowerCase().contains('phone') ||
+          line.toLowerCase().contains('address') ||
+          line.toLowerCase().contains('city') ||
+          line.toLowerCase().contains('description') ||
+          line.contains('[') ||
+          line.contains('(000)') ||
+          line.length < 3 ||
+          line.length > 100) {
+        continue;
+      }
+
+      // Look for business name patterns
+      if (supplierName == null) {
+        final hasNumber = RegExp(r'\d').hasMatch(line);
+        final hasSpecialChars = RegExp(r'[!@#%^&*()]').hasMatch(line);
+
+        if (!hasNumber && !hasSpecialChars) {
+          supplierName = line;
+        }
+      }
+    }
+
+    // Extract date
+    for (var line in lines) {
+      if (date != null) break;
+      for (var pattern in datePatterns) {
+        final match = pattern.firstMatch(line);
+        if (match != null) {
+          date = match.group(1) ?? match.group(0);
+          break;
+        }
+      }
+    }
+
+    // Extract total amount - scan more lines and check adjacent lines
+    for (int i = lines.length - 1; i >= 0 && i >= lines.length - 30; i--) {
+      final line = lines[i];
+      if (total != null) break;
+      // Check if line contains total-related keywords
+      if (line.toLowerCase().contains('total') ||
+          line.toLowerCase().contains('amount') ||
+          line.toLowerCase().contains('payable')) {
+        // Check current line and next 3 lines for amount
+        for (int j = i; j < i + 4 && j < lines.length; j++) {
+          final checkLine = lines[j];
+          final amountMatch = RegExp(
+            r'₹\s*([0-9,]+\.?\d*)',
+          ).firstMatch(checkLine);
+          if (amountMatch != null) {
+            final totalStr = amountMatch.group(1)?.replaceAll(',', '') ?? '';
+            final potentialTotal = double.tryParse(totalStr);
+            if (potentialTotal != null && potentialTotal > 100) {
+              total = potentialTotal;
+              break;
+            }
+          }
+        }
+        if (total != null) break;
+      }
+
+      // Also try existing patterns
+      for (var pattern in totalPatterns) {
+        final match = pattern.firstMatch(line);
+        if (match != null) {
+          final totalStr = match.group(1)?.replaceAll(',', '') ?? '';
+          total = double.tryParse(totalStr);
+          if (total != null && total > 0) {
+            break;
+          }
+        }
+      }
+    }
+
+    if (total == null || total == 0.0) {
+      // NEW: Try to find any large amount with ₹ symbol as potential total
+      // Scan entire document for amounts > 1000
+      List<double> largeAmounts = [];
+      for (var line in lines) {
+        final amountMatches = RegExp(r'₹\s*([0-9,]+\.?\d*)').allMatches(line);
+        for (var match in amountMatches) {
+          final amountStr = match.group(1)?.replaceAll(',', '') ?? '';
+          final amount = double.tryParse(amountStr);
+          if (amount != null && amount > 500) {
+            largeAmounts.add(amount);
+          }
+        }
+      }
+
+      // Use the largest amount as total if available
+      if (largeAmounts.isNotEmpty) {
+        total = largeAmounts.reduce((a, b) => a > b ? a : b);
+      }
+    }
+
+    // Find where the product table section starts
+    bool inProductSection = false;
+    int productCount = 0;
+    int productSectionStartLine = -1;
+
+    // Find the table header with "Item name"
+    for (int i = 0; i < lines.length; i++) {
+      final line = lines[i].trim();
+
+      if (line.toLowerCase().contains('item name') ||
+          line.toLowerCase().contains('description') ||
+          (line.toLowerCase().contains('item') &&
+              (line.toLowerCase().contains('quantity') ||
+                  line.toLowerCase().contains('unit')))) {
+        inProductSection = true;
+        productSectionStartLine = i;
+        break;
+      }
+    }
+
+    if (inProductSection && productSectionStartLine >= 0) {
+      // Use row number sequencing for accurate product extraction
+      int expectedRowNumber = 1;
+
+      for (int i = productSectionStartLine + 1; i < lines.length; i++) {
+        final line = lines[i].trim();
+
+        // Stop at footer section - look for "Total" with large quantity or amount
+        if (line.toLowerCase() == 'total') {
+          // Check if next few lines have large numbers (143 items, ₹10,000+)
+          bool isFooterTotal = false;
+          for (int j = i + 1; j < i + 3 && j < lines.length; j++) {
+            final checkLine = lines[j].trim();
+            // If we see a very large quantity (>100) or the total amount, it's footer
+            final largeQty = RegExp(r'^(\d{3,})$').hasMatch(checkLine); // 100+
+            final hasTotal = RegExp(
+              r'₹\s*([0-9,]{4,})',
+            ).hasMatch(checkLine); // ₹1000+
+            if (largeQty || hasTotal) {
+              isFooterTotal = true;
+              break;
+            }
+          }
+          if (isFooterTotal) {
+            break;
+          }
+        }
+
+        // Also stop at other footer markers
+        if (line.toLowerCase().contains('sub total') ||
+            line.toLowerCase().contains('subtotal') ||
+            line.toLowerCase().contains('invoice amount') ||
+            line.toLowerCase().contains('payment mode') ||
+            line.toLowerCase().contains('description') ||
+            line.toLowerCase().contains('terms and conditions')) {
+          break;
+        }
+
+        // Check if this line is the next sequential row number
+        final isRowNumber = RegExp(r'^\d{1,2}$').hasMatch(line);
+        final lineNumber = int.tryParse(line) ?? -1;
+        final isSequentialRowNumber =
+            isRowNumber && lineNumber == expectedRowNumber;
+
+        if (isSequentialRowNumber) {
+          // Next line should be product name
+          if (i + 1 >= lines.length) break;
+          var productName = lines[i + 1].trim();
+          // Validate product name - must not be a unit marker or empty
+          final unitPattern = RegExp(
+            r'^(pcs?|nos?|piece|unit|hrs?|hours?|box|boxes|kg|kgs|ltr|litre|rolls?|rol|set|sets|pair|pairs|mtr|meter|metres)$',
+            caseSensitive: false,
+          );
+
+          if (productName.isEmpty ||
+              productName.length < 2 ||
+              unitPattern.hasMatch(productName)) {
+            continue; // Don't increment expectedRowNumber
+          }
+
+          // Check if next line is a continuation of product name
+          // (not a number, unit, or price - just more text)
+          int nameEndOffset = 2; // Default: product name ends at i+1
+          if (i + 2 < lines.length) {
+            final nextLine = lines[i + 2].trim();
+            final isNotNumber = !RegExp(r'^\d+(\.\d+)?$').hasMatch(nextLine);
+            final isNotUnit = !unitPattern.hasMatch(nextLine);
+            final isNotPrice = !nextLine.contains('₹');
+
+            // If next line is 2-30 chars of text (not number/unit/price), it's a continuation
+            if (isNotNumber &&
+                isNotUnit &&
+                isNotPrice &&
+                nextLine.length >= 2 &&
+                nextLine.length <= 30) {
+              productName = '$productName $nextLine';
+              nameEndOffset = 3; // Product name ends at i+2
+            }
+          }
+
+          // Extract quantity, unit, and price from lines after product name
+          int quantity = 1;
+          double price = 0.0;
+          String unitMarker = 'Pcs'; // Default to Pcs
+          bool foundUnit = false;
+
+          for (int j = i + nameEndOffset; j < i + 15 && j < lines.length; j++) {
+            final checkLine = lines[j].trim();
+
+            // Look for unit marker (Pcs, Nos, etc.)
+            if (!foundUnit && unitPattern.hasMatch(checkLine)) {
+              unitMarker = checkLine;
+              foundUnit = true;
+              // Quantity is 1-3 lines before unit (after product name)
+              for (int k = j - 1; k >= i + nameEndOffset && k >= j - 3; k--) {
+                final qtyLine = lines[k].trim();
+                // Match standalone numbers 1-999
+                if (RegExp(r'^\d{1,3}$').hasMatch(qtyLine)) {
+                  quantity = int.tryParse(qtyLine) ?? 1;
+                  if (quantity > 0 && quantity < 1000) {
+                    break;
+                  }
+                }
+              }
+
+              // Price is 1-3 lines after unit (with ₹ symbol)
+              for (int k = j + 1; k < j + 4 && k < lines.length; k++) {
+                final priceLine = lines[k].trim();
+                final priceMatch = RegExp(
+                  r'₹\s*([0-9,]+\.?\d*)',
+                ).firstMatch(priceLine);
+                if (priceMatch != null && price == 0.0) {
+                  final priceStr =
+                      priceMatch.group(1)?.replaceAll(',', '') ?? '0';
+                  price = double.tryParse(priceStr) ?? 0.0;
+                  if (price > 0 && price < 100000) {
+                    break;
+                  }
+                }
+              }
+              break; // Found unit, stop searching
+            }
+          }
+
+          // Fallback: If no unit found, search for quantity and price directly
+          if (!foundUnit) {
+            // Search for quantity (first standalone number 1-999)
+            for (
+              int j = i + nameEndOffset;
+              j < i + nameEndOffset + 5 && j < lines.length;
+              j++
+            ) {
+              final qtyLine = lines[j].trim();
+              if (RegExp(r'^\d{1,3}$').hasMatch(qtyLine)) {
+                final qty = int.tryParse(qtyLine);
+                if (qty != null && qty > 0 && qty < 1000) {
+                  quantity = qty;
+                  break;
+                }
+              }
+            }
+
+            // Search for price (line with ₹ symbol)
+            for (
+              int j = i + nameEndOffset;
+              j < i + nameEndOffset + 8 && j < lines.length;
+              j++
+            ) {
+              final priceLine = lines[j].trim();
+              final priceMatch = RegExp(
+                r'₹\s*([0-9,]+\.?\d*)',
+              ).firstMatch(priceLine);
+              if (priceMatch != null && price == 0.0) {
+                final priceStr =
+                    priceMatch.group(1)?.replaceAll(',', '') ?? '0';
+                price = double.tryParse(priceStr) ?? 0.0;
+                if (price > 0 && price < 100000) {
+                  break;
+                }
+              }
+            }
+          }
+
+          // Add product if valid
+          if (productName.isNotEmpty && price > 0) {
+            products.add({
+              'name': productName,
+              'quantity': quantity,
+              'price': price,
+              'unit': unitMarker,
+            });
+            productCount++;
+            expectedRowNumber++; // Move to next row number
+          }
+        }
+      }
+    }
+
+    // If no products found with table method, try inline patterns
+    if (products.isEmpty) {
+      inProductSection = false;
+
+      for (int i = 0; i < lines.length; i++) {
+        final line = lines[i].trim();
+        // Skip empty or very short lines
+        if (line.length < 3) continue;
+
+        // Detect start of product section
+        if (line.toLowerCase().contains('description') ||
+            line.toLowerCase().contains('item') ||
+            line.toLowerCase().contains('product') ||
+            line.toLowerCase().contains('service')) {
+          inProductSection = true;
+          continue;
+        }
+
+        // Detect end of product section
+        if ((line.toLowerCase().contains('total') ||
+                line.toLowerCase().contains('subtotal') ||
+                line.toLowerCase().contains('tax') ||
+                line.toLowerCase().contains('discount')) &&
+            RegExp(r'[\$₹]\s*[0-9,]+\.?\d*').hasMatch(line)) {
+          break;
+        }
+
+        // Skip header-like lines
+        if (!inProductSection) continue;
+
+        // Skip lines that are clearly not products
+        if (line.toLowerCase().contains('phone') ||
+            line.toLowerCase().contains('email') ||
+            line.toLowerCase().contains('address') ||
+            line.toLowerCase().contains('payment') ||
+            line.contains('[') ||
+            line.contains(']')) {
+          continue;
+        }
+
+        // Try each product pattern
+        bool matched = false;
+
+        for (var pattern in productPatterns) {
+          final match = pattern.firstMatch(line);
+          if (match != null) {
+            String productName = '';
+            int quantity = 1;
+            double price = 0.0;
+
+            // Handle different pattern groups
+            if (match.groupCount >= 3) {
+              // Pattern with quantity: "Product 5 pcs $100"
+              productName = match.group(1)?.trim() ?? '';
+              quantity = int.tryParse(match.group(2) ?? '1') ?? 1;
+              final priceStr = match.group(3)?.replaceAll(',', '') ?? '0';
+              price = double.tryParse(priceStr) ?? 0.0;
+            } else if (match.groupCount == 2) {
+              // Pattern without quantity: "Product $100"
+              productName = match.group(1)?.trim() ?? '';
+              quantity = 1;
+              final priceStr = match.group(2)?.replaceAll(',', '') ?? '0';
+              price = double.tryParse(priceStr) ?? 0.0;
+            }
+
+            // Validate and add product
+            if (productName.isNotEmpty &&
+                price > 0 &&
+                !productName.toLowerCase().contains('total') &&
+                !productName.toLowerCase().contains('tax') &&
+                productName.length > 2) {
+              products.add({
+                'name': productName,
+                'quantity': quantity,
+                'price': price,
+                'unit': 'Pcs', // Default unit for inline products
+              });
+              productCount++;
+              matched = true;
+              break;
+            }
+          }
+        }
+
+        // If no pattern matched, try flexible extraction
+        if (!matched && inProductSection) {
+          // Look for any line with a price ($ or ₹ followed by number)
+          final priceMatch = RegExp(
+            r'[\$₹]\s*([0-9,]+\.?\d*)',
+          ).firstMatch(line);
+
+          if (priceMatch != null) {
+            final priceStr = priceMatch.group(1)?.replaceAll(',', '') ?? '0';
+            final price = double.tryParse(priceStr) ?? 0.0;
+
+            if (price > 0) {
+              // Extract product name by removing the price part
+              String productName = line
+                  .replaceAll(priceMatch.group(0) ?? '', '')
+                  .trim();
+
+              // Try to extract quantity if present
+              int quantity = 1;
+              final qtyMatch = RegExp(
+                r'(\d+)\s*(?:pcs?|pc|nos?|no|piece|units?|hrs?|hours?)',
+                caseSensitive: false,
+              ).firstMatch(productName);
+
+              if (qtyMatch != null) {
+                quantity = int.tryParse(qtyMatch.group(1) ?? '1') ?? 1;
+                // Remove quantity from product name
+                productName = productName
+                    .replaceAll(qtyMatch.group(0) ?? '', '')
+                    .trim();
+              }
+
+              // Clean up product name
+              productName = productName
+                  .replaceAll(RegExp(r'\s+'), ' ')
+                  .replaceAll(RegExp(r'^[\d\s.,:;-]+'), '')
+                  .replaceAll(RegExp(r'[\d\s.,:;-]+$'), '')
+                  .trim();
+
+              if (productName.isNotEmpty &&
+                  productName.length > 2 &&
+                  !productName.toLowerCase().contains('total') &&
+                  !productName.toLowerCase().contains('tax') &&
+                  !productName.toLowerCase().contains('subtotal')) {
+                products.add({
+                  'name': productName,
+                  'quantity': quantity,
+                  'price': price,
+                  'unit': 'Pcs', // Default unit for flexible extraction
+                });
+                productCount++;
+              }
+            }
+          }
+        }
+      }
+    } // End of if (products.isEmpty) block
+
+    // If no date found, use current date
+    if (date == null || date.isEmpty) {
+      final now = DateTime.now();
+      date =
+          '${now.day.toString().padLeft(2, '0')}/${now.month.toString().padLeft(2, '0')}/${now.year}';
+    }
+
+    return {
+      'supplierName': supplierName ?? 'Unknown Supplier',
+      'date': date,
+      'total': total ?? 0.0,
+      'products': products,
+      'rawText': text, // Store raw text for debugging
+    };
   }
 }

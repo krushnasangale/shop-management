@@ -506,25 +506,11 @@ class _DashboardState extends State<Dashboard> {
                 final sellingPrice = (pValue['price'] as num?)?.toInt() ?? 0;
                 final boughtPrice =
                     (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
-                final profitMargin = pValue['profitMargin'] as num?;
-
                 itemsSold += quantity;
-
-                // Use stored profitTotal if available (new batch system), else calculate
-                final profitTotal = (pValue['profitTotal'] as num?)?.toInt();
-                if (profitTotal != null) {
-                  // Use stored profit from batch system (accurate per batch)
-                  billProfit += profitTotal;
-                } else if (profitMargin != null) {
-                  // Use profitMargin if available (backward compatible)
-                  final productProfit = (profitMargin * quantity).toInt();
-                  billProfit += productProfit;
-                } else {
-                  // Fallback: calculate from prices (legacy bills)
-                  final profitPerUnit = sellingPrice - boughtPrice;
-                  final productProfit = profitPerUnit * quantity;
-                  billProfit += productProfit;
-                }
+                // Fallback: calculate from prices (legacy bills)
+                final profitPerUnit = sellingPrice - boughtPrice;
+                final productProfit = profitPerUnit * quantity;
+                billProfit += productProfit;
               }
             });
           }
