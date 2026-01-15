@@ -550,13 +550,13 @@ class _MyProfileState extends State<MyProfile> {
                   _buildLoggedInDevicesMenuItem(context),
                   _buildMenuItem(
                     Icons.lock_outline,
-                    localizations?.change_password ?? 'Change Password',
+                    localizations?.changePassword ?? 'Change Password',
                     context,
                     onTap: () => _showChangePasswordDialog(context),
                   ),
                   _buildMenuItem(
                     Icons.policy_outlined,
-                    localizations?.privacy_policy ?? 'Privacy Policy',
+                    localizations?.privacyPolicy ?? 'Privacy Policy',
                     context,
                     onTap: () {
                       AppNavigator.push(context, const PrivacyPolicyPage());
@@ -656,8 +656,8 @@ class _MyProfileState extends State<MyProfile> {
                           : const Icon(Icons.logout, color: Colors.redAccent),
                       label: Text(
                         _isLoggingOut
-                            ? (localizations?.logging_out ?? 'Logging Out...')
-                            : (localizations?.log_out ?? 'Log Out'),
+                            ? (localizations?.loggingOut ?? 'Logging Out...')
+                            : (localizations?.logOut ?? 'Log Out'),
                         style: const TextStyle(color: Colors.redAccent),
                       ),
                       style: ElevatedButton.styleFrom(
