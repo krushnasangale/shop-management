@@ -444,7 +444,7 @@ class _MyProfileState extends State<MyProfile> {
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(localizations?.my_profile ?? 'My Profile')),
+      appBar: AppBar(title: Text(localizations?.myProfile ?? 'My Profile')),
       body: Column(
         children: [
           Expanded(
@@ -482,7 +482,7 @@ class _MyProfileState extends State<MyProfile> {
                         ),
                       ),
                       subtitle: Text(
-                        localizations?.view_and_edit_profile ??
+                        localizations?.viewAndEditProfile ??
                             'View and edit profile',
                         style: TextStyle(
                           color: Theme.of(
@@ -525,7 +525,7 @@ class _MyProfileState extends State<MyProfile> {
                   ),
                   _buildCountMenuItem(
                     Icons.shopping_bag_outlined,
-                    localizations?.product_names ?? 'Product Names',
+                    localizations?.productNames ?? 'Product Names',
                     context,
                     'product-names',
                     onTap: () {
@@ -706,7 +706,7 @@ class _MyProfileState extends State<MyProfile> {
     if (user == null) {
       return _buildMenuItem(
         Icons.device_unknown,
-        localizations?.logged_in_devices ?? 'Logged In Devices',
+        localizations?.loggedInDevices ?? 'Logged In Devices',
         context,
         onTap: () {
           AppNavigator.push(context, const LoggedInDevicesScreen());
@@ -733,7 +733,7 @@ class _MyProfileState extends State<MyProfile> {
 
         return _buildMenuItem(
           Icons.device_unknown,
-          localizations?.logged_in_devices ?? 'Logged In Devices',
+          localizations?.loggedInDevices ?? 'Logged In Devices',
           context,
           onTap: () {
             AppNavigator.push(context, const LoggedInDevicesScreen());

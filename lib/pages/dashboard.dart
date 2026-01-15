@@ -6,6 +6,7 @@ import 'package:flashbill/pages/helpers/utils.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/pending_payments_page.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Dashboard extends StatefulWidget {
@@ -650,7 +651,7 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  Widget _buildTopSellingProductsCard() {
+  Widget _buildTopSellingProductsCard(AppLocalizations? loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -965,7 +966,7 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget _buildAvailabilityCard() {
+  Widget _buildAvailabilityCard(AppLocalizations? loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -991,7 +992,7 @@ class _DashboardState extends State<Dashboard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Availability',
+                      loc?.availability ?? 'Availability',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -1000,7 +1001,7 @@ class _DashboardState extends State<Dashboard> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Current Stock Overview',
+                      loc?.currentStockOverview ?? 'Current Stock Overview',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
@@ -1035,7 +1036,7 @@ class _DashboardState extends State<Dashboard> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Available\nProducts',
+                        loc?.availableProductsCount ?? 'Available\nProducts',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 10,
@@ -1077,7 +1078,7 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Total Quantity',
+                              loc?.totalQuantity ?? 'Total Quantity',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -1098,7 +1099,7 @@ class _DashboardState extends State<Dashboard> {
                           ),
                         ),
                         Text(
-                          'items in stock',
+                          loc?.itemsInStock ?? 'items in stock',
                           style: TextStyle(
                             fontSize: 10,
                             color: isDark ? Colors.grey[500] : Colors.grey[500],
@@ -1134,7 +1135,7 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Total Amount',
+                              loc?.totalAmount ?? 'Total Amount',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -1155,7 +1156,7 @@ class _DashboardState extends State<Dashboard> {
                           ),
                         ),
                         Text(
-                          'stock value',
+                          loc?.stockValue ?? 'stock value',
                           style: TextStyle(
                             fontSize: 10,
                             color: isDark ? Colors.grey[500] : Colors.grey[500],
@@ -1173,7 +1174,7 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  Widget _buildUpcomingPaymentsCard() {
+  Widget _buildUpcomingPaymentsCard(AppLocalizations? loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -1203,7 +1204,7 @@ class _DashboardState extends State<Dashboard> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Upcoming Payments',
+                        loc?.upcomingPayments ?? 'Upcoming Payments',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -1222,7 +1223,7 @@ class _DashboardState extends State<Dashboard> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '${_upcomingPayments.length} Due',
+                              '${_upcomingPayments.length} ${loc?.due ?? 'due'}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -1264,7 +1265,7 @@ class _DashboardState extends State<Dashboard> {
               child: _upcomingPayments.isEmpty
                   ? Center(
                       child: Text(
-                        'No upcoming payments',
+                        loc?.noUpcomingPayments ?? 'No upcoming payments',
                         style: TextStyle(color: Colors.grey[500]),
                       ),
                     )
@@ -1303,7 +1304,7 @@ class _DashboardState extends State<Dashboard> {
                                     Row(
                                       children: [
                                         Text(
-                                          'Due: ${payment['nextPaymentDate']}',
+                                          '${loc?.due ?? 'Due'}: ${payment['nextPaymentDate']}',
                                           style: TextStyle(
                                             fontSize: 11,
                                             color: isDark
@@ -1499,6 +1500,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -1527,7 +1529,8 @@ class _DashboardState extends State<Dashboard> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Sales & Profit Analysis',
+                                  loc?.salesProfitAnalysis ??
+                                      'Sales & Profit Analysis',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
@@ -1601,7 +1604,7 @@ class _DashboardState extends State<Dashboard> {
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                'All Data',
+                                                loc?.allData ?? 'All Data',
                                                 style: TextStyle(
                                                   fontWeight:
                                                       filterType == 'all'
@@ -1636,7 +1639,7 @@ class _DashboardState extends State<Dashboard> {
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                'Date Range',
+                                                loc?.dateRange ?? 'Date Range',
                                                 style: TextStyle(
                                                   fontWeight:
                                                       filterType == 'range'
@@ -1671,7 +1674,7 @@ class _DashboardState extends State<Dashboard> {
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                'Day',
+                                                loc?.day ?? 'Day',
                                                 style: TextStyle(
                                                   fontWeight:
                                                       filterType == 'day'
@@ -1706,7 +1709,7 @@ class _DashboardState extends State<Dashboard> {
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                'Month',
+                                                loc?.month ?? 'Month',
                                                 style: TextStyle(
                                                   fontWeight:
                                                       filterType == 'month'
@@ -1830,10 +1833,10 @@ class _DashboardState extends State<Dashboard> {
                             children: [
                               Expanded(
                                 child: _buildModernCard(
-                                  title: 'Total Sales',
+                                  title: loc?.totalSales ?? 'Total Sales',
                                   value: '₹${_formatCurrency(_totalSales)}',
                                   subtitle:
-                                      'Bills: $_totalSalesCount • Items: $_totalItemsSold',
+                                      '${loc?.bills ?? "Bills"}: $_totalSalesCount • ${loc?.items ?? "Items"}: $_totalItemsSold',
                                   backgroundColor: Colors.blue.withOpacity(0.1),
                                   textColor: Colors.blue[700]!,
                                   icon: Icons.trending_up,
@@ -1842,10 +1845,10 @@ class _DashboardState extends State<Dashboard> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: _buildModernCard(
-                                  title: 'Total Purchase',
+                                  title: loc?.totalPurchase ?? 'Total Purchase',
                                   value: '₹${_formatCurrency(_totalBuying)}',
                                   subtitle:
-                                      'Orders: $_totalBuyingCount • Qty: $_totalQuantityBought',
+                                      '${loc?.orders ?? "Orders"}: $_totalBuyingCount • ${loc?.qtyLabel ?? "Qty"}: $_totalQuantityBought',
                                   backgroundColor: Colors.orange.withOpacity(
                                     0.1,
                                   ),
@@ -1878,7 +1881,8 @@ class _DashboardState extends State<Dashboard> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Inventory & Payments',
+                                      loc?.inventoryPayments ??
+                                          'Inventory & Payments',
                                       style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w700,
@@ -1888,7 +1892,7 @@ class _DashboardState extends State<Dashboard> {
                                       ),
                                     ),
                                     Text(
-                                      'Live status',
+                                      loc?.liveStatus ?? 'Live status',
                                       style: TextStyle(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w500,
@@ -1904,15 +1908,15 @@ class _DashboardState extends State<Dashboard> {
                           ),
 
                           // Availability Section
-                          _buildAvailabilityCard(),
+                          _buildAvailabilityCard(loc),
                           const SizedBox(height: 12),
 
                           // Upcoming Payments
-                          _buildUpcomingPaymentsCard(),
+                          _buildUpcomingPaymentsCard(loc),
                           const SizedBox(height: 12),
 
                           // Top Selling Products
-                          _buildTopSellingProductsCard(),
+                          _buildTopSellingProductsCard(loc),
                           const SizedBox(height: 12),
 
                           // Pending Payments
@@ -2014,6 +2018,7 @@ class _DashboardState extends State<Dashboard> {
     final isProfitable = _totalProfitLoss >= 0;
     final bgColor = isProfitable ? Colors.green : Colors.red;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
 
     return Container(
       decoration: BoxDecoration(
@@ -2032,7 +2037,9 @@ class _DashboardState extends State<Dashboard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isProfitable ? 'Profit' : 'Loss',
+                isProfitable
+                    ? loc?.profitLabel ?? 'Profit'
+                    : loc?.loss ?? 'Loss',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
