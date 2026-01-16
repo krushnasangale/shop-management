@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class CustomerHistoryScreen extends StatefulWidget {
   final String customerId;
@@ -96,15 +97,23 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
       }
     } catch (e) {
       if (mounted) {
+        final localizations = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading customer bills: $e')),
+          SnackBar(
+            content: Text(
+              '${localizations?.errorLoadingCustomerBills ?? 'Error loading customer bills'}: $e',
+            ),
+          ),
         );
         setState(() => _isLoading = false);
       }
     }
   }
 
-  Widget _buildItemsCountBadge(Map<dynamic, dynamic> productsMap) {
+  Widget _buildItemsCountBadge(
+    Map<dynamic, dynamic> productsMap,
+    AppLocalizations? localizations,
+  ) {
     // Count total items/products in the bill
     final productCount = productsMap.length;
 
@@ -119,7 +128,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
           Icon(Icons.shopping_cart_outlined, size: 14, color: Colors.blue),
           const SizedBox(width: 4),
           Text(
-            '$productCount Item${productCount != 1 ? 's' : ''}',
+            '$productCount ${productCount == 1 ? (localizations?.item ?? 'Item') : (localizations?.items ?? 'Items')}',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -131,7 +140,10 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
     );
   }
 
-  Widget _buildProfitBadge(Map<dynamic, dynamic> productsMap) {
+  Widget _buildProfitBadge(
+    Map<dynamic, dynamic> productsMap,
+    AppLocalizations? localizations,
+  ) {
     // Calculate total profit from products in the bill
     double totalProfit = 0;
 
@@ -181,7 +193,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
           ),
           const SizedBox(width: 4),
           Text(
-            '₹$profitDisplay ${isProfit ? 'Profit' : 'Loss'}',
+            '₹$profitDisplay ${isProfit ? (localizations?.profit ?? 'Profit') : (localizations?.loss ?? 'Loss')}',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -195,9 +207,12 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.customerName} - Bills'),
+        title: Text(
+          '${widget.customerName} - ${localizations?.bills ?? 'Bills'}',
+        ),
         centerTitle: false,
       ),
       body: _isLoading
@@ -205,7 +220,8 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
           : _customerBills.isEmpty
           ? Center(
               child: Text(
-                'No bills for this customer',
+                localizations?.noBillsForThisCustomer ??
+                    'No bills for this customer',
                 style: context.subtitleMedium,
               ),
             )
@@ -226,7 +242,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Total Bills',
+                                    localizations?.totalBills ?? 'Total Bills',
                                     style: context.subtitleMedium,
                                   ),
                                   Text(
@@ -242,7 +258,8 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    'Total Amount',
+                                    localizations?.totalAmount ??
+                                        'Total Amount',
                                     style: context.subtitleMedium,
                                   ),
                                   Text(
@@ -264,7 +281,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Total Paid',
+                                    localizations?.totalPaid ?? 'Total Paid',
                                     style: TextStyle(
                                       color: Colors.green.shade400,
                                     ),
@@ -283,7 +300,8 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    'Total Remaining',
+                                    localizations?.totalRemaining ??
+                                        'Total Remaining',
                                     style: TextStyle(
                                       color: Colors.orange.shade400,
                                     ),
@@ -356,7 +374,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Bill Date: ${bill['date']}',
+                                      '${localizations?.billDate ?? 'Bill Date'}: ${bill['date']}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 14,
@@ -377,10 +395,12 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                       ),
                                       child: Text(
                                         isFullyPaid
-                                            ? 'Paid'
+                                            ? (localizations?.paid ?? 'Paid')
                                             : amountRemaining == totalAmount
-                                            ? 'Unpaid'
-                                            : 'Partial',
+                                            ? (localizations?.unpaid ??
+                                                  'Unpaid')
+                                            : (localizations?.partiallyPaid ??
+                                                  'Partial'),
                                         style: TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -400,13 +420,13 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Amount: ₹ $totalAmount',
+                                      '${localizations?.amount ?? 'Amount'}: ₹ $totalAmount',
                                       style: context.subtitleMedium?.copyWith(
                                         fontSize: 13,
                                       ),
                                     ),
                                     Text(
-                                      'Paid: ₹ $amountPaid',
+                                      '${localizations?.paidAmount ?? 'Paid'}: ₹ $amountPaid',
                                       style: TextStyle(
                                         color: Colors.green.shade400,
                                         fontSize: 13,
@@ -419,7 +439,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8),
                                     child: Text(
-                                      'Remaining: ₹ $amountRemaining',
+                                      '${localizations?.remaining ?? 'Remaining'}: ₹ $amountRemaining',
                                       style: TextStyle(
                                         color: Colors.orange.shade400,
                                         fontSize: 13,
@@ -435,12 +455,14 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                       bill['products']
                                               as Map<dynamic, dynamic>? ??
                                           {},
+                                      localizations,
                                     ),
                                     const SizedBox(width: 8),
                                     _buildProfitBadge(
                                       bill['products']
                                               as Map<dynamic, dynamic>? ??
                                           {},
+                                      localizations,
                                     ),
                                   ],
                                 ),

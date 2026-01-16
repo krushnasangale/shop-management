@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flashbill/pages/profile/customer/customer_history.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class Customers extends StatefulWidget {
   const Customers({super.key});
@@ -123,6 +124,7 @@ class _CustomersState extends State<Customers> {
   }
 
   Future<void> _deleteCustomer(String customerId) async {
+    final localizations = AppLocalizations.of(context);
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -136,14 +138,23 @@ class _CustomersState extends State<Customers> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Customer deleted successfully')),
+          SnackBar(
+            content: Text(
+              localizations?.customerDeletedSuccessfully ??
+                  'Customer deleted successfully',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error deleting customer: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${localizations?.errorDeletingCustomer ?? 'Error deleting customer'}: $e',
+            ),
+          ),
+        );
       }
     }
   }
@@ -160,9 +171,10 @@ class _CustomersState extends State<Customers> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Customers'),
+        title: Text(localizations?.customers ?? 'Customers'),
         actions: [
           IconButton(
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
@@ -187,7 +199,8 @@ class _CustomersState extends State<Customers> {
                 child: TextField(
                   controller: _searchController,
                   decoration: InputDecoration(
-                    hintText: 'Search Customers...',
+                    hintText:
+                        localizations?.searchCustomers ?? 'Search Customers...',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
@@ -214,8 +227,10 @@ class _CustomersState extends State<Customers> {
                 ? Center(
                     child: Text(
                       _searchQuery.isEmpty
-                          ? 'No customers added yet'
-                          : 'No customers found',
+                          ? (localizations?.noCustomersAddedYet ??
+                                'No customers added yet')
+                          : (localizations?.noCustomersFound ??
+                                'No customers found'),
                     ),
                   )
                 : ListView.builder(
@@ -244,6 +259,7 @@ class _CustomersState extends State<Customers> {
                         customer,
                         initials,
                         avatarColor,
+                        localizations,
                       );
                     },
                   ),
@@ -284,6 +300,7 @@ class _CustomersState extends State<Customers> {
     Map<String, dynamic> customer,
     String initials,
     Color avatarColor,
+    AppLocalizations? localizations,
   ) {
     final cardColor = context.cardColor;
 
@@ -343,7 +360,7 @@ class _CustomersState extends State<Customers> {
                           const Spacer(),
                           Text(
                             customer['vehicleNumber'].isEmpty
-                                ? 'No vehicle'
+                                ? (localizations?.noVehicle ?? 'No vehicle')
                                 : customer['vehicleNumber'],
                             style: context.subtitleMedium,
                           ),
@@ -360,20 +377,20 @@ class _CustomersState extends State<Customers> {
                 TextButton.icon(
                   onPressed: () => _showCustomerHistory(context, customer),
                   icon: const Icon(Icons.history, size: 18),
-                  label: const Text('History'),
+                  label: Text(localizations?.history ?? 'History'),
                   style: TextButton.styleFrom(foregroundColor: Colors.green),
                 ),
                 TextButton.icon(
                   onPressed: () =>
                       _showAddEditDialog(context, customer: customer),
                   icon: const Icon(Icons.edit, size: 18),
-                  label: const Text('Edit'),
+                  label: Text(localizations?.edit ?? 'Edit'),
                   style: TextButton.styleFrom(foregroundColor: Colors.blue),
                 ),
                 TextButton.icon(
                   onPressed: () => _showDeleteConfirmation(customer),
                   icon: const Icon(Icons.delete, size: 18),
-                  label: const Text('Delete'),
+                  label: Text(localizations?.delete ?? 'Delete'),
                   style: TextButton.styleFrom(foregroundColor: Colors.red),
                 ),
               ],
@@ -385,16 +402,23 @@ class _CustomersState extends State<Customers> {
   }
 
   Future<void> _showDeleteConfirmation(Map<String, dynamic> customer) async {
+    final localizations = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Delete Customer', style: context.titleLarge),
-          content: const Text('Are you sure you want to delete this customer?'),
+          title: Text(
+            localizations?.deleteCustomer ?? 'Delete Customer',
+            style: context.titleLarge,
+          ),
+          content: Text(
+            localizations?.confirmDeleteCustomer ??
+                'Are you sure you want to delete this customer?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () {
@@ -402,8 +426,8 @@ class _CustomersState extends State<Customers> {
                 Navigator.of(context).pop();
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text(
-                'Delete',
+              child: Text(
+                localizations?.delete ?? 'Delete',
                 style: TextStyle(color: Colors.white),
               ),
             ),
@@ -417,6 +441,7 @@ class _CustomersState extends State<Customers> {
     BuildContext context, {
     Map<String, dynamic>? customer,
   }) {
+    final localizations = AppLocalizations.of(context);
     final isEditing = customer != null;
     final nameController = TextEditingController(
       text: isEditing ? customer['name'] : '',
@@ -439,7 +464,9 @@ class _CustomersState extends State<Customers> {
           builder: (context, setStateDialog) {
             return AlertDialog(
               title: Text(
-                isEditing ? 'Edit Customer' : 'Add Customer',
+                isEditing
+                    ? (localizations?.editCustomer ?? 'Edit Customer')
+                    : (localizations?.addCustomer ?? 'Add Customer'),
                 style: context.bodyLargeText,
               ),
               content: SingleChildScrollView(
@@ -460,15 +487,19 @@ class _CustomersState extends State<Customers> {
                         }
                         setStateDialog(() {
                           if (value.isEmpty) {
-                            nameError = 'Name is required';
+                            nameError =
+                                localizations?.nameIsRequired ??
+                                'Name is required';
                           } else {
                             nameError = null;
                           }
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Name*',
-                        hintText: 'Enter customer name',
+                        labelText: localizations?.nameRequired ?? 'Name*',
+                        hintText:
+                            localizations?.enterCustomerName ??
+                            'Enter customer name',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -481,8 +512,12 @@ class _CustomersState extends State<Customers> {
                       controller: mobileController,
                       keyboardType: TextInputType.phone,
                       decoration: InputDecoration(
-                        labelText: 'Mobile Number*',
-                        hintText: 'Enter mobile number',
+                        labelText:
+                            localizations?.mobileNumberRequired ??
+                            'Mobile Number*',
+                        hintText:
+                            localizations?.enterMobileNumber ??
+                            'Enter mobile number',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -491,9 +526,12 @@ class _CustomersState extends State<Customers> {
                       onChanged: (value) {
                         setStateDialog(() {
                           if (value.isEmpty) {
-                            mobileError = 'Mobile number is required';
+                            mobileError =
+                                localizations?.mobileNumberIsRequired ??
+                                'Mobile number is required';
                           } else if (value.length < 10) {
                             mobileError =
+                                localizations?.mobileNumberMinLength ??
                                 'Mobile number must be at least 10 digits';
                           } else {
                             mobileError = null;
@@ -520,8 +558,11 @@ class _CustomersState extends State<Customers> {
                         }
                       },
                       decoration: InputDecoration(
-                        labelText: 'Vehicle Number',
-                        hintText: 'Enter vehicle number',
+                        labelText:
+                            localizations?.vehicleNumber ?? 'Vehicle Number',
+                        hintText:
+                            localizations?.enterVehicleNumber ??
+                            'Enter vehicle number',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -534,7 +575,7 @@ class _CustomersState extends State<Customers> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(localizations?.cancel ?? 'Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -542,17 +583,21 @@ class _CustomersState extends State<Customers> {
                     bool hasErrors = false;
                     setStateDialog(() {
                       if (nameController.text.isEmpty) {
-                        nameError = 'Name is required';
+                        nameError =
+                            localizations?.nameIsRequired ?? 'Name is required';
                         hasErrors = true;
                       } else {
                         nameError = null;
                       }
 
                       if (mobileController.text.isEmpty) {
-                        mobileError = 'Mobile number is required';
+                        mobileError =
+                            localizations?.mobileNumberIsRequired ??
+                            'Mobile number is required';
                         hasErrors = true;
                       } else if (mobileController.text.length < 10) {
                         mobileError =
+                            localizations?.mobileNumberMinLength ??
                             'Mobile number must be at least 10 digits';
                         hasErrors = true;
                       } else {
@@ -573,7 +618,11 @@ class _CustomersState extends State<Customers> {
 
                     Navigator.of(context).pop();
                   },
-                  child: Text(isEditing ? 'Update' : 'Add'),
+                  child: Text(
+                    isEditing
+                        ? (localizations?.update ?? 'Update')
+                        : (localizations?.add ?? 'Add'),
+                  ),
                 ),
               ],
             );
@@ -589,6 +638,7 @@ class _CustomersState extends State<Customers> {
     String vehicleNumber, {
     String? customerId,
   }) async {
+    final localizations = AppLocalizations.of(context);
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -610,7 +660,12 @@ class _CustomersState extends State<Customers> {
             .update(customerData);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Customer updated successfully')),
+            SnackBar(
+              content: Text(
+                localizations?.customerUpdatedSuccessfully ??
+                    'Customer updated successfully',
+              ),
+            ),
           );
         }
       } else {
@@ -622,15 +677,24 @@ class _CustomersState extends State<Customers> {
             .add(customerData);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Customer added successfully')),
+            SnackBar(
+              content: Text(
+                localizations?.customerAddedSuccessfully ??
+                    'Customer added successfully',
+              ),
+            ),
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error saving customer: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${localizations?.errorSavingCustomer ?? 'Error saving customer'}: $e',
+            ),
+          ),
+        );
       }
     }
   }

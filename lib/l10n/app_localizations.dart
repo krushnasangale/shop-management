@@ -228,6 +228,46 @@ class AppLocalizations {
   String get passwordsDoNotMatch => translate('passwords_do_not_match');
   String get failedToChangePassword => translate('failed_to_change_password');
 
+  // Customers Page
+  String get searchCustomers => translate('search_customers');
+  String get noCustomersAddedYet => translate('no_customers_added_yet');
+  String get noCustomersFound => translate('no_customers_found');
+  String get customerDeletedSuccessfully =>
+      translate('customer_deleted_successfully');
+  String get errorDeletingCustomer => translate('error_deleting_customer');
+  String get noVehicle => translate('no_vehicle');
+  String get history => translate('history');
+  String get deleteCustomer => translate('delete_customer');
+  String get confirmDeleteCustomer => translate('confirm_delete_customer');
+  String get editCustomer => translate('edit_customer');
+  String get addCustomer => translate('add_customer');
+  String get nameRequired => translate('name_required');
+  String get enterCustomerName => translate('enter_customer_name');
+  String get nameIsRequired => translate('name_is_required');
+  String get mobileNumberRequired => translate('mobile_number_required');
+  String get enterMobileNumber => translate('enter_mobile_number');
+  String get mobileNumberIsRequired => translate('mobile_number_is_required');
+  String get mobileNumberMinLength => translate('mobile_number_min_length');
+  String get vehicleNumber => translate('vehicle_number');
+  String get enterVehicleNumber => translate('enter_vehicle_number');
+  String get update => translate('update');
+  String get customerUpdatedSuccessfully =>
+      translate('customer_updated_successfully');
+  String get customerAddedSuccessfully =>
+      translate('customer_added_successfully');
+  String get errorSavingCustomer => translate('error_saving_customer');
+
+  // Customer History Page
+  String get errorLoadingCustomerBills =>
+      translate('error_loading_customer_bills');
+  String get item => translate('item');
+  String get noBillsForThisCustomer => translate('no_bills_for_this_customer');
+  String get totalBills => translate('total_bills');
+  String get totalPaid => translate('total_paid');
+  String get totalRemaining => translate('total_remaining');
+  String get billDate => translate('bill_date');
+  String get paidAmount => translate('paid_amount');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {
