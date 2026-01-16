@@ -4,6 +4,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class PendingPaymentsPage extends StatefulWidget {
   const PendingPaymentsPage({super.key});
@@ -202,11 +203,12 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pending Payments'),
+        title: Text(localizations?.pendingPayments ?? 'Pending Payments'),
         centerTitle: false,
         actions: [
           IconButton(
@@ -236,13 +238,17 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                     Icon(
                       Icons.currency_rupee,
                       size: 18,
-                      color: _sortBy == 'amount' ? Colors.blue : null,
+                      color: _sortBy == 'amount'
+                          ? Colors.blue
+                          : Theme.of(context).iconTheme.color,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Sort by Amount',
+                      localizations?.sortByAmount ?? 'Sort by Amount',
                       style: TextStyle(
-                        color: _sortBy == 'amount' ? Colors.blue : null,
+                        color: _sortBy == 'amount'
+                            ? Colors.blue
+                            : Theme.of(context).colorScheme.onSurface,
                         fontWeight: _sortBy == 'amount'
                             ? FontWeight.bold
                             : null,
@@ -258,13 +264,17 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                     Icon(
                       Icons.calendar_today,
                       size: 18,
-                      color: _sortBy == 'date' ? Colors.blue : null,
+                      color: _sortBy == 'date'
+                          ? Colors.blue
+                          : Theme.of(context).iconTheme.color,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Sort by Date',
+                      localizations?.sortByDate ?? 'Sort by Date',
                       style: TextStyle(
-                        color: _sortBy == 'date' ? Colors.blue : null,
+                        color: _sortBy == 'date'
+                            ? Colors.blue
+                            : Theme.of(context).colorScheme.onSurface,
                         fontWeight: _sortBy == 'date' ? FontWeight.bold : null,
                       ),
                     ),
@@ -278,13 +288,17 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                     Icon(
                       Icons.person,
                       size: 18,
-                      color: _sortBy == 'name' ? Colors.blue : null,
+                      color: _sortBy == 'name'
+                          ? Colors.blue
+                          : Theme.of(context).iconTheme.color,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Sort by Name',
+                      localizations?.sortByName ?? 'Sort by Name',
                       style: TextStyle(
-                        color: _sortBy == 'name' ? Colors.blue : null,
+                        color: _sortBy == 'name'
+                            ? Colors.blue
+                            : Theme.of(context).colorScheme.onSurface,
                         fontWeight: _sortBy == 'name' ? FontWeight.bold : null,
                       ),
                     ),
@@ -323,7 +337,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Total Pending',
+                      localizations?.totalPending ?? 'Total Pending',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.9),
                         fontSize: 14,
@@ -356,7 +370,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${_filteredPayments.length} Bills',
+                        '${_filteredPayments.length} ${localizations?.bills ?? 'Bills'}',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -383,7 +397,9 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                   controller: _searchController,
                   style: context.bodyLargeText,
                   decoration: InputDecoration(
-                    hintText: 'Search by name, mobile...',
+                    hintText:
+                        localizations?.searchByNameMobile ??
+                        'Search by name, mobile...',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
@@ -422,8 +438,10 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                         const SizedBox(height: 16),
                         Text(
                           _searchQuery.isEmpty
-                              ? 'No pending payments'
-                              : 'No results found',
+                              ? (localizations?.noPendingPayments ??
+                                    'No pending payments')
+                              : (localizations?.noResultsFound ??
+                                    'No results found'),
                           style: context.subtitleMedium?.copyWith(
                             fontSize: 18,
                             fontWeight: FontWeight.w500,
@@ -555,7 +573,8 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Bill Date',
+                                          localizations?.billDate ??
+                                              'Bill Date',
                                           style: context.subtitleMedium
                                               ?.copyWith(fontSize: 11),
                                         ),
@@ -574,7 +593,8 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                           CrossAxisAlignment.end,
                                       children: [
                                         Text(
-                                          'Total Amount',
+                                          localizations?.totalAmount ??
+                                              'Total Amount',
                                           style: context.subtitleSmall
                                               ?.copyWith(fontSize: 11),
                                         ),
@@ -593,7 +613,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                           CrossAxisAlignment.end,
                                       children: [
                                         Text(
-                                          'Paid',
+                                          localizations?.paid ?? 'Paid',
                                           style: context.subtitleMedium
                                               ?.copyWith(fontSize: 11),
                                         ),
@@ -619,7 +639,8 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                           MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          'Payment Progress',
+                                          localizations?.paymentProgress ??
+                                              'Payment Progress',
                                           style: context.subtitleMedium
                                               ?.copyWith(
                                                 fontSize: 11,

@@ -75,9 +75,14 @@ class _MyProfileState extends State<MyProfile> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Logout failed: $e')));
+        final localizations = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${localizations?.logoutFailed ?? 'Logout failed'}: $e',
+            ),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoggingOut = false);

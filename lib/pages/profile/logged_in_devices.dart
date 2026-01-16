@@ -6,6 +6,7 @@ import 'dart:io' show Platform;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flashbill/pages/login/login.dart';
 import 'package:intl/intl.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class LoggedInDevicesScreen extends StatefulWidget {
   const LoggedInDevicesScreen({super.key});
@@ -42,9 +43,13 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
           .update({'revokedAt': FieldValue.serverTimestamp()});
 
       if (context.mounted) {
+        final localizations = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Device removed and logged out successfully'),
+          SnackBar(
+            content: Text(
+              localizations?.deviceRemovedSuccessfully ??
+                  'Device removed and logged out successfully',
+            ),
           ),
         );
       }
@@ -65,9 +70,14 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error removing device: $e')));
+        final localizations = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${localizations?.errorRemovingDevice ?? 'Error removing device'}: $e',
+            ),
+          ),
+        );
       }
     }
   }
@@ -111,20 +121,31 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final localizations = AppLocalizations.of(context);
         return AlertDialog(
-          title: Text('Remove Device', style: context.bodyLargeText),
-          content: Text('Remove "$deviceName" from logged-in devices?'),
+          title: Text(
+            localizations?.removeDevice ?? 'Remove Device',
+            style: context.bodyLargeText,
+          ),
+          content: Text(
+            (localizations?.removeDeviceFromLoggedIn ??
+                    'Remove "{deviceName}" from logged-in devices?')
+                .replaceAll('{deviceName}', deviceName),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _removeDevice(context, deviceId);
               },
-              child: Text('Remove', style: TextStyle(color: Colors.red[600])),
+              child: Text(
+                localizations?.delete ?? 'Remove',
+                style: TextStyle(color: Colors.red[600]),
+              ),
             ),
           ],
         );
@@ -134,18 +155,26 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Logged In Devices')),
-        body: const Center(child: Text('Please login to view devices')),
+        appBar: AppBar(
+          title: Text(localizations?.loggedInDevices ?? 'Logged In Devices'),
+        ),
+        body: Center(
+          child: Text(
+            localizations?.pleaseLoginToViewDevices ??
+                'Please login to view devices',
+          ),
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Logged In Devices'),
+        title: Text(localizations?.loggedInDevices ?? 'Logged In Devices'),
         centerTitle: false,
       ),
       body: StreamBuilder<QuerySnapshot>(
@@ -161,11 +190,19 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
+            return Center(
+              child: Text(
+                '${localizations?.error ?? 'Error'}: ${snapshot.error}',
+              ),
+            );
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text('No devices logged in'));
+            return Center(
+              child: Text(
+                localizations?.noDevicesLoggedIn ?? 'No devices logged in',
+              ),
+            );
           }
 
           // Filter out revoked devices
@@ -317,9 +354,9 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                             color: Colors.grey.withOpacity(0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'Current device',
-                            style: TextStyle(
+                          child: Text(
+                            localizations?.currentDevice ?? 'Current device',
+                            style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),

@@ -366,6 +366,26 @@ class AppLocalizations {
   String get pleaseDrawSignature => translate('please_draw_signature');
   String get saveSignature => translate('save_signature');
   String get subscriptionExpiry => translate('subscription_expiry');
+  String get pleaseLoginToViewDevices =>
+      translate('please_login_to_view_devices');
+  String get deviceRemovedSuccessfully =>
+      translate('device_removed_successfully');
+  String get errorRemovingDevice => translate('error_removing_device');
+  String get removeDevice => translate('remove_device');
+  String get removeDeviceFromLoggedIn =>
+      translate('remove_device_from_logged_in');
+  String get noDevicesLoggedIn => translate('no_devices_logged_in');
+  String get currentDevice => translate('current_device');
+  String get logoutFailed => translate('logout_failed');
+  String get deviceLoggedOutRemotely => translate('device_logged_out_remotely');
+  String get addItem => translate('add_item');
+  String get sortByAmount => translate('sort_by_amount');
+  String get sortByDate => translate('sort_by_date');
+  String get sortByName => translate('sort_by_name');
+  String get totalPending => translate('total_pending');
+  String get searchByNameMobile => translate('search_by_name_mobile');
+  String get noResultsFound => translate('no_results_found');
+  String get paymentProgress => translate('payment_progress');
 
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {

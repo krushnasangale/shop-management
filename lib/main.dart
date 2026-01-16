@@ -8,7 +8,6 @@ import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/pages/purchase/purchase_items_list.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/dashboard.dart';
-import 'package:flashbill/pages/admin_dashboard.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/providers/dashboard_provider.dart';
@@ -197,10 +196,15 @@ class MyApp extends StatelessWidget {
                                   _,
                                 ) {
                                   if (context.mounted) {
+                                    final localizations = AppLocalizations.of(
+                                      context,
+                                    );
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'This device has been logged out remotely',
+                                          localizations
+                                                  ?.deviceLoggedOutRemotely ??
+                                              'This device has been logged out remotely',
                                         ),
                                         duration: Duration(seconds: 3),
                                       ),
@@ -333,6 +337,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: _selectedIndex == 0
           ? AppBar(
@@ -352,7 +357,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     onPressed: () async {
                       AppNavigator.push(context, const MyProfile());
                     },
-                    tooltip: 'My Profile',
+                    tooltip: localizations?.myProfile ?? 'My Profile',
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -374,7 +379,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
               },
               backgroundColor: const Color(0xFF2196F3),
-              tooltip: 'Add Item',
+              tooltip: localizations?.addItem ?? 'Add Item',
               child: const Icon(Icons.add, color: Colors.white, size: 45),
             )
           : null,
@@ -386,9 +391,9 @@ class _MyHomePageState extends State<MyHomePage> {
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         items: [
-          const BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
-            label: 'Dashboard',
+            label: localizations?.dashboard ?? 'Dashboard',
           ),
           BottomNavigationBarItem(
             icon: Stack(
@@ -423,15 +428,15 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
               ],
             ),
-            label: 'Availability',
+            label: localizations?.availability ?? 'Availability',
           ),
-          const BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.receipt_long),
-            label: 'Bills',
+            label: localizations?.bills ?? 'Bills',
           ),
-          const BottomNavigationBarItem(
+          BottomNavigationBarItem(
             icon: Icon(Icons.shopping_bag),
-            label: 'Purchases',
+            label: localizations?.purchases ?? 'Purchases',
           ),
           // const BottomNavigationBarItem(
           //   icon: Icon(Icons.admin_panel_settings),
