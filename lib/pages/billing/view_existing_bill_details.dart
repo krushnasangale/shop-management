@@ -360,7 +360,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     String shopName = '--';
     String ownerName = '--';
     String shopAddress = '--';
-    String shipPhone = '--';
+    String shopPhone = '--';
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -374,7 +374,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           shopName = data?['shopName'] ?? '--';
           ownerName = data?['ownerName'] ?? '--';
           shopAddress = data?['shopAddress'] ?? '--';
-          shipPhone = data?['shipPhone'] ?? '--';
+          shopPhone = data?['shopPhone'] ?? '--';
         }
       }
     } catch (e) {
@@ -420,9 +420,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       'Address: $shopAddress',
                       style: const pw.TextStyle(fontSize: 9),
                     ),
-                  if (shipPhone != '--')
+                  if (shopPhone != '--')
                     pw.Text(
-                      'Phone: $shipPhone',
+                      'Phone: $shopPhone',
                       style: const pw.TextStyle(fontSize: 9),
                     ),
                 ],
@@ -491,6 +491,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   'Vehicle: $customerVehicle',
                   style: const pw.TextStyle(fontSize: 10),
                 ),
+
               pw.SizedBox(height: 15),
 
               // Products Table
