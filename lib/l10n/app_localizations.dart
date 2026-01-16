@@ -387,6 +387,67 @@ class AppLocalizations {
   String get noResultsFound => translate('no_results_found');
   String get paymentProgress => translate('payment_progress');
 
+  // Purchase Items List Page
+  String get purchasedEntries => translate('purchased_entries');
+  String get scanInvoice => translate('scan_invoice');
+  String get noPurchasedEntriesYet => translate('no_purchased_entries_yet');
+  String get searchBySupplierOrAmount =>
+      translate('search_by_supplier_or_amount');
+  String get noMatchingEntriesFound => translate('no_matching_entries_found');
+  String get purchased => translate('purchased');
+  String get received => translate('received');
+  String get selectPDF => translate('select_pdf');
+  String get choosePDFInvoice => translate('choose_pdf_invoice');
+  String get retryScan => translate('retry_scan');
+  String get continueAnyway => translate('continue_anyway');
+  String get limitedDataDetected => translate('limited_data_detected');
+  String get pdfNotGivingGoodResults =>
+      translate('pdf_not_giving_good_results');
+  String get tryDifferentPDF => translate('try_different_pdf');
+  String get takeClearPhotoWithGoodLighting =>
+      translate('take_clear_photo_with_good_lighting');
+  String get usePDFScanForBetterTableExtraction =>
+      translate('use_pdf_scan_for_better_table_extraction');
+  String get ensureTextIsLargeAndReadableInPhoto =>
+      translate('ensure_text_is_large_and_readable_in_photo');
+  String get manuallyEnterPurchaseDetails =>
+      translate('manually_enter_purchase_details');
+  String get tipPDFScanningWorksBestForTableBasedInvoices =>
+      translate('tip_pdf_scanning_works_best_for_table_based_invoices');
+  String get couldNotAccessPDFFile => translate('could_not_access_pdf_file');
+  String get errorSelectingPDF => translate('error_selecting_pdf');
+  String get processingInvoice => translate('processing_invoice');
+  String get extractingTextFromPDF => translate('extracting_text_from_pdf');
+  String get scanningInvoice => translate('scanning_invoice');
+  String get analyzingImageWithOCR => translate('analyzing_image_with_ocr');
+  String get errorProcessingInvoice => translate('error_processing_invoice');
+  String get invoiceScanningOnlyAvailableOnMobile =>
+      translate('invoice_scanning_only_available_on_mobile');
+
+  // Purchase Entry Details
+  String get purchaseEntryRemovedLastProductDeleted =>
+      translate('purchase_entry_removed_last_product_deleted');
+  String get productRemovedSuccessfully =>
+      translate('product_removed_successfully');
+  String get errorRemovingProduct => translate('error_removing_product');
+  String get removeProduct => translate('remove_product');
+  String get removeLastProductWarning =>
+      translate('remove_last_product_warning');
+  String get removeProductFromPurchase =>
+      translate('remove_product_from_purchase');
+  String get editPurchase => translate('edit_purchase');
+  String get purchaseDate => translate('purchase_date');
+  String get totalUnits => translate('total_units');
+  String get purchasedItems => translate('purchased_items');
+  String get batch => translate('batch');
+  String get unitLabel => translate('unit_label');
+  String get expiryDateLabel => translate('expiry_date_label');
+  String get quantityLabel => translate('quantity_label');
+  String get profitPerUnit => translate('profit_per_unit');
+  String get itemTotal => translate('item_total');
+  String get unknownSupplier => translate('unknown_supplier');
+  String get removeProductTooltip => translate('remove_product_tooltip');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {

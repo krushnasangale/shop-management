@@ -8,6 +8,7 @@ import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -173,16 +174,17 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Purchased Entries'),
+        title: Text(localizations?.purchasedEntries ?? 'Purchased Entries'),
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
           // Scan Invoice Button
           IconButton(
             icon: const Icon(Icons.document_scanner),
-            tooltip: 'Scan Invoice',
+            tooltip: localizations?.scanInvoice ?? 'Scan Invoice',
             onPressed: () {
               _showScanOptions(context);
             },
@@ -211,7 +213,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
               onPressed: () async {
                 AppNavigator.push(context, const MyProfile());
               },
-              tooltip: 'My Profile',
+              tooltip: localizations?.myProfile ?? 'My Profile',
             ),
           ),
           const SizedBox(width: 14),
@@ -220,7 +222,12 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _boughtEntries.isEmpty
-          ? const Center(child: Text('No purchased entries yet'))
+          ? Center(
+              child: Text(
+                localizations?.noPurchasedEntriesYet ??
+                    'No purchased entries yet',
+              ),
+            )
           : Column(
               children: [
                 // Search Bar
@@ -237,7 +244,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search by supplier or amount',
+                          hintText:
+                              localizations?.searchBySupplierOrAmount ??
+                              'Search by supplier or amount',
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
@@ -265,7 +274,12 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                 // List
                 Expanded(
                   child: _filteredEntries.isEmpty
-                      ? const Center(child: Text('No matching entries found'))
+                      ? Center(
+                          child: Text(
+                            localizations?.noMatchingEntriesFound ??
+                                'No matching entries found',
+                          ),
+                        )
                       : ListView.builder(
                           controller: _scrollController,
                           itemCount:
@@ -404,7 +418,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    '$totalProducts Products',
+                                                    '$totalProducts ${localizations?.products ?? 'Products'}',
                                                     style: const TextStyle(
                                                       fontSize: 12,
                                                       color: Colors.grey,
@@ -412,7 +426,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                                                   ),
                                                   const SizedBox(height: 2),
                                                   Text(
-                                                    'Purchased',
+                                                    localizations?.purchased ??
+                                                        'Purchased',
                                                     style: TextStyle(
                                                       fontSize: 11,
                                                       color: Colors.blue[400],
@@ -444,8 +459,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                                                       color: Colors.green,
                                                     ),
                                                     const SizedBox(width: 4),
-                                                    const Text(
-                                                      'Received',
+                                                    Text(
+                                                      localizations?.received ??
+                                                          'Received',
                                                       style: TextStyle(
                                                         fontSize: 11,
                                                         fontWeight:
@@ -474,6 +490,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   }
 
   void _showScanOptions(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -485,7 +502,21 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Scan Invoice', style: context.headingMedium),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    localizations?.scanInvoice ?? 'Scan Invoice',
+                    style: context.headingMedium,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
               // ListTile(
               //   leading: Container(
@@ -530,8 +561,10 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                   ),
                   child: const Icon(Icons.picture_as_pdf, color: Colors.orange),
                 ),
-                title: const Text('Select PDF'),
-                subtitle: const Text('Choose PDF invoice'),
+                title: Text(localizations?.selectPDF ?? 'Select PDF'),
+                subtitle: Text(
+                  localizations?.choosePDFInvoice ?? 'Choose PDF invoice',
+                ),
                 onTap: () {
                   Navigator.pop(context);
                   _scanFromPDF();
@@ -546,6 +579,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   }
 
   Future<void> _scanFromCamera() async {
+    final localizations = AppLocalizations.of(context);
     try {
       final ImagePicker picker = ImagePicker();
       print('Opening camera...');
@@ -572,7 +606,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error capturing image: $e'),
+            content: Text('${localizations?.error ?? 'Error'}: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
@@ -582,6 +616,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   }
 
   Future<void> _scanFromGallery() async {
+    final localizations = AppLocalizations.of(context);
     try {
       final ImagePicker picker = ImagePicker();
       print('Opening gallery picker...');
@@ -607,7 +642,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error selecting image: $e'),
+            content: Text('${localizations?.error ?? 'Error'}: $e'),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
@@ -621,6 +656,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
     int textLength,
     Map<String, dynamic> invoiceData,
   ) {
+    final localizations = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -628,7 +664,11 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
           children: [
             Icon(Icons.warning_amber, color: Colors.orange),
             SizedBox(width: 8),
-            Expanded(child: Text('Limited Data Detected')),
+            Expanded(
+              child: Text(
+                localizations?.limitedDataDetected ?? 'Limited Data Detected',
+              ),
+            ),
           ],
         ),
         content: SingleChildScrollView(
@@ -637,37 +677,42 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'This PDF is not giving us good results. Please try a different PDF.',
+                localizations?.pdfNotGivingGoodResults ??
+                    'This PDF is not giving us good results. Please try a different PDF.',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               SizedBox(height: 16),
               Text(
-                'For better results, try:',
+                localizations?.tryDifferentPDF ?? 'For better results, try:',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
               SizedBox(height: 12),
               _buildSuggestionRow(
                 Icons.camera_alt,
                 Colors.blue,
-                'Take a clear photo with good lighting',
+                localizations?.takeClearPhotoWithGoodLighting ??
+                    'Take a clear photo with good lighting',
               ),
               SizedBox(height: 8),
               _buildSuggestionRow(
                 Icons.picture_as_pdf,
                 Colors.orange,
-                'Use PDF scan for better table extraction',
+                localizations?.usePDFScanForBetterTableExtraction ??
+                    'Use PDF scan for better table extraction',
               ),
               SizedBox(height: 8),
               _buildSuggestionRow(
                 Icons.zoom_in,
                 Colors.purple,
-                'Ensure text is large and readable in photo',
+                localizations?.ensureTextIsLargeAndReadableInPhoto ??
+                    'Ensure text is large and readable in photo',
               ),
               SizedBox(height: 8),
               _buildSuggestionRow(
                 Icons.edit,
                 Colors.green,
-                'Manually enter the purchase details',
+                localizations?.manuallyEnterPurchaseDetails ??
+                    'Manually enter the purchase details',
               ),
               SizedBox(height: 16),
               Container(
@@ -683,7 +728,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Tip: PDF scanning works best for table-based invoices',
+                        localizations
+                                ?.tipPDFScanningWorksBestForTableBasedInvoices ??
+                            'Tip: PDF scanning works best for table-based invoices',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.blue.shade900,
@@ -702,7 +749,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
               Navigator.pop(context);
               _showScanOptions(context); // Open PDF selection popup again
             },
-            child: Text('Retry Scan'),
+            child: Text(localizations?.retryScan ?? 'Retry Scan'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -715,7 +762,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                 ),
               );
             },
-            child: Text('Continue Anyway'),
+            child: Text(localizations?.continueAnyway ?? 'Continue Anyway'),
           ),
         ],
       ),
@@ -733,6 +780,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   }
 
   Future<void> _scanFromPDF() async {
+    final localizations = AppLocalizations.of(context);
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -746,8 +794,11 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         } else {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Could not access PDF file'),
+              SnackBar(
+                content: Text(
+                  localizations?.couldNotAccessPDFFile ??
+                      'Could not access PDF file',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -758,7 +809,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error selecting PDF: $e'),
+            content: Text(
+              '${localizations?.errorSelectingPDF ?? 'Error selecting PDF'}: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -772,50 +825,57 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => WillPopScope(
-          onWillPop: () async => false,
-          child: Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      shape: BoxShape.circle,
+        builder: (dialogContext) {
+          final localizations = AppLocalizations.of(context);
+          return WillPopScope(
+            onWillPop: () async => false,
+            child: Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const CircularProgressIndicator(strokeWidth: 3),
                     ),
-                    child: const CircularProgressIndicator(strokeWidth: 3),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Processing Invoice',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Extracting text from PDF...',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Please wait',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontStyle: FontStyle.italic,
+                    const SizedBox(height: 20),
+                    Text(
+                      localizations?.processingInvoice ?? 'Processing Invoice',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      localizations?.extractingTextFromPDF ??
+                          'Extracting text from PDF...',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      localizations?.loading ?? 'Please wait',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       );
     }
 
@@ -876,58 +936,66 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   }
 
   Future<void> _processImage(String imagePath) async {
+    final localizations = AppLocalizations.of(context);
     // Show loading dialog with enhanced UI
     if (mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => WillPopScope(
-          onWillPop: () async => false,
-          child: Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      shape: BoxShape.circle,
+        builder: (dialogContext) {
+          final localizations = AppLocalizations.of(context);
+          return WillPopScope(
+            onWillPop: () async => false,
+            child: Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: Colors.green,
+                      ),
                     ),
-                    child: const CircularProgressIndicator(
-                      strokeWidth: 3,
-                      color: Colors.green,
+                    const SizedBox(height: 20),
+                    Text(
+                      localizations?.scanningInvoice ?? 'Scanning Invoice',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Scanning Invoice',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Analyzing image with OCR...',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Please wait',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                      fontStyle: FontStyle.italic,
+                    const SizedBox(height: 8),
+                    Text(
+                      localizations?.analyzingImageWithOCR ??
+                          'Analyzing image with OCR...',
+                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Text(
+                      localizations?.loading ?? 'Please wait',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       );
     }
 
@@ -987,8 +1055,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       } else {
         // Desktop/Web: OCR not supported
         throw Exception(
-          'Invoice scanning with OCR is only available on Android and iOS devices. '
-          'Please run this app on a mobile device to use the invoice scanning feature.',
+          localizations?.invoiceScanningOnlyAvailableOnMobile ??
+              'Invoice scanning with OCR is only available on Android and iOS devices. '
+                  'Please run this app on a mobile device to use the invoice scanning feature.',
         );
       }
 
@@ -1019,7 +1088,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error processing invoice: $e'),
+            content: Text(
+              '${localizations?.errorProcessingInvoice ?? 'Error processing invoice'}: $e',
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),
