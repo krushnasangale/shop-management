@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/profile/supplier/supplier_history.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 // --- Supplier Data Model ---
 class Supplier {
@@ -152,9 +153,10 @@ class _SuppliersState extends State<Suppliers> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Suppliers'),
+        title: Text(localizations?.suppliers ?? 'Suppliers'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -193,7 +195,9 @@ class _SuppliersState extends State<Suppliers> {
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search Suppliers...',
+                          hintText:
+                              localizations?.searchSuppliers ??
+                              'Search Suppliers...',
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
@@ -222,8 +226,9 @@ class _SuppliersState extends State<Suppliers> {
                       ? Center(
                           child: Text(
                             _searchQuery.isEmpty
-                                ? 'No suppliers yet. Add one to get started!'
-                                : 'No suppliers found for "$_searchQuery"',
+                                ? localizations?.noSuppliersYet ??
+                                      'No suppliers yet. Add one to get started!'
+                                : '${localizations?.noSuppliersFound ?? 'No suppliers found for'} "$_searchQuery"',
                           ),
                         )
                       : ListView.builder(
@@ -252,7 +257,7 @@ class _SuppliersState extends State<Suppliers> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onPressed: () => addNewSupplier(),
         backgroundColor: const Color(0xFF2196F3),
-        tooltip: 'Add Supplier',
+        tooltip: localizations?.addSupplier ?? 'Add Supplier',
         child: const Icon(Icons.add, color: Colors.white, size: 45),
       ),
     );
@@ -265,6 +270,7 @@ class _SuppliersState extends State<Suppliers> {
     String initials,
     Color avatarColor,
   ) {
+    final localizations = AppLocalizations.of(context);
     final cardColor = context.cardColor;
 
     return Card(
@@ -335,19 +341,19 @@ class _SuppliersState extends State<Suppliers> {
                 TextButton.icon(
                   onPressed: () => _showSupplierHistory(supplier),
                   icon: const Icon(Icons.history, size: 18),
-                  label: const Text('History'),
+                  label: Text(localizations?.history ?? 'History'),
                   style: TextButton.styleFrom(foregroundColor: Colors.green),
                 ),
                 TextButton.icon(
                   onPressed: () => _editSupplier(supplier),
                   icon: const Icon(Icons.edit, size: 18),
-                  label: const Text('Edit'),
+                  label: Text(localizations?.edit ?? 'Edit'),
                   style: TextButton.styleFrom(foregroundColor: Colors.blue),
                 ),
                 TextButton.icon(
                   onPressed: () => _showDeleteConfirmation(supplier),
                   icon: const Icon(Icons.delete, size: 18),
-                  label: const Text('Delete'),
+                  label: Text(localizations?.delete ?? 'Delete'),
                   style: TextButton.styleFrom(foregroundColor: Colors.red),
                 ),
               ],
@@ -366,25 +372,29 @@ class _SuppliersState extends State<Suppliers> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final localizations = AppLocalizations.of(context);
         return AlertDialog(
-          title: Text('Add Supplier', style: context.bodyLargeText),
+          title: Text(
+            localizations?.addSupplier ?? 'Add Supplier',
+            style: context.bodyLargeText,
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               buildFormField(
-                'Supplier Name',
-                'Enter Supplier Name',
+                localizations?.supplierName ?? 'Supplier Name',
+                localizations?.enterSupplierName ?? 'Enter Supplier Name',
                 nameController,
               ),
               buildFormField(
-                'Supplier Contact',
-                'Enter Contact Number',
+                localizations?.supplierContact ?? 'Supplier Contact',
+                localizations?.enterContactNumber ?? 'Enter Contact Number',
                 contactController,
                 keyboardType: TextInputType.phone,
               ),
               buildFormField(
-                'Supplier Location',
-                'Enter Location',
+                localizations?.supplierLocation ?? 'Supplier Location',
+                localizations?.enterLocation ?? 'Enter Location',
                 locationController,
               ),
             ],
@@ -392,7 +402,7 @@ class _SuppliersState extends State<Suppliers> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -511,25 +521,29 @@ class _SuppliersState extends State<Suppliers> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final localizations = AppLocalizations.of(context);
         return AlertDialog(
-          title: Text('Edit Supplier', style: context.bodyLargeText),
+          title: Text(
+            localizations?.editSupplier ?? 'Edit Supplier',
+            style: context.bodyLargeText,
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               buildFormField(
-                'Supplier Name',
-                'Enter Supplier Name',
+                localizations?.supplierName ?? 'Supplier Name',
+                localizations?.enterSupplierName ?? 'Enter Supplier Name',
                 nameController,
               ),
               buildFormField(
-                'Supplier Contact',
-                'Enter Contact Number',
+                localizations?.supplierContact ?? 'Supplier Contact',
+                localizations?.enterContactNumber ?? 'Enter Contact Number',
                 contactController,
                 keyboardType: TextInputType.phone,
               ),
               buildFormField(
-                'Supplier Location',
-                'Enter Location',
+                localizations?.supplierLocation ?? 'Supplier Location',
+                localizations?.enterLocation ?? 'Enter Location',
                 locationController,
               ),
             ],
@@ -537,7 +551,7 @@ class _SuppliersState extends State<Suppliers> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -563,7 +577,10 @@ class _SuppliersState extends State<Suppliers> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              child: Text(
+                localizations?.save ?? 'Save',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -587,13 +604,19 @@ class _SuppliersState extends State<Suppliers> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final localizations = AppLocalizations.of(context);
         return AlertDialog(
-          title: Text('Delete Supplier', style: context.bodyLargeText),
-          content: Text('Are you sure you want to delete ${supplier.name}?'),
+          title: Text(
+            localizations?.deleteSupplier ?? 'Delete Supplier',
+            style: context.bodyLargeText,
+          ),
+          content: Text(
+            '${localizations?.confirmDeleteSupplier ?? 'Are you sure you want to delete'} ${supplier.name}?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -611,8 +634,8 @@ class _SuppliersState extends State<Suppliers> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Delete',
+              child: Text(
+                localizations?.delete ?? 'Delete',
                 style: TextStyle(color: Colors.white),
               ),
             ),

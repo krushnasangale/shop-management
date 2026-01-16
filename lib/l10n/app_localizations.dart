@@ -268,6 +268,105 @@ class AppLocalizations {
   String get billDate => translate('bill_date');
   String get paidAmount => translate('paid_amount');
 
+  // Product Names Page
+  String get searchProducts => translate('search_products');
+  String get addProductName => translate('add_product_name');
+  String get enterProductName => translate('enter_product_name');
+  String get editProductName => translate('edit_product_name');
+  String get deleteProduct => translate('delete_product');
+  String get confirmDeleteProduct => translate('confirm_delete_product');
+  String get errorAddingProduct => translate('error_adding_product');
+  String get errorUpdatingProduct => translate('error_updating_product');
+  String get errorDeletingProduct => translate('error_deleting_product');
+
+  // Units Page
+  String get measurementUnits => translate('measurement_units');
+  String get searchUnits => translate('search_units');
+  String get addNewUnit => translate('add_new_unit');
+  String get unitNameExample => translate('unit_name_example');
+  String get enterUnitName => translate('enter_unit_name');
+  String get noUnitsYet => translate('no_units_yet');
+  String get noUnitsFound => translate('no_units_found');
+  String get editUnit => translate('edit_unit');
+  String get deleteUnit => translate('delete_unit');
+  String get confirmDeleteUnit => translate('confirm_delete_unit');
+  String get errorAddingUnit => translate('error_adding_unit');
+  String get errorUpdatingUnit => translate('error_updating_unit');
+  String get errorDeletingUnit => translate('error_deleting_unit');
+
+  // Suppliers Page
+  String get searchSuppliers => translate('search_suppliers');
+  String get noSuppliersYet => translate('no_suppliers_yet');
+  String get noSuppliersFound => translate('no_suppliers_found');
+  String get addSupplier => translate('add_supplier');
+  String get supplierName => translate('supplier_name');
+  String get enterSupplierName => translate('enter_supplier_name');
+  String get supplierContact => translate('supplier_contact');
+  String get enterContactNumber => translate('enter_contact_number');
+  String get supplierLocation => translate('supplier_location');
+  String get enterLocation => translate('enter_location');
+  String get editSupplier => translate('edit_supplier');
+  String get deleteSupplier => translate('delete_supplier');
+  String get confirmDeleteSupplier => translate('confirm_delete_supplier');
+
+  // Supplier History Page
+  String get supplierHistory => translate('supplier_history');
+  String get recentFirst => translate('recent_first');
+  String get oldestFirst => translate('oldest_first');
+  String get amountHighToLow => translate('amount_high_to_low');
+  String get amountLowToHigh => translate('amount_low_to_high');
+  String get high => translate('high');
+  String get noPurchaseHistory => translate('no_purchase_history');
+  String get noTransactionsWithSupplier =>
+      translate('no_transactions_with_supplier');
+  String get errorLoadingHistory => translate('error_loading_history');
+  String get sortBy => translate('sort_by');
+
+  // Edit Profile Page
+  String get editProfile => translate('edit_profile');
+  String get shopName => translate('shop_name');
+  String get ownerName => translate('owner_name');
+  String get shopAddress => translate('shop_address');
+  String get shopPhone => translate('shop_phone');
+  String get shopEmail => translate('shop_email');
+  String get ownerSignature => translate('owner_signature');
+  String get saveChanges => translate('save_changes');
+  String get addUpdateSignature => translate('add_update_signature');
+  String get chooseSignatureMethod => translate('choose_signature_method');
+  String get drawSignature => translate('draw_signature');
+  String get upload => translate('upload');
+  String get camera => translate('camera');
+  String get drawYourSignature => translate('draw_your_signature');
+  String get noSignatureAdded => translate('no_signature_added');
+  String get updateSignature => translate('update_signature');
+  String get addSignature => translate('add_signature');
+  String get notSet => translate('not_set');
+  String get enterShopName => translate('enter_shop_name');
+  String get enterOwnerName => translate('enter_owner_name');
+  String get enterCompleteShopAddress =>
+      translate('enter_complete_shop_address');
+  String get enterPhoneNumber => translate('enter_phone_number');
+  String get enterEmailAddress => translate('enter_email_address');
+  String get pleaseEnterShopName => translate('please_enter_shop_name');
+  String get pleaseEnterOwnerName => translate('please_enter_owner_name');
+  String get pleaseEnterShopAddress => translate('please_enter_shop_address');
+  String get pleaseEnterPhoneNumber => translate('please_enter_phone_number');
+  String get pleaseEnterValidPhoneNumber =>
+      translate('please_enter_valid_phone_number');
+  String get pleaseEnterValidEmail => translate('please_enter_valid_email');
+  String get profileSavedSuccessfully =>
+      translate('profile_saved_successfully');
+  String get errorSavingProfile => translate('error_saving_profile');
+  String get signatureCleared => translate('signature_cleared');
+  String get signatureUploadedSuccessfully =>
+      translate('signature_uploaded_successfully');
+  String get signatureCapturedSuccessfully =>
+      translate('signature_captured_successfully');
+  String get signatureSaved => translate('signature_saved');
+  String get pleaseDrawSignature => translate('please_draw_signature');
+  String get saveSignature => translate('save_signature');
+  String get subscriptionExpiry => translate('subscription_expiry');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {

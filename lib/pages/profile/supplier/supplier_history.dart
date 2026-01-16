@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class SupplierHistoryScreen extends StatefulWidget {
   final String supplierId;
@@ -26,13 +27,8 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
   double _totalSpent = 0;
   int _totalTransactions = 0;
   int _totalUnits = 0;
-  String _sortBy = 'Recent First';
-  final List<String> _sortOptions = [
-    'Recent First',
-    'Oldest First',
-    'Amount: High to Low',
-    'Amount: Low to High',
-  ];
+  int _sortByIndex =
+      0; // 0: Recent First, 1: Oldest First, 2: Amount High to Low, 3: Amount Low to High
 
   @override
   void initState() {
@@ -91,9 +87,14 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error loading history: $e')));
+        final localizations = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${localizations?.errorLoadingHistory ?? 'Error loading history'}: $e',
+            ),
+          ),
+        );
         setState(() => _isLoading = false);
       }
     }
@@ -133,25 +134,25 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
   void _sortHistory() {
     List<Map<String, dynamic>> sorted = List.from(_supplierHistory);
 
-    switch (_sortBy) {
-      case 'Recent First':
+    switch (_sortByIndex) {
+      case 0: // Recent First
         sorted.sort(
           (a, b) => b['date'].toString().compareTo(a['date'].toString()),
         );
         break;
-      case 'Oldest First':
+      case 1: // Oldest First
         sorted.sort(
           (a, b) => a['date'].toString().compareTo(b['date'].toString()),
         );
         break;
-      case 'Amount: High to Low':
+      case 2: // Amount: High to Low
         sorted.sort(
           (a, b) => ((b['totalAmount'] ?? 0) as num).toDouble().compareTo(
             ((a['totalAmount'] ?? 0) as num).toDouble(),
           ),
         );
         break;
-      case 'Amount: Low to High':
+      case 3: // Amount: Low to High
         sorted.sort(
           (a, b) => ((a['totalAmount'] ?? 0) as num).toDouble().compareTo(
             ((b['totalAmount'] ?? 0) as num).toDouble(),
@@ -169,49 +170,61 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localizations = AppLocalizations.of(context);
+
+    // Get localized sort options
+    final sortOptions = [
+      localizations?.recentFirst ?? 'Recent First',
+      localizations?.oldestFirst ?? 'Oldest First',
+      localizations?.amountHighToLow ?? 'Amount: High to Low',
+      localizations?.amountLowToHigh ?? 'Amount: Low to High',
+    ];
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.supplierName}'),
+        title: Text(widget.supplierName),
         centerTitle: false,
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
-            child: PopupMenuButton<String>(
+            child: PopupMenuButton<int>(
               icon: const Icon(Icons.sort),
-              tooltip: 'Sort by',
+              tooltip: localizations?.sortBy ?? 'Sort by',
               onSelected: (value) {
                 setState(() {
-                  _sortBy = value;
+                  _sortByIndex = value;
                 });
                 _sortHistory();
               },
-              itemBuilder: (context) => _sortOptions.map((option) {
-                return PopupMenuItem<String>(
-                  value: option,
-                  child: Row(
-                    children: [
-                      if (_sortBy == option)
-                        Icon(
-                          Icons.check,
-                          size: 18,
-                          color: isDark
-                              ? Colors.blue.shade300
-                              : Colors.blue.shade700,
-                        ),
-                      if (_sortBy == option) const SizedBox(width: 8),
-                      Text(
-                        option,
-                        style: TextStyle(
-                          fontWeight: _sortBy == option
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                        ),
+              itemBuilder: (context) =>
+                  sortOptions.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final option = entry.value;
+                    return PopupMenuItem<int>(
+                      value: index,
+                      child: Row(
+                        children: [
+                          if (_sortByIndex == index)
+                            Icon(
+                              Icons.check,
+                              size: 18,
+                              color: isDark
+                                  ? Colors.blue.shade300
+                                  : Colors.blue.shade700,
+                            ),
+                          if (_sortByIndex == index) const SizedBox(width: 8),
+                          Text(
+                            option,
+                            style: TextStyle(
+                              fontWeight: _sortByIndex == index
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              }).toList(),
+                    );
+                  }).toList(),
             ),
           ),
         ],
@@ -219,7 +232,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _supplierHistory.isEmpty
-          ? _buildEmptyState()
+          ? _buildEmptyState(localizations)
           : CustomScrollView(
               slivers: [
                 // Enhanced Summary Card
@@ -311,7 +324,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  '$_totalTransactions Purchases',
+                                  '$_totalTransactions ${localizations?.purchases ?? 'Purchases'}',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
@@ -333,7 +346,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     child: _buildQuickStatCard(
                       icon: Icons.inventory_2_outlined,
-                      label: 'Items',
+                      label: localizations?.items ?? 'Items',
                       value: '$_totalUnits',
                       color: Colors.orange,
                       isDark: isDark,
@@ -427,8 +440,11 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                           ),
                           // Transactions
                           ...transactions.map(
-                            (transaction) =>
-                                _buildTransactionCard(transaction, isDark),
+                            (transaction) => _buildTransactionCard(
+                              transaction,
+                              isDark,
+                              localizations,
+                            ),
                           ),
                         ],
                       );
@@ -487,7 +503,11 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
     );
   }
 
-  Widget _buildTransactionCard(Map<String, dynamic> purchase, bool isDark) {
+  Widget _buildTransactionCard(
+    Map<String, dynamic> purchase,
+    bool isDark,
+    AppLocalizations? localizations,
+  ) {
     final amount = ((purchase['totalAmount'] ?? 0) as num).toDouble();
     final isHighValue = amount > 10000;
 
@@ -598,7 +618,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            'HIGH',
+                            localizations?.high ?? 'HIGH',
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -627,7 +647,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Total Amount',
+                        localizations?.totalAmount ?? 'Total Amount',
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark
@@ -674,7 +694,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                '${purchase['itemCount']} Items',
+                                '${purchase['itemCount']} ${localizations?.items ?? 'Items'}',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -707,7 +727,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${purchase['totalUnits']} Qty',
+                              '${purchase['totalUnits']} ${localizations?.qty ?? 'Qty'}',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -728,7 +748,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations? localizations) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -749,7 +769,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
             ),
             const SizedBox(height: 24),
             Text(
-              'No Purchase History',
+              localizations?.noPurchaseHistory ?? 'No Purchase History',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -758,7 +778,8 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'No transactions found with\nthis supplier yet',
+              localizations?.noTransactionsWithSupplier ??
+                  'No transactions found with\nthis supplier yet',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),

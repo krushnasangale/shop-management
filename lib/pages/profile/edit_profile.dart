@@ -7,6 +7,7 @@ import 'dart:convert';
 import 'dart:ui' as ui;
 import 'package:signature/signature.dart';
 import 'package:flutter/services.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -126,9 +127,13 @@ class _EditProfileState extends State<EditProfile> {
           .set(shopData);
 
       if (mounted) {
+        final localizations = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile saved successfully'),
+          SnackBar(
+            content: Text(
+              localizations?.profileSavedSuccessfully ??
+                  'Profile saved successfully',
+            ),
             duration: Duration(seconds: 2),
           ),
         );
@@ -136,9 +141,12 @@ class _EditProfileState extends State<EditProfile> {
       }
     } catch (e) {
       if (mounted) {
+        final localizations = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error saving profile: $e'),
+            content: Text(
+              '${localizations?.errorSavingProfile ?? 'Error saving profile'}: $e',
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 3),
           ),
@@ -167,16 +175,21 @@ class _EditProfileState extends State<EditProfile> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final localizations = AppLocalizations.of(context);
         return AlertDialog(
-          title: Text('Add/Update Signature', style: context.titleLarge),
-          content: const Text(
-            'Choose how to add your signature:',
+          title: Text(
+            localizations?.addUpdateSignature ?? 'Add/Update Signature',
+            style: context.titleLarge,
+          ),
+          content: Text(
+            localizations?.chooseSignatureMethod ??
+                'Choose how to add your signature:',
             style: TextStyle(fontSize: 14),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton.icon(
               onPressed: () {
@@ -184,7 +197,7 @@ class _EditProfileState extends State<EditProfile> {
                 _showSignaturePad(context);
               },
               icon: const Icon(Icons.draw),
-              label: const Text('Draw Signature'),
+              label: Text(localizations?.drawSignature ?? 'Draw Signature'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
@@ -196,7 +209,7 @@ class _EditProfileState extends State<EditProfile> {
                 _pickSignatureFromGallery();
               },
               icon: const Icon(Icons.image),
-              label: const Text('Upload'),
+              label: Text(localizations?.upload ?? 'Upload'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 foregroundColor: Colors.white,
@@ -208,7 +221,7 @@ class _EditProfileState extends State<EditProfile> {
                 _captureSignatureWithCamera();
               },
               icon: const Icon(Icons.camera_alt),
-              label: const Text('Camera'),
+              label: Text(localizations?.camera ?? 'Camera'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
@@ -221,6 +234,7 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   void _showSignaturePad(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     final SignatureController controller = SignatureController(
       penStrokeWidth: 5,
       penColor: Colors.black,
@@ -258,7 +272,9 @@ class _EditProfileState extends State<EditProfile> {
                 child: Scaffold(
                   backgroundColor: Colors.white,
                   appBar: AppBar(
-                    title: const Text('Draw Your Signature'),
+                    title: Text(
+                      localizations?.drawYourSignature ?? 'Draw Your Signature',
+                    ),
                     elevation: 0,
                     actions: [
                       TextButton(
@@ -266,15 +282,18 @@ class _EditProfileState extends State<EditProfile> {
                           controller.clear();
                           if (buildContext.mounted) {
                             ScaffoldMessenger.of(buildContext).showSnackBar(
-                              const SnackBar(
-                                content: Text('Signature cleared'),
+                              SnackBar(
+                                content: Text(
+                                  localizations?.signatureCleared ??
+                                      'Signature cleared',
+                                ),
                                 duration: Duration(seconds: 1),
                               ),
                             );
                           }
                         },
-                        child: const Text(
-                          'Clear',
+                        child: Text(
+                          localizations?.clear ?? 'Clear',
                           style: TextStyle(color: Colors.white),
                         ),
                       ),
@@ -320,8 +339,9 @@ class _EditProfileState extends State<EditProfile> {
                                     vertical: 10,
                                   ),
                                 ),
-                                child: const Text(
-                                  'Cancel',
+                                child: Text(
+                                  AppLocalizations.of(buildContext)?.cancel ??
+                                      'Cancel',
                                   style: TextStyle(color: Colors.white),
                                 ),
                               ),
@@ -360,9 +380,10 @@ class _EditProfileState extends State<EditProfile> {
                                           ScaffoldMessenger.of(
                                             buildContext,
                                           ).showSnackBar(
-                                            const SnackBar(
+                                            SnackBar(
                                               content: Text(
-                                                'Signature saved successfully',
+                                                localizations?.signatureSaved ??
+                                                    'Signature saved successfully',
                                               ),
                                               duration: Duration(seconds: 2),
                                             ),
@@ -375,9 +396,11 @@ class _EditProfileState extends State<EditProfile> {
                                       ScaffoldMessenger.of(
                                         buildContext,
                                       ).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'Please draw your signature',
+                                            localizations
+                                                    ?.pleaseDrawSignature ??
+                                                'Please draw your signature',
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
@@ -391,8 +414,9 @@ class _EditProfileState extends State<EditProfile> {
                                     vertical: 10,
                                   ),
                                 ),
-                                child: const Text(
-                                  'Save Signature',
+                                child: Text(
+                                  localizations?.saveSignature ??
+                                      'Save Signature',
                                   style: TextStyle(color: Colors.white),
                                 ),
                               ),
@@ -436,9 +460,13 @@ class _EditProfileState extends State<EditProfile> {
           _hasSignature = true;
         });
         if (mounted) {
+          final localizations = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Signature uploaded successfully'),
+            SnackBar(
+              content: Text(
+                localizations?.signatureUploadedSuccessfully ??
+                    'Signature uploaded successfully',
+              ),
               duration: Duration(seconds: 2),
             ),
           );
@@ -446,8 +474,12 @@ class _EditProfileState extends State<EditProfile> {
       }
     } catch (e) {
       if (mounted) {
+        final localizations = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('${localizations?.error ?? 'Error'}: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -465,9 +497,13 @@ class _EditProfileState extends State<EditProfile> {
           _hasSignature = true;
         });
         if (mounted) {
+          final localizations = AppLocalizations.of(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Signature captured successfully'),
+            SnackBar(
+              content: Text(
+                localizations?.signatureCapturedSuccessfully ??
+                    'Signature captured successfully',
+              ),
               duration: Duration(seconds: 2),
             ),
           );
@@ -475,8 +511,12 @@ class _EditProfileState extends State<EditProfile> {
       }
     } catch (e) {
       if (mounted) {
+        final localizations = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('${localizations?.error ?? 'Error'}: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -484,9 +524,10 @@ class _EditProfileState extends State<EditProfile> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(localizations?.editProfile ?? 'Profile'),
         actions: [
           if (!_isEditMode)
             IconButton(
@@ -502,7 +543,7 @@ class _EditProfileState extends State<EditProfile> {
                 onPressed: () {
                   setState(() => _isEditMode = false);
                 },
-                child: const Text('Cancel'),
+                child: Text(localizations?.cancel ?? 'Cancel'),
               ),
             ),
         ],
@@ -555,8 +596,8 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 6),
 
               // Shop Name Field
-              const Text(
-                'Shop Name',
+              Text(
+                localizations?.shopName ?? 'Shop Name',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Card(
@@ -564,7 +605,8 @@ class _EditProfileState extends State<EditProfile> {
                   controller: _shopNameController,
                   enabled: _isEditMode,
                   decoration: InputDecoration(
-                    hintText: 'Enter your shop name',
+                    hintText:
+                        localizations?.enterShopName ?? 'Enter your shop name',
                     prefixIcon: const Icon(Icons.store),
                     filled: false,
                     fillColor: Theme.of(context).cardColor,
@@ -583,7 +625,8 @@ class _EditProfileState extends State<EditProfile> {
                   ),
                   validator: (value) {
                     if (_isEditMode && (value == null || value.isEmpty)) {
-                      return 'Please enter shop name';
+                      return localizations?.pleaseEnterShopName ??
+                          'Please enter shop name';
                     }
                     return null;
                   },
@@ -592,8 +635,8 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 6),
 
               // Owner Name Field
-              const Text(
-                'Owner Name',
+              Text(
+                localizations?.ownerName ?? 'Owner Name',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Card(
@@ -601,7 +644,8 @@ class _EditProfileState extends State<EditProfile> {
                   controller: _ownerNameController,
                   enabled: _isEditMode,
                   decoration: InputDecoration(
-                    hintText: 'Enter owner name',
+                    hintText:
+                        localizations?.enterOwnerName ?? 'Enter owner name',
                     prefixIcon: const Icon(Icons.person),
                     filled: false,
                     fillColor: Theme.of(context).cardColor,
@@ -620,7 +664,8 @@ class _EditProfileState extends State<EditProfile> {
                   ),
                   validator: (value) {
                     if (_isEditMode && (value == null || value.isEmpty)) {
-                      return 'Please enter owner name';
+                      return localizations?.pleaseEnterOwnerName ??
+                          'Please enter owner name';
                     }
                     return null;
                   },
@@ -629,8 +674,8 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 6),
 
               // Shop Address Field
-              const Text(
-                'Shop Address',
+              Text(
+                localizations?.shopAddress ?? 'Shop Address',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Card(
@@ -639,7 +684,9 @@ class _EditProfileState extends State<EditProfile> {
                   enabled: _isEditMode,
                   maxLines: 3,
                   decoration: InputDecoration(
-                    hintText: 'Enter complete shop address',
+                    hintText:
+                        localizations?.enterCompleteShopAddress ??
+                        'Enter complete shop address',
                     prefixIcon: const Icon(Icons.location_on),
                     filled: false,
                     fillColor: Theme.of(context).cardColor,
@@ -658,7 +705,8 @@ class _EditProfileState extends State<EditProfile> {
                   ),
                   validator: (value) {
                     if (_isEditMode && (value == null || value.isEmpty)) {
-                      return 'Please enter shop address';
+                      return localizations?.pleaseEnterShopAddress ??
+                          'Please enter shop address';
                     }
                     return null;
                   },
@@ -667,8 +715,8 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 6),
 
               // Shop Phone Field
-              const Text(
-                'Shop Phone Number',
+              Text(
+                localizations?.shopPhone ?? 'Shop Phone Number',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Card(
@@ -677,7 +725,8 @@ class _EditProfileState extends State<EditProfile> {
                   enabled: _isEditMode,
                   keyboardType: TextInputType.phone,
                   decoration: InputDecoration(
-                    hintText: 'Enter phone number',
+                    hintText:
+                        localizations?.enterPhoneNumber ?? 'Enter phone number',
                     prefixIcon: const Icon(Icons.phone),
                     filled: false,
                     fillColor: Theme.of(context).cardColor,
@@ -697,10 +746,12 @@ class _EditProfileState extends State<EditProfile> {
                   validator: (value) {
                     if (_isEditMode) {
                       if (value == null || value.isEmpty) {
-                        return 'Please enter phone number';
+                        return localizations?.pleaseEnterPhoneNumber ??
+                            'Please enter phone number';
                       }
                       if (value.length < 10) {
-                        return 'Please enter valid phone number';
+                        return localizations?.pleaseEnterValidPhoneNumber ??
+                            'Please enter valid phone number';
                       }
                     }
                     return null;
@@ -710,8 +761,8 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 6),
 
               // Shop Email Field
-              const Text(
-                'Shop Email',
+              Text(
+                localizations?.shopEmail ?? 'Shop Email',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Card(
@@ -720,7 +771,9 @@ class _EditProfileState extends State<EditProfile> {
                   enabled: _isEditMode,
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    hintText: 'Enter email address',
+                    hintText:
+                        localizations?.enterEmailAddress ??
+                        'Enter email address',
                     prefixIcon: const Icon(Icons.email),
                     filled: false,
                     fillColor: Theme.of(context).cardColor,
@@ -740,7 +793,8 @@ class _EditProfileState extends State<EditProfile> {
                   validator: (value) {
                     if (_isEditMode && value != null && value.isNotEmpty) {
                       if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                        return 'Please enter valid email';
+                        return localizations?.pleaseEnterValidEmail ??
+                            'Please enter valid email';
                       }
                     }
                     return null;
@@ -750,8 +804,8 @@ class _EditProfileState extends State<EditProfile> {
               const SizedBox(height: 6),
 
               // Owner Signature Field
-              const Text(
-                'Owner Signature',
+              Text(
+                localizations?.ownerSignature ?? 'Owner Signature',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
@@ -803,7 +857,8 @@ class _EditProfileState extends State<EditProfile> {
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'No signature added',
+                                localizations?.noSignatureAdded ??
+                                    'No signature added',
                                 style: TextStyle(color: Colors.grey[600]),
                               ),
                             ],
@@ -820,8 +875,10 @@ class _EditProfileState extends State<EditProfile> {
                             icon: const Icon(Icons.edit),
                             label: Text(
                               _hasSignature
-                                  ? 'Update Signature'
-                                  : 'Add Signature',
+                                  ? (localizations?.updateSignature ??
+                                        'Update Signature')
+                                  : (localizations?.addSignature ??
+                                        'Add Signature'),
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
@@ -873,8 +930,8 @@ class _EditProfileState extends State<EditProfile> {
               // ),
 
               // Subscription Expiry Date Field (Non-editable)
-              const Text(
-                'Subscription Expiry',
+              Text(
+                localizations?.subscriptionExpiry ?? 'Subscription Expiry',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
               ),
               Card(
@@ -882,7 +939,7 @@ class _EditProfileState extends State<EditProfile> {
                   controller: _subscriptionExpiryController,
                   enabled: false, // Always disabled - not editable
                   decoration: InputDecoration(
-                    hintText: 'Not set',
+                    hintText: localizations?.notSet ?? 'Not set',
                     prefixIcon: const Icon(Icons.calendar_today),
                     filled: false,
                     fillColor: Theme.of(context).cardColor,
@@ -928,8 +985,8 @@ class _EditProfileState extends State<EditProfile> {
                               ),
                             ),
                           )
-                        : const Text(
-                            'Save Changes',
+                        : Text(
+                            localizations?.saveChanges ?? 'Save Changes',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 16,

@@ -3,7 +3,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import 'package:flutter/services.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 // --- Data Model ---
 class UnitOfMeasure {
@@ -116,6 +116,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
 
   // --- POPUP FUNCTION: Add New Unit ---
   void _showAddUnitPopup() {
+    final localizations = AppLocalizations.of(context);
     // Clear controllers before showing
     _unitNameController.clear();
 
@@ -127,7 +128,10 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
 
         return AlertDialog(
           backgroundColor: cardColor,
-          title: Text('Add New Unit', style: context.bodyLargeText),
+          title: Text(
+            localizations?.addNewUnit ?? 'Add New Unit',
+            style: context.bodyLargeText,
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -146,7 +150,9 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                     }
                   },
                   decoration: InputDecoration(
-                    labelText: 'Unit Name (e.g., METER, PIECE)',
+                    labelText:
+                        localizations?.unitNameExample ??
+                        'Unit Name (e.g., METER, PIECE)',
                     labelStyle: TextStyle(
                       color: context.primaryTextColor!.withOpacity(0.7),
                     ),
@@ -157,14 +163,20 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('Cancel', style: TextStyle(color: Colors.red)),
+              child: Text(
+                localizations?.cancel ?? 'Cancel',
+                style: TextStyle(color: Colors.red),
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              child: const Text('Add', style: TextStyle(color: Colors.white)),
+              child: Text(
+                localizations?.add ?? 'Add',
+                style: TextStyle(color: Colors.white),
+              ),
               onPressed: () async {
                 if (_unitNameController.text.isNotEmpty) {
                   try {
@@ -179,7 +191,11 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error adding unit: $e')),
+                        SnackBar(
+                          content: Text(
+                            '${localizations?.errorAddingUnit ?? 'Error adding unit'}: $e',
+                          ),
+                        ),
                       );
                     }
                   }
@@ -248,13 +264,14 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Measurement Units'),
+        title: Text(localizations?.measurementUnits ?? 'Measurement Units'),
         centerTitle: false,
         actions: [
           IconButton(
@@ -286,7 +303,8 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search units...',
+                          hintText:
+                              localizations?.searchUnits ?? 'Search units...',
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchQuery.isNotEmpty
                               ? IconButton(
@@ -310,8 +328,9 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                       ? Center(
                           child: Text(
                             _searchQuery.isEmpty
-                                ? 'No units yet. Add one to get started!'
-                                : 'No units found for "$_searchQuery"',
+                                ? localizations?.noUnitsYet ??
+                                      'No units yet. Add one to get started!'
+                                : '${localizations?.noUnitsFound ?? 'No units found for'} "$_searchQuery"',
                           ),
                         )
                       : ListView.builder(
@@ -340,6 +359,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   }
 
   void _showEditUnitPopup(UnitOfMeasure unit) {
+    final localizations = AppLocalizations.of(context);
     // Controllers for editing
     final nameController = TextEditingController(text: unit.name);
 
@@ -348,7 +368,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Edit Unit',
+            localizations?.editUnit ?? 'Edit Unit',
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: 20,
@@ -358,13 +378,18 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              buildFormField('Unit Name', 'Enter unit name', nameController),
+              buildFormField(
+                localizations?.unitNameExample ??
+                    'Unit Name (e.g., METER, PIECE)',
+                localizations?.enterUnitName ?? 'Enter unit name',
+                nameController,
+              ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -381,7 +406,11 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error updating unit: $e')),
+                      SnackBar(
+                        content: Text(
+                          '${localizations?.errorUpdatingUnit ?? 'Error updating unit'}: $e',
+                        ),
+                      ),
                     );
                   }
                 }
@@ -392,7 +421,10 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Save', style: TextStyle(color: Colors.white)),
+              child: Text(
+                localizations?.save ?? 'Save',
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -464,12 +496,13 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   }
 
   void _showDeleteConfirmation(UnitOfMeasure unit) {
+    final localizations = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            'Delete Unit',
+            localizations?.deleteUnit ?? 'Delete Unit',
             style: TextStyle(
               color: Theme.of(context).colorScheme.error,
               fontSize: 20,
@@ -477,13 +510,13 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
             ),
           ),
           content: Text(
-            'Are you sure you want to remove ${unit.name}?',
+            '${localizations?.confirmDeleteUnit ?? 'Are you sure you want to remove'} ${unit.name}?',
             style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -500,7 +533,11 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error deleting unit: $e')),
+                      SnackBar(
+                        content: Text(
+                          '${localizations?.errorDeletingUnit ?? 'Error deleting unit'}: $e',
+                        ),
+                      ),
                     );
                   }
                 }
@@ -511,8 +548,8 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text(
-                'Delete',
+              child: Text(
+                localizations?.delete ?? 'Delete',
                 style: TextStyle(color: Colors.white),
               ),
             ),

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class Product {
   final String id;
@@ -121,13 +122,15 @@ class _ProductNameState extends State<ProductName> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
+
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Product Names'),
+        title: Text(localizations?.productNames ?? 'Product Names'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -143,7 +146,8 @@ class _ProductNameState extends State<ProductName> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search products...',
+                  hintText:
+                      localizations?.searchProducts ?? 'Search products...',
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
@@ -205,20 +209,24 @@ class _ProductNameState extends State<ProductName> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onPressed: _showAddProductPopup,
         backgroundColor: const Color(0xFF2196F3),
-        tooltip: 'Add Product Name',
+        tooltip: localizations?.addProductName ?? 'Add Product Name',
         child: const Icon(Icons.add, color: Colors.white, size: 45),
       ),
     );
   }
 
   void _showAddProductPopup() {
+    final localizations = AppLocalizations.of(context);
     _productNameController.clear();
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Add Product Name', style: context.bodyLargeText),
+          title: Text(
+            localizations?.addProductName ?? 'Add Product Name',
+            style: context.bodyLargeText,
+          ),
           content: TextField(
             controller: _productNameController,
             textCapitalization: TextCapitalization.characters,
@@ -230,16 +238,16 @@ class _ProductNameState extends State<ProductName> {
                 );
               }
             },
-            decoration: const InputDecoration(
-              labelText: 'Product Name',
-              hintText: 'Enter product name',
+            decoration: InputDecoration(
+              labelText: localizations?.productName ?? 'Product Name',
+              hintText: localizations?.enterProductName ?? 'Enter product name',
             ),
             autofocus: true,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -254,13 +262,17 @@ class _ProductNameState extends State<ProductName> {
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error adding product: $e')),
+                        SnackBar(
+                          content: Text(
+                            '${localizations?.errorAddingProduct ?? 'Error adding product'}: $e',
+                          ),
+                        ),
                       );
                     }
                   }
                 }
               },
-              child: const Text('Add'),
+              child: Text(localizations?.add ?? 'Add'),
             ),
           ],
         );
@@ -269,13 +281,17 @@ class _ProductNameState extends State<ProductName> {
   }
 
   void _showEditProductPopup(Product product) {
+    final localizations = AppLocalizations.of(context);
     final nameController = TextEditingController(text: product.name);
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Edit Product Name'),
+          title: Text(
+            localizations?.editProductName ?? 'Edit Product Name',
+            style: context.bodyLargeText,
+          ),
           content: TextField(
             controller: nameController,
             textCapitalization: TextCapitalization.characters,
@@ -287,16 +303,16 @@ class _ProductNameState extends State<ProductName> {
                 );
               }
             },
-            decoration: const InputDecoration(
-              labelText: 'Product Name',
-              hintText: 'Enter product name',
+            decoration: InputDecoration(
+              labelText: localizations?.productName ?? 'Product Name',
+              hintText: localizations?.enterProductName ?? 'Enter product name',
             ),
             autofocus: true,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -311,13 +327,17 @@ class _ProductNameState extends State<ProductName> {
                   } catch (e) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error updating product: $e')),
+                        SnackBar(
+                          content: Text(
+                            '${localizations?.errorUpdatingProduct ?? 'Error updating product'}: $e',
+                          ),
+                        ),
                       );
                     }
                   }
                 }
               },
-              child: const Text('Save'),
+              child: Text(localizations?.save ?? 'Save'),
             ),
           ],
         );
@@ -326,16 +346,19 @@ class _ProductNameState extends State<ProductName> {
   }
 
   void _showDeleteConfirmation(Product product) {
+    final localizations = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete Product'),
-          content: Text('Are you sure you want to delete ${product.name}?'),
+          title: Text(localizations?.deleteProduct ?? 'Delete Product'),
+          content: Text(
+            '${localizations?.confirmDeleteProduct ?? 'Are you sure you want to delete'} ${product.name}?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             TextButton(
               onPressed: () async {
@@ -347,13 +370,17 @@ class _ProductNameState extends State<ProductName> {
                 } catch (e) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Error deleting product: $e')),
+                      SnackBar(
+                        content: Text(
+                          '${localizations?.errorDeletingProduct ?? 'Error deleting product'}: $e',
+                        ),
+                      ),
                     );
                   }
                 }
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),
-              child: const Text('Delete'),
+              child: Text(localizations?.delete ?? 'Delete'),
             ),
           ],
         );
