@@ -328,7 +328,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     String shopName = '--';
     String ownerName = '--';
     String shopAddress = '--';
-    String shipPhone = '--';
+    String shopPhone = '--';
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -342,7 +342,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
           shopName = data['shopName'] ?? '--';
           ownerName = data['ownerName'] ?? '--';
           shopAddress = data['shopAddress'] ?? '--';
-          shipPhone = data['shipPhone'] ?? '--';
+          shopPhone = data['shopPhone'] ?? '--';
         }
       }
     } catch (e) {
@@ -388,9 +388,9 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                       'Address: $shopAddress',
                       style: const pw.TextStyle(fontSize: 9),
                     ),
-                  if (shipPhone != '--')
+                  if (shopPhone != '--')
                     pw.Text(
-                      'Phone: $shipPhone',
+                      'Phone: $shopPhone',
                       style: const pw.TextStyle(fontSize: 9),
                     ),
                 ],
