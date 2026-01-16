@@ -322,7 +322,7 @@ class _MyHomePageState extends State<MyHomePage> {
     AvailableProducts(),
     Bills(),
     PurchaseItemsList(),
-    AdminDashboard(),
+    //AdminDashboard(),
   ];
 
   void _onItemTapped(int index) {
@@ -433,10 +433,10 @@ class _MyHomePageState extends State<MyHomePage> {
             icon: Icon(Icons.shopping_bag),
             label: 'Purchases',
           ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.admin_panel_settings),
-            label: 'Admin',
-          ),
+          // const BottomNavigationBarItem(
+          //   icon: Icon(Icons.admin_panel_settings),
+          //   label: 'Admin',
+          // ),
         ],
       ),
     );
