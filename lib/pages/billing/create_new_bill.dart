@@ -2316,8 +2316,18 @@ class _CreateNewBillState extends State<CreateNewBill> {
     List<Contact> contacts = [];
     try {
       contacts = await FastContacts.getAllContacts();
+      print('Fetched ${contacts.length} contacts');
     } catch (e) {
       print('Error fetching contacts: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading contacts: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
     }
 
     if (!context.mounted) return;
@@ -2413,10 +2423,20 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           final phoneNumber = contact.phones.isNotEmpty
                               ? contact.phones.first.number
                               : 'No phone';
+
+                          // Clean phone number - remove all non-digit characters
                           final cleanedPhoneNumber = phoneNumber.replaceAll(
                             RegExp(r'[^\d]'),
                             '',
                           );
+
+                          // Extract last 10 digits for Indian mobile numbers
+                          final validPhoneNumber =
+                              cleanedPhoneNumber.length >= 10
+                              ? cleanedPhoneNumber.substring(
+                                  cleanedPhoneNumber.length - 10,
+                                )
+                              : cleanedPhoneNumber;
 
                           return Card(
                             margin: const EdgeInsets.symmetric(
@@ -2433,22 +2453,48 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             ),
                             child: InkWell(
                               onTap: () {
-                                // Check if phone number is valid (10 digits)
-                                if (cleanedPhoneNumber.length == 10) {
-                                  setState(() {
-                                    _customerNameController.text =
-                                        contact.displayName;
-                                    _customerMobileController.text =
-                                        cleanedPhoneNumber;
-                                  });
-                                  Navigator.pop(context);
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Invalid phone number for ${contact.displayName}. Phone must have 10 digits.',
+                                try {
+                                  // Check if we have a valid phone number
+                                  if (contact.phones.isEmpty ||
+                                      phoneNumber == 'No phone') {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'No phone number found for this contact',
+                                        ),
+                                        backgroundColor: Colors.red,
                                       ),
-                                      backgroundColor: Colors.orange,
+                                    );
+                                    return;
+                                  }
+
+                                  // Check if cleaned phone number has at least 10 digits
+                                  if (validPhoneNumber.length == 10) {
+                                    setState(() {
+                                      _customerNameController.text =
+                                          contact.displayName;
+                                      _customerMobileController.text =
+                                          validPhoneNumber;
+                                    });
+                                    Navigator.pop(context);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Invalid phone number for ${contact.displayName}. Need at least 10 digits.',
+                                        ),
+                                        backgroundColor: Colors.orange,
+                                      ),
+                                    );
+                                  }
+                                } catch (e) {
+                                  print('Error selecting contact: $e');
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                        'Error selecting contact. Please try again.',
+                                      ),
+                                      backgroundColor: Colors.red,
                                     ),
                                   );
                                 }
@@ -2490,8 +2536,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             style: TextStyle(
                                               fontSize: 12,
                                               color:
-                                                  cleanedPhoneNumber.length ==
-                                                      10
+                                                  validPhoneNumber.length == 10
                                                   ? Colors.green[600]
                                                   : Colors.red[600],
                                               fontWeight: FontWeight.w500,
