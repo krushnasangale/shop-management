@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 import 'package:intl/intl.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
@@ -475,6 +476,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       'Customer Mobile Number',
                       _customerMobileController,
                       keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                      ],
                       onChanged: (value) {
                         setState(() {
                           _customerMobileError =
