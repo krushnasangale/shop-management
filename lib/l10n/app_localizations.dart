@@ -206,6 +206,28 @@ class AppLocalizations {
   String get currencyLakh => translate('currency_lakh');
   String get currencyThousand => translate('currency_thousand');
 
+  // Change Password Dialog
+  String get currentPassword => translate('current_password');
+  String get enterCurrentPassword => translate('enter_current_password');
+  String get newPassword => translate('new_password');
+  String get enterNewPassword => translate('enter_new_password');
+  String get passwordMinLength => translate('password_min_length');
+  String get confirmNewPassword => translate('confirm_new_password');
+  String get reEnterNewPassword => translate('re_enter_new_password');
+  String get updatingPassword => translate('updating_password');
+  String get userNotAuthenticated => translate('user_not_authenticated');
+  String get passwordChangedSuccessfully =>
+      translate('password_changed_successfully');
+  String get currentPasswordIncorrect =>
+      translate('current_password_incorrect');
+  String get newPasswordTooWeak => translate('new_password_too_weak');
+  String get reauthenticateRequired => translate('reauthenticate_required');
+  String get currentPasswordRequired => translate('current_password_required');
+  String get newPasswordRequired => translate('new_password_required');
+  String get confirmPasswordRequired => translate('confirm_password_required');
+  String get passwordsDoNotMatch => translate('passwords_do_not_match');
+  String get failedToChangePassword => translate('failed_to_change_password');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {

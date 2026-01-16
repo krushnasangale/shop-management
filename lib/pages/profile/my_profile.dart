@@ -94,6 +94,7 @@ class _MyProfileState extends State<MyProfile> {
     bool showCurrentPassword = false;
     bool showNewPassword = false;
     bool showConfirmPassword = false;
+    final localizations = AppLocalizations.of(context);
 
     showDialog(
       context: context,
@@ -101,7 +102,10 @@ class _MyProfileState extends State<MyProfile> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Change Password', style: context.bodyLargeText),
+              title: Text(
+                localizations?.changePassword ?? 'Change Password',
+                style: context.bodyLargeText,
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -111,8 +115,12 @@ class _MyProfileState extends State<MyProfile> {
                       controller: currentPasswordController,
                       obscureText: !showCurrentPassword,
                       decoration: InputDecoration(
-                        labelText: 'Current Password',
-                        hintText: 'Enter your current password',
+                        labelText:
+                            localizations?.currentPassword ??
+                            'Current Password',
+                        hintText:
+                            localizations?.enterCurrentPassword ??
+                            'Enter your current password',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -175,8 +183,10 @@ class _MyProfileState extends State<MyProfile> {
                       controller: newPasswordController,
                       obscureText: !showNewPassword,
                       decoration: InputDecoration(
-                        labelText: 'New Password',
-                        hintText: 'Enter your new password',
+                        labelText: localizations?.newPassword ?? 'New Password',
+                        hintText:
+                            localizations?.enterNewPassword ??
+                            'Enter your new password',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -203,7 +213,9 @@ class _MyProfileState extends State<MyProfile> {
                             width: 2,
                           ),
                         ),
-                        helperText: 'Password must be at least 6 characters',
+                        helperText:
+                            localizations?.passwordMinLength ??
+                            'Password must be at least 6 characters',
                       ),
                       onChanged: (_) {
                         if (newPasswordError != null) {
@@ -240,8 +252,12 @@ class _MyProfileState extends State<MyProfile> {
                       controller: confirmPasswordController,
                       obscureText: !showConfirmPassword,
                       decoration: InputDecoration(
-                        labelText: 'Confirm New Password',
-                        hintText: 'Re-enter your new password',
+                        labelText:
+                            localizations?.confirmNewPassword ??
+                            'Confirm New Password',
+                        hintText:
+                            localizations?.reEnterNewPassword ??
+                            'Re-enter your new password',
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -304,7 +320,7 @@ class _MyProfileState extends State<MyProfile> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(localizations?.cancel ?? 'Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -316,25 +332,34 @@ class _MyProfileState extends State<MyProfile> {
                       confirmPasswordError = null;
 
                       if (currentPasswordController.text.isEmpty) {
-                        currentPasswordError = 'Current password is required';
+                        currentPasswordError =
+                            localizations?.currentPasswordRequired ??
+                            'Current password is required';
                         hasError = true;
                       }
 
                       if (newPasswordController.text.isEmpty) {
-                        newPasswordError = 'New password is required';
+                        newPasswordError =
+                            localizations?.newPasswordRequired ??
+                            'New password is required';
                         hasError = true;
                       } else if (newPasswordController.text.length < 6) {
                         newPasswordError =
+                            localizations?.passwordMinLength ??
                             'Password must be at least 6 characters';
                         hasError = true;
                       }
 
                       if (confirmPasswordController.text.isEmpty) {
-                        confirmPasswordError = 'Please confirm your password';
+                        confirmPasswordError =
+                            localizations?.confirmPasswordRequired ??
+                            'Please confirm your password';
                         hasError = true;
                       } else if (newPasswordController.text !=
                           confirmPasswordController.text) {
-                        confirmPasswordError = 'Passwords do not match';
+                        confirmPasswordError =
+                            localizations?.passwordsDoNotMatch ??
+                            'Passwords do not match';
                         hasError = true;
                       }
                     });
@@ -347,7 +372,7 @@ class _MyProfileState extends State<MyProfile> {
                         context: context,
                         barrierDismissible: false,
                         builder: (BuildContext loadingContext) {
-                          return const AlertDialog(
+                          return AlertDialog(
                             content: SizedBox(
                               height: 80,
                               child: Column(
@@ -355,7 +380,10 @@ class _MyProfileState extends State<MyProfile> {
                                 children: [
                                   CircularProgressIndicator(),
                                   SizedBox(height: 16),
-                                  Text('Updating password...'),
+                                  Text(
+                                    localizations?.updatingPassword ??
+                                        'Updating password...',
+                                  ),
                                 ],
                               ),
                             ),
@@ -368,8 +396,11 @@ class _MyProfileState extends State<MyProfile> {
                         Navigator.pop(context); // Close loading
                         Navigator.pop(dialogContext); // Close dialog
                         ScaffoldMessenger.of(this.context).showSnackBar(
-                          const SnackBar(
-                            content: Text('User not authenticated'),
+                          SnackBar(
+                            content: Text(
+                              localizations?.userNotAuthenticated ??
+                                  'User not authenticated',
+                            ),
                           ),
                         );
                         return;
@@ -391,8 +422,11 @@ class _MyProfileState extends State<MyProfile> {
 
                       if (mounted) {
                         ScaffoldMessenger.of(this.context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Password changed successfully!'),
+                          SnackBar(
+                            content: Text(
+                              localizations?.passwordChangedSuccessfully ??
+                                  'Password changed successfully!',
+                            ),
                             backgroundColor: Colors.green,
                           ),
                         );
@@ -400,15 +434,22 @@ class _MyProfileState extends State<MyProfile> {
                     } catch (e) {
                       Navigator.pop(context); // Close loading
 
-                      String errorMessage = 'Failed to change password';
+                      String errorMessage =
+                          localizations?.failedToChangePassword ??
+                          'Failed to change password';
                       if (e.toString().contains('wrong-password')) {
-                        errorMessage = 'Current password is incorrect';
+                        errorMessage =
+                            localizations?.currentPasswordIncorrect ??
+                            'Current password is incorrect';
                       } else if (e.toString().contains('weak-password')) {
-                        errorMessage = 'New password is too weak';
+                        errorMessage =
+                            localizations?.newPasswordTooWeak ??
+                            'New password is too weak';
                       } else if (e.toString().contains(
                         'requires-recent-login',
                       )) {
                         errorMessage =
+                            localizations?.reauthenticateRequired ??
                             'Please log out and log in again for security';
                       }
 
@@ -428,7 +469,7 @@ class _MyProfileState extends State<MyProfile> {
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                   child: Text(
-                    'Change Password',
+                    localizations?.changePassword ?? 'Change Password',
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
