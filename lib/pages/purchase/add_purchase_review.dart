@@ -1,3 +1,4 @@
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 class BoughtItemReview {
@@ -42,11 +43,13 @@ class AddPurchaseReview extends StatefulWidget {
 
 class _AddPurchaseReviewState extends State<AddPurchaseReview> {
   bool isLoading = false;
+
+  AppLocalizations get appLocalizations => AppLocalizations.of(context)!;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Review Bought Entry'),
+        title: Text(appLocalizations.reviewBoughtEntry),
         centerTitle: true,
       ),
       body: Stack(
@@ -69,8 +72,8 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Supplier Details',
+                          Text(
+                            appLocalizations.supplierDetails,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -90,8 +93,8 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Supplier',
+                                    Text(
+                                      appLocalizations.supplier,
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey,
@@ -122,8 +125,8 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(
-                                      'Date',
+                                    Text(
+                                      appLocalizations.date,
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey,
@@ -147,8 +150,8 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                     const SizedBox(height: 12),
 
                     // Items Header
-                    const Text(
-                      'Items',
+                    Text(
+                      appLocalizations.items,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -221,9 +224,12 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          _buildDetailItem('Unit', item.unit),
                                           _buildDetailItem(
-                                            'Qty',
+                                            appLocalizations.unit,
+                                            item.unit,
+                                          ),
+                                          _buildDetailItem(
+                                            appLocalizations.qty,
                                             item.quantity.toString(),
                                           ),
                                         ],
@@ -236,7 +242,7 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                               MainAxisAlignment.spaceBetween,
                                           children: [
                                             _buildDetailItem(
-                                              'Expiry Date',
+                                              appLocalizations.expiryDate,
                                               item.expiryDate!,
                                               color: Colors.orange[700],
                                             ),
@@ -249,12 +255,12 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           _buildDetailItem(
-                                            'Buying Price',
+                                            appLocalizations.buyingPrice,
                                             '₹${item.buyingPrice}',
                                             color: Colors.red[400],
                                           ),
                                           _buildDetailItem(
-                                            'Selling Price',
+                                            appLocalizations.sellingPrice,
                                             '₹${item.sellingPrice}',
                                             color: Colors.green[400],
                                           ),
@@ -276,8 +282,8 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                           mainAxisAlignment:
                                               MainAxisAlignment.spaceBetween,
                                           children: [
-                                            const Text(
-                                              'Total',
+                                            Text(
+                                              appLocalizations.total,
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 13,
@@ -317,8 +323,8 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Total Amount',
+                          Text(
+                            appLocalizations.totalAmount,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -357,8 +363,8 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                               ),
-                              child: const Text(
-                                'Back',
+                              child: Text(
+                                appLocalizations.back,
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
@@ -386,9 +392,10 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
-                                            const SnackBar(
+                                            SnackBar(
                                               content: Text(
-                                                'Purchase entry saved successfully',
+                                                appLocalizations
+                                                    .purchaseEntrySavedSuccessfully,
                                               ),
                                               duration: Duration(seconds: 2),
                                             ),
@@ -404,7 +411,9 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                             context,
                                           ).showSnackBar(
                                             SnackBar(
-                                              content: Text('Error: $e'),
+                                              content: Text(
+                                                '${appLocalizations.errorOccurred}: $e',
+                                              ),
                                               duration: const Duration(
                                                 seconds: 2,
                                               ),
@@ -432,8 +441,8 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                         strokeWidth: 2,
                                       ),
                                     )
-                                  : const Text(
-                                      'Confirm & Save',
+                                  : Text(
+                                      appLocalizations.confirmSave,
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
@@ -461,7 +470,7 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      'Saving purchase entry...',
+                      appLocalizations.savingPurchaseEntry,
                       style: Theme.of(
                         context,
                       ).textTheme.bodyLarge?.copyWith(color: Colors.white),

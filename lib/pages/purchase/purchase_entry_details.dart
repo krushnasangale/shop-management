@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class PurchaseEntryDetails extends StatefulWidget {
   final Map<String, dynamic> entry;
@@ -114,6 +115,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
   }
 
   Future<void> _removeProduct(String itemId) async {
+    final localizations = AppLocalizations.of(context);
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -161,8 +163,11 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
         if (mounted) {
           // Navigate back after deletion
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Purchase entry removed (last product deleted)'),
+            SnackBar(
+              content: Text(
+                localizations?.purchaseEntryRemovedLastProductDeleted ??
+                    'Purchase entry removed (last product deleted)',
+              ),
               duration: Duration(seconds: 2),
             ),
           );
@@ -202,8 +207,11 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
         // If there are more products, show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Product removed successfully'),
+            SnackBar(
+              content: Text(
+                localizations?.productRemovedSuccessfully ??
+                    'Product removed successfully',
+              ),
               duration: Duration(seconds: 2),
             ),
           );
@@ -214,7 +222,9 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error removing product: $e'),
+            content: Text(
+              '${localizations?.errorRemovingProduct ?? 'Error removing product'}: $e',
+            ),
             duration: const Duration(seconds: 2),
           ),
         );
@@ -226,24 +236,34 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final localizations = AppLocalizations.of(context);
         return AlertDialog(
-          title: Text('Remove Product', style: context.bodyLargeText),
+          title: Text(
+            localizations?.removeProduct ?? 'Remove Product',
+            style: context.bodyLargeText,
+          ),
           content: Text(
             _items.length <= 1
-                ? 'This is the last product. Removing it will delete the entire purchase entry. Continue?'
-                : 'Remove "$productName" from this purchase?',
+                ? (localizations?.removeLastProductWarning ??
+                      'This is the last product. Removing it will delete the entire purchase entry. Continue?')
+                : (localizations?.removeProductConfirmation ??
+                          'Remove "$productName" from this purchase?')
+                      .replaceAll('\$productName', productName),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(localizations?.cancel ?? 'Cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _removeProduct(itemId);
               },
-              child: Text('Remove', style: TextStyle(color: Colors.red[600])),
+              child: Text(
+                localizations?.delete ?? 'Remove',
+                style: TextStyle(color: Colors.red[600]),
+              ),
             ),
           ],
         );
@@ -253,6 +273,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context);
     // Use totalAmount and totalUnits from real-time purchase data
     final totalAmount = (_purchaseData['totalAmount'] ?? 0) as num;
     final totalUnits = (_purchaseData['totalUnits'] ?? 0) as num;
@@ -260,7 +281,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Purchase Details'),
+          title: Text(localizations?.purchaseDetails ?? 'Purchase Details'),
           centerTitle: false,
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -269,12 +290,12 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Purchase Details'),
+        title: Text(localizations?.purchaseDetails ?? 'Purchase Details'),
         centerTitle: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            tooltip: 'Edit Purchase',
+            tooltip: localizations?.editPurchase ?? 'Edit Purchase',
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
@@ -308,7 +329,9 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _purchaseData['supplierName'] ?? 'Unknown Supplier',
+                      _purchaseData['supplierName'] ??
+                          (localizations?.unknownSupplier ??
+                              'Unknown Supplier'),
                       style: context.headingMedium,
                     ),
                     const SizedBox(height: 8),
@@ -318,10 +341,14 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Purchase Date', style: context.subtitleSmall),
+                            Text(
+                              localizations?.purchaseDate ?? 'Purchase Date',
+                              style: context.subtitleSmall,
+                            ),
                             const SizedBox(height: 4),
                             Text(
-                              _purchaseData['date'] ?? 'N/A',
+                              _purchaseData['date'] ??
+                                  (localizations?.na ?? 'N/A'),
                               style: context.titleMedium,
                             ),
                           ],
@@ -329,7 +356,10 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text('Total Units', style: context.subtitleSmall),
+                            Text(
+                              localizations?.totalUnits ?? 'Total Units',
+                              style: context.subtitleSmall,
+                            ),
                             const SizedBox(height: 4),
                             Text('$totalUnits', style: context.titleMedium),
                           ],
@@ -341,12 +371,16 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               ),
             ),
             const SizedBox(height: 16),
-            Text('Purchased Items', style: context.titleLarge),
+            Text(
+              localizations?.purchasedItems ?? 'Purchased Items',
+              style: context.titleLarge,
+            ),
             const SizedBox(height: 8),
             ..._items.asMap().entries.map((mapEntry) {
               final index = mapEntry.key;
               final item = mapEntry.value;
-              final productName = item['productName'] ?? 'Unknown';
+              final productName =
+                  item['productName'] ?? (localizations?.unknown ?? 'Unknown');
               final quantity =
                   item['initialQuantity'] ?? 0; // Use current quantity
               final buyingPrice =
@@ -417,7 +451,9 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                       productName,
                                     )
                                   : null,
-                              tooltip: 'Remove product',
+                              tooltip:
+                                  localizations?.removeProduct ??
+                                  'Remove product',
                             ),
                           ],
                         ),
@@ -439,7 +475,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                   ),
                                 ),
                                 child: Text(
-                                  'Batch: ${batchId.substring(0, 8)}...',
+                                  '${localizations?.batch ?? 'Batch'}: ${batchId.substring(0, 8)}...',
                                   style: TextStyle(
                                     color: Colors.purple[600],
                                     fontSize: 10,
@@ -456,7 +492,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Unit: $unit',
+                                  '${localizations?.unit ?? 'Unit'}: $unit',
                                   style: context.subtitleSmall,
                                 ),
                               ],
@@ -475,7 +511,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Expiry Date: $expiryDate',
+                                  '${localizations?.expiryDate ?? 'Expiry Date'}: $expiryDate',
                                   style: TextStyle(
                                     color: Colors.orange[700],
                                     fontSize: 12,
@@ -493,7 +529,8 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Quantity',
+                                  localizations?.sellingPrice ??
+                                      'Selling Price',
                                   style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
@@ -506,7 +543,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Buying Price',
+                                  localizations?.buyingPrice ?? 'Buying Price',
                                   style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
@@ -526,7 +563,8 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Selling Price',
+                                  localizations?.sellingPrice ??
+                                      'Selling Price',
                                   style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
@@ -552,7 +590,8 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Profit per Unit',
+                                  localizations?.profitPerUnit ??
+                                      'Profit per Unit',
                                   style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
@@ -580,7 +619,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Item Total',
+                              localizations?.itemTotal ?? 'Item Total',
                               style: context.subtitleMedium?.copyWith(
                                 fontWeight: FontWeight.w500,
                               ),
@@ -624,7 +663,10 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Grand Total', style: context.titleLarge),
+                  Text(
+                    localizations?.grandTotal ?? 'Grand Total',
+                    style: context.titleLarge,
+                  ),
                   Text(
                     '₹$totalAmount',
                     style: TextStyle(

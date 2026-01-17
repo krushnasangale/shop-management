@@ -1,3 +1,4 @@
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -71,6 +72,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   double _totalBoughtAmount = 0.0;
 
   late TextEditingController _minLimitController;
+
+  AppLocalizations get appLocalizations => AppLocalizations.of(context)!;
 
   @override
   void initState() {
@@ -286,7 +289,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Edit ${item.productName}', style: context.bodyLargeText),
+          title: Text(
+            '${appLocalizations.edit} ${item.productName}',
+            style: context.bodyLargeText,
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -304,7 +310,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Product Details',
+                        appLocalizations.productDetails,
                         style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 12,
@@ -313,14 +319,14 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Supplier: ${item.supplierName}',
+                        '${appLocalizations.supplierLabel}${item.supplierName}',
                         style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 14,
                         ),
                       ),
                       Text(
-                        'Initial Quantity (Bought): ${item.initialQuantity}',
+                        '${appLocalizations.initialQuantityBought}${item.initialQuantity}',
                         style: const TextStyle(
                           color: Colors.blue,
                           fontSize: 14,
@@ -329,7 +335,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       if (item.expiryDate != null &&
                           item.expiryDate!.isNotEmpty)
                         Text(
-                          'Expiry Date: ${item.expiryDate}',
+                          '${appLocalizations.expiryDateLabel}${item.expiryDate}',
                           style: const TextStyle(
                             color: Colors.blue,
                             fontSize: 14,
@@ -343,7 +349,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   controller: unitController,
                   readOnly: true,
                   decoration: InputDecoration(
-                    labelText: 'Unit',
+                    labelText: appLocalizations.unit,
                     border: const OutlineInputBorder(),
                     suffixIcon: const Icon(Icons.arrow_drop_down),
                   ),
@@ -359,9 +365,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       child: TextField(
                         controller: quantityController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Current Quantity',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: appLocalizations.currentQuantity,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -370,9 +376,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       child: TextField(
                         controller: minLimitController,
                         keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(
-                          labelText: 'Min. Stock',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: appLocalizations.minStock,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -388,9 +394,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'Buying Price (₹)',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: appLocalizations.buyingPriceRupees,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -401,9 +407,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
                         ),
-                        decoration: const InputDecoration(
-                          labelText: 'Selling Price (₹)',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: appLocalizations.sellingPriceRupees,
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                     ),
@@ -414,7 +420,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   controller: expiryDateController,
                   readOnly: true,
                   decoration: InputDecoration(
-                    labelText: 'Expiry Date (Optional)',
+                    labelText: appLocalizations.expiryDateOptional,
                     border: const OutlineInputBorder(),
                     suffixIcon: const Icon(Icons.calendar_today_outlined),
                   ),
@@ -441,7 +447,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(appLocalizations.cancel),
             ),
             TextButton(
               onPressed: () {
@@ -467,11 +473,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   Navigator.of(context).pop();
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please enter valid values')),
+                    SnackBar(
+                      content: Text(appLocalizations.pleaseEnterValidValues),
+                    ),
                   );
                 }
               },
-              child: const Text('Save'),
+              child: Text(appLocalizations.save),
             ),
           ],
         );
@@ -482,43 +490,43 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   void _addProductToList() {
     // Validate all fields
     if (_supplierNameController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a supplier')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(appLocalizations.pleaseSelectSupplier)),
+      );
       return;
     }
 
     if (_productController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a product')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(appLocalizations.pleaseSelectProduct)),
+      );
       return;
     }
 
     if (_unitController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a unit')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(appLocalizations.pleaseSelectUnit)),
+      );
       return;
     }
 
     if (_quantityController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter quantity')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(appLocalizations.pleaseEnterQuantity)),
+      );
       return;
     }
 
     if (_buyingPriceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter buying price')),
+        SnackBar(content: Text(appLocalizations.pleaseEnterBuyingPrice)),
       );
       return;
     }
 
     if (_sellingPriceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter selling price')),
+        SnackBar(content: Text(appLocalizations.pleaseEnterSellingPrice)),
       );
       return;
     }
@@ -530,7 +538,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
     if (quantity <= 0 || buyingPrice <= 0 || sellingPrice <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid values')),
+        SnackBar(content: Text(appLocalizations.pleaseEnterValidValues)),
       );
       return;
     }
@@ -542,7 +550,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
     if (productExists) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This product is already added')),
+        SnackBar(content: Text(appLocalizations.productAlreadyAdded)),
       );
       return;
     }
@@ -587,17 +595,20 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text(
-            'Remove Product',
-            style: TextStyle(color: Colors.red),
+          title: Text(
+            appLocalizations.removeProduct,
+            style: const TextStyle(color: Colors.red),
           ),
           content: Text(
-            'Are you sure you want to remove "${item.productName}" from the list?',
+            appLocalizations.confirmRemoveProduct.replaceAll(
+              '{productName}',
+              item.productName,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(appLocalizations.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -608,15 +619,20 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('${item.productName} removed'),
+                    content: Text(
+                      appLocalizations.productRemoved.replaceAll(
+                        '{productName}',
+                        item.productName,
+                      ),
+                    ),
                     duration: const Duration(seconds: 2),
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text(
-                'Remove',
-                style: TextStyle(color: Colors.white),
+              child: Text(
+                appLocalizations.delete,
+                style: const TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -739,7 +755,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 // Items list
                 Expanded(
                   child: filteredItems.isEmpty
-                      ? Center(child: Text('No $title found'))
+                      ? Center(child: Text(title == 'Products' ? appLocalizations.noProductsFound : appLocalizations.noUnitsFoundModal))
                       : ListView.builder(
                           controller: scrollController,
                           itemCount: filteredItems.length,
@@ -823,7 +839,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(appLocalizations.cancel),
                 ),
                 ElevatedButton(
                   onPressed:
@@ -867,7 +883,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      'Product "$productName" added successfully',
+                                      appLocalizations.productAddedSuccessfully
+                                          .replaceAll(
+                                            '{productName}',
+                                            productName,
+                                          ),
                                     ),
                                   ),
                                 );
@@ -876,7 +896,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: $e')),
+                                SnackBar(
+                                  content: Text(
+                                    '${appLocalizations.error}: $e',
+                                  ),
+                                ),
                               );
                             }
                           }
@@ -888,9 +912,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Add',
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    appLocalizations.add,
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -955,7 +979,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(appLocalizations.cancel),
                 ),
                 ElevatedButton(
                   onPressed:
@@ -993,7 +1017,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      'Unit "$unitName" added successfully',
+                                      appLocalizations.unitAddedSuccessfully
+                                          .replaceAll('{unitName}', unitName),
                                     ),
                                   ),
                                 );
@@ -1002,7 +1027,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: $e')),
+                                SnackBar(content: Text('${appLocalizations.error}: $e')),
                               );
                             }
                           }
@@ -1014,9 +1039,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Add',
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    appLocalizations.add,
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -1095,9 +1120,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Select Supplier',
-                        style: TextStyle(
+                      Text(
+                        appLocalizations.selectSupplierTitle,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1164,7 +1189,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               });
                             },
                             decoration: InputDecoration(
-                              hintText: 'Search supplier...',
+                              hintText: appLocalizations.searchSupplier,
                               prefixIcon: const Icon(Icons.search),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -1186,7 +1211,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                             );
                           },
                           icon: const Icon(Icons.add),
-                          label: const Text('Add'),
+                          label: Text(appLocalizations.add),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
@@ -1205,7 +1230,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   child: displaySuppliers.isEmpty
                       ? Center(
                           child: Text(
-                            'No suppliers found',
+                            appLocalizations.noSuppliersFound,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         )
@@ -1234,14 +1259,14 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        'Contact: $contact',
+                                        '${appLocalizations.contactLabel}$contact',
                                         style: const TextStyle(fontSize: 12),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                     Expanded(
                                       child: Text(
-                                        'Location: $location',
+                                        '${appLocalizations.locationLabel}$location',
                                         style: const TextStyle(fontSize: 12),
                                         overflow: TextOverflow.ellipsis,
                                         textAlign: TextAlign.end,
@@ -1294,7 +1319,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           builder: (context, setDialogState) {
             return AlertDialog(
               title: Text(
-                'Add New Supplier',
+                appLocalizations.addNewSupplier,
                 style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -1317,13 +1342,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         }
                         setDialogState(() {
                           nameError = value.trim().isEmpty
-                              ? 'Supplier name required'
+                              ? appLocalizations.supplierNameRequired
                               : '';
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Supplier Name',
-                        hintText: 'Enter Supplier Name',
+                        labelText: appLocalizations.supplierName,
+                        hintText: appLocalizations.enterSupplierName,
                         errorText: nameError.isNotEmpty ? nameError : null,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1341,17 +1366,19 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       onChanged: (value) {
                         setDialogState(() {
                           if (value.trim().isEmpty) {
-                            contactError = 'Contact number required';
+                            contactError =
+                                appLocalizations.contactNumberRequired;
                           } else if (value.trim().length < 10) {
-                            contactError = 'Contact must be at least 10 digits';
+                            contactError =
+                                appLocalizations.contactMustBeAtLeast10Digits;
                           } else {
                             contactError = '';
                           }
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Contact Number',
-                        hintText: 'Enter Contact Number',
+                        labelText: appLocalizations.contactNumber,
+                        hintText: appLocalizations.enterContactNumber,
                         errorText: contactError.isNotEmpty
                             ? contactError
                             : null,
@@ -1404,7 +1431,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(appLocalizations.cancel),
                 ),
                 ElevatedButton(
                   onPressed:
@@ -1480,7 +1507,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Supplier "$supplierName" added successfully',
+                                        appLocalizations
+                                            .supplierAddedSuccessfully
+                                            .replaceAll(
+                                              '{supplierName}',
+                                              supplierName,
+                                            ),
                                       ),
                                     ),
                                   );
@@ -1488,8 +1520,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               } else {
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Supplier already exists'),
+                                    SnackBar(
+                                      content: Text(appLocalizations.supplierAlreadyExists),
                                     ),
                                   );
                                 }
@@ -1498,7 +1530,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: $e')),
+                                SnackBar(content: Text('${appLocalizations.error}: $e')),
                               );
                             }
                           }
@@ -1510,9 +1542,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Add',
-                    style: TextStyle(color: Colors.white),
+                  child: Text(
+                    appLocalizations.add,
+                    style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -1527,14 +1559,14 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     // Validate form
     if (_supplierNameController.text.isEmpty) {
       setState(() {
-        _supplierNameError = 'Supplier name is required';
+        _supplierNameError = appLocalizations.supplierNameRequired;
       });
       return;
     }
 
     if (_boughtItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one product')),
+        SnackBar(content: Text(appLocalizations.pleaseAddAtLeastOneProduct)),
       );
       return;
     }
@@ -1705,8 +1737,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           SnackBar(
             content: Text(
               isEditMode
-                  ? 'Purchase updated successfully'
-                  : 'Bought entry saved successfully',
+                  ? appLocalizations.purchaseEntryUpdatedSuccessfully
+                  : appLocalizations.purchaseEntrySavedSuccessfully,
             ),
           ),
         );
@@ -1717,7 +1749,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ).showSnackBar(SnackBar(content: Text('${appLocalizations.error}: $e')));
       }
     }
   }
@@ -1771,7 +1803,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     final isEditMode = widget.purchaseId != null;
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditMode ? 'Edit Purchase Entry' : 'Add Bought Entry'),
+        title: Text(
+          isEditMode
+              ? appLocalizations.editPurchaseEntry
+              : appLocalizations.addBoughtEntry,
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -1781,7 +1817,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 buildFormField(
-                  'Select Date',
+                  appLocalizations.selectDate,
                   _dateController,
                   suffixIcon: Icons.calendar_today_outlined,
                   onTap: () async {
@@ -1799,7 +1835,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   },
                 ),
                 buildFormField(
-                  'Select Supplier',
+                  appLocalizations.selectSupplier,
                   _supplierNameController,
                   onTap: () => _showSupplierSelectionDrawer(context),
                   suffixIcon: Icons.arrow_drop_down,
@@ -1825,13 +1861,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     border: Border.all(color: Colors.blue, width: 1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(Icons.info_outline, color: Colors.blue, size: 20),
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'If you are buying more than one product from this supplier, you can add all products one by one here',
+                          appLocalizations.purchaseInfoMessage,
                           style: TextStyle(color: Colors.blue, fontSize: 13),
                         ),
                       ),
@@ -1841,7 +1877,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 const SizedBox(height: 10),
                 // Product Name Field
                 buildFormField(
-                  'Select Product Name',
+                  appLocalizations.selectProductName,
                   _productController,
                   suffixIcon: Icons.arrow_drop_down,
                   onTap: () => _showSelectionSheet(
@@ -1853,7 +1889,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 ),
                 // Unit Field
                 buildFormField(
-                  'Select product unit',
+                  appLocalizations.selectProductUnit,
                   _unitController,
                   suffixIcon: Icons.arrow_drop_down,
                   onTap: () =>
@@ -1862,7 +1898,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 ),
                 // Expiry Date Field
                 buildFormField(
-                  'Expiry Date (Optional)',
+                  appLocalizations.expiryDateOptional,
                   _expiryDateController,
                   suffixIcon: Icons.calendar_today_outlined,
                   onTap: () async {
@@ -1885,7 +1921,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   children: [
                     Expanded(
                       child: buildFormField(
-                        'Product Quantity',
+                        appLocalizations.productQuantity,
                         _quantityController,
                         keyboardType: TextInputType.number,
                       ),
@@ -1893,7 +1929,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     const SizedBox(width: 5),
                     Expanded(
                       child: buildFormField(
-                        'Min. QTY',
+                        appLocalizations.minQty,
                         _minLimitController,
                         keyboardType: TextInputType.number,
                       ),
@@ -1905,7 +1941,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   children: [
                     Expanded(
                       child: buildFormField(
-                        'Buying Price Per Item',
+                        appLocalizations.buyingPricePerItem,
                         _buyingPriceController,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
@@ -1915,7 +1951,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     const SizedBox(width: 5),
                     Expanded(
                       child: buildFormField(
-                        'Selling Price Per Item',
+                        appLocalizations.sellingPricePerItem,
                         _sellingPriceController,
                         keyboardType: const TextInputType.numberWithOptions(
                           decimal: true,
@@ -1930,7 +1966,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Selected Products',
+                      appLocalizations.selectedProducts,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     SizedBox(
@@ -1939,7 +1975,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         onPressed: _addProductToList,
                         icon: const Icon(Icons.add, color: Colors.white),
                         label: Text(
-                          'Add Product',
+                          appLocalizations.addProduct,
                           style: const TextStyle(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -1978,7 +2014,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'No products added yet',
+                                appLocalizations.noProductsAddedYet,
                                 style: TextStyle(
                                   color: Colors.grey[600],
                                   fontSize: 14,
@@ -2351,8 +2387,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Total Amount',
+                          Text(
+                            appLocalizations.totalAmount,
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -2388,9 +2424,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(
+                          child: Text(
+                            appLocalizations.cancel,
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.blue,
@@ -2416,7 +2452,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   if (_supplierNameController.text.isEmpty) {
                                     setState(() {
                                       _supplierNameError =
-                                          'Supplier name is required';
+                                          appLocalizations.supplierNameRequired;
                                     });
                                     return;
                                   }
@@ -2429,9 +2465,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            'Save & Review',
-                            style: TextStyle(
+                          child: Text(
+                            appLocalizations.saveReview,
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,

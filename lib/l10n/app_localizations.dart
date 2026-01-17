@@ -126,6 +126,7 @@ class AppLocalizations {
   String get light => translate('light');
   String get apply => translate('apply');
   String get clear => translate('clear');
+  String get na => translate('na');
   String get welcomeBack => translate('welcome_back');
   String get signInToContinue => translate('sign_in_to_continue');
   String get enterEmailOrUsername => translate('enter_email_or_username');
@@ -298,6 +299,8 @@ class AppLocalizations {
   String get searchSuppliers => translate('search_suppliers');
   String get noSuppliersYet => translate('no_suppliers_yet');
   String get noSuppliersFound => translate('no_suppliers_found');
+  String get noProductsFound => translate('no_products_found');
+  String get noUnitsFoundModal => translate('no_units_found_modal');
   String get addSupplier => translate('add_supplier');
   String get supplierName => translate('supplier_name');
   String get enterSupplierName => translate('enter_supplier_name');
@@ -431,6 +434,8 @@ class AppLocalizations {
       translate('product_removed_successfully');
   String get errorRemovingProduct => translate('error_removing_product');
   String get removeProduct => translate('remove_product');
+  String get removeProductConfirmation =>
+      translate('remove_product_confirmation');
   String get removeLastProductWarning =>
       translate('remove_last_product_warning');
   String get removeProductFromPurchase =>
@@ -446,7 +451,73 @@ class AppLocalizations {
   String get profitPerUnit => translate('profit_per_unit');
   String get itemTotal => translate('item_total');
   String get unknownSupplier => translate('unknown_supplier');
+  String get unknown => translate('unknown');
   String get removeProductTooltip => translate('remove_product_tooltip');
+  String get reviewBoughtEntry => translate('review_bought_entry');
+  String get supplierDetails => translate('supplier_details');
+  String get back => translate('back');
+  String get confirmSave => translate('confirm_save');
+  String get savingPurchaseEntry => translate('saving_purchase_entry');
+  String get purchaseEntrySavedSuccessfully =>
+      translate('purchase_entry_saved_successfully');
+  String get purchaseEntryUpdatedSuccessfully =>
+      translate('purchase_entry_updated_successfully');
+  String get errorOccurred => translate('error_occurred');
+  String get editPurchaseEntry => translate('edit_purchase_entry');
+  String get addBoughtEntry => translate('add_bought_entry');
+  String get selectDate => translate('select_date');
+  String get selectSupplier => translate('select_supplier');
+  String get selectProductName => translate('select_product_name');
+  String get selectProductUnit => translate('select_product_unit');
+  String get expiryDateOptional => translate('expiry_date_optional');
+  String get productQuantity => translate('product_quantity');
+  String get minQty => translate('min_qty');
+  String get buyingPricePerItem => translate('buying_price_per_item');
+  String get sellingPricePerItem => translate('selling_price_per_item');
+  String get purchaseInfoMessage => translate('purchase_info_message');
+  String get selectedProducts => translate('selected_products');
+  String get saveReview => translate('save_review');
+  String get supplierNameRequired => translate('supplier_name_required');
+  String get pleaseSelectSupplier => translate('please_select_supplier');
+  String get pleaseSelectProduct => translate('please_select_product');
+  String get pleaseSelectUnit => translate('please_select_unit');
+  String get pleaseEnterQuantity => translate('please_enter_quantity');
+  String get pleaseEnterBuyingPrice => translate('please_enter_buying_price');
+  String get pleaseEnterSellingPrice => translate('please_enter_selling_price');
+  String get pleaseEnterValidValues => translate('please_enter_valid_values');
+  String get productAlreadyAdded => translate('product_already_added');
+  String get pleaseAddAtLeastOneProduct =>
+      translate('please_add_at_least_one_product');
+  String get confirmRemoveProduct => translate('confirm_remove_product');
+  String get supplierLabel => translate('supplier_label');
+  String get initialQuantityBought => translate('initial_quantity_bought');
+  String get currentQuantity => translate('current_quantity');
+  String get minStock => translate('min_stock');
+  String get buyingPriceRupees => translate('buying_price_rupees');
+  String get sellingPriceRupees => translate('selling_price_rupees');
+  String get addNewSupplier => translate('add_new_supplier');
+  String get contactNumber => translate('contact_number');
+  String get contactNumberRequired => translate('contact_number_required');
+  String get contactMustBeAtLeast10Digits =>
+      translate('contact_must_be_at_least_10_digits');
+  String get location => translate('location');
+  String get locationRequired => translate('location_required');
+  String get selectSupplierTitle => translate('select_supplier_title');
+  String get searchSupplier => translate('search_supplier');
+  String get noProductsAddedYet => translate('no_products_added_yet');
+  String get contactLabel => translate('contact_label');
+  String get locationLabel => translate('location_label');
+  String get supplierAddedSuccessfully =>
+      translate('supplier_added_successfully');
+  String get productAddedSuccessfully =>
+      translate('product_added_successfully');
+  String get unitAddedSuccessfully => translate('unit_added_successfully');
+  String get supplierAlreadyExists => translate('supplier_already_exists');
+  String get errorLoadingPurchaseData =>
+      translate('error_loading_purchase_data');
+  String get productRemoved => translate('product_removed');
+  String get sellingPriceIs0 => translate('selling_price_is_0');
+  String get minLimitIs0 => translate('min_limit_is_0');
 
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
