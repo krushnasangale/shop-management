@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert' as convert;
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class BillProductItem {
   final String productName;
@@ -94,12 +95,13 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final cardColor = context.cardColor;
 
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Bill Created'),
+        title: Text(localizations.translate('bill_created')),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -129,13 +131,13 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
                 // Success Message
                 Text(
-                  'Bill Created Successfully!',
+                  localizations.translate('bill_created_successfully'),
                   textAlign: TextAlign.center,
                   style: context.headingLarge,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Your bill has been saved to the system',
+                  localizations.translate('bill_saved_to_system'),
                   textAlign: TextAlign.center,
                   style: context.subtitleMedium,
                 ),
@@ -159,18 +161,23 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Bill Status', style: context.titleLarge),
+                        Text(
+                          localizations.translate('bill_status'),
+                          style: context.titleLarge,
+                        ),
                         const SizedBox(height: 16),
                         _buildStatusRow(
-                          'Status',
-                          'Completed',
+                          localizations.translate('status'),
+                          localizations.translate('completed'),
                           Colors.green,
                           context,
                         ),
                         const SizedBox(height: 12),
                         _buildStatusRow(
-                          'Payment',
-                          amountRemaining > 0 ? 'Partial' : 'Full',
+                          localizations.translate('payment'),
+                          amountRemaining > 0
+                              ? localizations.translate('partial')
+                              : localizations.translate('full'),
                           Colors.blue,
                           context,
                         ),
@@ -226,7 +233,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                           ),
                           onPressed: () {
                             // Share bill functionality
-                            _shareBill(context);
+                            _shareBill(context, localizations);
                           },
                           icon: const Icon(Icons.share, color: Colors.blue),
                           label: const Text(
@@ -250,7 +257,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     );
   }
 
-  void _shareBill(BuildContext context) async {
+  void _shareBill(BuildContext context, AppLocalizations localizations) async {
     try {
       // Show loading dialog
       showDialog(
@@ -272,7 +279,10 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   children: [
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
-                    Text('Generating PDF...', style: context.bodyLargeText),
+                    Text(
+                      localizations.translate('generating_pdf'),
+                      style: context.bodyLargeText,
+                    ),
                   ],
                 ),
               ),
@@ -297,7 +307,9 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating bill: $e'),
+            content: Text(
+              '${localizations.translate('error_generating_bill')}: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );

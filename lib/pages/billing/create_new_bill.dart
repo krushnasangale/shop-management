@@ -11,6 +11,7 @@ import 'package:flashbill/ui%20helpers/ui_helper.dart';
 import 'package:fast_contacts/fast_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class CreateNewBill extends StatefulWidget {
   final bool isEditMode;
@@ -246,32 +247,35 @@ class _CreateNewBillState extends State<CreateNewBill> {
     super.dispose();
   }
 
-  String? _validateCustomerName(String? value) {
+  String? _validateCustomerName(String? value, AppLocalizations localizations) {
     if (value == null || value.trim().isEmpty) {
-      return 'Customer name is required';
+      return localizations.translate('customer_name_required');
     }
     return null;
   }
 
-  String? _validateMobileNumber(String? value) {
+  String? _validateMobileNumber(String? value, AppLocalizations localizations) {
     if (value == null || value.trim().isEmpty) {
       return null; // Mobile number is optional
     }
     final cleanedValue = value.trim();
     if (!RegExp(r'^[0-9]{10}$').hasMatch(cleanedValue)) {
-      return 'Mobile number must be 10 digits';
+      return localizations.translate('mobile_number_must_be_10_digits');
     }
     return null;
   }
 
-  String? _validateVehicleNumber(String? value) {
+  String? _validateVehicleNumber(
+    String? value,
+    AppLocalizations localizations,
+  ) {
     if (value == null || value.trim().isEmpty) {
       return null; // Vehicle number is optional
     }
     final cleanedValue = value.trim();
     // Indian vehicle number format: 2 letters, 2 digits, 2 letters, 4 digits (flexible)
     if (!RegExp(r'^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$').hasMatch(cleanedValue)) {
-      return 'Invalid vehicle number format (e.g., KA01AB1234)';
+      return localizations.translate('invalid_vehicle_number_format');
     }
     return null;
   }
@@ -332,6 +336,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -340,7 +345,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
             Navigator.of(context).pop();
           },
         ),
-        title: Text(widget.isEditMode ? 'Edit Bill' : 'Create new bill'),
+        title: Text(
+          widget.isEditMode
+              ? localizations.translate('edit_bill')
+              : localizations.translate('create_new_bill'),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -350,7 +359,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 buildFormField(
-                  'Select Date',
+                  localizations.translate('select_date'),
                   _dateController,
                   suffixIcon: Icons.calendar_today_outlined,
                   onTap: () async {
@@ -372,7 +381,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Select Customer From',
+                    localizations.translate('select_customer_from'),
                     style: context.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -391,8 +400,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           Icons.contact_page,
                           color: Colors.white,
                         ),
-                        label: const Text(
-                          'Contacts',
+                        label: Text(
+                          localizations.translate('contacts'),
                           style: TextStyle(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -409,8 +418,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       child: ElevatedButton.icon(
                         onPressed: () => _showCustomersDrawer(context),
                         icon: const Icon(Icons.person_add, color: Colors.white),
-                        label: const Text(
-                          'Existing',
+                        label: Text(
+                          localizations.translate('existing'),
                           style: TextStyle(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -430,7 +439,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Customer Full Name *',
+                      localizations.translate('customer_full_name'),
                       _customerNameController,
                       onChanged: (value) {
                         // Convert to uppercase
@@ -445,6 +454,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           _customerNameError =
                               _validateCustomerName(
                                 _customerNameController.text,
+                                localizations,
                               ) ??
                               '';
                         });
@@ -473,7 +483,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Customer Mobile Number',
+                      localizations.translate('customer_mobile_number'),
                       _customerMobileController,
                       keyboardType: TextInputType.phone,
                       inputFormatters: [
@@ -482,7 +492,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       onChanged: (value) {
                         setState(() {
                           _customerMobileError =
-                              _validateMobileNumber(value) ?? '';
+                              _validateMobileNumber(value, localizations) ?? '';
                         });
                       },
                     ),
@@ -509,7 +519,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     buildFormField(
-                      'Customer Vehicle Number',
+                      localizations.translate('customer_vehicle_number'),
                       _customerVehicleController,
                       keyboardType: TextInputType.text,
                       onChanged: (value) {
@@ -525,6 +535,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           _customerVehicleError =
                               _validateVehicleNumber(
                                 _customerVehicleController.text,
+                                localizations,
                               ) ??
                               '';
                         });
@@ -560,8 +571,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         icon: const Icon(Icons.add, color: Colors.white),
                         label: Text(
                           _billItems.isEmpty
-                              ? 'Add Product'
-                              : 'Add More Products',
+                              ? localizations.translate('add_product')
+                              : localizations.translate('add_more_products'),
                           style: const TextStyle(color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
@@ -578,8 +589,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Products Added for Billing:',
+                    Text(
+                      localizations.translate('products_added_for_billing'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -589,7 +600,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     if (_billItems.isEmpty)
                       Center(
                         child: Text(
-                          'No products added for billing',
+                          localizations.translate(
+                            'no_products_added_for_billing',
+                          ),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -655,7 +668,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                         Row(
                                           children: [
                                             Text(
-                                              'Qty:',
+                                              localizations.translate(
+                                                'qty_colon',
+                                              ),
                                               style: context.bodyMediumText
                                                   ?.copyWith(fontSize: 12),
                                             ),
@@ -676,7 +691,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          'Total: ₹${billItem.total.toStringAsFixed(2)}',
+                                          '${localizations.translate('total_colon')} ₹${billItem.total.toStringAsFixed(2)}',
                                           style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
@@ -700,14 +715,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Total Items',
+                      localizations.translate('total_items'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     Text(
-                      '${_getTotalQuantity()} items',
+                      '${_getTotalQuantity()} ${localizations.translate('items')}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -719,7 +734,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Total Amount',
+                      localizations.translate('total_amount_label'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -747,7 +762,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     ),
                     const SizedBox(width: 10),
                     Text(
-                      'Total amount paid?',
+                      localizations.translate('total_amount_paid'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -762,7 +777,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Payment Method',
+                      localizations.translate('payment_method'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -808,7 +823,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      'Cash',
+                                      localizations.translate('cash'),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: paymentMethod == 'cash'
@@ -858,7 +873,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     ),
                                     const SizedBox(width: 8),
                                     Text(
-                                      'Online',
+                                      localizations.translate('online'),
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: paymentMethod == 'online'
@@ -884,7 +899,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       buildFormField(
-                        'Enter paid amount',
+                        localizations.translate('enter_paid_amount'),
                         _amountPaidController,
                         keyboardType: TextInputType.number,
                         onChanged: (value) {
@@ -906,7 +921,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Amount Remaining',
+                        localizations.translate('amount_remaining'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -947,7 +962,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Next Payment Date',
+                        localizations.translate('next_payment_date'),
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -992,7 +1007,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             enabled: false,
                             decoration: InputDecoration(
                               fillColor: Colors.white,
-                              hintText: 'Select date',
+                              hintText: localizations.translate(
+                                'select_date_hint',
+                              ),
                               filled: true,
                               contentPadding: const EdgeInsets.symmetric(
                                 vertical: 16.0,
@@ -1042,8 +1059,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             onPressed: () {
                               Navigator.of(context).pop();
                             },
-                            child: const Text(
-                              'Cancel',
+                            child: Text(
+                              localizations.translate('cancel'),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 15,
@@ -1065,16 +1082,19 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               _customerNameError =
                                   _validateCustomerName(
                                     _customerNameController.text,
+                                    localizations,
                                   ) ??
                                   '';
                               _customerMobileError =
                                   _validateMobileNumber(
                                     _customerMobileController.text,
+                                    localizations,
                                   ) ??
                                   '';
                               _customerVehicleError =
                                   _validateVehicleNumber(
                                     _customerVehicleController.text,
+                                    localizations,
                                   ) ??
                                   '';
                             });
@@ -1089,9 +1109,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             // Check if products are added
                             if (_billItems.isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'Please add products for billing',
+                                    localizations.translate(
+                                      'please_add_products_for_billing',
+                                    ),
                                   ),
                                   backgroundColor: Colors.red,
                                 ),
@@ -1107,8 +1129,12 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               customerId = await _addNewCustomer();
                               if (customerId == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Failed to add customer'),
+                                  SnackBar(
+                                    content: Text(
+                                      localizations.translate(
+                                        'failed_to_add_customer',
+                                      ),
+                                    ),
                                     backgroundColor: Colors.red,
                                   ),
                                 );
@@ -1122,8 +1148,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                   .trim()
                                   .isEmpty) {
                                 setState(() {
-                                  _nextPaymentDateError =
-                                      'Next payment date is required';
+                                  _nextPaymentDateError = localizations
+                                      .translate('next_payment_date_required');
                                 });
                                 return;
                               }
@@ -1182,8 +1208,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            'Process billing',
+                          child: Text(
+                            localizations.translate('process_billing'),
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -1207,15 +1233,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final localizations = AppLocalizations.of(context)!;
         return AlertDialog(
-          title: const Text('Remove Product'),
-          content: const Text(
-            'Are you sure you want to remove this product from the bill?',
-          ),
+          title: Text(localizations.translate('remove_product')),
+          content: Text(localizations.translate('confirm_remove_product')),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('No'),
+              child: Text(localizations.translate('no')),
             ),
             ElevatedButton(
               onPressed: () {
@@ -1229,7 +1254,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Yes'),
+              child: Text(localizations.translate('yes')),
             ),
           ],
         );
@@ -1311,13 +1336,16 @@ class _CreateNewBillState extends State<CreateNewBill> {
     String productName,
     List<BoughtProduct> batches,
   ) {
+    final localizations = AppLocalizations.of(context)!;
     // Filter batches to show only those with quantity > 0
     final availableBatches = batches.where((b) => b.quantity > 0).toList();
 
     // If no batches available, show message
     if (availableBatches.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No batches available for this product')),
+        SnackBar(
+          content: Text(localizations.translate('no_batches_available')),
+        ),
       );
       return;
     }
@@ -1332,9 +1360,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
+        final dialogLocalizations = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
           title: Text(
-            'Select Batch: $productName',
+            '${dialogLocalizations.translate('select_batch')}: $productName',
             style: context.bodyLargeText,
           ),
           content: ConstrainedBox(
@@ -1349,7 +1378,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   final batch = availableBatches[index];
                   final isFifo = index == 0;
                   final batchLabel = availableBatches.length > 1
-                      ? 'Batch ${index + 1} ${isFifo ? '(FIFO - Oldest)' : ''}'
+                      ? '${dialogLocalizations.translate('batch')} ${index + 1} ${isFifo ? dialogLocalizations.translate('fifo_oldest') : ''}'
                       : '';
                   final isBatchAlreadyAdded = _billItems.any(
                     (item) => item.batchId == batch.batchId,
@@ -1374,7 +1403,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             ),
                           const SizedBox(height: 4),
                           Text(
-                            'Buy: ₹${batch.buyingPrice.toStringAsFixed(2)} | Sell: ₹${batch.sellingPrice.toStringAsFixed(2)}',
+                            '${dialogLocalizations.translate('buy')}: ₹${batch.buyingPrice.toStringAsFixed(2)} | ${dialogLocalizations.translate('sell')}: ₹${batch.sellingPrice.toStringAsFixed(2)}',
                             style: context.bodyLargeText?.copyWith(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -1382,14 +1411,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Available: ${batch.quantity} ${batch.unit}${batch.quantity != 1 ? 's' : ''}',
+                            '${dialogLocalizations.translate('available')}: ${batch.quantity} ${batch.unit}${batch.quantity != 1 ? 's' : ''}',
                             style: TextStyle(color: Colors.blue, fontSize: 12),
                           ),
                           if (batch.profitMargin > 0)
                             Padding(
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Text(
-                                'Profit/unit: ₹${batch.profitMargin.toStringAsFixed(2)}',
+                                '${dialogLocalizations.translate('profit_per_unit')}: ₹${batch.profitMargin.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   color: Colors.purple[400],
                                   fontSize: 11,
@@ -1408,8 +1437,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 color: Colors.orange,
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text(
-                                'Added',
+                              child: Text(
+                                dialogLocalizations.translate('added'),
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 10,
@@ -1434,7 +1463,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: Text('Cancel', style: context.bodyLargeText),
+              child: Text(
+                dialogLocalizations.translate('cancel'),
+                style: context.bodyLargeText,
+              ),
             ),
           ],
         );
@@ -1461,10 +1493,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final dialogLocalizations = AppLocalizations.of(context)!;
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Edit Product', style: context.bodyLargeText),
+              title: Text(
+                dialogLocalizations.translate('edit_product'),
+                style: context.bodyLargeText,
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1488,8 +1524,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Bought Price',
+                          Text(
+                            dialogLocalizations.translate('bought_price'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -1511,7 +1547,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Quantity', style: context.bodyLargeText),
+                        Text(
+                          dialogLocalizations.translate('quantity'),
+                          style: context.bodyLargeText,
+                        ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
@@ -1658,7 +1697,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(dialogLocalizations.translate('cancel')),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -1669,14 +1708,23 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     String priceErr = '';
 
                     if (quantity <= 0) {
-                      qtyErr = 'Quantity must be greater than 0';
+                      qtyErr = dialogLocalizations.translate(
+                        'quantity_must_be_greater_than_zero',
+                      );
                     } else if (quantity > billItem.maxQuantity) {
-                      qtyErr =
-                          'Quantity cannot exceed ${billItem.maxQuantity} (available)';
+                      final errorTemplate = dialogLocalizations.translate(
+                        'quantity_cannot_exceed_available',
+                      );
+                      qtyErr = errorTemplate.replaceAll(
+                        '{max}',
+                        billItem.maxQuantity.toString(),
+                      );
                     }
 
                     if (price <= 0) {
-                      priceErr = 'Price must be greater than 0';
+                      priceErr = dialogLocalizations.translate(
+                        'price_must_be_greater_than_zero',
+                      );
                     }
 
                     if (qtyErr.isNotEmpty || priceErr.isNotEmpty) {
@@ -1693,8 +1741,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                  child: const Text(
-                    'Save',
+                  child: Text(
+                    dialogLocalizations.translate('save'),
                     style: TextStyle(color: Colors.white),
                   ),
                 ),
@@ -1722,146 +1770,140 @@ class _CreateNewBillState extends State<CreateNewBill> {
           minChildSize: 0.5,
           maxChildSize: 0.9,
           expand: false,
-          builder: (context, scrollController) => Column(
-            children: [
-              // Title and close button
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Select Customer',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+          builder: (context, scrollController) {
+            final modalLocalizations = AppLocalizations.of(context)!;
+            return Column(
+              children: [
+                // Title and close button
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        modalLocalizations.translate('select_customer'),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              // Search field
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  height: 50,
-                  child: TextField(
-                    controller: searchController,
-                    onChanged: (query) {
-                      setModalState(() {
-                        if (query.isEmpty) {
-                          displayCustomers = _customers;
-                        } else {
-                          displayCustomers = _customers
-                              .where(
-                                (customer) =>
-                                    customer['name'].toLowerCase().contains(
-                                      query.toLowerCase(),
-                                    ) ||
-                                    customer['mobileNumber'].contains(query),
-                              )
-                              .toList();
-                        }
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search customer...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                // Search field
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    height: 50,
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (query) {
+                        setModalState(() {
+                          if (query.isEmpty) {
+                            displayCustomers = _customers;
+                          } else {
+                            displayCustomers = _customers
+                                .where(
+                                  (customer) =>
+                                      customer['name'].toLowerCase().contains(
+                                        query.toLowerCase(),
+                                      ) ||
+                                      customer['mobileNumber'].contains(query),
+                                )
+                                .toList();
+                          }
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: modalLocalizations.translate(
+                          'search_customer',
+                        ),
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              // Customers list
-              Expanded(
-                child: _customersLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : displayCustomers.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No customers found',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: scrollController,
-                        itemCount: displayCustomers.length,
-                        itemBuilder: (context, index) {
-                          final customer = displayCustomers[index];
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 6.0,
-                            ),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              side: BorderSide(
-                                color:
-                                    Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color
-                                        ?.withOpacity(0.1) ??
-                                    Colors.grey,
-                                width: 1.5,
+                const SizedBox(height: 16),
+                // Customers list
+                Expanded(
+                  child: _customersLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : displayCustomers.isEmpty
+                      ? Center(
+                          child: Text(
+                            modalLocalizations.translate('no_customers_found'),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: displayCustomers.length,
+                          itemBuilder: (context, index) {
+                            final customer = displayCustomers[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 6.0,
                               ),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _customerNameController.text =
-                                      customer['name'];
-                                  _customerMobileController.text =
-                                      customer['mobileNumber'];
-                                  _customerVehicleController.text =
-                                      customer['vehicleNumber'];
-                                });
-                                Navigator.pop(context);
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 12.0,
-                                  horizontal: 16.0,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                side: BorderSide(
+                                  color:
+                                      Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color
+                                          ?.withOpacity(0.1) ??
+                                      Colors.grey,
+                                  width: 1.5,
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      customer['name'],
-                                      style: TextStyle(
-                                        color: Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge?.color,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Mobile: ${customer['mobileNumber']}',
-                                          style: TextStyle(
-                                            color: Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium?.color,
-                                            fontSize: 12,
-                                          ),
+                              ),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _customerNameController.text =
+                                        customer['name'];
+                                    _customerMobileController.text =
+                                        customer['mobileNumber'];
+                                    _customerVehicleController.text =
+                                        customer['vehicleNumber'];
+                                  });
+                                  Navigator.pop(context);
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 12.0,
+                                    horizontal: 16.0,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        customer['name'],
+                                        style: TextStyle(
+                                          color: Theme.of(
+                                            context,
+                                          ).textTheme.bodyLarge?.color,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
                                         ),
-                                        if (customer['vehicleNumber']
-                                            .isNotEmpty)
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
                                           Text(
-                                            'Vehicle: ${customer['vehicleNumber']}',
+                                            'Mobile: ${customer['mobileNumber']}',
                                             style: TextStyle(
                                               color: Theme.of(
                                                 context,
@@ -1869,18 +1911,30 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                               fontSize: 12,
                                             ),
                                           ),
-                                      ],
-                                    ),
-                                  ],
+                                          if (customer['vehicleNumber']
+                                              .isNotEmpty)
+                                            Text(
+                                              'Vehicle: ${customer['vehicleNumber']}',
+                                              style: TextStyle(
+                                                color: Theme.of(
+                                                  context,
+                                                ).textTheme.bodyMedium?.color,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -1918,72 +1972,44 @@ class _CreateNewBillState extends State<CreateNewBill> {
           minChildSize: 0.5,
           maxChildSize: 0.9,
           expand: false,
-          builder: (context, scrollController) => Column(
-            children: [
-              // Title and close button
-              Container(
-                padding: const EdgeInsets.only(top: 12, left: 12, right: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Select Product',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+          builder: (context, scrollController) {
+            final modalLocalizations = AppLocalizations.of(context)!;
+            return Column(
+              children: [
+                // Title and close button
+                Container(
+                  padding: const EdgeInsets.only(top: 12, left: 12, right: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        modalLocalizations.translate('select_product'),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              // Search field
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: SizedBox(
-                  height: 50,
-                  child: TextField(
-                    controller: searchController,
-                    onChanged: (query) {
-                      setModalState(() {
-                        if (query.isEmpty) {
-                          // Show all unique products with total quantities
-                          Map<String, Map<String, dynamic>>
-                          uniqueFilteredProducts = {};
-                          for (var product in _availableProducts) {
-                            if (!uniqueFilteredProducts.containsKey(
-                              product.productName,
-                            )) {
-                              uniqueFilteredProducts[product.productName] = {
-                                'product': product,
-                                'totalQuantity': product.quantity,
-                                'batchCount': 1,
-                              };
-                            } else {
-                              uniqueFilteredProducts[product
-                                      .productName]!['totalQuantity'] +=
-                                  product.quantity;
-                              uniqueFilteredProducts[product
-                                      .productName]!['batchCount'] +=
-                                  1;
-                            }
-                          }
-                          displayProducts = uniqueFilteredProducts.values
-                              .toList();
-                        } else {
-                          // Filter and show unique products with total quantities
-                          Map<String, Map<String, dynamic>>
-                          uniqueFilteredProducts = {};
-                          for (var product in _availableProducts) {
-                            if ((product.productName.toLowerCase().contains(
-                                  query.toLowerCase(),
-                                ) ||
-                                product.supplierName.toLowerCase().contains(
-                                  query.toLowerCase(),
-                                ))) {
+                // Search field
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: SizedBox(
+                    height: 50,
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (query) {
+                        setModalState(() {
+                          if (query.isEmpty) {
+                            // Show all unique products with total quantities
+                            Map<String, Map<String, dynamic>>
+                            uniqueFilteredProducts = {};
+                            for (var product in _availableProducts) {
                               if (!uniqueFilteredProducts.containsKey(
                                 product.productName,
                               )) {
@@ -2001,309 +2027,357 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     1;
                               }
                             }
+                            displayProducts = uniqueFilteredProducts.values
+                                .toList();
+                          } else {
+                            // Filter and show unique products with total quantities
+                            Map<String, Map<String, dynamic>>
+                            uniqueFilteredProducts = {};
+                            for (var product in _availableProducts) {
+                              if ((product.productName.toLowerCase().contains(
+                                    query.toLowerCase(),
+                                  ) ||
+                                  product.supplierName.toLowerCase().contains(
+                                    query.toLowerCase(),
+                                  ))) {
+                                if (!uniqueFilteredProducts.containsKey(
+                                  product.productName,
+                                )) {
+                                  uniqueFilteredProducts[product.productName] =
+                                      {
+                                        'product': product,
+                                        'totalQuantity': product.quantity,
+                                        'batchCount': 1,
+                                      };
+                                } else {
+                                  uniqueFilteredProducts[product
+                                          .productName]!['totalQuantity'] +=
+                                      product.quantity;
+                                  uniqueFilteredProducts[product
+                                          .productName]!['batchCount'] +=
+                                      1;
+                                }
+                              }
+                            }
+                            displayProducts = uniqueFilteredProducts.values
+                                .toList();
                           }
-                          displayProducts = uniqueFilteredProducts.values
-                              .toList();
-                        }
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search products or supplier...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: modalLocalizations.translate(
+                          'search_products',
+                        ),
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              // Info text about batch selection rules
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.blue[700],
-                        size: 16,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Single batch products add directly. Multi-batch products show batch options. Same batch cannot be added twice.',
-                          style: TextStyle(
-                            color: Colors.blue[700],
-                            fontSize: 11,
-                            height: 1.3,
+                const SizedBox(height: 12),
+                // Info text about batch selection rules
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.blue[700],
+                          size: 16,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Single batch products add directly. Multi-batch products show batch options. Same batch cannot be added twice.',
+                            style: TextStyle(
+                              color: Colors.blue[700],
+                              fontSize: 11,
+                              height: 1.3,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              // Products list
-              Expanded(
-                child: _productsLoading
-                    ? const Center(child: CircularProgressIndicator())
-                    : displayProducts.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No products found',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: scrollController,
-                        itemCount: displayProducts.length,
-                        itemBuilder: (context, index) {
-                          final productData = displayProducts[index];
-                          final product =
-                              productData['product'] as BoughtProduct;
-                          final totalQuantity =
-                              productData['totalQuantity'] as int;
-                          final batchCount = productData['batchCount'] as int;
-                          final isAlreadyAdded = _isProductAlreadyAdded(
-                            product.productName,
-                          );
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 6.0,
-                            ),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              side: BorderSide(
-                                color:
-                                    Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color
-                                        ?.withOpacity(0.1) ??
-                                    Colors.grey,
-                                width: 1.5,
+                const SizedBox(height: 6),
+                // Products list
+                Expanded(
+                  child: _productsLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : displayProducts.isEmpty
+                      ? Center(
+                          child: Text(
+                            modalLocalizations.translate('no_products_found'),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: displayProducts.length,
+                          itemBuilder: (context, index) {
+                            final productData = displayProducts[index];
+                            final product =
+                                productData['product'] as BoughtProduct;
+                            final totalQuantity =
+                                productData['totalQuantity'] as int;
+                            final batchCount = productData['batchCount'] as int;
+                            final isAlreadyAdded = _isProductAlreadyAdded(
+                              product.productName,
+                            );
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 6.0,
                               ),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                // Get all batches for this product from original list
-                                final productBatches = _availableProducts
-                                    .where(
-                                      (p) =>
-                                          p.productName == product.productName,
-                                    )
-                                    .toList();
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                side: BorderSide(
+                                  color:
+                                      Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.color
+                                          ?.withOpacity(0.1) ??
+                                      Colors.grey,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: InkWell(
+                                onTap: () {
+                                  // Get all batches for this product from original list
+                                  final productBatches = _availableProducts
+                                      .where(
+                                        (p) =>
+                                            p.productName ==
+                                            product.productName,
+                                      )
+                                      .toList();
 
-                                if (productBatches.length == 1) {
-                                  // Only one batch, add directly (but check if batch already added)
-                                  final batch = productBatches.first;
-                                  final isBatchAlreadyAdded = _billItems.any(
-                                    (item) => item.batchId == batch.batchId,
-                                  );
-                                  if (!isBatchAlreadyAdded) {
-                                    _addProductToBill(batch);
-                                    Navigator.pop(context);
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'This batch is already added to the bill',
+                                  if (productBatches.length == 1) {
+                                    // Only one batch, add directly (but check if batch already added)
+                                    final batch = productBatches.first;
+                                    final isBatchAlreadyAdded = _billItems.any(
+                                      (item) => item.batchId == batch.batchId,
+                                    );
+                                    if (!isBatchAlreadyAdded) {
+                                      _addProductToBill(batch);
+                                      Navigator.pop(context);
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'This batch is already added to the bill',
+                                          ),
                                         ),
-                                      ),
+                                      );
+                                    }
+                                  } else {
+                                    // Multiple batches, always show selection dialog
+                                    _showBatchSelectionDialog(
+                                      context,
+                                      product.productName,
+                                      productBatches,
                                     );
                                   }
-                                } else {
-                                  // Multiple batches, always show selection dialog
-                                  _showBatchSelectionDialog(
-                                    context,
-                                    product.productName,
-                                    productBatches,
-                                  );
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8.0,
-                                  horizontal: 12.0,
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                children: [
-                                                  Flexible(
-                                                    child: Text(
-                                                      product.productName[0]
-                                                              .toUpperCase() +
-                                                          product.productName
-                                                              .substring(1),
-                                                      style: TextStyle(
-                                                        color: Theme.of(context)
-                                                            .textTheme
-                                                            .bodyLarge
-                                                            ?.color,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  if (batchCount > 1) ...[
-                                                    const SizedBox(width: 6),
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 6,
-                                                            vertical: 2,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: Colors.purple
-                                                            .withOpacity(0.15),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              4,
-                                                            ),
-                                                        border: Border.all(
-                                                          color: Colors.purple,
-                                                          width: 1,
-                                                        ),
-                                                      ),
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8.0,
+                                    horizontal: 12.0,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Flexible(
                                                       child: Text(
-                                                        '$batchCount Batches',
-                                                        style: const TextStyle(
-                                                          color: Colors.purple,
-                                                          fontSize: 9,
+                                                        product.productName[0]
+                                                                .toUpperCase() +
+                                                            product.productName
+                                                                .substring(1),
+                                                        style: TextStyle(
+                                                          color:
+                                                              Theme.of(context)
+                                                                  .textTheme
+                                                                  .bodyLarge
+                                                                  ?.color,
                                                           fontWeight:
-                                                              FontWeight.bold,
+                                                              FontWeight.w600,
+                                                          fontSize: 16,
                                                         ),
                                                       ),
                                                     ),
+                                                    if (batchCount > 1) ...[
+                                                      const SizedBox(width: 6),
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets.symmetric(
+                                                              horizontal: 6,
+                                                              vertical: 2,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.purple
+                                                              .withOpacity(
+                                                                0.15,
+                                                              ),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                4,
+                                                              ),
+                                                          border: Border.all(
+                                                            color:
+                                                                Colors.purple,
+                                                            width: 1,
+                                                          ),
+                                                        ),
+                                                        child: Text(
+                                                          '$batchCount Batches',
+                                                          style:
+                                                              const TextStyle(
+                                                                color: Colors
+                                                                    .purple,
+                                                                fontSize: 9,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold,
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    ],
                                                   ],
-                                                ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (isAlreadyAdded)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
                                               ),
-                                            ],
-                                          ),
-                                        ),
-                                        if (isAlreadyAdded)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 4,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange,
-                                              borderRadius:
-                                                  BorderRadius.circular(4),
-                                            ),
-                                            child: const Text(
-                                              'Already Added',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
+                                              child: const Text(
+                                                'Already Added',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Unit: ${product.unit}',
+                                            style: TextStyle(
+                                              color: isAlreadyAdded
+                                                  ? Colors.grey
+                                                  : Theme.of(context)
+                                                        .textTheme
+                                                        .bodyMedium
+                                                        ?.color,
+                                              fontSize: 12,
+                                            ),
                                           ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Unit: ${product.unit}',
-                                          style: TextStyle(
-                                            color: isAlreadyAdded
-                                                ? Colors.grey
-                                                : Theme.of(
-                                                    context,
-                                                  ).textTheme.bodyMedium?.color,
-                                            fontSize: 12,
+                                          Text(
+                                            'Qty: $totalQuantity',
+                                            style: TextStyle(
+                                              color: isAlreadyAdded
+                                                  ? Colors.grey
+                                                  : Colors.blue,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
                                           ),
-                                        ),
-                                        Text(
-                                          'Qty: $totalQuantity',
-                                          style: TextStyle(
-                                            color: isAlreadyAdded
-                                                ? Colors.grey
-                                                : Colors.blue,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'Buying: ₹${product.buyingPrice.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              color: isAlreadyAdded
+                                                  ? Colors.grey
+                                                  : Colors.red[400],
+                                              fontSize: 11,
+                                            ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          'Buying: ₹${product.buyingPrice.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            color: isAlreadyAdded
-                                                ? Colors.grey
-                                                : Colors.red[400],
-                                            fontSize: 11,
+                                          Text(
+                                            'Selling: ₹${product.sellingPrice.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              color: isAlreadyAdded
+                                                  ? Colors.grey
+                                                  : Colors.green[400],
+                                              fontSize: 11,
+                                            ),
                                           ),
-                                        ),
-                                        Text(
-                                          'Selling: ₹${product.sellingPrice.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            color: isAlreadyAdded
-                                                ? Colors.grey
-                                                : Colors.green[400],
-                                            fontSize: 11,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
   Future<void> _showContactsBottomSheet(BuildContext context) async {
+    final localizations = AppLocalizations.of(context)!;
     // Request permission to access contacts
     final status = await Permission.contacts.request();
 
     if (!status.isGranted) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Contact permission is required to select from contacts',
+              localizations.translate('contact_permission_required'),
             ),
             backgroundColor: Colors.red,
           ),
@@ -2322,7 +2396,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error loading contacts: $e'),
+            content: Text(
+              '${localizations.translate('error_loading_contacts')}: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -2347,221 +2423,233 @@ class _CreateNewBillState extends State<CreateNewBill> {
           minChildSize: 0.5,
           maxChildSize: 0.9,
           expand: false,
-          builder: (context, scrollController) => Column(
-            children: [
-              // Title and close button
-              Container(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Select from Contacts',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+          builder: (context, scrollController) {
+            final modalLocalizations = AppLocalizations.of(context)!;
+            return Column(
+              children: [
+                // Title and close button
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        modalLocalizations.translate('select_from_contacts'),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              // Search field
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: SizedBox(
-                  height: 50,
-                  child: TextField(
-                    controller: searchController,
-                    onChanged: (query) {
-                      setModalState(() {
-                        if (query.isEmpty) {
-                          displayContacts = contacts;
-                        } else {
-                          displayContacts = contacts
-                              .where(
-                                (contact) =>
-                                    contact.displayName.toLowerCase().contains(
-                                      query.toLowerCase(),
-                                    ) ||
-                                    contact.phones.any(
-                                      (phone) => phone.number.contains(query),
-                                    ),
-                              )
-                              .toList();
-                        }
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search contacts by name or phone...',
-                      prefixIcon: const Icon(Icons.search),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                // Search field
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: SizedBox(
+                    height: 50,
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (query) {
+                        setModalState(() {
+                          if (query.isEmpty) {
+                            displayContacts = contacts;
+                          } else {
+                            displayContacts = contacts
+                                .where(
+                                  (contact) =>
+                                      contact.displayName
+                                          .toLowerCase()
+                                          .contains(query.toLowerCase()) ||
+                                      contact.phones.any(
+                                        (phone) => phone.number.contains(query),
+                                      ),
+                                )
+                                .toList();
+                          }
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: modalLocalizations.translate(
+                          'search_contacts',
+                        ),
+                        prefixIcon: const Icon(Icons.search),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              // Contacts list
-              Expanded(
-                child: displayContacts.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No contacts found',
-                          style: Theme.of(context).textTheme.bodyMedium,
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: scrollController,
-                        itemCount: displayContacts.length,
-                        itemBuilder: (context, index) {
-                          final contact = displayContacts[index];
-                          final phoneNumber = contact.phones.isNotEmpty
-                              ? contact.phones.first.number
-                              : 'No phone';
+                const SizedBox(height: 16),
+                // Contacts list
+                Expanded(
+                  child: displayContacts.isEmpty
+                      ? Center(
+                          child: Text(
+                            modalLocalizations.translate('no_contacts_found'),
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: displayContacts.length,
+                          itemBuilder: (context, index) {
+                            final contact = displayContacts[index];
+                            final phoneNumber = contact.phones.isNotEmpty
+                                ? contact.phones.first.number
+                                : 'No phone';
 
-                          // Clean phone number - remove all non-digit characters
-                          final cleanedPhoneNumber = phoneNumber.replaceAll(
-                            RegExp(r'[^\d]'),
-                            '',
-                          );
+                            // Clean phone number - remove all non-digit characters
+                            final cleanedPhoneNumber = phoneNumber.replaceAll(
+                              RegExp(r'[^\d]'),
+                              '',
+                            );
 
-                          // Extract last 10 digits for Indian mobile numbers
-                          final validPhoneNumber =
-                              cleanedPhoneNumber.length >= 10
-                              ? cleanedPhoneNumber.substring(
-                                  cleanedPhoneNumber.length - 10,
-                                )
-                              : cleanedPhoneNumber;
+                            // Extract last 10 digits for Indian mobile numbers
+                            final validPhoneNumber =
+                                cleanedPhoneNumber.length >= 10
+                                ? cleanedPhoneNumber.substring(
+                                    cleanedPhoneNumber.length - 10,
+                                  )
+                                : cleanedPhoneNumber;
 
-                          return Card(
-                            margin: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 6.0,
-                            ),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10.0),
-                              side: BorderSide(
-                                color: Colors.grey[300]!,
-                                width: 1.5,
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 6.0,
                               ),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                try {
-                                  // Check if we have a valid phone number
-                                  if (contact.phones.isEmpty ||
-                                      phoneNumber == 'No phone') {
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                                side: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: InkWell(
+                                onTap: () {
+                                  try {
+                                    // Check if we have a valid phone number
+                                    if (contact.phones.isEmpty ||
+                                        phoneNumber == 'No phone') {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'No phone number found for this contact',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                      return;
+                                    }
+
+                                    // Check if cleaned phone number has at least 10 digits
+                                    if (validPhoneNumber.length == 10) {
+                                      setState(() {
+                                        _customerNameController.text =
+                                            contact.displayName;
+                                        _customerMobileController.text =
+                                            validPhoneNumber;
+                                      });
+                                      Navigator.pop(context);
+                                    } else {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Invalid phone number for ${contact.displayName}. Need at least 10 digits.',
+                                          ),
+                                          backgroundColor: Colors.orange,
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    print('Error selecting contact: $e');
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                         content: Text(
-                                          'No phone number found for this contact',
+                                          'Error selecting contact. Please try again.',
                                         ),
                                         backgroundColor: Colors.red,
                                       ),
                                     );
-                                    return;
                                   }
-
-                                  // Check if cleaned phone number has at least 10 digits
-                                  if (validPhoneNumber.length == 10) {
-                                    setState(() {
-                                      _customerNameController.text =
-                                          contact.displayName;
-                                      _customerMobileController.text =
-                                          validPhoneNumber;
-                                    });
-                                    Navigator.pop(context);
-                                  } else {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Invalid phone number for ${contact.displayName}. Need at least 10 digits.',
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 45,
+                                        height: 45,
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
-                                        backgroundColor: Colors.orange,
+                                        child: Icon(
+                                          Icons.person,
+                                          color: Colors.blue[600],
+                                        ),
                                       ),
-                                    );
-                                  }
-                                } catch (e) {
-                                  print('Error selecting contact: $e');
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Error selecting contact. Please try again.',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.all(12.0),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 45,
-                                      height: 45,
-                                      decoration: BoxDecoration(
-                                        color: Colors.blue.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Icon(
-                                        Icons.person,
-                                        color: Colors.blue[600],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            contact.displayName,
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              contact.displayName,
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            cleanedPhoneNumber,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color:
-                                                  validPhoneNumber.length == 10
-                                                  ? Colors.green[600]
-                                                  : Colors.red[600],
-                                              fontWeight: FontWeight.w500,
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              cleanedPhoneNumber,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color:
+                                                    validPhoneNumber.length ==
+                                                        10
+                                                    ? Colors.green[600]
+                                                    : Colors.red[600],
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                    Icon(
-                                      Icons.arrow_forward_ios,
-                                      size: 16,
-                                      color: Colors.grey[400],
-                                    ),
-                                  ],
+                                      Icon(
+                                        Icons.arrow_forward_ios,
+                                        size: 16,
+                                        color: Colors.grey[400],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
-                      ),
-              ),
-            ],
-          ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class Bills extends StatefulWidget {
   const Bills({super.key});
@@ -243,7 +244,7 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  void _showFilterSortBottomSheet() {
+  void _showFilterSortBottomSheet(AppLocalizations localizations) {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -263,7 +264,7 @@ class _BillsState extends State<Bills> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Filter & Sort Options',
+                          localizations.translate('filter_sort_options'),
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
@@ -280,7 +281,7 @@ class _BillsState extends State<Bills> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Sort By',
+                          localizations.translate('sort_by'),
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
@@ -295,7 +296,7 @@ class _BillsState extends State<Bills> {
                               });
                             },
                             icon: const Icon(Icons.clear, size: 16),
-                            label: const Text('Reset'),
+                            label: Text(localizations.translate('reset')),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -310,7 +311,7 @@ class _BillsState extends State<Bills> {
                       final isSelected = _selectedSort == option;
                       return RadioListTile<SortOption>(
                         title: Text(
-                          _getSortText(option),
+                          _getSortText(option, localizations),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: isSelected
@@ -334,7 +335,7 @@ class _BillsState extends State<Bills> {
                         dense: true,
                         contentPadding: EdgeInsets.zero,
                       );
-                    }).toList(),
+                    }),
 
                     const SizedBox(height: 16),
                   ],
@@ -347,25 +348,39 @@ class _BillsState extends State<Bills> {
     );
   }
 
-  String _getSortText(SortOption option) {
+  String _getSortText(SortOption option, AppLocalizations localizations) {
     switch (option) {
       case SortOption.dateNewest:
-        return 'Date (Newest First)';
+        return localizations.translate('date_newest_first');
       case SortOption.dateOldest:
-        return 'Date (Oldest First)';
+        return localizations.translate('date_oldest_first');
       case SortOption.amountHighest:
-        return 'Amount (Highest First)';
+        return localizations.translate('amount_highest_first');
       case SortOption.amountLowest:
-        return 'Amount (Lowest First)';
+        return localizations.translate('amount_lowest_first');
       case SortOption.customerAZ:
-        return 'Customer Name (A-Z)';
+        return localizations.translate('customer_az');
       case SortOption.customerZA:
-        return 'Customer Name (Z-A)';
+        return localizations.translate('customer_za');
     }
   }
 
   // Helper to convert Enum to display string
-  String _getStatusText(PaymentFilter filter) {
+  String _getStatusText(PaymentFilter filter, AppLocalizations localizations) {
+    switch (filter) {
+      case PaymentFilter.all:
+        return localizations.translate('all');
+      case PaymentFilter.paid:
+        return localizations.translate('paid');
+      case PaymentFilter.partial:
+        return localizations.translate('partial_payment');
+      case PaymentFilter.unpaid:
+        return localizations.translate('unpaid');
+    }
+  }
+
+  // Static status text for PDF (always English)
+  String _getPDFStatusText(PaymentFilter filter) {
     switch (filter) {
       case PaymentFilter.all:
         return 'All';
@@ -399,20 +414,26 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  void _showReportOptionsDialog(BuildContext context) {
+  void _showReportOptionsDialog(
+    BuildContext context,
+    AppLocalizations localizations,
+  ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: Text('Generate Report', style: context.bodyLargeText),
+              title: Text(
+                localizations.translate('generate_report'),
+                style: context.bodyLargeText,
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Select Date Range:'),
+                    Text(localizations.translate('select_date_range')),
                     const SizedBox(height: 12),
                     // Start Date
                     OutlinedButton.icon(
@@ -437,7 +458,7 @@ class _BillsState extends State<Bills> {
                       icon: const Icon(Icons.calendar_today),
                       label: Text(
                         _reportStartDate == null
-                            ? 'Start Date (Optional)'
+                            ? localizations.translate('start_date_optional')
                             : 'From: ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}',
                       ),
                       style: OutlinedButton.styleFrom(
@@ -464,7 +485,7 @@ class _BillsState extends State<Bills> {
                       icon: const Icon(Icons.calendar_today),
                       label: Text(
                         _reportEndDate == null
-                            ? 'End Date (Optional)'
+                            ? localizations.translate('end_date_optional')
                             : 'To: ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}',
                       ),
                       style: OutlinedButton.styleFrom(
@@ -482,24 +503,24 @@ class _BillsState extends State<Bills> {
                           this.setState(() {});
                         },
                         icon: const Icon(Icons.clear),
-                        label: const Text('Clear Dates'),
+                        label: Text(localizations.translate('clear_dates')),
                       ),
                     ],
                     const SizedBox(height: 20),
-                    const Text('Select format to export bills data:'),
+                    Text(localizations.translate('select_format_to_export')),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.maxFinite,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.picture_as_pdf),
-                        label: const Text('Export as PDF'),
+                        label: Text(localizations.translate('export_as_pdf')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          _generateAndSharePDF();
+                          _generateAndSharePDF(localizations);
                         },
                       ),
                     ),
@@ -508,7 +529,7 @@ class _BillsState extends State<Bills> {
                       width: double.maxFinite,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.table_chart),
-                        label: const Text('Export as CSV (Excel)'),
+                        label: Text(localizations.translate('export_as_csv')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
@@ -525,7 +546,7 @@ class _BillsState extends State<Bills> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(localizations.translate('cancel')),
                 ),
               ],
             );
@@ -580,7 +601,7 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  void _generateAndSharePDF() async {
+  void _generateAndSharePDF(AppLocalizations localizations) async {
     try {
       // Show loading dialog
       showDialog(
@@ -603,7 +624,7 @@ class _BillsState extends State<Bills> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      'Generating PDF...',
+                      localizations.translate('generating_pdf'),
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -621,14 +642,16 @@ class _BillsState extends State<Bills> {
 
         await Share.shareXFiles([
           XFile(pdfFile.path),
-        ], text: 'Bills Report from $_shopName');
+        ], text: '${localizations.translate('bills_report_from')} $_shopName');
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating PDF: $e'),
+            content: Text(
+              '${localizations.translate('error_generating_pdf')}: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -688,7 +711,7 @@ class _BillsState extends State<Bills> {
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                'Filter: ${_getStatusText(_selectedFilter)} | Date Range: ${_getDateRangeText()}',
+                'Filter: ${_getPDFStatusText(_selectedFilter)} | Date Range: ${_getDateRangeText()}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.SizedBox(height: 20),
@@ -780,14 +803,14 @@ class _BillsState extends State<Bills> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            _getStatusText(bill.status),
+                            _getPDFStatusText(bill.status),
                             style: const pw.TextStyle(fontSize: 8),
                             textAlign: pw.TextAlign.center,
                           ),
                         ),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
               pw.SizedBox(height: 20),
@@ -819,14 +842,14 @@ class _BillsState extends State<Bills> {
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      'S.No.,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getStatusText(_selectedFilter)},Date Range: ${_getDateRangeText()}',
+      'S.No.,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getPDFStatusText(_selectedFilter)},Date Range: ${_getDateRangeText()}',
     );
 
     // Add bill rows
     for (var i = 0; i < reportBills.length; i++) {
       final bill = reportBills[i];
       csv.writeln(
-        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getStatusText(bill.status)}"',
+        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getPDFStatusText(bill.status)}"',
       );
     }
 
@@ -836,9 +859,10 @@ class _BillsState extends State<Bills> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Recent Bills'),
+        title: Text(localizations.translate('recent_bills')),
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
@@ -855,7 +879,7 @@ class _BillsState extends State<Bills> {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert),
-            onPressed: () => _showReportOptionsDialog(context),
+            onPressed: () => _showReportOptionsDialog(context, localizations),
           ),
           Container(
             decoration: BoxDecoration(
@@ -870,7 +894,7 @@ class _BillsState extends State<Bills> {
               onPressed: () async {
                 AppNavigator.push(context, const MyProfile());
               },
-              tooltip: 'My Profile',
+              tooltip: localizations.translate('my_profile'),
             ),
           ),
           const SizedBox(width: 14),
@@ -895,7 +919,9 @@ class _BillsState extends State<Bills> {
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: 'Search by customer name',
+                          hintText: localizations.translate(
+                            'search_by_customer_name',
+                          ),
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
@@ -931,49 +957,77 @@ class _BillsState extends State<Bills> {
                     child: Row(
                       children: [
                         // Combined Filter & Sort Button
-                        InkWell(
-                          onTap: _showFilterSortBottomSheet,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            height: 26,
-                            padding: const EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).cardTheme.color,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.blue.withOpacity(0.6),
-                                width: 0.8,
+                        FilterChip(
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.tune,
+                                size: 14,
+                                color:
+                                    (_selectedFilter != PaymentFilter.all ||
+                                        _selectedSort != SortOption.dateNewest)
+                                    ? Colors.blue[700]
+                                    : Colors.blue[700],
                               ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.tune,
-                                  size: 14,
-                                  color: Colors.blue[700],
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Filter & Sort',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.blue[700],
-                                  ),
-                                ),
-                              ],
-                            ),
+                              const SizedBox(width: 4),
+                              Text(localizations.translate('filter_sort')),
+                            ],
                           ),
+                          selected:
+                              _selectedFilter != PaymentFilter.all ||
+                              _selectedSort != SortOption.dateNewest,
+                          onSelected: (selected) =>
+                              _showFilterSortBottomSheet(localizations),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: Theme.of(context).cardTheme.color,
+                          selectedColor: Colors.blue.withOpacity(0.2),
+                          side: BorderSide(
+                            color:
+                                (_selectedFilter != PaymentFilter.all ||
+                                    _selectedSort != SortOption.dateNewest)
+                                ? Colors.blue
+                                : Colors.grey.withOpacity(0.5),
+                            width: 0.8,
+                          ),
+                          labelStyle: TextStyle(
+                            color:
+                                (_selectedFilter != PaymentFilter.all ||
+                                    _selectedSort != SortOption.dateNewest)
+                                ? Colors.blue
+                                : null,
+                            fontWeight:
+                                (_selectedFilter != PaymentFilter.all ||
+                                    _selectedSort != SortOption.dateNewest)
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            fontSize: 12,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          labelPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: -1,
+                          ),
+                          visualDensity: const VisualDensity(
+                            horizontal: -2,
+                            vertical: -4,
+                          ),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
                         const SizedBox(width: 8),
-                        _buildFilterChip(PaymentFilter.all),
+                        _buildFilterChip(PaymentFilter.all, localizations),
                         const SizedBox(width: 8),
-                        _buildFilterChip(PaymentFilter.paid),
+                        _buildFilterChip(PaymentFilter.paid, localizations),
                         const SizedBox(width: 8),
-                        _buildFilterChip(PaymentFilter.partial),
+                        _buildFilterChip(PaymentFilter.partial, localizations),
                         const SizedBox(width: 8),
-                        _buildFilterChip(PaymentFilter.unpaid),
+                        _buildFilterChip(PaymentFilter.unpaid, localizations),
                       ],
                     ),
                   ),
@@ -982,7 +1036,7 @@ class _BillsState extends State<Bills> {
                   child: _filteredBills.isEmpty
                       ? Center(
                           child: Text(
-                            'No bills found',
+                            localizations.translate('no_bills_found'),
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         )
@@ -999,7 +1053,10 @@ class _BillsState extends State<Bills> {
                                 ),
                               );
                             }
-                            return _buildBillCard(_filteredBills[index]);
+                            return _buildBillCard(
+                              _filteredBills[index],
+                              localizations,
+                            );
                           },
                         ),
                 ),
@@ -1011,22 +1068,25 @@ class _BillsState extends State<Bills> {
   }
 
   // Helper to build the status badge
-  Widget _buildStatusBadge(PaymentFilter status) {
+  Widget _buildStatusBadge(
+    PaymentFilter status,
+    AppLocalizations localizations,
+  ) {
     Color color;
     String text;
 
     switch (status) {
       case PaymentFilter.paid:
         color = Colors.green;
-        text = 'Paid';
+        text = localizations.translate('paid');
         break;
       case PaymentFilter.partial:
         color = Colors.orange;
-        text = 'Partial Payment';
+        text = localizations.translate('partial_payment');
         break;
       case PaymentFilter.unpaid:
         color = Colors.red;
-        text = 'Unpaid';
+        text = localizations.translate('unpaid');
         break;
       default:
         return const SizedBox.shrink(); // Hide 'All' filter on card
@@ -1057,12 +1117,15 @@ class _BillsState extends State<Bills> {
   }
 
   // Helper to build a single filter chip
-  Widget _buildFilterChip(PaymentFilter filter) {
+  Widget _buildFilterChip(
+    PaymentFilter filter,
+    AppLocalizations localizations,
+  ) {
     final isSelected = _selectedFilter == filter;
     final cardColor = Theme.of(context).cardTheme.color;
 
     return FilterChip(
-      label: Text(_getStatusText(filter)),
+      label: Text(_getStatusText(filter, localizations)),
       selected: isSelected,
       onSelected: (selected) {
         setState(() {
@@ -1090,7 +1153,7 @@ class _BillsState extends State<Bills> {
   }
 
   // Helper to build a single bill card
-  Widget _buildBillCard(Bill bill) {
+  Widget _buildBillCard(Bill bill, AppLocalizations localizations) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
@@ -1158,7 +1221,7 @@ class _BillsState extends State<Bills> {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    _buildStatusBadge(bill.status),
+                    _buildStatusBadge(bill.status, localizations),
                   ],
                 ),
 
