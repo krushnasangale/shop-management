@@ -469,6 +469,8 @@ class AppLocalizations {
   String get selectSupplier => translate('select_supplier');
   String get selectProductName => translate('select_product_name');
   String get selectProductUnit => translate('select_product_unit');
+  String get selectProductsTitle => translate('select_products_title');
+  String get selectUnitsTitle => translate('select_units_title');
   String get expiryDateOptional => translate('expiry_date_optional');
   String get productQuantity => translate('product_quantity');
   String get minQty => translate('min_qty');

@@ -647,6 +647,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     TextEditingController controller,
   ) {
     final searchController = TextEditingController();
+    final localizations = appLocalizations; // Store reference to avoid context shadowing
 
     showModalBottomSheet(
       context: context,
@@ -684,7 +685,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Select $title',
+                        title == 'Products' ? localizations.selectProductsTitle : localizations.selectUnitsTitle,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -711,7 +712,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               setModalState(() {});
                             },
                             decoration: InputDecoration(
-                              hintText: 'Search $title',
+                              hintText: title == 'Products' ? localizations.searchProducts : localizations.searchUnits,
                               prefixIcon: const Icon(Icons.search),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -737,7 +738,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 }
                               },
                               icon: const Icon(Icons.add),
-                              label: const Text('Add'),
+                              label: Text(localizations.add),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
@@ -755,7 +756,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 // Items list
                 Expanded(
                   child: filteredItems.isEmpty
-                      ? Center(child: Text(title == 'Products' ? appLocalizations.noProductsFound : appLocalizations.noUnitsFoundModal))
+                      ? Center(child: Text(title == 'Products' ? localizations.noProductsFound : localizations.noUnitsFoundModal))
                       : ListView.builder(
                           controller: scrollController,
                           itemCount: filteredItems.length,
@@ -795,7 +796,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Add New Product Name', style: context.bodyLargeText),
+              title: Text(appLocalizations.addProductName, style: context.bodyLargeText),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -814,13 +815,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         }
                         setDialogState(() {
                           productNameError = value.trim().isEmpty
-                              ? 'Product name required'
+                              ? appLocalizations.nameIsRequired
                               : '';
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Product Name',
-                        hintText: 'Enter Product Name',
+                        labelText: appLocalizations.productName,
+                        hintText: appLocalizations.enterProductName,
                         errorText: productNameError.isNotEmpty
                             ? productNameError
                             : null,
@@ -935,7 +936,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Add New Unit', style: context.bodyLargeText),
+              title: Text(appLocalizations.addNewUnit, style: context.bodyLargeText),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -954,13 +955,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         }
                         setDialogState(() {
                           unitNameError = value.trim().isEmpty
-                              ? 'Unit name required'
+                              ? appLocalizations.nameIsRequired
                               : '';
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Unit Name',
-                        hintText: 'Enter Unit Name',
+                        labelText: appLocalizations.unitNameExample,
+                        hintText: appLocalizations.enterUnitName,
                         errorText: unitNameError.isNotEmpty
                             ? unitNameError
                             : null,

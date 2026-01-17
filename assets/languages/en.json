@@ -386,6 +386,8 @@
     "select_supplier": "Select Supplier",
     "select_product_name": "Select Product Name",
     "select_product_unit": "Select product unit",
+    "select_products_title": "Select Products",
+    "select_units_title": "Select Units",
     "expiry_date_optional": "Expiry Date (Optional)",
     "product_quantity": "Product Quantity",
     "min_qty": "Min. QTY",

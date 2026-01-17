@@ -388,6 +388,8 @@
     "select_supplier": "पुरवठादार निवडा",
     "select_product_name": "उत्पादन नाव निवडा",
     "select_product_unit": "उत्पादन एकक निवडा",
+    "select_products_title": "उत्पादने निवडा",
+    "select_units_title": "एकक निवडा",
     "expiry_date_optional": "समाप्ती तारीख (पर्यायी)",
     "product_quantity": "उत्पादन प्रमाण",
     "min_qty": "किमान प्रमाण",
