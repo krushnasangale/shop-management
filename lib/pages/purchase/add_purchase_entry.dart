@@ -647,7 +647,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     TextEditingController controller,
   ) {
     final searchController = TextEditingController();
-    final localizations = appLocalizations; // Store reference to avoid context shadowing
+    final localizations =
+        appLocalizations; // Store reference to avoid context shadowing
 
     showModalBottomSheet(
       context: context,
@@ -685,7 +686,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        title == 'Products' ? localizations.selectProductsTitle : localizations.selectUnitsTitle,
+                        title == 'Products'
+                            ? localizations.selectProductsTitle
+                            : localizations.selectUnitsTitle,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -712,7 +715,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               setModalState(() {});
                             },
                             decoration: InputDecoration(
-                              hintText: title == 'Products' ? localizations.searchProducts : localizations.searchUnits,
+                              hintText: title == 'Products'
+                                  ? localizations.searchProducts
+                                  : localizations.searchUnits,
                               prefixIcon: const Icon(Icons.search),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -756,7 +761,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 // Items list
                 Expanded(
                   child: filteredItems.isEmpty
-                      ? Center(child: Text(title == 'Products' ? localizations.noProductsFound : localizations.noUnitsFoundModal))
+                      ? Center(
+                          child: Text(
+                            title == 'Products'
+                                ? localizations.noProductsFound
+                                : localizations.noUnitsFoundModal,
+                          ),
+                        )
                       : ListView.builder(
                           controller: scrollController,
                           itemCount: filteredItems.length,
@@ -796,7 +807,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(appLocalizations.addProductName, style: context.bodyLargeText),
+              title: Text(
+                appLocalizations.addProductName,
+                style: context.bodyLargeText,
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -936,7 +950,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(appLocalizations.addNewUnit, style: context.bodyLargeText),
+              title: Text(
+                appLocalizations.addNewUnit,
+                style: context.bodyLargeText,
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1028,7 +1045,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('${appLocalizations.error}: $e')),
+                                SnackBar(
+                                  content: Text(
+                                    '${appLocalizations.error}: $e',
+                                  ),
+                                ),
                               );
                             }
                           }
@@ -1522,7 +1543,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 if (mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
-                                      content: Text(appLocalizations.supplierAlreadyExists),
+                                      content: Text(
+                                        appLocalizations.supplierAlreadyExists,
+                                      ),
                                     ),
                                   );
                                 }
@@ -1531,7 +1554,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           } catch (e) {
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('${appLocalizations.error}: $e')),
+                                SnackBar(
+                                  content: Text(
+                                    '${appLocalizations.error}: $e',
+                                  ),
+                                ),
                               );
                             }
                           }
@@ -1748,9 +1775,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     } catch (e) {
       print('Error saving bought entry: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('${appLocalizations.error}: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${appLocalizations.error}: $e')),
+        );
       }
     }
   }
