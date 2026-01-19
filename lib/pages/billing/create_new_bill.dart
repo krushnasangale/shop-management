@@ -1671,7 +1671,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             decimal: false,
                           ),
                           decoration: InputDecoration(
-                            labelText: 'Selling Price',
+                            labelText: dialogLocalizations.translate(
+                              'selling_price_label',
+                            ),
                             prefixText: '₹ ',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -1903,7 +1905,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            'Mobile: ${customer['mobileNumber']}',
+                                            '${modalLocalizations.translate('mobile_label')} ${customer['mobileNumber']}',
                                             style: TextStyle(
                                               color: Theme.of(
                                                 context,
@@ -1914,7 +1916,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           if (customer['vehicleNumber']
                                               .isNotEmpty)
                                             Text(
-                                              'Vehicle: ${customer['vehicleNumber']}',
+                                              '${modalLocalizations.translate('vehicle_label')} ${customer['vehicleNumber']}',
                                               style: TextStyle(
                                                 color: Theme.of(
                                                   context,
@@ -2098,7 +2100,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: Text(
-                            'Single batch products add directly. Multi-batch products show batch options. Same batch cannot be added twice.',
+                            modalLocalizations.translate('batch_info_text'),
                             style: TextStyle(
                               color: Colors.blue[700],
                               fontSize: 11,
@@ -2178,9 +2180,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'This batch is already added to the bill',
+                                            modalLocalizations.translate(
+                                              'batch_already_added_message',
+                                            ),
                                           ),
                                         ),
                                       );
@@ -2256,7 +2260,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                                           ),
                                                         ),
                                                         child: Text(
-                                                          '$batchCount Batches',
+                                                          '$batchCount ${modalLocalizations.translate('batches')}',
                                                           style:
                                                               const TextStyle(
                                                                 color: Colors
@@ -2286,8 +2290,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                                 borderRadius:
                                                     BorderRadius.circular(4),
                                               ),
-                                              child: const Text(
-                                                'Already Added',
+                                              child: Text(
+                                                modalLocalizations.translate(
+                                                  'already_added',
+                                                ),
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 10,
@@ -2303,7 +2309,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            'Unit: ${product.unit}',
+                                            '${modalLocalizations.translate('unit_label')} ${product.unit}',
                                             style: TextStyle(
                                               color: isAlreadyAdded
                                                   ? Colors.grey
@@ -2315,7 +2321,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             ),
                                           ),
                                           Text(
-                                            'Qty: $totalQuantity',
+                                            '${modalLocalizations.translate('qty_label')} $totalQuantity',
                                             style: TextStyle(
                                               color: isAlreadyAdded
                                                   ? Colors.grey
@@ -2332,7 +2338,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            'Buying: ₹${product.buyingPrice.toStringAsFixed(2)}',
+                                            '${modalLocalizations.translate('buying_label')} ₹${product.buyingPrice.toStringAsFixed(2)}',
                                             style: TextStyle(
                                               color: isAlreadyAdded
                                                   ? Colors.grey
@@ -2341,7 +2347,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             ),
                                           ),
                                           Text(
-                                            'Selling: ₹${product.sellingPrice.toStringAsFixed(2)}',
+                                            '${modalLocalizations.translate('selling_label')} ₹${product.sellingPrice.toStringAsFixed(2)}',
                                             style: TextStyle(
                                               color: isAlreadyAdded
                                                   ? Colors.grey
@@ -2502,7 +2508,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             final contact = displayContacts[index];
                             final phoneNumber = contact.phones.isNotEmpty
                                 ? contact.phones.first.number
-                                : 'No phone';
+                                : modalLocalizations.translate('no_phone');
 
                             // Clean phone number - remove all non-digit characters
                             final cleanedPhoneNumber = phoneNumber.replaceAll(
@@ -2540,9 +2546,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
-                                        const SnackBar(
+                                        SnackBar(
                                           content: Text(
-                                            'No phone number found for this contact',
+                                            modalLocalizations.translate(
+                                              'no_phone_number_found',
+                                            ),
                                           ),
                                           backgroundColor: Colors.red,
                                         ),
@@ -2565,7 +2573,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            'Invalid phone number for ${contact.displayName}. Need at least 10 digits.',
+                                            modalLocalizations
+                                                .translate(
+                                                  'invalid_phone_number',
+                                                )
+                                                .replaceAll(
+                                                  '{name}',
+                                                  contact.displayName,
+                                                ),
                                           ),
                                           backgroundColor: Colors.orange,
                                         ),
@@ -2574,9 +2589,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                   } catch (e) {
                                     print('Error selecting contact: $e');
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
+                                      SnackBar(
                                         content: Text(
-                                          'Error selecting contact. Please try again.',
+                                          modalLocalizations.translate(
+                                            'error_selecting_contact',
+                                          ),
                                         ),
                                         backgroundColor: Colors.red,
                                       ),

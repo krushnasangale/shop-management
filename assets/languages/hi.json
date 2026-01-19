@@ -546,5 +546,18 @@
     "bought_price": "खरीद मूल्य",
     "customer_name_required": "ग्राहक का नाम आवश्यक है",
     "mobile_number_must_be_10_digits": "मोबाइल नंबर 10 अंकों का होना चाहिए",
-    "invalid_vehicle_number_format": "अमान्य वाहन संख्या प्रारूप (उदाहरण, KA01AB1234)"
+    "invalid_vehicle_number_format": "अमान्य वाहन संख्या प्रारूप (उदाहरण, KA01AB1234)",
+    "buying_label": "खरीद:",
+    "selling_label": "बिक्री:",
+    "batches": "बैच",
+    "already_added": "पहले से जोड़ा गया",
+    "batch_already_added_message": "यह बैच पहले से ही बिल में जोड़ा गया है",
+    "selling_price_label": "बिक्री मूल्य",
+    "mobile_label": "मोबाइल:",
+    "vehicle_label": "वाहन:",
+    "no_phone_number_found": "इस संपर्क के लिए कोई फोन नंबर नहीं मिला",
+    "invalid_phone_number": "{name} के लिए अमान्य फोन नंबर। कम से कम 10 अंक चाहिए।",
+    "error_selecting_contact": "संपर्क चुनने में त्रुटि। कृपया पुनः प्रयास करें।",
+    "no_phone": "कोई फोन नहीं",
+    "batch_info_text": "एकल बैच उत्पाद सीधे जोड़ें। बहु-बैच उत्पाद बैच विकल्प दिखाते हैं। एक ही बैच दो बार नहीं जोड़ा जा सकता।"
 }

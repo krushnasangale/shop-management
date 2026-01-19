@@ -544,5 +544,19 @@
     "bought_price": "Bought Price",
     "customer_name_required": "Customer name is required",
     "mobile_number_must_be_10_digits": "Mobile number must be 10 digits",
-    "invalid_vehicle_number_format": "Invalid vehicle number format (e.g., KA01AB1234)"
+    "invalid_vehicle_number_format": "Invalid vehicle number format (e.g., KA01AB1234)",
+    "unit_label": "Unit:",
+    "buying_label": "Buying:",
+    "selling_label": "Selling:",
+    "batches": "Batches",
+    "already_added": "Already Added",
+    "batch_already_added_message": "This batch is already added to the bill",
+    "selling_price_label": "Selling Price",
+    "mobile_label": "Mobile:",
+    "vehicle_label": "Vehicle:",
+    "no_phone_number_found": "No phone number found for this contact",
+    "invalid_phone_number": "Invalid phone number for {name}. Need at least 10 digits.",
+    "error_selecting_contact": "Error selecting contact. Please try again.",
+    "no_phone": "No phone",
+    "batch_info_text": "Single batch products add directly. Multi-batch products show batch options. Same batch cannot be added twice."
 }

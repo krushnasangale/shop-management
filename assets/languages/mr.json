@@ -546,5 +546,18 @@
     "bought_price": "खरेदी किंमत",
     "customer_name_required": "ग्राहकाचे नाव आवश्यक आहे",
     "mobile_number_must_be_10_digits": "मोबाइल नंबर 10 अंकांचा असावा",
-    "invalid_vehicle_number_format": "अवैध वाहन क्रमांक स्वरूप (उदा., KA01AB1234)"
+    "invalid_vehicle_number_format": "अवैध वाहन क्रमांक स्वरूप (उदा., KA01AB1234)",
+    "buying_label": "खरेदी:",
+    "selling_label": "विक्री:",
+    "batches": "बॅच",
+    "already_added": "आधीच जोडले",
+    "batch_already_added_message": "हा बॅच आधीच बिलमध्ये जोडला गेला आहे",
+    "selling_price_label": "विक्री किंमत",
+    "mobile_label": "मोबाइल:",
+    "vehicle_label": "वाहन:",
+    "no_phone_number_found": "या संपर्कासाठी फोन नंबर सापडला नाही",
+    "invalid_phone_number": "{name} साठी अवैध फोन नंबर. किमान 10 अंक आवश्यक आहेत.",
+    "error_selecting_contact": "संपर्क निवडण्यात त्रुटी. कृपया पुन्हा प्रयत्न करा.",
+    "no_phone": "फोन नाही",
+    "batch_info_text": "एकल बॅच उत्पादने थेट जोडा. बहु-बॅच उत्पादने बॅच पर्याय दाखवतात. एकाच बॅचला दोनदा जोडता येणार नाही."
 }
