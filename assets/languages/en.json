@@ -558,5 +558,20 @@
     "invalid_phone_number": "Invalid phone number for {name}. Need at least 10 digits.",
     "error_selecting_contact": "Error selecting contact. Please try again.",
     "no_phone": "No phone",
-    "batch_info_text": "Single batch products add directly. Multi-batch products show batch options. Same batch cannot be added twice."
+    "batch_info_text": "Single batch products add directly. Multi-batch products show batch options. Same batch cannot be added twice.",
+    "review_bill": "Review Bill",
+    "each": " each",
+    "summary": "Summary",
+    "amount_paid": "Amount Paid",
+    "amount_due": "Amount Due",
+    "confirm_bill": "Confirm Bill",
+    "update_bill": "Update Bill",
+    "are_you_sure_update_bill": "Are you sure you want to update this bill?",
+    "are_you_sure_create_bill": "Are you sure you want to create this bill?",
+    "updating_bill": "Updating bill...",
+    "creating_bill": "Creating bill...",
+    "bill_updated_successfully": "Bill updated successfully",
+    "error_updating_bill": "Error updating bill",
+    "error_creating_bill": "Error creating bill",
+    "customer_name": "Customer Name"
 }

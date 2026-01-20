@@ -521,6 +521,29 @@ class AppLocalizations {
   String get sellingPriceIs0 => translate('selling_price_is_0');
   String get minLimitIs0 => translate('min_limit_is_0');
 
+  // Review Billing Details Page
+  String get reviewBill => translate('review_bill');
+  String get customerMobileNumber => translate('customer_mobile_number');
+  String get each => translate('each');
+  String get summary => translate('summary');
+  String get amountPaid => translate('amount_paid');
+  String get amountDue => translate('amount_due');
+  String get nextPaymentDate => translate('next_payment_date');
+  String get editBill => translate('edit_bill');
+  String get confirmBill => translate('confirm_bill');
+  String get updateBill => translate('update_bill');
+  String get areYouSureUpdateBill => translate('are_you_sure_update_bill');
+  String get areYouSureCreateBill => translate('are_you_sure_create_bill');
+  String get updatingBill => translate('updating_bill');
+  String get creatingBill => translate('creating_bill');
+  String get billUpdatedSuccessfully => translate('bill_updated_successfully');
+  String get errorUpdatingBill => translate('error_updating_bill');
+  String get errorCreatingBill => translate('error_creating_bill');
+  String get paymentMethod => translate('payment_method');
+  String get cash => translate('cash');
+  String get online => translate('online');
+  String get customerName => translate('customer_name');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {
