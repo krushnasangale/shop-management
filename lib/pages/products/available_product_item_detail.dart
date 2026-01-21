@@ -5,6 +5,7 @@ import 'package:flashbill/pages/products/available_products.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/pages/products/tabs/sales_history_tab.dart';
 import 'package:flashbill/pages/products/tabs/purchase_history_tab.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
@@ -411,21 +412,28 @@ class _AvailableProductDetailScreenState
         setState(() {
           _editingBatchPrices[batchId] = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Selling price updated!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.sellingPriceUpdated),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error updating price: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${AppLocalizations.of(context)!.errorUpdatingPrice}: $e',
+            ),
+          ),
+        );
       }
     }
   }
 
   // --- SHOW EDIT QUANTITY DIALOG ---
   void _showEditQuantityDialog(BoughtProduct batch) {
+    final localizations = AppLocalizations.of(context)!;
     final quantityController = TextEditingController(
       text: batch.quantity.toString(),
     );
@@ -433,13 +441,13 @@ class _AvailableProductDetailScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit Quantity', style: context.bodyLargeText),
+        title: Text(localizations.editQuantity, style: context.bodyLargeText),
         content: TextField(
           controller: quantityController,
           keyboardType: TextInputType.number,
           decoration: InputDecoration(
-            labelText: 'Quantity',
-            hintText: 'Enter quantity',
+            labelText: localizations.quantity,
+            hintText: localizations.enterQuantity,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
           autofocus: true,
@@ -447,7 +455,7 @@ class _AvailableProductDetailScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(localizations.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -457,11 +465,11 @@ class _AvailableProductDetailScreenState
                 Navigator.pop(context);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter valid quantity')),
+                  SnackBar(content: Text(localizations.enterValidQuantity)),
                 );
               }
             },
-            child: const Text('Save'),
+            child: Text(localizations.save),
           ),
         ],
       ),
@@ -470,6 +478,7 @@ class _AvailableProductDetailScreenState
 
   // --- SHOW EDIT SELLING PRICE DIALOG ---
   void _showEditSellingPriceDialog(BoughtProduct batch) {
+    final localizations = AppLocalizations.of(context)!;
     final priceController = TextEditingController(
       text: batch.sellingPrice.toStringAsFixed(2),
     );
@@ -477,13 +486,16 @@ class _AvailableProductDetailScreenState
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Edit Selling Price', style: context.bodyLargeText),
+        title: Text(
+          localizations.editSellingPrice,
+          style: context.bodyLargeText,
+        ),
         content: TextField(
           controller: priceController,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: InputDecoration(
-            labelText: 'Selling Price',
-            hintText: 'Enter price',
+            labelText: localizations.sellingPrice,
+            hintText: localizations.enterPrice,
             prefix: const Text('₹'),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
@@ -492,7 +504,7 @@ class _AvailableProductDetailScreenState
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(localizations.cancel),
           ),
           ElevatedButton(
             onPressed: () {
@@ -502,11 +514,11 @@ class _AvailableProductDetailScreenState
                 Navigator.pop(context);
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Enter valid price')),
+                  SnackBar(content: Text(localizations.enterValidPrice)),
                 );
               }
             },
-            child: const Text('Save'),
+            child: Text(localizations.save),
           ),
         ],
       ),
@@ -515,6 +527,7 @@ class _AvailableProductDetailScreenState
 
   // --- SAVE BATCH QUANTITY ---
   Future<void> _saveBatchQuantity(String batchId, int newQuantity) async {
+    final localizations = AppLocalizations.of(context)!;
     try {
       final firestore = FirebaseFirestore.instance;
 
@@ -596,17 +609,15 @@ class _AvailableProductDetailScreenState
         setState(() {
           _editingBatchQuantities[batchId] = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Quantity and purchase record updated!'),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(localizations.quantityUpdated)));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error updating quantity: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${localizations.errorUpdatingQuantity}: $e')),
+        );
       }
     }
   }
@@ -709,6 +720,7 @@ class _AvailableProductDetailScreenState
   // --- Main Build Method ---
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
     final totalPotentialRevenue = this.totalPotentialRevenue;
     final totalPotentialProfit = this.totalPotentialProfit;
@@ -815,7 +827,7 @@ class _AvailableProductDetailScreenState
                       children: [
                         Icon(Icons.info_outline, size: 18),
                         const SizedBox(width: 6),
-                        Text('Info'),
+                        Text(localizations.info),
                       ],
                     ),
                   ),
@@ -828,7 +840,7 @@ class _AvailableProductDetailScreenState
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            'Purchases',
+                            localizations.purchases,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -843,7 +855,10 @@ class _AvailableProductDetailScreenState
                         Icon(Icons.receipt_long, size: 16),
                         const SizedBox(width: 4),
                         Flexible(
-                          child: Text('Sales', overflow: TextOverflow.ellipsis),
+                          child: Text(
+                            localizations.sales,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ),
@@ -861,14 +876,15 @@ class _AvailableProductDetailScreenState
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: Text('Delete Product', style: context.bodyLargeText),
-                  content: const Text(
-                    'Are you sure you want to delete this product? This action cannot be undone.',
+                  title: Text(
+                    localizations.deleteProduct,
+                    style: context.bodyLargeText,
                   ),
+                  content: Text(localizations.deleteProductConfirmation),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
+                      child: Text(localizations.cancel),
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
@@ -969,13 +985,15 @@ class _AvailableProductDetailScreenState
                             Navigator.of(context).pop(); // Close dialog
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Error deleting product: $e'),
+                                content: Text(
+                                  '${localizations.errorDeletingProduct}: $e',
+                                ),
                               ),
                             );
                           }
                         }
                       },
-                      child: const Text('Delete'),
+                      child: Text(localizations.delete),
                     ),
                   ],
                 ),
@@ -990,6 +1008,7 @@ class _AvailableProductDetailScreenState
           // Info Tab
           _buildInfoTab(
             context,
+            localizations,
             cardColor,
             totalPotentialRevenue,
             totalPotentialProfit,
@@ -1017,6 +1036,7 @@ class _AvailableProductDetailScreenState
   // Build Info Tab
   Widget _buildInfoTab(
     BuildContext context,
+    AppLocalizations localizations,
     Color cardColor,
     double totalPotentialRevenue,
     double totalPotentialProfit,
@@ -1051,7 +1071,7 @@ class _AvailableProductDetailScreenState
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Total Quantity',
+                              localizations.totalQuantity,
                               style: context.bodyLargeText?.copyWith(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
@@ -1145,7 +1165,7 @@ class _AvailableProductDetailScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Minimum Limit',
+                              localizations.minimumLimit,
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 12,
@@ -1266,9 +1286,11 @@ class _AvailableProductDetailScreenState
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(
-                                              const SnackBar(
+                                              SnackBar(
                                                 content: Text(
-                                                  'Minimum limit updated',
+                                                  AppLocalizations.of(
+                                                    context,
+                                                  )!.minimumLimitUpdated,
                                                 ),
                                               ),
                                             );
@@ -1278,15 +1300,21 @@ class _AvailableProductDetailScreenState
                                               context,
                                             ).showSnackBar(
                                               SnackBar(
-                                                content: Text('Error: $e'),
+                                                content: Text(
+                                                  '${AppLocalizations.of(context)!.error}: $e',
+                                                ),
                                               ),
                                             );
                                           });
                                     }
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Enter a valid number'),
+                                      SnackBar(
+                                        content: Text(
+                                          AppLocalizations.of(
+                                            context,
+                                          )!.pleaseEnterAValidNumber,
+                                        ),
                                       ),
                                     );
                                   }
@@ -1338,8 +1366,8 @@ class _AvailableProductDetailScreenState
                     children: [
                       Text(
                         _allBatches.length > 1
-                            ? 'All Batches (FIFO Order)'
-                            : 'Batch Details',
+                            ? localizations.allBatchesFifo
+                            : localizations.batchDetails,
                         style: context.headingMedium?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -1353,7 +1381,7 @@ class _AvailableProductDetailScreenState
                   else if (_allBatches.isEmpty)
                     Center(
                       child: Text(
-                        'No batches found',
+                        localizations.noBatchesFound,
                         style: TextStyle(color: Colors.grey),
                       ),
                     )
@@ -1427,10 +1455,11 @@ class _AvailableProductDetailScreenState
                                                   ),
                                                   child: Text(
                                                     isFirstBatch
-                                                        ? 'OLDEST (Sell First)'
+                                                        ? localizations
+                                                              .oldestSellFirst
                                                         : isLastBatch
-                                                        ? 'NEWEST'
-                                                        : 'Batch ${index + 1}',
+                                                        ? localizations.newest
+                                                        : '${localizations.batchNumber} ${index + 1}',
                                                     style: TextStyle(
                                                       fontSize: 11,
                                                       fontWeight:
@@ -1533,7 +1562,8 @@ class _AvailableProductDetailScreenState
                                                               .start,
                                                       children: [
                                                         Text(
-                                                          'Quantity',
+                                                          localizations
+                                                              .quantity,
                                                           style: TextStyle(
                                                             color: Colors.grey,
                                                             fontSize: 13,
@@ -1623,7 +1653,8 @@ class _AvailableProductDetailScreenState
                                                               .start,
                                                       children: [
                                                         Text(
-                                                          'Profit/Unit',
+                                                          localizations
+                                                              .profitPerUnit,
                                                           style: TextStyle(
                                                             color: Colors.grey,
                                                             fontSize: 13,
@@ -1681,7 +1712,8 @@ class _AvailableProductDetailScreenState
                                                               .start,
                                                       children: [
                                                         Text(
-                                                          'Buying Price',
+                                                          localizations
+                                                              .buyingPrice,
                                                           style: TextStyle(
                                                             color: Colors.grey,
                                                             fontSize: 13,
@@ -1724,7 +1756,8 @@ class _AvailableProductDetailScreenState
                                                               .start,
                                                       children: [
                                                         Text(
-                                                          'Selling Price',
+                                                          localizations
+                                                              .sellingPrice,
                                                           style: TextStyle(
                                                             color: Colors.grey,
                                                             fontSize: 13,
@@ -1809,7 +1842,7 @@ class _AvailableProductDetailScreenState
                                         const SizedBox(height: 4),
                                         _buildDetailRow(
                                           context,
-                                          'Expiry Date',
+                                          localizations.expiryDate,
                                           batch.expiryDate!,
                                           icon: Icons.calendar_today,
                                           valueColor: Colors.orange[700],
@@ -1839,7 +1872,7 @@ class _AvailableProductDetailScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Financial Metrics (Current Stock)',
+                    localizations.financialMetricsCurrentStock,
                     style: context.headingMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -1848,7 +1881,7 @@ class _AvailableProductDetailScreenState
 
                   _buildDetailRow(
                     context,
-                    'Total Potential Revenue',
+                    localizations.totalPotentialRevenue,
                     '₹${totalPotentialRevenue.toStringAsFixed(2)}',
                     icon: Icons.trending_up,
                     valueColor: Colors.green,
@@ -1857,7 +1890,7 @@ class _AvailableProductDetailScreenState
 
                   _buildDetailRow(
                     context,
-                    'Total Potential Profit',
+                    localizations.totalPotentialProfit,
                     '₹${totalPotentialProfit.toStringAsFixed(2)}',
                     icon: Icons.paid_outlined,
                     valueColor: Colors.blue,
@@ -1866,7 +1899,7 @@ class _AvailableProductDetailScreenState
 
                   _buildDetailRow(
                     context,
-                    'Profit Margin (per unit)',
+                    localizations.profitMarginPerUnit,
                     '${profitMargin.toStringAsFixed(1)}%',
                     icon: Icons.percent,
                     valueColor: profitMargin >= 0 ? Colors.green : Colors.red,

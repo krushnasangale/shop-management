@@ -485,6 +485,7 @@ class AppLocalizations {
   String get pleaseSelectProduct => translate('please_select_product');
   String get pleaseSelectUnit => translate('please_select_unit');
   String get pleaseEnterQuantity => translate('please_enter_quantity');
+  String get enterQuantity => translate('enter_quantity');
   String get pleaseEnterBuyingPrice => translate('please_enter_buying_price');
   String get pleaseEnterSellingPrice => translate('please_enter_selling_price');
   String get pleaseEnterValidValues => translate('please_enter_valid_values');
@@ -634,6 +635,32 @@ class AppLocalizations {
   String get expiringToday => translate('expiring_today');
   String get expiringTomorrow => translate('expiring_tomorrow');
   String get expiringInDays => translate('expiring_in_days');
+  String get info => translate('info');
+  String get sales => translate('sales');
+  String get deleteProductConfirmation =>
+      translate('delete_product_confirmation');
+  String get sellingPriceUpdated => translate('selling_price_updated');
+  String get errorUpdatingPrice => translate('error_updating_price');
+  String get enterValidQuantity => translate('enter_valid_quantity');
+  String get errorUpdatingQuantity => translate('error_updating_quantity');
+  String get enterPrice => translate('enter_price');
+  String get enterValidPrice => translate('enter_valid_price');
+  String get editQuantity => translate('edit_quantity');
+  String get editSellingPrice => translate('edit_selling_price');
+  String get quantityUpdated => translate('quantity_updated');
+  String get minimumLimitUpdated => translate('minimum_limit_updated');
+  String get minimumLimit => translate('minimum_limit');
+  String get allBatchesFifo => translate('all_batches_fifo');
+  String get batchDetails => translate('batch_details');
+  String get noBatchesFound => translate('no_batches_found');
+  String get oldestSellFirst => translate('oldest_sell_first');
+  String get newest => translate('newest');
+  String get batchNumber => translate('batch_number');
+  String get financialMetricsCurrentStock =>
+      translate('financial_metrics_current_stock');
+  String get totalPotentialRevenue => translate('total_potential_revenue');
+  String get totalPotentialProfit => translate('total_potential_profit');
+  String get profitMarginPerUnit => translate('profit_margin_per_unit');
 
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
