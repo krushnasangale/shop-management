@@ -141,6 +141,7 @@ class AppLocalizations {
   String get invalidEmail => translate('invalid_email');
   String get salesProfitAnalysis => translate('sales_profit_analysis');
   String get allData => translate('all_data');
+  String get all => translate('all');
   String get dateRange => translate('date_range');
   String get day => translate('day');
   String get month => translate('month');
@@ -604,6 +605,35 @@ class AppLocalizations {
 
   // Missing getters for view_existing_bill_details
   String get customerVehicleNumber => translate('customer_vehicle_number');
+
+  // Getters for available_products
+  String get availableProductsReport => translate('available_products_report');
+  String get availableProductsReportCsv =>
+      translate('available_products_report_csv');
+  String get generateReport => translate('generate_report');
+  String get selectFormatToExport => translate('select_format_to_export');
+  String get exportAsPdf => translate('export_as_pdf');
+  String get exportAsCsvExcel => translate('export_as_csv_excel');
+  String get errorGeneratingPdf => translate('error_generating_pdf');
+  String get errorGeneratingCsv => translate('error_generating_csv');
+  String get availableProducts => translate('available_products');
+  String get searchProductOrSupplier => translate('search_product_or_supplier');
+  String get reorderNow => translate('reorder_now');
+  String get orderSoon => translate('order_soon');
+  String get wellStocked => translate('well_stocked');
+  String get expiringSoon => translate('expiring_soon');
+  String get expired => translate('expired');
+  String get sNo => translate('s_no');
+  String get buying => translate('buying');
+  String get selling => translate('selling');
+  String get totalProducts => translate('total_products');
+  String get stockStatus => translate('stock_status');
+  String get minLimit => translate('min_limit');
+  String get filterApplied => translate('filter_applied');
+  String get expiredText => translate('expired_text');
+  String get expiringToday => translate('expiring_today');
+  String get expiringTomorrow => translate('expiring_tomorrow');
+  String get expiringInDays => translate('expiring_in_days');
 
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {

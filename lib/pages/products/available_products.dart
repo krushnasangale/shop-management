@@ -12,6 +12,7 @@ import 'dart:io';
 
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/products/available_product_item_detail.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 class AvailableProducts extends StatefulWidget {
   const AvailableProducts({super.key});
@@ -40,6 +41,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
   int _currentlyLoadedItems = 100;
   bool _isLoadingMore = false;
 
+  late final AppLocalizations localizations;
+
   @override
   void initState() {
     super.initState();
@@ -47,6 +50,12 @@ class _AvailableProductsState extends State<AvailableProducts> {
     _searchController.addListener(_filterProducts);
     _scrollController.addListener(_onScroll);
     _getUserAndLoadProducts();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    localizations = AppLocalizations.of(context)!;
   }
 
   @override
@@ -280,17 +289,20 @@ class _AvailableProductsState extends State<AvailableProducts> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Generate Report', style: context.bodyLargeText),
+          title: Text(
+            localizations.generateReport,
+            style: context.bodyLargeText,
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Select format to export products data:'),
+              Text(localizations.selectFormatToExport),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.maxFinite,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: const Text('Export as PDF'),
+                  label: Text(localizations.exportAsPdf),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
@@ -306,7 +318,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                 width: double.maxFinite,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.table_chart),
-                  label: const Text('Export as CSV (Excel)'),
+                  label: Text(localizations.exportAsCsvExcel),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
@@ -322,7 +334,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
+              child: Text(localizations.cancel),
             ),
           ],
         );
@@ -353,7 +365,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      'Generating PDF...',
+                      localizations.generatingPdf,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -369,16 +381,25 @@ class _AvailableProductsState extends State<AvailableProducts> {
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
-        await Share.shareXFiles([
-          XFile(pdfFile.path),
-        ], text: 'Available Products Report from $_shopName');
+        await Share.shareXFiles(
+          [XFile(pdfFile.path)],
+          text: localizations.availableProductsReport.replaceAll(
+            '{shopName}',
+            _shopName,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating PDF: $e'),
+            content: Text(
+              localizations.errorGeneratingPdf.replaceAll(
+                '{error}',
+                e.toString(),
+              ),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -391,15 +412,24 @@ class _AvailableProductsState extends State<AvailableProducts> {
       final csvFile = await _generateProductsCSV();
 
       if (mounted) {
-        await Share.shareXFiles([
-          XFile(csvFile.path),
-        ], text: 'Available Products Report (CSV) from $_shopName');
+        await Share.shareXFiles(
+          [XFile(csvFile.path)],
+          text: localizations.availableProductsReportCsv.replaceAll(
+            '{shopName}',
+            _shopName,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating CSV: $e'),
+            content: Text(
+              localizations.errorGeneratingCsv.replaceAll(
+                '{error}',
+                e.toString(),
+              ),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -456,13 +486,13 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
                     children:
                         [
-                              'S.No.',
-                              'Product Name',
-                              'Supplier',
-                              'Unit',
-                              'Qty',
-                              'Buying',
-                              'Selling',
+                              localizations.sNo,
+                              localizations.productName,
+                              localizations.supplier,
+                              localizations.unit,
+                              localizations.qty,
+                              localizations.buying,
+                              localizations.selling,
                             ]
                             .map(
                               (header) => pw.Padding(
@@ -546,7 +576,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                'Total Products: ${_filteredProducts.length}',
+                '${localizations.totalProducts}: ${_filteredProducts.length}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -572,7 +602,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      'S.No.,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Stock Status,Min Limit,Filter Applied: $_selectedFilter',
+      '${localizations.sNo},${localizations.productName},${localizations.supplier},${localizations.unit},${localizations.quantity},${localizations.buyingPrice},${localizations.sellingPrice},${localizations.stockStatus},${localizations.minLimit},${localizations.filterApplied}: $_selectedFilter',
     );
 
     // Add product rows - use filtered products
@@ -603,7 +633,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Available Products'),
+        title: Text(localizations.availableProducts),
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
@@ -635,7 +665,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               onPressed: () async {
                 AppNavigator.push(context, const MyProfile());
               },
-              tooltip: 'My Profile',
+              tooltip: localizations.myProfile,
             ),
           ),
           const SizedBox(width: 14),
@@ -657,7 +687,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                   controller: _searchController,
                   style: context.bodyLargeText,
                   decoration: InputDecoration(
-                    hintText: 'Search product or supplier',
+                    hintText: localizations.searchProductOrSupplier,
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _searchController.text.isNotEmpty
                         ? IconButton(
@@ -689,17 +719,17 @@ class _AvailableProductsState extends State<AvailableProducts> {
             ),
             child: Row(
               children: [
-                _buildFilterChip('All'),
+                _buildFilterChip(localizations.all),
                 const SizedBox(width: 8),
-                _buildFilterChip('Reorder Now'),
+                _buildFilterChip(localizations.reorderNow),
                 const SizedBox(width: 8),
-                _buildFilterChip('Order Soon'),
+                _buildFilterChip(localizations.orderSoon),
                 const SizedBox(width: 8),
-                _buildFilterChip('Well Stocked'),
+                _buildFilterChip(localizations.wellStocked),
                 const SizedBox(width: 8),
-                _buildFilterChip('Expiring Soon'),
+                _buildFilterChip(localizations.expiringSoon),
                 const SizedBox(width: 8),
-                _buildFilterChip('Expired'),
+                _buildFilterChip(localizations.expired),
               ],
             ),
           ),
@@ -709,7 +739,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
             child: _filteredProducts.isEmpty
                 ? Center(
                     child: Text(
-                      'No products found',
+                      localizations.noProductsFound,
                       style: context.subtitleMedium,
                     ),
                   )
@@ -755,11 +785,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
   // Helper function to determine stock status with descriptive text
   String _getStockStatus(int quantity, int minLimit) {
     if (quantity == 0) {
-      return 'Reorder Now';
+      return localizations.reorderNow;
     } else if (quantity <= minLimit) {
-      return 'Order Soon';
+      return localizations.orderSoon;
     } else {
-      return 'Well Stocked';
+      return localizations.wellStocked;
     }
   }
 
@@ -1017,12 +1047,36 @@ class _AvailableProductsState extends State<AvailableProducts> {
                               Flexible(
                                 child: Text(
                                   hasExpired
-                                      ? '$expiringQuantity $unit expired'
+                                      ? localizations.expiredText
+                                            .replaceAll(
+                                              '{quantity}',
+                                              expiringQuantity.toString(),
+                                            )
+                                            .replaceAll('{unit}', unit)
                                       : daysUntilNearestExpiry == 0
-                                      ? '$expiringQuantity $unit expiring today'
+                                      ? localizations.expiringToday
+                                            .replaceAll(
+                                              '{quantity}',
+                                              expiringQuantity.toString(),
+                                            )
+                                            .replaceAll('{unit}', unit)
                                       : daysUntilNearestExpiry == 1
-                                      ? '$expiringQuantity $unit expiring tomorrow'
-                                      : '$expiringQuantity $unit expiring in $daysUntilNearestExpiry days',
+                                      ? localizations.expiringTomorrow
+                                            .replaceAll(
+                                              '{quantity}',
+                                              expiringQuantity.toString(),
+                                            )
+                                            .replaceAll('{unit}', unit)
+                                      : localizations.expiringInDays
+                                            .replaceAll(
+                                              '{quantity}',
+                                              expiringQuantity.toString(),
+                                            )
+                                            .replaceAll('{unit}', unit)
+                                            .replaceAll(
+                                              '{days}',
+                                              daysUntilNearestExpiry.toString(),
+                                            ),
                                   style: TextStyle(
                                     color: hasExpired
                                         ? Colors.red[700]
