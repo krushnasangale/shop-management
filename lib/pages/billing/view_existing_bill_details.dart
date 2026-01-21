@@ -11,6 +11,7 @@ import 'dart:convert' as convert;
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -92,6 +93,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   late String paymentMethod;
   String? nextPaymentDate;
   late TextEditingController _nextPaymentDateController;
+  late final AppLocalizations localizations;
 
   @override
   void initState() {
@@ -140,11 +142,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
     // Set payment status
     if (isTotalAmountPaid) {
-      paymentStatus = 'Paid';
+      paymentStatus = localizations.paid;
     } else if (widget.amountRemaining == 0) {
-      paymentStatus = 'Paid';
+      paymentStatus = localizations.paid;
     } else {
-      paymentStatus = 'Partially Paid';
+      paymentStatus = localizations.partiallyPaid;
     }
 
     // Load discount and payment records from Firebase
@@ -156,6 +158,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   void dispose() {
     _nextPaymentDateController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    localizations = AppLocalizations.of(context)!;
   }
 
   Future<void> _loadPaymentRecords() async {
@@ -262,7 +270,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      'Generating PDF...',
+                      localizations.generatingPdf,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -282,14 +290,14 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         // Open share dialog
         await Share.shareXFiles([
           XFile(pdfFile.path),
-        ], text: 'Bill from NKT Shop');
+        ], text: 'Bill from Shop');
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating bill: $e'),
+            content: Text('${localizations.errorGeneratingBill}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -350,7 +358,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     final sanitizedCustomerName = customerName
         .replaceAll(RegExp(r'[^\w\s-]'), '')
         .replaceAll(' ', '_');
-    final fileName = '${sanitizedCustomerName}_${dateTimeString}.pdf';
+    final fileName = '${sanitizedCustomerName}_$dateTimeString.pdf';
     final file = File('${dir.path}/$fileName');
 
     final billDate = now.toString().split('.')[0];
@@ -863,8 +871,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       // Validate payment amount
       if (paymentAmount <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Payment amount must be greater than 0'),
+          SnackBar(
+            content: Text(localizations.paymentAmountMustBeGreaterThan0),
           ),
         );
         return;
@@ -877,7 +885,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       if (newTotalAmountPaid > totalAmountInt) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Total payment cannot exceed ₹$totalAmountInt'),
+            content: Text(
+              localizations.totalPaymentCannotExceed.replaceAll(
+                '%s',
+                '₹$totalAmountInt',
+              ),
+            ),
           ),
         );
         return;
@@ -910,17 +923,19 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         amountPaid = '₹ $newTotalAmountPaid';
         amountRemaining = '₹ $newRemaining';
         isTotalAmountPaid = isFullyPaid;
-        paymentStatus = isFullyPaid ? 'Paid' : 'Partially Paid';
+        paymentStatus = isFullyPaid
+            ? localizations.paid
+            : localizations.partiallyPaid;
         paymentMethod = selectedPaymentMethod;
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Payment recorded successfully')),
+        SnackBar(content: Text(localizations.paymentRecordedSuccessfully)),
       );
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
     }
   }
 
@@ -970,13 +985,13 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Bill Details'),
+        title: Text(localizations.billDetails),
         centerTitle: true,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _editBill,
-            tooltip: 'Edit Bill',
+            tooltip: localizations.editBill,
           ),
           IconButton(
             icon: const Icon(Icons.share),
@@ -1034,7 +1049,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                'Record Payment',
+                localizations.recordPayment,
                 style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -1053,7 +1068,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Amount Left',
+                            localizations.amountRemaining,
                             style: TextStyle(
                               fontSize: 14,
                               color: Theme.of(
@@ -1077,10 +1092,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       controller: amountController,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: 'Payment Amount',
-                        hintText: 'e.g., 2000',
+                        labelText: localizations.paymentAmount,
+                        hintText: localizations.eg2000,
                         prefixText: '₹ ',
-                        helperText: 'Max: ₹ $remainingAmount',
+                        helperText: '${localizations.max}: ₹ $remainingAmount',
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1088,7 +1103,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Payment Method',
+                          localizations.paymentMethod,
                           style: context.titleMedium?.copyWith(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -1099,7 +1114,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           children: [
                             Expanded(
                               child: RadioListTile<String>(
-                                title: const Text('Cash'),
+                                title: Text(localizations.cash),
                                 value: 'cash',
                                 groupValue: selectedPaymentMethod,
                                 contentPadding: EdgeInsets.zero,
@@ -1112,7 +1127,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             ),
                             Expanded(
                               child: RadioListTile<String>(
-                                title: const Text('Online'),
+                                title: Text(localizations.online),
                                 value: 'online',
                                 groupValue: selectedPaymentMethod,
                                 contentPadding: EdgeInsets.zero,
@@ -1133,7 +1148,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(localizations.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -1141,8 +1156,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     final paymentAmountStr = amountController.text.trim();
                     if (paymentAmountStr.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter payment amount'),
+                        SnackBar(
+                          content: Text(localizations.pleaseEnterAValidNumber),
                         ),
                       );
                       return;
@@ -1151,8 +1166,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     final paymentAmount = int.tryParse(paymentAmountStr);
                     if (paymentAmount == null) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter a valid number'),
+                        SnackBar(
+                          content: Text(localizations.pleaseEnterAValidNumber),
                         ),
                       );
                       return;
@@ -1160,9 +1175,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
                     if (paymentAmount <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Payment amount must be greater than 0',
+                            localizations.paymentAmountMustBeGreaterThan0,
                           ),
                         ),
                       );
@@ -1173,7 +1188,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Payment cannot exceed ₹ $remainingAmount',
+                            localizations.totalPaymentCannotExceed.replaceAll(
+                              '%s',
+                              '₹ $remainingAmount',
+                            ),
                           ),
                         ),
                       );
@@ -1183,7 +1201,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     Navigator.of(context).pop();
                     _saveAmountPaid(paymentAmountStr, selectedPaymentMethod);
                   },
-                  child: const Text('Record'),
+                  child: Text(localizations.recordPayment),
                 ),
               ],
             );
@@ -1199,7 +1217,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text(
-            'Edit Next Payment Date',
+            localizations.editNextPaymentDate,
             style: context.bodyLargeText?.copyWith(fontWeight: FontWeight.bold),
           ),
           content: GestureDetector(
@@ -1221,7 +1239,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               child: TextField(
                 controller: _nextPaymentDateController,
                 decoration: InputDecoration(
-                  labelText: 'Next Payment Date',
+                  labelText: localizations.nextPaymentDateLabel,
                   hintText: 'dd/MM/yyyy',
                   prefixIcon: const Icon(Icons.calendar_today),
                   border: OutlineInputBorder(
@@ -1234,21 +1252,21 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(localizations.cancel),
             ),
             ElevatedButton(
               onPressed: () {
                 final newDate = _nextPaymentDateController.text.trim();
                 if (newDate.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Please select a date')),
+                    SnackBar(content: Text(localizations.pleaseSelectADate)),
                   );
                   return;
                 }
                 Navigator.of(context).pop();
                 _updateNextPaymentDate(newDate);
               },
-              child: const Text('Update'),
+              child: Text(localizations.update),
             ),
           ],
         );
@@ -1274,12 +1292,14 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Next payment date updated successfully')),
+        SnackBar(
+          content: Text(localizations.nextPaymentDateUpdatedSuccessfully),
+        ),
       );
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
     }
   }
 
@@ -1296,7 +1316,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                'Edit Mobile Number',
+                localizations.editMobileNumber,
                 style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -1311,8 +1331,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   });
                 },
                 decoration: InputDecoration(
-                  labelText: 'Mobile Number',
-                  hintText: '10 digit mobile number',
+                  labelText: localizations.mobileNumber,
+                  hintText: localizations.tenDigitMobileNumber,
                   prefixIcon: const Icon(Icons.phone),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -1323,27 +1343,27 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(localizations.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     final newMobile = mobileController.text.trim();
                     if (newMobile.isEmpty) {
                       setState(() {
-                        errorText = 'Mobile number is required';
+                        errorText = localizations.mobileNumberIsRequired;
                       });
                       return;
                     }
                     if (!RegExp(r'^[0-9]{10}$').hasMatch(newMobile)) {
                       setState(() {
-                        errorText = 'Mobile number must be 10 digits';
+                        errorText = localizations.mobileNumberMustBe10Digits;
                       });
                       return;
                     }
                     Navigator.of(context).pop();
                     _updateMobileNumber(newMobile);
                   },
-                  child: const Text('Update'),
+                  child: Text(localizations.update),
                 ),
               ],
             );
@@ -1370,12 +1390,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Mobile number updated successfully')),
+        SnackBar(content: Text(localizations.mobileNumberUpdatedSuccessfully)),
       );
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
     }
   }
 
@@ -1392,7 +1412,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                'Edit Vehicle Number',
+                localizations.editVehicleNumber,
                 style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -1416,8 +1436,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   });
                 },
                 decoration: InputDecoration(
-                  labelText: 'Vehicle Number',
-                  hintText: 'e.g., KA01AB1234 (optional)',
+                  labelText: localizations.vehicleNumber,
+                  hintText: localizations.egKa01ab1234Optional,
                   prefixIcon: const Icon(Icons.directions_car),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -1428,7 +1448,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(localizations.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -1441,7 +1461,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           r'^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$',
                         ).hasMatch(newVehicle)) {
                       setState(() {
-                        errorText = 'Invalid format (e.g., KA01AB1234)';
+                        errorText = localizations.invalidFormatEgKa01ab1234;
                       });
                       return;
                     }
@@ -1450,7 +1470,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       newVehicle.isEmpty ? null : newVehicle,
                     );
                   },
-                  child: const Text('Update'),
+                  child: Text(localizations.update),
                 ),
               ],
             );
@@ -1477,12 +1497,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vehicle number updated successfully')),
+        SnackBar(content: Text(localizations.vehicleNumberUpdatedSuccessfully)),
       );
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
     }
   }
 
@@ -1493,7 +1513,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch phone dialer')),
+          SnackBar(content: Text(localizations.couldNotLaunchPhoneDialer)),
         );
       }
     }
@@ -1555,7 +1575,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch messaging app')),
+          SnackBar(content: Text(localizations.couldNotLaunchMessagingApp)),
         );
       }
     }
@@ -1575,7 +1595,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                'Edit Discount',
+                localizations.editDiscount,
                 style: context.bodyLargeText?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -1593,7 +1613,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Remaining Amount',
+                          localizations.remainingAmount,
                           style: TextStyle(
                             fontSize: 14,
                             color: Theme.of(
@@ -1622,10 +1642,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       });
                     },
                     decoration: InputDecoration(
-                      labelText: 'Add Discount',
-                      hintText: 'e.g., 100',
+                      labelText: localizations.addDiscount,
+                      hintText: localizations.eg100,
                       prefixText: '₹ ',
-                      helperText: 'Max: ₹ $remainingAmountValue',
+                      helperText:
+                          '${localizations.max}: ₹ $remainingAmountValue',
                       prefixIcon: const Icon(Icons.discount),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -1638,7 +1659,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(localizations.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -1647,26 +1668,27 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     );
                     if (newDiscount == null) {
                       setState(() {
-                        errorText = 'Please enter a valid number';
+                        errorText = localizations.pleaseEnterAValidNumber;
                       });
                       return;
                     }
                     if (newDiscount < 0) {
                       setState(() {
-                        errorText = 'Discount cannot be negative';
+                        errorText = localizations.discountCannotBeNegative;
                       });
                       return;
                     }
                     if (newDiscount > remainingAmountValue) {
                       setState(() {
-                        errorText = 'Discount cannot exceed remaining amount';
+                        errorText =
+                            localizations.discountCannotExceedRemainingAmount;
                       });
                       return;
                     }
                     Navigator.of(context).pop();
                     _updateDiscount(newDiscount);
                   },
-                  child: const Text('Update'),
+                  child: Text(localizations.update),
                 ),
               ],
             );
@@ -1733,15 +1755,21 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         SnackBar(
           content: Text(
             isFullyPaid
-                ? 'Discount of ₹$additionalDiscount added. Bill is now fully paid!'
-                : 'Discount of ₹$additionalDiscount added successfully',
+                ? localizations.discountAddedBillFullyPaid.replaceAll(
+                    '%s',
+                    '₹$additionalDiscount',
+                  )
+                : localizations.discountAddedSuccessfully.replaceAll(
+                    '%s',
+                    '₹$additionalDiscount',
+                  ),
           ),
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
     }
   }
 
@@ -1759,7 +1787,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    'Payment History',
+                    localizations.paymentHistory,
                     style: context.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -1775,8 +1803,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         size: 18,
                         color: Colors.white,
                       ),
-                      label: const Text(
-                        'Add Payment',
+                      label: Text(
+                        localizations.addPayment,
                         style: TextStyle(color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -1795,7 +1823,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16.0),
                 child: Center(
                   child: Text(
-                    'No payments recorded',
+                    localizations.noPaymentsRecorded,
                     style: context.subtitleMedium,
                   ),
                 ),
@@ -1844,11 +1872,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                       ),
                                       child: Text(
                                         payment.paymentMethod == 'cash'
-                                            ? 'Cash'
+                                            ? localizations.cash
                                             : payment.paymentMethod ==
                                                   'discount'
-                                            ? 'Discount'
-                                            : 'Online',
+                                            ? localizations.discount
+                                            : localizations.online,
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w600,
@@ -1900,7 +1928,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 Expanded(
                   child: _buildDetailRow(
                     context,
-                    'Bill Date',
+                    localizations.billDate,
                     billDate,
                     Icons.calendar_month,
                   ),
@@ -1929,7 +1957,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Payment Method',
+                            localizations.paymentMethod,
                             style: context.subtitleMedium?.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -1950,7 +1978,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                paymentMethod == 'cash' ? 'Cash' : 'Online',
+                                paymentMethod == 'cash'
+                                    ? localizations.cash
+                                    : localizations.online,
                                 style: TextStyle(
                                   color: paymentMethod == 'cash'
                                       ? Colors.blue
@@ -1972,7 +2002,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               height: 20,
             ),
             Text(
-              'Customer Name',
+              localizations.customerName,
               style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             Text(
@@ -1984,7 +2014,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Customer Mobile Number',
+              localizations.customerMobileNumber,
               style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             Row(
@@ -2061,7 +2091,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              'Customer Vehicle Number',
+              localizations.customerVehicleNumber,
               style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             GestureDetector(
@@ -2077,7 +2107,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      customerVehicle ?? 'N/A',
+                      customerVehicle ?? localizations.nA,
                       style: context.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                         fontSize: 18,
@@ -2132,7 +2162,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Products',
+              localizations.products,
               style: context.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
@@ -2236,13 +2266,13 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Qty: ${quantity.toInt()}',
+                              '${localizations.qty}: ${quantity.toInt()}',
                               style: context.subtitleMedium?.copyWith(
                                 fontSize: 12,
                               ),
                             ),
                             Text(
-                              'Total: ₹${totalSellingPrice.toStringAsFixed(0)}',
+                              '${localizations.total}: ₹${totalSellingPrice.toStringAsFixed(0)}',
                               style: TextStyle(
                                 color: Colors.green[700],
                                 fontSize: 12,
@@ -2274,7 +2304,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                               ),
                             ),
                             child: Text(
-                              'Batch: ${batchId.substring(0, 8)}...',
+                              '${localizations.batch}: ${batchId.substring(0, 8)}...',
                               style: TextStyle(
                                 color: Colors.purple[700],
                                 fontSize: 11,
@@ -2289,12 +2319,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildDetailBox(
-                            'Selling Price',
+                            localizations.sellingPrice,
                             product['price']!,
                             Colors.green,
                           ),
                           _buildDetailBox(
-                            'Buying Price',
+                            localizations.buyingPrice,
                             product['boughtPrice']!,
                             Colors.orange,
                           ),
@@ -2305,12 +2335,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           _buildDetailBox(
-                            'Profit Per Unit',
+                            localizations.profitPerUnit,
                             '₹${profitPerUnit.toStringAsFixed(2)}',
                             profitPerUnit >= 0 ? Colors.green : Colors.red,
                           ),
                           _buildDetailBox(
-                            'Total Profit',
+                            localizations.totalProfit,
                             '₹${totalProfit.toStringAsFixed(0)}',
                             totalProfit >= 0 ? Colors.green : Colors.red,
                           ),
@@ -2413,8 +2443,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        'Total Items',
+                      Text(
+                        localizations.totalItems,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -2451,7 +2481,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Discount',
+                    localizations.discount,
                     style: context.titleMedium?.copyWith(
                       fontSize: 16,
                       fontWeight: FontWeight.normal,
@@ -2475,7 +2505,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Add Discount:',
+                            localizations.addDiscountLabel,
                             style: TextStyle(
                               color: Colors.orange[700],
                               fontWeight: FontWeight.w600,
@@ -2498,7 +2528,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Final Amount',
+                    localizations.finalAmount,
                     style: TextStyle(
                       color: Colors.green[700],
                       fontSize: 18,
@@ -2520,10 +2550,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               color: context.secondaryTextColor?.withOpacity(0.3),
               height: 16,
             ),
-            _buildSummaryRow('Amount Paid', amountPaid, null),
+            _buildSummaryRow(localizations.amountPaid, amountPaid, null),
 
             _buildSummaryRow(
-              'Amount Remaining',
+              localizations.amountRemaining,
               amountRemaining,
               (amountRemaining != '₹ 0')
                   ? Colors.red[400]!
@@ -2539,7 +2569,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Payment Status',
+                  localizations.paymentStatus,
                   style: context.bodyLargeText?.copyWith(fontSize: 16),
                 ),
                 Container(
@@ -2574,7 +2604,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Next Payment Date',
+                    localizations.nextPaymentDate,
                     style: context.bodyLargeText?.copyWith(fontSize: 16),
                   ),
                   GestureDetector(
@@ -2617,7 +2647,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   Widget _buildProfitLossCard(BuildContext context, Color? cardColor) {
     final isProfitable = totalProfit >= 0;
     final profitColor = isProfitable ? Colors.green : Colors.red;
-    final profitLossLabel = isProfitable ? 'Profit' : 'Loss';
+    final profitLossLabel = isProfitable
+        ? localizations.profit
+        : localizations.loss;
 
     return Card(
       color: cardColor,
@@ -2627,7 +2659,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Profit & Loss',
+              localizations.profitLoss,
               style: context.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,

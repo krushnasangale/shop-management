@@ -544,6 +544,67 @@ class AppLocalizations {
   String get online => translate('online');
   String get customerName => translate('customer_name');
 
+  // View Existing Bill Details Page
+  String get generatingPdf => translate('generating_pdf');
+  String get errorGeneratingBill => translate('error_generating_bill');
+  String get paymentAmountMustBeGreaterThan0 =>
+      translate('payment_amount_must_be_greater_than_0');
+  String get totalPaymentCannotExceed =>
+      translate('total_payment_cannot_exceed');
+  String get paymentRecordedSuccessfully =>
+      translate('payment_recorded_successfully');
+  String get recordPayment => translate('record_payment');
+  String get amountRemaining => translate('amount_remaining');
+  String get paymentAmount => translate('payment_amount');
+  String get eg2000 => translate('eg_2000');
+  String get max => translate('max');
+  String get nA => translate('n_a');
+  String get addDiscountLabel => translate('add_discount_label');
+  String get finalAmount => translate('final_amount');
+  String get profitLoss => translate('profit_loss');
+  String get paymentHistory => translate('payment_history');
+  String get addPayment => translate('add_payment');
+  String get noPaymentsRecorded => translate('no_payments_recorded');
+  String get editNextPaymentDate => translate('edit_next_payment_date');
+  String get nextPaymentDateLabel => translate('next_payment_date_label');
+  String get pleaseSelectADate => translate('please_select_a_date');
+  String get nextPaymentDateUpdatedSuccessfully =>
+      translate('next_payment_date_updated_successfully');
+  String get editMobileNumber => translate('edit_mobile_number');
+  String get mobileNumber => translate('mobile_number');
+  String get tenDigitMobileNumber => translate('ten_digit_mobile_number');
+  String get mobileNumberMustBe10Digits =>
+      translate('mobile_number_must_be_10_digits');
+  String get mobileNumberUpdatedSuccessfully =>
+      translate('mobile_number_updated_successfully');
+  String get editVehicleNumber => translate('edit_vehicle_number');
+  String get egKa01ab1234Optional => translate('eg_ka01ab1234_optional');
+  String get invalidFormatEgKa01ab1234 =>
+      translate('invalid_format_eg_ka01ab1234');
+  String get vehicleNumberUpdatedSuccessfully =>
+      translate('vehicle_number_updated_successfully');
+  String get couldNotLaunchPhoneDialer =>
+      translate('could_not_launch_phone_dialer');
+  String get couldNotLaunchMessagingApp =>
+      translate('could_not_launch_messaging_app');
+  String get editDiscount => translate('edit_discount');
+  String get remainingAmount => translate('remaining_amount');
+  String get addDiscount => translate('add_discount');
+  String get eg100 => translate('eg_100');
+  String get pleaseEnterAValidNumber =>
+      translate('please_enter_a_valid_number');
+  String get discountCannotBeNegative =>
+      translate('discount_cannot_be_negative');
+  String get discountCannotExceedRemainingAmount =>
+      translate('discount_cannot_exceed_remaining_amount');
+  String get discountAddedBillFullyPaid =>
+      translate('discount_added_bill_fully_paid');
+  String get discountAddedSuccessfully =>
+      translate('discount_added_successfully');
+
+  // Missing getters for view_existing_bill_details
+  String get customerVehicleNumber => translate('customer_vehicle_number');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {
