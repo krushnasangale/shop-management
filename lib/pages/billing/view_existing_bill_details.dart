@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
@@ -1844,9 +1845,21 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   TextField(
                     controller: amountController,
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      _AmountInputFormatter(maxAmount: finalAmountValue),
+                    ],
                     onChanged: (value) {
+                      final enteredAmount = int.tryParse(value) ?? 0;
                       setState(() {
-                        errorText = null;
+                        if (enteredAmount > finalAmountValue) {
+                          errorText =
+                              localizations.amountCannotExceedTotalAmount;
+                        } else if (enteredAmount < 0) {
+                          errorText = localizations.amountCannotBeNegative;
+                        } else {
+                          errorText = null;
+                        }
                       });
                     },
                     decoration: InputDecoration(
@@ -1879,16 +1892,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       });
                       return;
                     }
-                    if (newAmount < 0) {
-                      setState(() {
-                        errorText = localizations.amountCannotBeNegative;
-                      });
-                      return;
-                    }
-                    if (newAmount > finalAmountValue) {
-                      setState(() {
-                        errorText = localizations.amountCannotExceedTotalAmount;
-                      });
+                    if (errorText != null) {
+                      // Don't proceed if there's already an error
                       return;
                     }
                     Navigator.of(context).pop();
@@ -3015,5 +3020,38 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         ],
       ),
     );
+  }
+}
+
+// Custom input formatter to prevent entering amounts greater than max amount
+class _AmountInputFormatter extends TextInputFormatter {
+  final int maxAmount;
+
+  _AmountInputFormatter({required this.maxAmount});
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    // Allow empty input
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Parse the new value
+    final intValue = int.tryParse(newValue.text);
+    if (intValue == null) {
+      // If not a valid number, reject the change
+      return oldValue;
+    }
+
+    // If the value exceeds max amount, reject the change
+    if (intValue > maxAmount) {
+      return oldValue;
+    }
+
+    // Allow the change
+    return newValue;
   }
 }
