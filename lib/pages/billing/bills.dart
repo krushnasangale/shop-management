@@ -35,10 +35,8 @@ class _BillsState extends State<Bills> {
   String _shopName = '--';
   DateTime? _reportStartDate;
   DateTime? _reportEndDate;
-
-  // Infinite scroll variables
   final ScrollController _scrollController = ScrollController();
-  int _itemsPerPage = 100;
+  final int _itemsPerPage = 100;
   int _currentlyLoadedItems = 100;
   bool _isLoadingMore = false;
 
@@ -244,8 +242,10 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  void _showFilterSortBottomSheet(AppLocalizations localizations) {
-    showModalBottomSheet(
+  Future<void> _showFilterSortBottomSheet(
+    AppLocalizations localizations,
+  ) async {
+    await showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -964,38 +964,31 @@ class _BillsState extends State<Bills> {
                               Icon(
                                 Icons.tune,
                                 size: 14,
-                                color:
-                                    (_selectedFilter != PaymentFilter.all ||
-                                        _selectedSort != SortOption.dateNewest)
+                                color: (_selectedSort != SortOption.dateNewest)
                                     ? Colors.blue[700]
-                                    : Colors.blue[700],
+                                    : Colors.grey[600],
                               ),
                               const SizedBox(width: 4),
                               Text(localizations.translate('filter_sort')),
                             ],
                           ),
-                          selected:
-                              _selectedFilter != PaymentFilter.all ||
-                              _selectedSort != SortOption.dateNewest,
-                          onSelected: (selected) =>
-                              _showFilterSortBottomSheet(localizations),
+                          selected: _selectedSort != SortOption.dateNewest,
+                          onSelected: (selected) async {
+                            await _showFilterSortBottomSheet(localizations);
+                          },
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
                           backgroundColor: Theme.of(context).cardTheme.color,
                           selectedColor: Colors.blue.withOpacity(0.2),
                           side: BorderSide(
-                            color:
-                                (_selectedFilter != PaymentFilter.all ||
-                                    _selectedSort != SortOption.dateNewest)
+                            color: (_selectedSort != SortOption.dateNewest)
                                 ? Colors.blue
                                 : Colors.grey.withOpacity(0.5),
                             width: 0.8,
                           ),
                           labelStyle: TextStyle(
-                            color:
-                                (_selectedFilter != PaymentFilter.all ||
-                                    _selectedSort != SortOption.dateNewest)
+                            color: (_selectedSort != SortOption.dateNewest)
                                 ? Colors.blue
                                 : null,
                             fontWeight:

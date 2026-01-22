@@ -28,7 +28,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
   bool _isLoading = true;
   bool _showSearchBar = false;
   String _searchQuery = '';
-  String _selectedFilter = 'All';
+  String _selectedFilter = 'all'; // Use key instead of localized string
   late TextEditingController _searchController;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _productsSubscription;
@@ -65,6 +65,25 @@ class _AvailableProductsState extends State<AvailableProducts> {
     _productsSubscription?.cancel();
     super.dispose();
   }
+
+  // Get filter label from key
+  String _getFilterLabel(String key) {
+    final option = _filterOptions.firstWhere(
+      (option) => option['key'] == key,
+      orElse: () => {'key': key, 'label': key},
+    );
+    return option['label']!;
+  }
+
+  // Get filter options with keys and localized labels
+  List<Map<String, String>> get _filterOptions => [
+    {'key': 'all', 'label': localizations.all},
+    {'key': 'reorder_now', 'label': localizations.reorderNow},
+    {'key': 'order_soon', 'label': localizations.orderSoon},
+    {'key': 'well_stocked', 'label': localizations.wellStocked},
+    {'key': 'expiring_soon', 'label': localizations.expiringSoon},
+    {'key': 'expired', 'label': localizations.expired},
+  ];
 
   // Handle scroll events for infinite loading
   void _onScroll() {
@@ -194,10 +213,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
       }
 
       // Apply status filter - check consolidated quantity
-      if (_selectedFilter != 'All') {
+      if (_selectedFilter != 'all') {
         filtered = filtered.where((product) {
           // Handle Expired filter separately
-          if (_selectedFilter == 'Expired') {
+          if (_selectedFilter == 'expired') {
             // Check if product has expiry date and if it's expired
             if (product.expiryDate == null || product.expiryDate!.isEmpty) {
               return false; // No expiry date, not expired
@@ -221,7 +240,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
           }
 
           // Handle Expiring Soon filter
-          if (_selectedFilter == 'Expiring Soon') {
+          if (_selectedFilter == 'expiring_soon') {
             // Check if product has expiry date and if it's expiring within 90 days
             if (product.expiryDate == null || product.expiryDate!.isEmpty) {
               return false; // No expiry date
@@ -271,7 +290,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     .minLimit)
               : 0;
 
-          return _getStockStatus(totalQty, minLimitForStatus) ==
+          return _getStockStatusKey(totalQty, minLimitForStatus) ==
               _selectedFilter;
         }).toList();
       }
@@ -463,7 +482,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               ),
               pw.SizedBox(height: 10),
               pw.Text(
-                'Generated on: ${now.toString().split('.')[0]} | Filter: $_selectedFilter',
+                'Generated on: ${now.toString().split('.')[0]} | Filter: ${_getFilterLabel(_selectedFilter)}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.SizedBox(height: 20),
@@ -602,7 +621,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      '${localizations.sNo},${localizations.productName},${localizations.supplier},${localizations.unit},${localizations.quantity},${localizations.buyingPrice},${localizations.sellingPrice},${localizations.stockStatus},${localizations.minLimit},${localizations.filterApplied}: $_selectedFilter',
+      '${localizations.sNo},${localizations.productName},${localizations.supplier},${localizations.unit},${localizations.quantity},${localizations.buyingPrice},${localizations.sellingPrice},${localizations.stockStatus},${localizations.minLimit},${localizations.filterApplied}: ${_getFilterLabel(_selectedFilter)}',
     );
 
     // Add product rows - use filtered products
@@ -718,19 +737,14 @@ class _AvailableProductsState extends State<AvailableProducts> {
               vertical: 2.0,
             ),
             child: Row(
-              children: [
-                _buildFilterChip(localizations.all),
-                const SizedBox(width: 8),
-                _buildFilterChip(localizations.reorderNow),
-                const SizedBox(width: 8),
-                _buildFilterChip(localizations.orderSoon),
-                const SizedBox(width: 8),
-                _buildFilterChip(localizations.wellStocked),
-                const SizedBox(width: 8),
-                _buildFilterChip(localizations.expiringSoon),
-                const SizedBox(width: 8),
-                _buildFilterChip(localizations.expired),
-              ],
+              children: _filterOptions.map((option) {
+                return Row(
+                  children: [
+                    _buildFilterChip(option['key']!, option['label']!),
+                    if (option != _filterOptions.last) const SizedBox(width: 8),
+                  ],
+                );
+              }).toList(),
             ),
           ),
 
@@ -751,15 +765,15 @@ class _AvailableProductsState extends State<AvailableProducts> {
   }
 
   // Build filter chip widget
-  Widget _buildFilterChip(String label) {
-    final isSelected = _selectedFilter == label;
+  Widget _buildFilterChip(String key, String label) {
+    final isSelected = _selectedFilter == key;
     final cardColor = Theme.of(context).cardTheme.color;
     return FilterChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {
         setState(() {
-          _selectedFilter = label;
+          _selectedFilter = key;
         });
         _filterProducts();
       },
@@ -780,6 +794,17 @@ class _AvailableProductsState extends State<AvailableProducts> {
       visualDensity: const VisualDensity(horizontal: -2, vertical: -4),
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
+  }
+
+  // Helper function to determine stock status key for filtering
+  String _getStockStatusKey(int quantity, int minLimit) {
+    if (quantity == 0) {
+      return 'reorder_now';
+    } else if (quantity <= minLimit) {
+      return 'order_soon';
+    } else {
+      return 'well_stocked';
+    }
   }
 
   // Helper function to determine stock status with descriptive text
