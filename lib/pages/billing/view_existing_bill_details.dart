@@ -140,7 +140,17 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       totalProfit = 0;
     }
 
-    // Set payment status
+    // Load discount and payment records from Firebase
+    _loadPaymentRecords();
+    _loadDiscount();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    localizations = AppLocalizations.of(context)!;
+
+    // Set payment status (moved here because context is available)
     if (isTotalAmountPaid) {
       paymentStatus = localizations.paid;
     } else if (widget.amountRemaining == 0) {
@@ -148,22 +158,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     } else {
       paymentStatus = localizations.partiallyPaid;
     }
-
-    // Load discount and payment records from Firebase
-    _loadPaymentRecords();
-    _loadDiscount();
   }
 
   @override
   void dispose() {
     _nextPaymentDateController.dispose();
     super.dispose();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    localizations = AppLocalizations.of(context)!;
   }
 
   Future<void> _loadPaymentRecords() async {
@@ -288,9 +288,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         Navigator.pop(context); // Close loading dialog
 
         // Open share dialog
-        await Share.shareXFiles([
-          XFile(pdfFile.path),
-        ], text: 'Bill from Shop');
+        await Share.shareXFiles([XFile(pdfFile.path)], text: 'Bill from Shop');
       }
     } catch (e) {
       if (mounted) {
