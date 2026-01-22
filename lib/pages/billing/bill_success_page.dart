@@ -330,7 +330,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     final sanitizedCustomerName = customerName
         .replaceAll(RegExp(r'[^\w\s-]'), '')
         .replaceAll(' ', '_');
-    final fileName = '${sanitizedCustomerName}_${dateTimeString}.pdf';
+    final fileName = '${sanitizedCustomerName}_$dateTimeString.pdf';
     final file = File('${dir.path}/$fileName');
 
     final billDate = now.toString().split('.')[0];
@@ -362,10 +362,15 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     }
 
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(20),
-        build: (pw.Context context) {
+        header: (pw.Context context) {
+          // Only show header on first page
+          if (context.pageNumber > 1) {
+            return pw.Container(); // Empty container for subsequent pages
+          }
+
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
@@ -472,99 +477,111 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   style: const pw.TextStyle(fontSize: 10),
                 ),
               pw.SizedBox(height: 15),
+            ],
+          );
+        },
+        build: (pw.Context context) {
+          return [
+            // Products Table
+            _buildProductTable(),
+            pw.SizedBox(height: 40),
 
-              // Products Table
-              _buildProductTable(),
-              pw.SizedBox(height: 40),
+            // Footer content (only appears at the end)
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                // Remaining Amount Instruction (if applicable)
+                if (amountRemaining > 0) ...[
+                  pw.Text(
+                    'Please arrange payment of Rs. $amountRemaining on or before $nextPaymentDate to complete this transaction.',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 15),
+                ],
 
-              // Remaining Amount Instruction (if applicable)
-              if (amountRemaining > 0) ...[
+                // Terms & Conditions
                 pw.Text(
-                  'Please arrange payment of Rs. $amountRemaining on or before $nextPaymentDate to complete this transaction.',
+                  'Terms & Conditions',
                   style: pw.TextStyle(
                     fontSize: 10,
                     fontWeight: pw.FontWeight.bold,
                   ),
-                  textAlign: pw.TextAlign.center,
                 ),
-                pw.SizedBox(height: 15),
-              ],
+                pw.SizedBox(height: 20),
 
-              // Terms & Conditions
-              pw.Text(
-                'Terms & Conditions',
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 20),
-
-              // Signature Section
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Customer Signature',
-                        style: const pw.TextStyle(fontSize: 9),
-                      ),
-                      pw.SizedBox(height: 30),
-                      pw.Text('_' * 20, style: const pw.TextStyle(fontSize: 8)),
-                    ],
-                  ),
-                  if (ownerSignatureBase64 != null &&
-                      ownerSignatureBase64.isNotEmpty)
+                // Signature Section
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
                     pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.center,
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        pw.SizedBox(
-                          width: 80,
-                          height: 60,
-                          child: pw.Image(
-                            pw.MemoryImage(
-                              convert.base64Decode(ownerSignatureBase64),
-                            ),
-                            fit: pw.BoxFit.contain,
-                          ),
-                        ),
-                        pw.SizedBox(height: 5),
                         pw.Text(
-                          'Signature',
+                          'Customer Signature',
                           style: const pw.TextStyle(fontSize: 9),
                         ),
-                        pw.Text(
-                          ownerName,
-                          style: const pw.TextStyle(fontSize: 8),
-                        ),
-                      ],
-                    )
-                  else
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.center,
-                      children: [
                         pw.SizedBox(height: 30),
                         pw.Text(
                           '_' * 20,
                           style: const pw.TextStyle(fontSize: 8),
                         ),
-                        pw.SizedBox(height: 5),
-                        pw.Text(
-                          'Signature',
-                          style: const pw.TextStyle(fontSize: 9),
-                        ),
-                        pw.Text(
-                          ownerName,
-                          style: const pw.TextStyle(fontSize: 8),
-                        ),
                       ],
                     ),
-                ],
-              ),
-            ],
-          );
+                    if (ownerSignatureBase64 != null &&
+                        ownerSignatureBase64.isNotEmpty)
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          pw.SizedBox(
+                            width: 80,
+                            height: 60,
+                            child: pw.Image(
+                              pw.MemoryImage(
+                                convert.base64Decode(ownerSignatureBase64),
+                              ),
+                              fit: pw.BoxFit.contain,
+                            ),
+                          ),
+                          pw.SizedBox(height: 5),
+                          pw.Text(
+                            'Signature',
+                            style: const pw.TextStyle(fontSize: 9),
+                          ),
+                          pw.Text(
+                            ownerName,
+                            style: const pw.TextStyle(fontSize: 8),
+                          ),
+                        ],
+                      )
+                    else
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.center,
+                        children: [
+                          pw.SizedBox(height: 30),
+                          pw.Text(
+                            '_' * 20,
+                            style: const pw.TextStyle(fontSize: 8),
+                          ),
+                          pw.SizedBox(height: 5),
+                          pw.Text(
+                            'Signature',
+                            style: const pw.TextStyle(fontSize: 9),
+                          ),
+                          pw.Text(
+                            ownerName,
+                            style: const pw.TextStyle(fontSize: 8),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ];
         },
       ),
     );
