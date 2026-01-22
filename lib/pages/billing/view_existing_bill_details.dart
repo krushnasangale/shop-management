@@ -1788,6 +1788,175 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     }
   }
 
+  void _showEditAmountPaidDialog() {
+    final TextEditingController amountController = TextEditingController(
+      text: amountPaid.replaceAll('₹ ', ''),
+    );
+    String? errorText;
+    final totalAmountValue = int.parse(totalAmount.replaceAll('₹ ', ''));
+    final finalAmountValue = totalAmountValue - discount;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                localizations.editAmountPaid,
+                style: context.bodyLargeText?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          localizations.finalAmount,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(
+                              context,
+                            ).textTheme.bodyMedium?.color,
+                          ),
+                        ),
+                        Text(
+                          '₹ $finalAmountValue',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    onChanged: (value) {
+                      setState(() {
+                        errorText = null;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      labelText: localizations.amountPaid,
+                      hintText: localizations.eg100,
+                      prefixText: '₹ ',
+                      helperText: '${localizations.max}: ₹ $finalAmountValue',
+                      prefixIcon: const Icon(Icons.payment),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      errorText: errorText,
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(localizations.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    final newAmount = int.tryParse(
+                      amountController.text.trim(),
+                    );
+                    if (newAmount == null) {
+                      setState(() {
+                        errorText = localizations.pleaseEnterAValidNumber;
+                      });
+                      return;
+                    }
+                    if (newAmount < 0) {
+                      setState(() {
+                        errorText = localizations.amountCannotBeNegative;
+                      });
+                      return;
+                    }
+                    if (newAmount > finalAmountValue) {
+                      setState(() {
+                        errorText = localizations.amountCannotExceedTotalAmount;
+                      });
+                      return;
+                    }
+                    Navigator.of(context).pop();
+                    _updateAmountPaid(newAmount);
+                  },
+                  child: Text(localizations.update),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _updateAmountPaid(int newAmountPaid) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) throw Exception('User not authenticated');
+
+      final totalAmountValue = int.parse(totalAmount.replaceAll('₹ ', ''));
+      final finalAmountValue = totalAmountValue - discount;
+      final newRemainingAmount = finalAmountValue - newAmountPaid;
+      final isFullyPaid = newRemainingAmount <= 0;
+
+      final billRef = FirebaseFirestore.instance
+          .collection('bills')
+          .doc(user.uid)
+          .collection('items')
+          .doc(billId);
+
+      // Add new payment record for the adjustment
+      await _addPaymentRecord(
+        newAmountPaid - int.parse(amountPaid.replaceAll('₹ ', '')),
+        'adjustment',
+      );
+
+      // Update bill with new amounts
+      await billRef.update({
+        'amountPaid': newAmountPaid,
+        'amountRemaining': isFullyPaid ? 0 : newRemainingAmount,
+        'totalAmountPaid': isFullyPaid,
+      });
+
+      setState(() {
+        amountPaid = '₹ $newAmountPaid';
+        amountRemaining = '₹ ${isFullyPaid ? 0 : newRemainingAmount}';
+        isTotalAmountPaid = isFullyPaid;
+        paymentStatus = isFullyPaid
+            ? localizations.paid
+            : (newAmountPaid > 0
+                  ? localizations.partiallyPaid
+                  : localizations.unpaid);
+      });
+
+      // Reload payment records to show the adjustment
+      await _loadPaymentRecords();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(localizations.amountUpdatedSuccessfully)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
+    }
+  }
+
   // --- Helper 5: Payment History Card ---
   Widget _buildPaymentHistoryCard(BuildContext context, Color? cardColor) {
     return Card(
@@ -2411,8 +2580,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
   Widget _buildSummaryCard(BuildContext context, Color? cardColor) {
     Color getStatusColor() {
-      if (paymentStatus == 'Paid') return Colors.green;
-      if (paymentStatus == 'Partially Paid') return Colors.orange;
+      if (paymentStatus == localizations.paid) return Colors.green;
+      if (paymentStatus == localizations.partiallyPaid) return Colors.orange;
       return Colors.red;
     }
 
@@ -2565,7 +2734,53 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               color: context.secondaryTextColor?.withOpacity(0.3),
               height: 16,
             ),
-            _buildSummaryRow(localizations.amountPaid, amountPaid, null),
+            // Amount Paid row with edit functionality
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    localizations.amountPaid,
+                    style: context.bodyLargeText?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _showEditAmountPaidDialog,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.green.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            amountPaid,
+                            style: TextStyle(
+                              color: Colors.green[700],
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(Icons.edit, size: 14, color: Colors.green[600]),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
             _buildSummaryRow(
               localizations.amountRemaining,

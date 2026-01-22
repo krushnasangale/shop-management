@@ -604,6 +604,14 @@ class AppLocalizations {
   String get discountAddedSuccessfully =>
       translate('discount_added_successfully');
 
+  // Amount paid editing
+  String get editAmountPaid => translate('edit_amount_paid');
+  String get amountUpdatedSuccessfully =>
+      translate('amount_updated_successfully');
+  String get amountCannotBeNegative => translate('amount_cannot_be_negative');
+  String get amountCannotExceedTotalAmount =>
+      translate('amount_cannot_exceed_total_amount');
+
   // Missing getters for view_existing_bill_details
   String get customerVehicleNumber => translate('customer_vehicle_number');
 
