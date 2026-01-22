@@ -212,6 +212,7 @@
     "item": "आयटम",
     "profit": "नफा",
     "loss": "तोटा",
+    "margin": "मार्जिन",
     "no_bills_for_this_customer": "या ग्राहकासाठी कोणतेही बिल नाहीत",
     "total_bills": "एकूण बिल",
     "total_paid": "एकूण भरलेले",

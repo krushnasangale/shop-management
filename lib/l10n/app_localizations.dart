@@ -153,6 +153,7 @@ class AppLocalizations {
   String get qtyLabel => translate('qty_label');
   String get profitLabel => translate('profit_label');
   String get loss => translate('loss');
+  String get margin => translate('margin');
   String get inventoryPayments => translate('inventory_payments');
   String get liveStatus => translate('live_status');
   String get availability => translate('availability');

@@ -2881,6 +2881,26 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         ? localizations.profit
         : localizations.loss;
 
+    // Calculate total cost (investment) for percentage calculation
+    double totalCost = 0;
+    if (widget.products != null && widget.products!.isNotEmpty) {
+      for (final product in widget.products!) {
+        final boughtPrice =
+            double.tryParse(
+              product['boughtPrice']?.toString().replaceAll('₹', '').trim() ??
+                  '0',
+            ) ??
+            0;
+        final quantity = product['quantity'] ?? 0;
+        totalCost += boughtPrice * quantity;
+      }
+    }
+
+    // Calculate profit/loss percentage
+    final profitPercentage = totalCost > 0
+        ? (totalProfit / totalCost) * 100
+        : 0.0;
+
     return Card(
       color: cardColor,
       child: Padding(
@@ -2888,14 +2908,27 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              localizations.profitLoss,
-              style: context.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  localizations.profitLoss,
+                  style: context.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+                Text(
+                  '${localizations.margin}: ${profitPercentage.abs().toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    color: profitColor.withOpacity(0.8),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -2909,27 +2942,28 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        profitLossLabel,
-                        style: TextStyle(
-                          color: profitColor,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          profitLossLabel,
+                          style: TextStyle(
+                            color: profitColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '₹ ${totalProfit.abs().toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: profitColor,
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
+                        Text(
+                          '₹ ${totalProfit.abs().toStringAsFixed(2)}',
+                          style: TextStyle(
+                            color: profitColor,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   Icon(
                     isProfitable

@@ -211,6 +211,7 @@
     "item": "Item",
     "profit": "Profit",
     "loss": "Loss",
+    "margin": "Margin",
     "no_bills_for_this_customer": "No bills for this customer",
     "total_bills": "Total Bills",
     "total_paid": "Total Paid",
