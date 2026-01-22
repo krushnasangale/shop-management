@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class Product {
   final String id;
   final String name;
+  final String? imageUrl;
 
-  Product({required this.id, required this.name});
+  Product({required this.id, required this.name, this.imageUrl});
 
   // Convert to Map for Firebase
   Map<String, dynamic> toMap() {
-    return {'name': name};
+    return {'name': name, 'imageUrl': imageUrl};
   }
 
   // Create from Map
   factory Product.fromMap(String id, Map<String, dynamic> data) {
-    return Product(id: id, name: data['name'] ?? '');
+    return Product(
+      id: id,
+      name: data['name'] ?? '',
+      imageUrl: data['imageUrl'],
+    );
   }
 }
 
@@ -38,15 +47,21 @@ class _ProductNameState extends State<ProductName> {
   String _searchQuery = '';
   late TextEditingController _searchController;
   StreamSubscription<QuerySnapshot>? _productsSubscription;
+  final ScrollController _scrollController = ScrollController();
+  final int _itemsPerPage = 100;
+  int _currentlyLoadedItems = 0; // Will be set properly in filterProducts
+  bool _isLoadingMore = false;
 
   // Controllers for the Add Product Popup
   final TextEditingController _productNameController = TextEditingController();
+  File? _selectedImage;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController();
     _searchController.addListener(_filterProducts);
+    _scrollController.addListener(_onScroll);
     _getUserAndLoadProducts();
   }
 
@@ -54,8 +69,133 @@ class _ProductNameState extends State<ProductName> {
   void dispose() {
     _productNameController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
     _productsSubscription?.cancel();
     super.dispose();
+  }
+
+  // Handle scroll events for infinite loading
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
+      _loadMoreItems();
+    }
+  }
+
+  // Load more items when scrolled near bottom
+  void _loadMoreItems() {
+    if (_isLoadingMore || _currentlyLoadedItems >= _filteredProducts.length) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    // Simulate loading delay for smooth UX
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          final remainingItems =
+              _filteredProducts.length - _currentlyLoadedItems;
+          final itemsToLoad = _itemsPerPage.clamp(0, remainingItems);
+          _currentlyLoadedItems += itemsToLoad;
+          _isLoadingMore = false;
+        });
+      }
+    });
+  }
+
+  Future<void> _showImageSourceDialog(
+    Function(ImageSource) onSourceSelected,
+  ) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Choose Image Source', style: context.bodyLargeText),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera),
+              title: Text('Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                onSourceSelected(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text('Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                onSourceSelected(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectImage(Function(File?) onImageSelected) async {
+    await _showImageSourceDialog((source) async {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: source);
+      if (image != null) {
+        onImageSelected(File(image.path));
+      } else {
+        onImageSelected(null);
+      }
+    });
+  }
+
+  Future<void> _deleteImageFromStorage(String imageUrl) async {
+    try {
+      // Extract the path from the URL
+      // Firebase Storage URLs have format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media&token={token}
+      final uri = Uri.parse(imageUrl);
+      final pathSegments = uri.pathSegments;
+      // Find the path after '/o/' and before the query parameters
+      final oIndex = pathSegments.indexOf('o');
+      if (oIndex != -1 && oIndex + 1 < pathSegments.length) {
+        final encodedPath = pathSegments[oIndex + 1];
+        // URL decode the path
+        final imagePath = Uri.decodeComponent(encodedPath);
+
+        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
+        await storageRef.delete();
+      }
+    } catch (e) {
+      // Silently fail if deletion fails - the old image will remain but won't cause issues
+    }
+  }
+
+  Future<String?> _uploadImageToStorage(String productId, File? image) async {
+    if (image == null) return null;
+
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('product-images')
+          .child(_userId)
+          .child('$productId.jpg');
+
+      final uploadTask = storageRef.putFile(image);
+      await uploadTask;
+      final downloadUrl = await storageRef.getDownloadURL();
+
+      return downloadUrl;
+    } catch (e) {
+      // Error uploading image
+      return null;
+    }
   }
 
   void _getUserAndLoadProducts() {
@@ -117,6 +257,9 @@ class _ProductNameState extends State<ProductName> {
             )
             .toList();
       }
+      // Reset pagination when filtering
+      _currentlyLoadedItems = _itemsPerPage.clamp(0, _filteredProducts.length);
+      _isLoadingMore = false;
     });
   }
 
@@ -168,41 +311,90 @@ class _ProductNameState extends State<ProductName> {
           ),
           Expanded(
             child: ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(8.0),
-              itemCount: _filteredProducts.length,
+              itemCount: _currentlyLoadedItems + (_isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index >= _currentlyLoadedItems) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
                 final product = _filteredProducts[index];
                 return Card(
                   margin: const EdgeInsets.symmetric(
                     horizontal: 8.0,
                     vertical: 4.0,
                   ),
-                  child: ListTile(
-                    title: Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10.0),
+                    child: ListTile(
+                      leading: Container(
+                        width: 50,
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: product.imageUrl != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: CachedNetworkImage(
+                                  imageUrl: product.imageUrl!,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => const Center(
+                                    child: SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    ),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(
+                                        Icons.inventory_2,
+                                        color: Colors.grey,
+                                        size: 24,
+                                      ),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.inventory_2,
+                                color: Colors.grey,
+                                size: 24,
+                              ),
                       ),
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () => _showEditProductPopup(product),
+                      title: Text(
+                        product.name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _showDeleteConfirmation(product),
-                        ),
-                      ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.blue),
+                            onPressed: () => _showEditProductPopup(product),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _showDeleteConfirmation(product),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 );
               },
             ),
           ),
+          const SizedBox(height: 20),
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -218,63 +410,186 @@ class _ProductNameState extends State<ProductName> {
   void _showAddProductPopup() {
     final localizations = AppLocalizations.of(context);
     _productNameController.clear();
+    _selectedImage = null;
+    bool isUploading = false;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            localizations?.addProductName ?? 'Add Product Name',
-            style: context.bodyLargeText,
-          ),
-          content: TextField(
-            controller: _productNameController,
-            textCapitalization: TextCapitalization.characters,
-            onChanged: (value) {
-              if (value != value.toUpperCase()) {
-                _productNameController.text = value.toUpperCase();
-                _productNameController.selection = TextSelection.fromPosition(
-                  TextPosition(offset: value.toUpperCase().length),
-                );
-              }
-            },
-            decoration: InputDecoration(
-              labelText: localizations?.productName ?? 'Product Name',
-              hintText: localizations?.enterProductName ?? 'Enter product name',
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: Text(
+              localizations?.addProductName ?? 'Add Product Name',
+              style: context.bodyLargeText,
             ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations?.cancel ?? 'Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_productNameController.text.isNotEmpty) {
-                  try {
-                    await _productsRef.add({
-                      'name': _productNameController.text.trim(),
-                    });
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '${localizations?.errorAddingProduct ?? 'Error adding product'}: $e',
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Product Name Field
+                  TextField(
+                    controller: _productNameController,
+                    textCapitalization: TextCapitalization.characters,
+                    onChanged: (value) {
+                      if (value != value.toUpperCase()) {
+                        _productNameController.text = value.toUpperCase();
+                        _productNameController.selection =
+                            TextSelection.fromPosition(
+                              TextPosition(offset: value.toUpperCase().length),
+                            );
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: localizations?.productName ?? 'Product Name',
+                      hintText:
+                          localizations?.enterProductName ??
+                          'Enter product name',
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  // Image Selection
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Product Image (Optional)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () async {
+                          await _selectImage((file) {
+                            setState(() {
+                              _selectedImage = file;
+                            });
+                          });
+                        },
+                        child: Container(
+                          height: 120,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: _selectedImage != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    _selectedImage!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_photo_alternate,
+                                      size: 40,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Tap to select image',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      if (_selectedImage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: TextButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _selectedImage = null;
+                              });
+                            },
+                            icon: const Icon(Icons.clear, size: 16),
+                            label: const Text('Remove Image'),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.red,
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
                           ),
                         ),
-                      );
-                    }
-                  }
-                }
-              },
-              child: Text(localizations?.add ?? 'Add'),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(localizations?.cancel ?? 'Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isUploading
+                    ? null
+                    : () async {
+                        if (_productNameController.text.isNotEmpty) {
+                          setState(() {
+                            isUploading = true;
+                          });
+                          try {
+                            // Create product document first to get ID
+                            final docRef = await _productsRef.add({
+                              'name': _productNameController.text.trim(),
+                            });
+
+                            // Upload image if selected
+                            String? imageUrl;
+                            if (_selectedImage != null) {
+                              imageUrl = await _uploadImageToStorage(
+                                docRef.id,
+                                _selectedImage,
+                              );
+                              if (imageUrl != null) {
+                                await docRef.update({'imageUrl': imageUrl});
+                              }
+                            }
+
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                              _selectedImage = null;
+                            }
+                          } catch (e) {
+                            setState(() {
+                              isUploading = false;
+                            });
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '${localizations?.errorAddingProduct ?? 'Error adding product'}: $e',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                child: isUploading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(localizations?.add ?? 'Add'),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -283,63 +598,252 @@ class _ProductNameState extends State<ProductName> {
   void _showEditProductPopup(Product product) {
     final localizations = AppLocalizations.of(context);
     final nameController = TextEditingController(text: product.name);
+    File? editSelectedImage;
+    bool isUploadingImage = false;
+    bool removeImage = false;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            localizations?.editProductName ?? 'Edit Product Name',
-            style: context.bodyLargeText,
-          ),
-          content: TextField(
-            controller: nameController,
-            textCapitalization: TextCapitalization.characters,
-            onChanged: (value) {
-              if (value != value.toUpperCase()) {
-                nameController.text = value.toUpperCase();
-                nameController.selection = TextSelection.fromPosition(
-                  TextPosition(offset: value.toUpperCase().length),
-                );
-              }
-            },
-            decoration: InputDecoration(
-              labelText: localizations?.productName ?? 'Product Name',
-              hintText: localizations?.enterProductName ?? 'Enter product name',
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            title: Text(
+              localizations?.editProductName ?? 'Edit Product Name',
+              style: context.bodyLargeText,
             ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations?.cancel ?? 'Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isNotEmpty) {
-                  try {
-                    await _productsRef.doc(product.id).update({
-                      'name': nameController.text.trim(),
-                    });
-                    if (context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '${localizations?.errorUpdatingProduct ?? 'Error updating product'}: $e',
-                          ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Product Name Field
+                  TextField(
+                    controller: nameController,
+                    textCapitalization: TextCapitalization.characters,
+                    onChanged: (value) {
+                      if (value != value.toUpperCase()) {
+                        nameController.text = value.toUpperCase();
+                        nameController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: value.toUpperCase().length),
+                        );
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: localizations?.productName ?? 'Product Name',
+                      hintText:
+                          localizations?.enterProductName ??
+                          'Enter product name',
+                    ),
+                    autofocus: true,
+                  ),
+                  const SizedBox(height: 16),
+                  // Image Selection
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Product Image (Optional)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
                         ),
-                      );
-                    }
-                  }
-                }
-              },
-              child: Text(localizations?.save ?? 'Save'),
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () async {
+                          await _selectImage((file) {
+                            setState(() {
+                              editSelectedImage = file;
+                            });
+                          });
+                        },
+                        child: Container(
+                          height: 120,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: editSelectedImage != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Image.file(
+                                    editSelectedImage!,
+                                    fit: BoxFit.cover,
+                                  ),
+                                )
+                              : product.imageUrl != null && !removeImage
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: CachedNetworkImage(
+                                    imageUrl: product.imageUrl!,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      ),
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.add_photo_alternate,
+                                              size: 40,
+                                              color: Colors.grey[400],
+                                            ),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              'Tap to select image',
+                                              style: TextStyle(
+                                                color: Colors.grey[500],
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                  ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add_photo_alternate,
+                                      size: 40,
+                                      color: Colors.grey[400],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Tap to select image',
+                                      style: TextStyle(
+                                        color: Colors.grey[500],
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          if (editSelectedImage != null ||
+                              (product.imageUrl != null && !removeImage))
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: TextButton.icon(
+                                  onPressed: () async {
+                                    // Delete existing image from storage if it exists
+                                    if (product.imageUrl != null &&
+                                        !removeImage) {
+                                      await _deleteImageFromStorage(
+                                        product.imageUrl!,
+                                      );
+                                    }
+                                    setState(() {
+                                      editSelectedImage = null;
+                                      removeImage = true;
+                                    });
+                                  },
+                                  icon: const Icon(Icons.clear, size: 16),
+                                  label: const Text('Remove Image'),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: Colors.red,
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(localizations?.cancel ?? 'Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isUploadingImage
+                    ? null
+                    : () async {
+                        if (nameController.text.isNotEmpty) {
+                          try {
+                            setState(() {
+                              isUploadingImage = true;
+                            });
+
+                            // Prepare update data
+                            final updateData = {
+                              'name': nameController.text.trim(),
+                            };
+
+                            // Handle image update
+                            if (editSelectedImage != null) {
+                              // Upload new image
+                              final imageUrl = await _uploadImageToStorage(
+                                product.id,
+                                editSelectedImage,
+                              );
+                              if (imageUrl != null) {
+                                updateData['imageUrl'] = imageUrl;
+                              }
+                            } else if (!removeImage &&
+                                product.imageUrl != null) {
+                              // Keep existing image only if not removing
+                              updateData['imageUrl'] = product.imageUrl!;
+                            }
+                            // If removeImage is true or no image exists, no imageUrl field
+
+                            await _productsRef
+                                .doc(product.id)
+                                .update(updateData);
+
+                            setState(() {
+                              isUploadingImage = false;
+                            });
+
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          } catch (e) {
+                            setState(() {
+                              isUploadingImage = false;
+                            });
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    '${localizations?.errorUpdatingProduct ?? 'Error updating product'}: $e',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                child: isUploadingImage
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(localizations?.save ?? 'Save'),
+              ),
+            ],
+          ),
         );
       },
     );
@@ -363,6 +867,11 @@ class _ProductNameState extends State<ProductName> {
             TextButton(
               onPressed: () async {
                 try {
+                  // Delete associated image from storage if it exists
+                  if (product.imageUrl != null) {
+                    await _deleteImageFromStorage(product.imageUrl!);
+                  }
+
                   await _productsRef.doc(product.id).delete();
                   if (context.mounted) {
                     Navigator.pop(context);
