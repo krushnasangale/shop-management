@@ -91,6 +91,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   List<PaymentRecord> paymentRecords = [];
   double totalProfit = 0;
   int discount = 0;
+  int deliveryCharges = 0;
   late String paymentMethod;
   String? nextPaymentDate;
   late TextEditingController _nextPaymentDateController;
@@ -214,10 +215,13 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       if (snapshot.exists) {
         final data = snapshot.data();
         final loadedDiscount = (data?['discount'] as num?)?.toInt() ?? 0;
+        final loadedDeliveryCharges =
+            (data?['deliveryCharges'] as num?)?.toInt() ?? 0;
         int loadedBillNumber = (data?['billNumber'] as num?)?.toInt() ?? 0;
 
         setState(() {
           discount = loadedDiscount;
+          deliveryCharges = loadedDeliveryCharges;
           billNumber = loadedBillNumber;
           // IMPORTANT: Discount ALWAYS reduces profit, never increases it
           // Formula: Profit = Base Profit - Discount
@@ -711,6 +715,48 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             pw.SizedBox(height: 50),
           ],
         ),
+        // Delivery Charges row (if applicable)
+        if (deliveryCharges > 0) ...[
+          pw.TableRow(
+            decoration: pw.BoxDecoration(color: PdfColors.grey200),
+            children: [
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text('', style: const pw.TextStyle(fontSize: 10)),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text(
+                  'Delivery Charges:',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+              pw.Padding(
+                padding: const pw.EdgeInsets.all(5),
+                child: pw.Text(
+                  'Rs. $deliveryCharges',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                  textAlign: pw.TextAlign.right,
+                ),
+              ),
+            ],
+          ),
+        ],
         // Total row
         pw.TableRow(
           decoration: pw.BoxDecoration(color: PdfColors.grey300),
@@ -2710,7 +2756,31 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ],
               ),
             ),
-            // Final Amount after discount
+            // delivery charges row
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    localizations.deliveryCharges,
+                    style: context.titleMedium?.copyWith(
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                  Text(
+                    '₹ $deliveryCharges',
+                    style: TextStyle(
+                      color: Colors.blue[700],
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Final Amount row
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
               child: Row(

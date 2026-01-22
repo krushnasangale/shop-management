@@ -269,6 +269,7 @@ class AppLocalizations {
   String get totalPaid => translate('total_paid');
   String get totalRemaining => translate('total_remaining');
   String get billDate => translate('bill_date');
+  String get deliveryCharges => translate('delivery_charges');
   String get paidAmount => translate('paid_amount');
 
   // Product Names Page

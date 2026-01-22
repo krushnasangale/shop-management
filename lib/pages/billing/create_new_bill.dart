@@ -134,6 +134,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
   late TextEditingController _amountPaidController;
   late TextEditingController _amountRemainingController;
   late TextEditingController _nextPaymentDateController;
+  late TextEditingController _deliveryChargesController;
+  double _deliveryCharges = 0.0;
 
   @override
   void initState() {
@@ -148,6 +150,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _amountPaidController = TextEditingController();
     _amountRemainingController = TextEditingController();
     _nextPaymentDateController = TextEditingController();
+    _deliveryChargesController = TextEditingController();
     _loadProducts();
     _loadCustomers();
 
@@ -181,6 +184,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
     final amountRemaining = billData['amountRemaining'] ?? 0;
     _amountPaidController.text = amountPaid.toString();
     _amountRemainingController.text = amountRemaining.toString();
+
+    // Set delivery charges
+    _deliveryCharges = (billData['deliveryCharges'] as num?)?.toDouble() ?? 0.0;
+    _deliveryChargesController.text = _deliveryCharges.toStringAsFixed(2);
 
     // Load products into bill items - delay until products are loaded
     Future.delayed(const Duration(milliseconds: 500), () {
@@ -242,6 +249,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _amountPaidController.dispose();
     _amountRemainingController.dispose();
     _nextPaymentDateController.dispose();
+    _deliveryChargesController.dispose();
     _productsSubscription?.cancel();
     _customersSubscription?.cancel();
     super.dispose();
@@ -750,6 +758,31 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   ],
                 ),
                 const SizedBox(height: 20),
+                // Delivery Charges Field
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localizations.translate('delivery_charges'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    buildFormField(
+                      localizations.translate('enter_delivery_charges'),
+                      _deliveryChargesController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        setState(() {
+                          _deliveryCharges = double.tryParse(value) ?? 0.0;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Switch(
@@ -1198,6 +1231,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     : '',
                                 isEditMode: widget.isEditMode,
                                 billId: widget.billId,
+                                deliveryCharges: _deliveryCharges.toInt(),
                               ),
                             );
                           },
@@ -1300,8 +1334,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
     }
   }
 
-  double _getTotalAmount() {
-    return _billItems.fold(0, (sum, item) => sum + item.total);
+  int _getTotalAmount() {
+    final productTotal = _billItems.fold(0.0, (sum, item) => sum + item.total);
+    return (productTotal + _deliveryCharges).toInt();
   }
 
   int _getTotalQuantity() {

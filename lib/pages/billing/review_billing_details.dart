@@ -20,6 +20,7 @@ class ReviewBillingDetails extends StatefulWidget {
   final String nextPaymentDate;
   final bool isEditMode;
   final String? billId;
+  final int deliveryCharges;
 
   const ReviewBillingDetails({
     required this.billDate,
@@ -36,6 +37,7 @@ class ReviewBillingDetails extends StatefulWidget {
     this.nextPaymentDate = '',
     this.isEditMode = false,
     this.billId,
+    this.deliveryCharges = 0,
     super.key,
   });
 
@@ -45,12 +47,12 @@ class ReviewBillingDetails extends StatefulWidget {
 
 class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
   int _currentBillNumber = 0;
-  late final AppLocalizations localizations;
+  AppLocalizations? localizations;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    localizations = AppLocalizations.of(context)!;
+    localizations ??= AppLocalizations.of(context)!;
   }
 
   @override
@@ -67,7 +69,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               Navigator.of(context).pop();
             },
           ),
-          title: Text(localizations.reviewBill),
+          title: Text(localizations!.reviewBill),
           centerTitle: true,
         ),
         body: SingleChildScrollView(
@@ -113,7 +115,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 Expanded(
                   child: _buildDetailRow(
                     context,
-                    localizations.billDate,
+                    localizations!.billDate,
                     widget.billDate,
                     Icons.calendar_month,
                   ),
@@ -142,7 +144,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            localizations.paymentMethod,
+                            localizations!.paymentMethod,
                             style: context.subtitleMedium?.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -164,8 +166,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                               const SizedBox(width: 6),
                               Text(
                                 widget.paymentMethod == 'cash'
-                                    ? localizations.cash
-                                    : localizations.online,
+                                    ? localizations!.cash
+                                    : localizations!.online,
                                 style: TextStyle(
                                   color: widget.paymentMethod == 'cash'
                                       ? Colors.blue
@@ -189,7 +191,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
 
             // Customer Name
             Text(
-              localizations.customerName,
+              localizations!.customerName,
               style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             Text(
@@ -203,7 +205,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
 
             // Customer Mobile Number
             Text(
-              localizations.customerMobileNumber,
+              localizations!.customerMobileNumber,
               style: context.subtitleMedium?.copyWith(fontSize: 14),
             ),
             Text(
@@ -220,7 +222,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 children: [
                   const SizedBox(height: 12),
                   Text(
-                    localizations.vehicleNumber,
+                    localizations!.vehicleNumber,
                     style: context.subtitleMedium?.copyWith(fontSize: 14),
                   ),
                   Text(
@@ -275,7 +277,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              localizations.products,
+              localizations!.products,
               style: context.headingMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -309,7 +311,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                                   ),
                                 ),
                                 Text(
-                                  '${localizations.supplier}: ${product.supplierName}',
+                                  '${localizations!.supplier}: ${product.supplierName}',
                                   style: context.subtitleMedium?.copyWith(
                                     fontSize: 13,
                                   ),
@@ -324,13 +326,13 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '${localizations.qty}: ${product.quantity.toStringAsFixed(0)} ${product.unit}',
+                            '${localizations!.qty}: ${product.quantity.toStringAsFixed(0)} ${product.unit}',
                             style: context.subtitleMedium?.copyWith(
                               fontSize: 14,
                             ),
                           ),
                           Text(
-                            '₹${product.price} ${localizations.each}',
+                            '₹${product.price} ${localizations!.each}',
                             style: context.bodyLargeText?.copyWith(
                               fontWeight: FontWeight.w600,
                               fontSize: 14,
@@ -365,7 +367,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              localizations.summary,
+              localizations!.summary,
               style: context.headingMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -375,7 +377,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  localizations.totalAmount,
+                  localizations!.totalAmount,
                   style: context.subtitleMedium?.copyWith(fontSize: 14),
                 ),
                 Text(
@@ -387,6 +389,25 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 ),
               ],
             ),
+            if (widget.deliveryCharges > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Delivery Charges',
+                    style: context.subtitleMedium?.copyWith(fontSize: 14),
+                  ),
+                  Text(
+                    '₹${widget.deliveryCharges}',
+                    style: context.bodyLargeText?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             Column(
               children: [
@@ -394,7 +415,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      localizations.amountPaid,
+                      localizations!.amountPaid,
                       style: context.subtitleMedium?.copyWith(fontSize: 14),
                     ),
                     Text(
@@ -414,7 +435,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      localizations.amountDue,
+                      localizations!.amountDue,
                       style: context.subtitleMedium?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -439,7 +460,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  localizations.paymentStatus,
+                  localizations!.paymentStatus,
                   style: context.subtitleMedium?.copyWith(fontSize: 14),
                 ),
                 Container(
@@ -455,8 +476,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ),
                   child: Text(
                     ((widget.amountRemaining ?? 0) == 0)
-                        ? localizations.paid
-                        : localizations.unpaid,
+                        ? localizations!.paid
+                        : localizations!.unpaid,
                     style: TextStyle(
                       color: ((widget.amountRemaining ?? 0) == 0)
                           ? Colors.green
@@ -476,13 +497,13 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    localizations.nextPaymentDate,
+                    localizations!.nextPaymentDate,
                     style: context.subtitleMedium?.copyWith(fontSize: 14),
                   ),
                   Text(
                     widget.nextPaymentDate.isNotEmpty
                         ? widget.nextPaymentDate
-                        : localizations.notSet,
+                        : localizations!.notSet,
                     style: context.bodyLargeText?.copyWith(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -512,7 +533,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               ),
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                localizations.editBill,
+                localizations!.editBill,
                 style: const TextStyle(fontSize: 16, color: Colors.white),
               ),
             ),
@@ -534,8 +555,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               onPressed: () => _showConfirmDialog(context),
               child: Text(
                 widget.isEditMode
-                    ? localizations.updateBill
-                    : localizations.confirmBill,
+                    ? localizations!.updateBill
+                    : localizations!.confirmBill,
                 style: const TextStyle(fontSize: 16),
               ),
             ),
@@ -553,19 +574,19 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
         return AlertDialog(
           title: Text(
             widget.isEditMode
-                ? localizations.updateBill
-                : localizations.confirmBill,
+                ? localizations!.updateBill
+                : localizations!.confirmBill,
             style: context.bodyLargeText?.copyWith(fontWeight: FontWeight.bold),
           ),
           content: Text(
             widget.isEditMode
-                ? localizations.areYouSureUpdateBill
-                : localizations.areYouSureCreateBill,
+                ? localizations!.areYouSureUpdateBill
+                : localizations!.areYouSureCreateBill,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(localizations.no),
+              child: Text(localizations!.no),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -576,7 +597,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
               ),
-              child: Text(localizations.yes),
+              child: Text(localizations!.yes),
             ),
           ],
         );
@@ -608,8 +629,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                     const SizedBox(height: 16),
                     Text(
                       widget.isEditMode
-                          ? localizations.updatingBill
-                          : localizations.creatingBill,
+                          ? localizations!.updatingBill
+                          : localizations!.creatingBill,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -632,7 +653,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           Navigator.of(context).popUntil((route) => route.isFirst);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(localizations.billUpdatedSuccessfully),
+              content: Text(localizations!.billUpdatedSuccessfully),
               backgroundColor: Colors.green,
             ),
           );
@@ -655,6 +676,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 paymentMethod: widget.paymentMethod,
                 nextPaymentDate: widget.nextPaymentDate,
                 billNumber: _currentBillNumber,
+                deliveryCharges: widget.deliveryCharges,
               ),
             ),
           );
@@ -667,8 +689,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           SnackBar(
             content: Text(
               widget.isEditMode
-                  ? '${localizations.errorUpdatingBill}: $e'
-                  : '${localizations.errorCreatingBill}: $e',
+                  ? '${localizations!.errorUpdatingBill}: $e'
+                  : '${localizations!.errorCreatingBill}: $e',
             ),
             backgroundColor: Colors.red,
           ),
@@ -741,6 +763,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       'amountRemaining': actualAmountRemaining,
       'paymentMethod': widget.paymentMethod,
       'nextPaymentDate': widget.nextPaymentDate,
+      'deliveryCharges': widget.deliveryCharges,
       'timestamp': DateTime.now().toIso8601String(),
       'products': {
         for (int i = 0; i < widget.products.length; i++)

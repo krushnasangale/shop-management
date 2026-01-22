@@ -327,6 +327,7 @@
     "no_results_found": "No results found",
     "bill_date": "Bill Date",
     "total_amount": "Total Amount",
+    "delivery_charges": "Delivery Charges",
     "paid": "Paid",
     "payment_progress": "Payment Progress",
     "purchased_entries": "Purchased Entries",

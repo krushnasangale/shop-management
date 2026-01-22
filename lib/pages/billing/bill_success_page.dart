@@ -47,6 +47,7 @@ class BillSuccessPage extends StatefulWidget {
   final String paymentMethod;
   final String nextPaymentDate;
   final int billNumber;
+  final int deliveryCharges;
 
   const BillSuccessPage({
     required this.customerName,
@@ -59,6 +60,7 @@ class BillSuccessPage extends StatefulWidget {
     this.paymentMethod = 'cash',
     this.nextPaymentDate = '',
     required this.billNumber,
+    this.deliveryCharges = 0,
     super.key,
   });
 
@@ -77,6 +79,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   late String paymentMethod;
   late String nextPaymentDate;
   late int billNumber;
+  late int deliveryCharges;
 
   @override
   void initState() {
@@ -91,6 +94,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     paymentMethod = widget.paymentMethod;
     nextPaymentDate = widget.nextPaymentDate;
     billNumber = widget.billNumber;
+    deliveryCharges = widget.deliveryCharges;
   }
 
   @override
@@ -672,6 +676,48 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 pw.SizedBox(height: 50),
               ],
             ),
+            // Delivery Charges row (if applicable)
+            if (deliveryCharges > 0) ...[
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: PdfColors.grey200),
+                children: [
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(
+                      'Delivery Charges:',
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.right,
+                    ),
+                  ),
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.all(5),
+                    child: pw.Text(
+                      'Rs. $deliveryCharges',
+                      style: pw.TextStyle(
+                        fontSize: 9,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.right,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             // Total row
             pw.TableRow(
               decoration: pw.BoxDecoration(color: PdfColors.grey300),
