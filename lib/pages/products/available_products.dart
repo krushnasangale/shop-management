@@ -9,7 +9,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-
+import 'package:http/http.dart' as http;
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/products/available_product_item_detail.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
@@ -456,6 +456,100 @@ class _AvailableProductsState extends State<AvailableProducts> {
     }
   }
 
+  void _shareProduct(String productName, String? imageUrl) async {
+    try {
+      final shareText = productName;
+
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        // Show loading dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return Dialog(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Preparing image for sharing...',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+
+        // Download the image
+        final response = await http.get(Uri.parse(imageUrl));
+        if (response.statusCode == 200) {
+          // Close loading dialog
+          if (mounted) {
+            Navigator.pop(context);
+          }
+
+          // Save to temporary file
+          final tempDir = await getTemporaryDirectory();
+          final fileName =
+              'shared_product_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final tempFile = File('${tempDir.path}/$fileName');
+          await tempFile.writeAsBytes(response.bodyBytes);
+
+          // Share with image
+          await Share.shareXFiles([XFile(tempFile.path)], text: shareText);
+
+          // Clean up temp file after sharing
+          tempFile.delete().ignore();
+        } else {
+          // Close loading dialog
+          if (mounted) {
+            Navigator.pop(context);
+          }
+
+          // Fallback to text-only sharing if image download fails
+          await Share.share(shareText);
+        }
+      } else {
+        // Share text only
+        await Share.share(shareText);
+      }
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // Fallback to text-only sharing on any error
+      try {
+        await Share.share('📦 $productName');
+      } catch (fallbackError) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to share product: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Future<File> _generateProductsPDF() async {
     final pdf = pw.Document();
     final dir = await getTemporaryDirectory();
@@ -835,11 +929,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final stockColor = _getStockColor(quantity, minLimit);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: stockColor.withOpacity(0.15),
         border: Border.all(color: stockColor, width: 1),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -984,148 +1078,359 @@ class _AvailableProductsState extends State<AvailableProducts> {
           borderWidth = 2.0;
         }
 
-        return Card(
-          color: cardColor,
-          elevation: 1,
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.0),
-            side: BorderSide(color: borderColor, width: borderWidth),
-          ),
-          child: InkWell(
-            onTap: () {
-              AppNavigator.push(
-                context,
-                AvailableProductDetailScreen(
-                  product: firstBatch,
-                  userId: _currentUserId,
-                ),
-              );
-            },
-            borderRadius: BorderRadius.circular(10.0),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 10.0,
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+                spreadRadius: 1,
               ),
-              child: Row(
-                children: [
-                  // Left side: Product Name and Unit
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              BoxShadow(
+                color: borderColor.withOpacity(0.1),
+                blurRadius: 0,
+                offset: const Offset(0, 0),
+                spreadRadius: borderWidth,
+              ),
+            ],
+            gradient: LinearGradient(
+              colors: [
+                cardColor ?? Colors.white,
+                (cardColor ?? Colors.white).withOpacity(0.95),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16.0),
+            child: Stack(
+              children: [
+                InkWell(
+                  onTap: () {
+                    AppNavigator.push(
+                      context,
+                      AvailableProductDetailScreen(
+                        product: firstBatch,
+                        userId: _currentUserId,
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16.0),
+                  splashColor: Colors.blue.withOpacity(0.1),
+                  highlightColor: Colors.blue.withOpacity(0.05),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
                       children: [
-                        // Product Name
-                        Text(
-                          productName[0].toUpperCase() +
-                              productName.substring(1),
-                          style: context.titleLarge?.copyWith(fontSize: 15),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        // Unit and Quantity in one row
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.straighten,
-                              size: 14,
-                              color: context.secondaryTextColor,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(unit, style: context.subtitleSmall),
-                            const SizedBox(width: 12),
-                            Icon(
-                              Icons.inventory_2_outlined,
-                              size: 14,
-                              color: Colors.blue[700],
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$totalQty',
-                              style: TextStyle(
-                                color: Colors.blue[700],
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Expiry warning (if any)
-                        if (expiringQuantity > 0) ...[
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              Icon(
-                                hasExpired
-                                    ? Icons.error_outline
-                                    : Icons.warning_amber_rounded,
-                                size: 12,
-                                color: hasExpired
-                                    ? Colors.red[700]
-                                    : (daysUntilNearestExpiry != null &&
-                                          daysUntilNearestExpiry < 30)
-                                    ? Colors.red[700]
-                                    : Colors.orange[700],
-                              ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  hasExpired
-                                      ? localizations.expiredText
-                                            .replaceAll(
-                                              '{quantity}',
-                                              expiringQuantity.toString(),
-                                            )
-                                            .replaceAll('{unit}', unit)
-                                      : daysUntilNearestExpiry == 0
-                                      ? localizations.expiringToday
-                                            .replaceAll(
-                                              '{quantity}',
-                                              expiringQuantity.toString(),
-                                            )
-                                            .replaceAll('{unit}', unit)
-                                      : daysUntilNearestExpiry == 1
-                                      ? localizations.expiringTomorrow
-                                            .replaceAll(
-                                              '{quantity}',
-                                              expiringQuantity.toString(),
-                                            )
-                                            .replaceAll('{unit}', unit)
-                                      : localizations.expiringInDays
-                                            .replaceAll(
-                                              '{quantity}',
-                                              expiringQuantity.toString(),
-                                            )
-                                            .replaceAll('{unit}', unit)
-                                            .replaceAll(
-                                              '{days}',
-                                              daysUntilNearestExpiry.toString(),
-                                            ),
-                                  style: TextStyle(
-                                    color: hasExpired
-                                        ? Colors.red[700]
-                                        : (daysUntilNearestExpiry != null &&
-                                              daysUntilNearestExpiry < 30)
-                                        ? Colors.red[700]
-                                        : Colors.orange[700],
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 11,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                        // Product Image (if available) - Left side
+                        if (firstBatch.imageUrl != null &&
+                            firstBatch.imageUrl!.isNotEmpty)
+                          Container(
+                            width: 48,
+                            height: 48,
+                            margin: const EdgeInsets.only(right: 12.0),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
                                 ),
+                              ],
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                firstBatch.imageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    color: Colors.grey.shade100,
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      size: 24,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  );
+                                },
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    color: Colors.grey.shade50,
+                                    child: Center(
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          value:
+                                              loadingProgress
+                                                      .expectedTotalBytes !=
+                                                  null
+                                              ? loadingProgress
+                                                        .cumulativeBytesLoaded /
+                                                    loadingProgress
+                                                        .expectedTotalBytes!
+                                              : null,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
+                            ),
+                          )
+                        else
+                          Container(
+                            width: 48,
+                            height: 48,
+                            margin: const EdgeInsets.only(right: 12.0),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              color: Colors.blue.shade50,
+                              border: Border.all(
+                                color: Colors.blue.shade100,
+                                width: 1,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.inventory_2,
+                              color: Colors.blue.shade600,
+                              size: 24,
+                            ),
+                          ),
+
+                        // Product Details - Center
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Product Name with modern styling
+                              Text(
+                                productName[0].toUpperCase() +
+                                    productName.substring(1),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: Theme.of(
+                                        context,
+                                      ).textTheme.bodyLarge?.color,
+                                      letterSpacing: 0.5,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+
+                              // Unit and Quantity with modern chips
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.grey.shade200,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.straighten,
+                                          size: 14,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          unit,
+                                          style: TextStyle(
+                                            color: Colors.grey.shade700,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.blue.shade200,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.inventory_2_outlined,
+                                          size: 14,
+                                          color: Colors.blue.shade700,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '$totalQty',
+                                          style: TextStyle(
+                                            color: Colors.blue.shade800,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  _buildStockBadge(totalQty, minLimitForStatus),
+                                  const SizedBox(width: 8),
+                                  Container(
+                                    width: 32,
+                                    height: 24,
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Colors.green.shade200,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: Icon(
+                                        Icons.share,
+                                        size: 14,
+                                        color: Colors.green.shade700,
+                                      ),
+                                      onPressed: () => _shareProduct(
+                                        productName,
+                                        firstBatch.imageUrl,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              // Expiry warning with modern styling
+                              if (expiringQuantity > 0) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        (hasExpired
+                                                ? Colors.red
+                                                : Colors.orange)
+                                            .withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color:
+                                          (hasExpired
+                                                  ? Colors.red
+                                                  : Colors.orange)
+                                              .withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        hasExpired
+                                            ? Icons.error_outline
+                                            : Icons.warning_amber_rounded,
+                                        size: 14,
+                                        color: hasExpired
+                                            ? Colors.red[700]
+                                            : (daysUntilNearestExpiry != null &&
+                                                  daysUntilNearestExpiry < 30)
+                                            ? Colors.red[700]
+                                            : Colors.orange[700],
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          hasExpired
+                                              ? localizations.expiredText
+                                                    .replaceAll(
+                                                      '{quantity}',
+                                                      expiringQuantity
+                                                          .toString(),
+                                                    )
+                                                    .replaceAll('{unit}', unit)
+                                              : daysUntilNearestExpiry == 0
+                                              ? localizations.expiringToday
+                                                    .replaceAll(
+                                                      '{quantity}',
+                                                      expiringQuantity
+                                                          .toString(),
+                                                    )
+                                                    .replaceAll('{unit}', unit)
+                                              : daysUntilNearestExpiry == 1
+                                              ? localizations.expiringTomorrow
+                                                    .replaceAll(
+                                                      '{quantity}',
+                                                      expiringQuantity
+                                                          .toString(),
+                                                    )
+                                                    .replaceAll('{unit}', unit)
+                                              : localizations.expiringInDays
+                                                    .replaceAll(
+                                                      '{quantity}',
+                                                      expiringQuantity
+                                                          .toString(),
+                                                    )
+                                                    .replaceAll('{unit}', unit)
+                                                    .replaceAll(
+                                                      '{days}',
+                                                      daysUntilNearestExpiry
+                                                          .toString(),
+                                                    ),
+                                          style: TextStyle(
+                                            color: hasExpired
+                                                ? Colors.red[800]
+                                                : (daysUntilNearestExpiry !=
+                                                          null &&
+                                                      daysUntilNearestExpiry <
+                                                          30)
+                                                ? Colors.red[800]
+                                                : Colors.orange[800],
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 11,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
-                        ],
+                        ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  // Right side: Stock badge
-                  _buildStockBadge(totalQty, minLimitForStatus),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -1149,6 +1454,7 @@ class BoughtProduct {
   final String batchId; // Unique identifier for this batch
   final String purchaseDate; // Date when batch was purchased
   final double profitMargin; // Profit per unit (sellingPrice - buyingPrice)
+  final String? imageUrl; // Product image URL
 
   BoughtProduct({
     required this.id,
@@ -1164,6 +1470,7 @@ class BoughtProduct {
     required this.batchId,
     required this.purchaseDate,
     required this.profitMargin,
+    this.imageUrl,
   });
 
   factory BoughtProduct.fromMap(
@@ -1189,6 +1496,7 @@ class BoughtProduct {
       batchId: data['batchId'] ?? id, // Fallback to id if not present
       purchaseDate: data['purchaseDate'] ?? data['date'] ?? '',
       profitMargin: margin,
+      imageUrl: data['imageUrl'] as String?,
     );
   }
 }
