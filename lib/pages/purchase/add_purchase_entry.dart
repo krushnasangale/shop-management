@@ -8,6 +8,10 @@ import 'package:crypto/crypto.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/add_purchase_review.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class AddPurchaseEntry extends StatefulWidget {
   final String? purchaseId;
@@ -30,6 +34,7 @@ class BoughtItem {
   int quantity; // Current quantity (decreases as items are sold)
   double buyingPrice;
   double sellingPrice;
+  String? imageUrl;
 
   BoughtItem({
     required this.productName,
@@ -42,6 +47,7 @@ class BoughtItem {
     required this.quantity,
     required this.buyingPrice,
     this.sellingPrice = 0,
+    this.imageUrl,
   });
 
   double get total => quantity * buyingPrice;
@@ -72,6 +78,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   double _totalBoughtAmount = 0.0;
 
   late TextEditingController _minLimitController;
+  String? _selectedProductImageUrl;
 
   AppLocalizations get appLocalizations => AppLocalizations.of(context)!;
 
@@ -160,6 +167,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               quantity: (data['quantity'] ?? 0) as int,
               buyingPrice: (data['buyingPrice'] ?? 0) as double,
               sellingPrice: (data['sellingPrice'] ?? 0) as double,
+              imageUrl: data['imageUrl'],
             ),
           );
           _selectedSupplierId = data['supplierId'] ?? '';
@@ -195,6 +203,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     (doc) => {
                       'id': doc.id,
                       'name': doc.data()['name'] ?? 'Unknown',
+                      'imageUrl': doc.data()['imageUrl'],
                     },
                   )
                   .toList();
@@ -265,6 +274,77 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       0.0,
       (sum, item) => sum + item.total,
     );
+  }
+
+  Future<void> _showImageSourceDialog(
+    Function(ImageSource) onSourceSelected,
+  ) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Choose Image Source', style: context.bodyLargeText),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera),
+              title: Text('Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                onSourceSelected(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text('Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                onSourceSelected(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectImage(Function(File?) onImageSelected) async {
+    await _showImageSourceDialog((source) async {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: source);
+      if (image != null) {
+        onImageSelected(File(image.path));
+      } else {
+        onImageSelected(null);
+      }
+    });
+  }
+
+  Future<String?> _uploadImageToStorage(String productId, File? image) async {
+    if (image == null) return null;
+
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('product-images')
+          .child(FirebaseAuth.instance.currentUser!.uid)
+          .child('$productId.jpg');
+
+      final uploadTask = storageRef.putFile(image);
+      await uploadTask;
+      final downloadUrl = await storageRef.getDownloadURL();
+
+      return downloadUrl;
+    } catch (e) {
+      // Error uploading image
+      return null;
+    }
   }
 
   void _showEditBoughtItemDialog(BoughtItem item) {
@@ -572,6 +652,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       quantity: quantity,
       buyingPrice: buyingPrice,
       sellingPrice: sellingPrice,
+      imageUrl: _selectedProductImageUrl,
     );
 
     setState(() {
@@ -587,6 +668,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _buyingPriceController.clear();
     _sellingPriceController.clear();
     _minLimitController.clear();
+    _selectedProductImageUrl = null;
   }
 
   void _removeBoughtItem(int index) {
@@ -665,12 +747,21 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               : _allUnits;
 
           // Get current filtered items based on search and current items list
-          List<Map<String, dynamic>> filteredItems = liveItems.where((item) {
-            final itemName = item['productName'] ?? item['name'] ?? '';
-            return itemName.toString().toLowerCase().contains(
-              searchController.text.toLowerCase(),
-            );
-          }).toList();
+          List<Map<String, dynamic>> filteredItems =
+              liveItems.where((item) {
+                final itemName = item['productName'] ?? item['name'] ?? '';
+                return itemName.toString().toLowerCase().contains(
+                  searchController.text.toLowerCase(),
+                );
+              }).toList()..sort((a, b) {
+                final aName = (a['productName'] ?? a['name'] ?? '')
+                    .toString()
+                    .toLowerCase();
+                final bName = (b['productName'] ?? b['name'] ?? '')
+                    .toString()
+                    .toLowerCase();
+                return aName.compareTo(bName);
+              });
 
           return DraggableScrollableSheet(
             initialChildSize: 0.7,
@@ -774,12 +865,67 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           itemBuilder: (context, index) {
                             final item = filteredItems[index];
                             return ListTile(
+                              tileColor:
+                                  (item['productName'] ?? item['name'] ?? '') ==
+                                      controller.text
+                                  ? Colors.blue.withOpacity(0.1)
+                                  : null,
+                              leading: title == 'Products'
+                                  ? Container(
+                                      width: 50,
+                                      height: 50,
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey[200],
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: item['imageUrl'] != null
+                                          ? ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                              child: CachedNetworkImage(
+                                                imageUrl: item['imageUrl'],
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    const Center(
+                                                      child: SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        const Icon(
+                                                          Icons.inventory_2,
+                                                          color: Colors.grey,
+                                                          size: 24,
+                                                        ),
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.inventory_2,
+                                              color: Colors.grey,
+                                              size: 24,
+                                            ),
+                                    )
+                                  : null,
                               title: Text(
                                 item['productName'] ?? item['name'] ?? '',
                               ),
+                              trailing:
+                                  (item['productName'] ?? item['name'] ?? '') ==
+                                      controller.text
+                                  ? Icon(Icons.check, color: Colors.blue)
+                                  : null,
                               onTap: () {
                                 controller.text =
                                     item['productName'] ?? item['name'] ?? '';
+                                if (title == 'Products') {
+                                  _selectedProductImageUrl = item['imageUrl'];
+                                }
                                 Navigator.pop(context);
                               },
                             );
@@ -800,6 +946,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   ) {
     final productNameController = TextEditingController();
     String productNameError = '';
+    File? selectedImage;
+    bool isUploading = false;
 
     showDialog(
       context: context,
@@ -848,6 +996,85 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    // Image Selection
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Product Image (Optional)',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () async {
+                            await _selectImage((file) {
+                              setDialogState(() {
+                                selectedImage = file;
+                              });
+                            });
+                          },
+                          child: Container(
+                            height: 120,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.grey[300]!),
+                            ),
+                            child: selectedImage != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(
+                                      selectedImage!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.add_photo_alternate,
+                                        size: 40,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Tap to select image',
+                                        style: TextStyle(
+                                          color: Colors.grey[500],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        if (selectedImage != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: TextButton.icon(
+                              onPressed: () {
+                                setDialogState(() {
+                                  selectedImage = null;
+                                });
+                              },
+                              icon: const Icon(Icons.clear, size: 16),
+                              label: const Text('Remove Image'),
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.red,
+                                padding: EdgeInsets.zero,
+                                minimumSize: Size.zero,
+                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -857,80 +1084,68 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   child: Text(appLocalizations.cancel),
                 ),
                 ElevatedButton(
-                  onPressed:
-                      (productNameError.isEmpty &&
-                          productNameController.text.trim().isNotEmpty)
-                      ? () async {
-                          var productName = productNameController.text.trim();
-
-                          // Capitalize first letter
-                          productName = productName.isNotEmpty
-                              ? productName[0].toUpperCase() +
-                                    productName.substring(1)
-                              : productName;
-
-                          try {
-                            final user = FirebaseAuth.instance.currentUser;
-                            if (user != null) {
-                              final productsRef = FirebaseFirestore.instance
+                  onPressed: isUploading
+                      ? null
+                      : () async {
+                          if (productNameController.text.isNotEmpty) {
+                            setDialogState(() {
+                              isUploading = true;
+                            });
+                            try {
+                              // Create product document first to get ID
+                              final docRef = await FirebaseFirestore.instance
                                   .collection('product-names')
-                                  .doc(user.uid)
-                                  .collection('items');
+                                  .doc(FirebaseAuth.instance.currentUser!.uid)
+                                  .collection('items')
+                                  .add({
+                                    'name': productNameController.text.trim(),
+                                  });
 
-                              final newProduct = {'name': productName};
+                              // Upload image if selected
+                              String? imageUrl;
+                              if (selectedImage != null) {
+                                imageUrl = await _uploadImageToStorage(
+                                  docRef.id,
+                                  selectedImage,
+                                );
+                                if (imageUrl != null) {
+                                  await docRef.update({'imageUrl': imageUrl});
+                                }
+                              }
 
-                              await productsRef.add(newProduct);
-
-                              // Don't manually add - let the Firestore listener handle it
-                              // This prevents duplicates when the listener fires
-
-                              // Small delay to allow listener to update, then refresh modal
+                              // Small delay to allow Firestore listener to update, then refresh modal
                               await Future.delayed(
                                 const Duration(milliseconds: 200),
                               );
 
-                              setModalState(() {
-                                // This will trigger a rebuild of the modal sheet with updated items
-                              });
+                              setModalState(() {});
 
-                              if (mounted) {
+                              if (context.mounted) {
                                 Navigator.pop(context);
+                              }
+                            } catch (e) {
+                              setDialogState(() {
+                                isUploading = false;
+                              });
+                              if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
-                                      appLocalizations.productAddedSuccessfully
-                                          .replaceAll(
-                                            '{productName}',
-                                            productName,
-                                          ),
+                                      '${appLocalizations.error}: $e',
                                     ),
                                   ),
                                 );
                               }
                             }
-                          } catch (e) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    '${appLocalizations.error}: $e',
-                                  ),
-                                ),
-                              );
-                            }
                           }
-                        }
-                      : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    appLocalizations.add,
-                    style: const TextStyle(color: Colors.white),
-                  ),
+                        },
+                  child: isUploading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(appLocalizations.add),
                 ),
               ],
             );
@@ -1096,6 +1311,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             'location': data['location'] ?? '',
           });
         }
+        displaySuppliers.sort(
+          (a, b) => (a['name'] as String).compareTo(b['name'] as String),
+        );
       });
     }
 
@@ -1266,40 +1484,32 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                             final contact = supplier['contact'] ?? '';
                             final location = supplier['location'] ?? '';
 
-                            return Card(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                dense: true,
-                                title: Text(
-                                  name,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                            final isSelected =
+                                supplier['id'] == _selectedSupplierId;
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? Colors.blue.shade50
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
                                   ),
-                                ),
-                                subtitle: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '${appLocalizations.contactLabel}$contact',
-                                        style: const TextStyle(fontSize: 12),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        '${appLocalizations.locationLabel}$location',
-                                        style: const TextStyle(fontSize: 12),
-                                        overflow: TextOverflow.ellipsis,
-                                        textAlign: TextAlign.end,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
+                                ],
+                                border: isSelected
+                                    ? Border.all(
+                                        color: Colors.blue.shade200,
+                                        width: 2,
+                                      )
+                                    : null,
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
                                 onTap: () {
                                   setState(() {
                                     _supplierNameController.text = name;
@@ -1307,6 +1517,114 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   });
                                   Navigator.pop(context);
                                 },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        backgroundColor: isSelected
+                                            ? Colors.blue.shade100
+                                            : Colors.white,
+                                        radius: 18,
+                                        child: Icon(
+                                          Icons.business,
+                                          color: isSelected
+                                              ? Colors.blue.shade800
+                                              : Colors.grey.shade600,
+                                          size: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              name,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: isSelected
+                                                    ? Colors.blue.shade800
+                                                    : Theme.of(context)
+                                                          .textTheme
+                                                          .bodyLarge
+                                                          ?.color,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.phone,
+                                                  size: 12,
+                                                  color: isSelected
+                                                      ? Colors.blue.shade600
+                                                      : Theme.of(context)
+                                                            .textTheme
+                                                            .bodyMedium
+                                                            ?.color,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    contact,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: isSelected
+                                                          ? Colors.blue.shade600
+                                                          : Theme.of(context)
+                                                                .textTheme
+                                                                .bodyMedium
+                                                                ?.color,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Icon(
+                                                  Icons.location_on,
+                                                  size: 12,
+                                                  color: isSelected
+                                                      ? Colors.blue.shade600
+                                                      : Theme.of(context)
+                                                            .textTheme
+                                                            .bodyMedium
+                                                            ?.color,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    location,
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: isSelected
+                                                          ? Colors.blue.shade600
+                                                          : Theme.of(context)
+                                                                .textTheme
+                                                                .bodyMedium
+                                                                ?.color,
+                                                    ),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        Icon(
+                                          Icons.check_circle,
+                                          color: Colors.blue.shade800,
+                                          size: 20,
+                                        ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             );
                           },
@@ -1737,6 +2055,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'batchId': batchId,
           'purchaseDate': _dateController.text,
           'profitMargin': (item.sellingPrice - item.buyingPrice).toDouble(),
+          'imageUrl': item.imageUrl,
         };
 
         final productDoc = await productsCol.add(productEntry);
@@ -1756,6 +2075,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'date': _dateController.text,
           'timestamp': DateTime.now().toIso8601String(),
           'batchId': batchId,
+          'imageUrl': item.imageUrl,
         };
         await historyCol.add(historyEntry);
       }
@@ -2058,8 +2378,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               (item) =>
                                   item.sellingPrice <= 0 || item.minLimit <= 0,
                             )
-                            ? 215
-                            : 165,
+                            ? 260
+                            : 210,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           shrinkWrap: false,
@@ -2241,6 +2561,43 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                                     MainAxisAlignment
                                                         .spaceBetween,
                                                 children: [
+                                                  // Product Image
+                                                  if (item.imageUrl != null)
+                                                    Container(
+                                                      width: double.infinity,
+                                                      height: 60,
+                                                      child: CachedNetworkImage(
+                                                        imageUrl:
+                                                            item.imageUrl!,
+                                                        fit: BoxFit.cover,
+                                                        placeholder:
+                                                            (
+                                                              context,
+                                                              url,
+                                                            ) => Container(
+                                                              color: Colors
+                                                                  .grey[200],
+                                                              child: const Center(
+                                                                child:
+                                                                    CircularProgressIndicator(),
+                                                              ),
+                                                            ),
+                                                        errorWidget:
+                                                            (
+                                                              context,
+                                                              url,
+                                                              error,
+                                                            ) => Container(
+                                                              color: Colors
+                                                                  .grey[200],
+                                                              child: const Icon(
+                                                                Icons
+                                                                    .image_not_supported,
+                                                              ),
+                                                            ),
+                                                      ),
+                                                    ),
+                                                  const SizedBox(height: 4),
                                                   // Product Name
                                                   Text(
                                                     item.productName,
