@@ -38,10 +38,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
   // Infinite scroll variables
   final ScrollController _scrollController = ScrollController();
-  int _itemsPerPage = 100;
+  final int _itemsPerPage = 100;
   int _currentlyLoadedItems = 100;
   bool _isLoadingMore = false;
   bool _isGeneratingReport = false;
+  double _generationProgress = 0.0;
 
   late final AppLocalizations localizations;
 
@@ -431,6 +432,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
   }
 
   Future<File> _generateProductsCatalogue(bool includePrices) async {
+    // Initialize progress
+    setState(() {
+      _generationProgress = 0.1; // 10% - Starting
+    });
+
     final pdf = pw.Document();
     final dir = await getTemporaryDirectory();
     final now = DateTime.now();
@@ -439,6 +445,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final file = File('${dir.path}/products_catalogue_$dateTimeString.pdf');
 
     // Group all products by name and calculate total quantities
+    setState(() {
+      _generationProgress = 0.2; // 20% - Grouping products
+    });
+
     Map<String, Map<String, dynamic>> groupedProducts = {};
     for (var product in _boughtProducts) {
       final productName = product.productName;
@@ -457,8 +467,14 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final productsList = groupedProducts.values.toList();
 
     // Download images for products that have them
+    setState(() {
+      _generationProgress = 0.3; // 30% - Starting image downloads
+    });
+
     Map<String, Uint8List?> productImages = {};
-    for (var product in productsList) {
+    final totalProducts = productsList.length;
+    for (int i = 0; i < productsList.length; i++) {
+      final product = productsList[i];
       final imageUrl = product['imageUrl'] as String?;
       final productName = product['name'] as String;
       if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -478,7 +494,17 @@ class _AvailableProductsState extends State<AvailableProducts> {
         debugPrint('No image URL for $productName');
         productImages[productName] = null;
       }
+
+      // Update progress during image downloads (30% to 70%)
+      setState(() {
+        _generationProgress = 0.3 + (0.4 * (i + 1) / totalProducts);
+      });
     }
+
+    // Build PDF content
+    setState(() {
+      _generationProgress = 0.8; // 80% - Building PDF content
+    });
 
     pdf.addPage(
       pw.MultiPage(
@@ -649,7 +675,18 @@ class _AvailableProductsState extends State<AvailableProducts> {
       ),
     );
 
+    // Save PDF file
+    setState(() {
+      _generationProgress = 0.9; // 90% - Saving file
+    });
+
     await file.writeAsBytes(await pdf.save());
+
+    // Complete
+    setState(() {
+      _generationProgress = 1.0; // 100% - Complete
+    });
+
     return file;
   }
 
@@ -703,6 +740,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     } finally {
       setState(() {
         _isGeneratingReport = false;
+        _generationProgress = 0.0;
       });
     }
   }
@@ -1052,22 +1090,96 @@ class _AvailableProductsState extends State<AvailableProducts> {
           // Loading overlay for catalogue generation
           if (_isGeneratingReport)
             Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 16),
-                    Text(
-                      'Generating Catalogue...',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+              color: Colors.black.withOpacity(0.7),
+              child: Center(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 32),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 20,
+                        spreadRadius: 5,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Animated icon
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const SizedBox(
+                          width: 32,
+                          height: 32,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.blue,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Title
+                      const Text(
+                        'Generating Catalogue',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Subtitle
+                      Text(
+                        'Please wait while we prepare your product catalogue...',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w400,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      // Progress bar
+                      Container(
+                        width: double.infinity,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: _generationProgress,
+                            backgroundColor: Colors.transparent,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.blue,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Percentage text
+                      Text(
+                        '${(_generationProgress * 100).toInt()}%',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
