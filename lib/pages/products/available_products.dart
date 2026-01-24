@@ -9,6 +9,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:typed_data';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/products/available_product_item_detail.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
@@ -39,6 +41,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
   int _itemsPerPage = 100;
   int _currentlyLoadedItems = 100;
   bool _isLoadingMore = false;
+  bool _isGeneratingReport = false;
 
   late final AppLocalizations localizations;
 
@@ -316,6 +319,23 @@ class _AvailableProductsState extends State<AvailableProducts> {
             children: [
               Text(localizations.selectFormatToExport),
               const SizedBox(height: 16),
+              // Share Products Catalogue - First option
+              SizedBox(
+                width: double.maxFinite,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.photo_library),
+                  label: const Text('Share Products Catalogue'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showCatalogueOptionsDialog();
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.maxFinite,
                 child: ElevatedButton.icon(
@@ -360,68 +380,330 @@ class _AvailableProductsState extends State<AvailableProducts> {
     );
   }
 
-  void _generateAndSharePDF() async {
-    try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(12),
+  void _showCatalogueOptionsDialog() {
+    bool includePrices = true; // Default to include prices
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text(
+                'Catalogue Options',
+                style: TextStyle(color: context.bodyLargeText!.color),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('Choose what to include in your catalogue:'),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    title: const Text('Include Product Prices'),
+                    value: includePrices,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        includePrices = value ?? true;
+                      });
+                    },
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      localizations.generatingPdf,
-                      style: Theme.of(context).textTheme.bodyLarge,
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _generateAndShareCatalogue(includePrices);
+                  },
+                  child: const Text('Generate Catalogue'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<File> _generateProductsCatalogue(bool includePrices) async {
+    final pdf = pw.Document();
+    final dir = await getTemporaryDirectory();
+    final now = DateTime.now();
+    final dateTimeString =
+        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
+    final file = File('${dir.path}/products_catalogue_$dateTimeString.pdf');
+
+    // Group all products by name and calculate total quantities
+    Map<String, Map<String, dynamic>> groupedProducts = {};
+    for (var product in _boughtProducts) {
+      final productName = product.productName;
+      if (!groupedProducts.containsKey(productName)) {
+        groupedProducts[productName] = {
+          'name': productName,
+          'imageUrl': product.imageUrl,
+          'unit': product.unit,
+          'sellingPrice': product.sellingPrice,
+          'totalQuantity': 0,
+        };
+      }
+      groupedProducts[productName]!['totalQuantity'] += product.quantity;
+    }
+
+    final productsList = groupedProducts.values.toList();
+
+    // Download images for products that have them
+    Map<String, Uint8List?> productImages = {};
+    for (var product in productsList) {
+      final imageUrl = product['imageUrl'] as String?;
+      final productName = product['name'] as String;
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        try {
+          final response = await http.get(Uri.parse(imageUrl));
+          if (response.statusCode == 200) {
+            productImages[productName] = response.bodyBytes;
+          } else {
+            productImages[productName] = null;
+          }
+        } catch (e) {
+          debugPrint('Error downloading image for $productName: $e');
+          // If image download fails, we'll use placeholder
+          productImages[productName] = null;
+        }
+      } else {
+        debugPrint('No image URL for $productName');
+        productImages[productName] = null;
+      }
+    }
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(20),
+        build: (pw.Context context) {
+          List<pw.Widget> widgets = [];
+
+          // Shop Header
+          widgets.add(
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.all(20),
+              decoration: pw.BoxDecoration(color: PdfColors.blue),
+              child: pw.Column(
+                children: [
+                  pw.Text(
+                    _shopName,
+                    style: pw.TextStyle(
+                      fontSize: 28,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.white,
                     ),
-                  ],
-                ),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 8),
+                  pw.Text(
+                    'Product Catalogue',
+                    style: pw.TextStyle(fontSize: 18, color: PdfColors.white),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'Generated on: ${now.toString().split('.')[0]}',
+                    style: pw.TextStyle(fontSize: 10, color: PdfColors.white),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ],
               ),
             ),
           );
-        },
-      );
 
-      final pdfFile = await _generateProductsPDF();
+          widgets.add(pw.SizedBox(height: 20));
 
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+          // Products Grid - 3 products per row
+          const int productsPerRow = 3;
+          for (int i = 0; i < productsList.length; i += productsPerRow) {
+            List<pw.Widget> rowWidgets = [];
 
-        await Share.shareXFiles(
-          [XFile(pdfFile.path)],
-          text: localizations.availableProductsReport.replaceAll(
-            '{shopName}',
-            _shopName,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              localizations.errorGeneratingPdf.replaceAll(
-                '{error}',
-                e.toString(),
+            for (
+              int j = 0;
+              j < productsPerRow && i + j < productsList.length;
+              j++
+            ) {
+              final product = productsList[i + j];
+              final productName = product['name'] as String;
+              final imageBytes = productImages[productName];
+
+              rowWidgets.add(
+                pw.Expanded(
+                  child: pw.Container(
+                    margin: const pw.EdgeInsets.all(5),
+                    padding: const pw.EdgeInsets.all(10),
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: PdfColors.grey300, width: 1),
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Column(
+                      children: [
+                        // Product Image
+                        pw.Container(
+                          width: 100,
+                          height: 100,
+                          decoration: pw.BoxDecoration(
+                            color: PdfColors.grey200,
+                          ),
+                          child: imageBytes != null
+                              ? pw.ClipRRect(
+                                  horizontalRadius: 8,
+                                  verticalRadius: 8,
+                                  child: pw.Image(
+                                    pw.MemoryImage(imageBytes),
+                                    fit: pw.BoxFit.cover,
+                                  ),
+                                )
+                              : pw.Center(
+                                  child: pw.Icon(
+                                    const pw.IconData(
+                                      0xe3f4,
+                                    ), // inventory_2 icon
+                                    size: 40,
+                                    color: PdfColors.grey600,
+                                  ),
+                                ),
+                        ),
+                        pw.SizedBox(height: 8),
+                        // Product Name
+                        pw.Text(
+                          product['name'].toString().toUpperCase(),
+                          style: pw.TextStyle(
+                            fontSize: 10,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                          textAlign: pw.TextAlign.center,
+                          maxLines: 2,
+                        ),
+                        pw.SizedBox(height: 4),
+                        // Quantity
+                        pw.Text(
+                          '${product['totalQuantity']} ${product['unit']}',
+                          style: pw.TextStyle(
+                            fontSize: 9,
+                            color: PdfColors.blue,
+                            fontWeight: pw.FontWeight.normal,
+                          ),
+                          textAlign: pw.TextAlign.center,
+                        ),
+                        // Price (if included)
+                        if (includePrices) ...[
+                          pw.SizedBox(height: 2),
+                          pw.Text(
+                            'RS ${(product['sellingPrice'] as double).toStringAsFixed(2)}',
+                            style: pw.TextStyle(
+                              fontSize: 10,
+                              fontWeight: pw.FontWeight.bold,
+                              color: PdfColors.green,
+                            ),
+                            textAlign: pw.TextAlign.center,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            widgets.add(pw.Row(children: rowWidgets));
+
+            // Add some space between rows
+            if (i + productsPerRow < productsList.length) {
+              widgets.add(pw.SizedBox(height: 10));
+            }
+          }
+
+          // Footer
+          widgets.add(pw.SizedBox(height: 20));
+          widgets.add(
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey100,
+                borderRadius: pw.BorderRadius.circular(5),
+              ),
+              child: pw.Text(
+                'Total Products: ${productsList.length}',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+                textAlign: pw.TextAlign.center,
               ),
             ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+          );
+
+          return widgets;
+        },
+      ),
+    );
+
+    await file.writeAsBytes(await pdf.save());
+    return file;
+  }
+
+  void _generateAndSharePDF() async {
+    try {
+      setState(() {
+        _isGeneratingReport = true;
+      });
+
+      final file = await _generateProductsPDF();
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '$_shopName - Products Report',
+        subject: 'Products Report - $_shopName',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(localizations.errorGeneratingPdf),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isGeneratingReport = false;
+      });
+    }
+  }
+
+  void _generateAndShareCatalogue(bool includePrices) async {
+    try {
+      setState(() {
+        _isGeneratingReport = true;
+      });
+
+      final file = await _generateProductsCatalogue(includePrices);
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        text: '$_shopName - Product Catalogue',
+        subject: 'Product Catalogue - $_shopName',
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error generating catalogue'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isGeneratingReport = false;
+      });
     }
   }
 
@@ -667,7 +949,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.share),
             onPressed: () => _showReportOptionsDialog(context),
           ),
           Container(
@@ -689,75 +971,106 @@ class _AvailableProductsState extends State<AvailableProducts> {
           const SizedBox(width: 14),
         ],
       ),
-      body: Column(
+      body: Stack(
         children: [
-          // --- Search Bar (Toggle Visibility) ---
-          if (_showSearchBar)
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 12.0,
-                right: 12.0,
-                top: 5,
-                bottom: 5.0,
-              ),
-              child: Card(
-                child: TextField(
-                  controller: _searchController,
-                  style: context.bodyLargeText,
-                  decoration: InputDecoration(
-                    hintText: localizations.searchProductOrSupplier,
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
-                    filled: false,
-                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          Column(
+            children: [
+              // --- Search Bar (Toggle Visibility) ---
+              if (_showSearchBar)
+                Padding(
+                  padding: const EdgeInsets.only(
+                    left: 12.0,
+                    right: 12.0,
+                    top: 5,
+                    bottom: 5.0,
                   ),
+                  child: Card(
+                    child: TextField(
+                      controller: _searchController,
+                      style: context.bodyLargeText,
+                      decoration: InputDecoration(
+                        hintText: localizations.searchProductOrSupplier,
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  _searchController.clear();
+                                },
+                              )
+                            : null,
+                        filled: false,
+                        fillColor: Theme.of(
+                          context,
+                        ).inputDecorationTheme.fillColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12.0),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // --- Filter Chips ---
+              if (!_showSearchBar) const SizedBox(height: 5),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 2.0,
+                ),
+                child: Row(
+                  children: _filterOptions.map((option) {
+                    return Row(
+                      children: [
+                        _buildFilterChip(option['key']!, option['label']!),
+                        if (option != _filterOptions.last)
+                          const SizedBox(width: 8),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+
+              // --- Product List (Grouped by Name with Batch Details) ---
+              Expanded(
+                child: _filteredProducts.isEmpty
+                    ? Center(
+                        child: Text(
+                          localizations.noProductsFound,
+                          style: context.subtitleMedium,
+                        ),
+                      )
+                    : _buildGroupedProductList(context),
+              ),
+            ],
+          ),
+          // Loading overlay for catalogue generation
+          if (_isGeneratingReport)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: Colors.white),
+                    SizedBox(height: 16),
+                    Text(
+                      'Generating Catalogue...',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-
-          // --- Filter Chips ---
-          if (!_showSearchBar) const SizedBox(height: 5),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 2.0,
-            ),
-            child: Row(
-              children: _filterOptions.map((option) {
-                return Row(
-                  children: [
-                    _buildFilterChip(option['key']!, option['label']!),
-                    if (option != _filterOptions.last) const SizedBox(width: 8),
-                  ],
-                );
-              }).toList(),
-            ),
-          ),
-
-          // --- Product List (Grouped by Name with Batch Details) ---
-          Expanded(
-            child: _filteredProducts.isEmpty
-                ? Center(
-                    child: Text(
-                      localizations.noProductsFound,
-                      style: context.subtitleMedium,
-                    ),
-                  )
-                : _buildGroupedProductList(context),
-          ),
         ],
       ),
     );
