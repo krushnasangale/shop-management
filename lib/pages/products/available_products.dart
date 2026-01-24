@@ -9,7 +9,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-import 'package:http/http.dart' as http;
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/products/available_product_item_detail.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
@@ -452,100 +451,6 @@ class _AvailableProductsState extends State<AvailableProducts> {
             backgroundColor: Colors.red,
           ),
         );
-      }
-    }
-  }
-
-  void _shareProduct(String productName, String? imageUrl) async {
-    try {
-      final shareText = productName;
-
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        // Show loading dialog
-        if (mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return Dialog(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Preparing image for sharing...',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        }
-
-        // Download the image
-        final response = await http.get(Uri.parse(imageUrl));
-        if (response.statusCode == 200) {
-          // Close loading dialog
-          if (mounted) {
-            Navigator.pop(context);
-          }
-
-          // Save to temporary file
-          final tempDir = await getTemporaryDirectory();
-          final fileName =
-              'shared_product_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final tempFile = File('${tempDir.path}/$fileName');
-          await tempFile.writeAsBytes(response.bodyBytes);
-
-          // Share with image
-          await Share.shareXFiles([XFile(tempFile.path)], text: shareText);
-
-          // Clean up temp file after sharing
-          tempFile.delete().ignore();
-        } else {
-          // Close loading dialog
-          if (mounted) {
-            Navigator.pop(context);
-          }
-
-          // Fallback to text-only sharing if image download fails
-          await Share.share(shareText);
-        }
-      } else {
-        // Share text only
-        await Share.share(shareText);
-      }
-    } catch (e) {
-      // Close loading dialog if it's open
-      if (mounted) {
-        Navigator.pop(context);
-      }
-
-      // Fallback to text-only sharing on any error
-      try {
-        await Share.share('📦 $productName');
-      } catch (fallbackError) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to share product: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
       }
     }
   }
@@ -1231,6 +1136,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
                               // Unit and Quantity with modern chips
                               Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.symmetric(
@@ -1299,31 +1206,6 @@ class _AvailableProductsState extends State<AvailableProducts> {
                                   ),
                                   const SizedBox(width: 8),
                                   _buildStockBadge(totalQty, minLimitForStatus),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    width: 32,
-                                    height: 24,
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.green.shade200,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: IconButton(
-                                      padding: EdgeInsets.zero,
-                                      icon: Icon(
-                                        Icons.share,
-                                        size: 14,
-                                        color: Colors.green.shade700,
-                                      ),
-                                      onPressed: () => _shareProduct(
-                                        productName,
-                                        firstBatch.imageUrl,
-                                      ),
-                                    ),
-                                  ),
                                 ],
                               ),
 
@@ -1497,6 +1379,40 @@ class BoughtProduct {
       purchaseDate: data['purchaseDate'] ?? data['date'] ?? '',
       profitMargin: margin,
       imageUrl: data['imageUrl'] as String?,
+    );
+  }
+
+  BoughtProduct copyWith({
+    String? id,
+    String? date,
+    String? productName,
+    String? supplierName,
+    String? unit,
+    String? expiryDate,
+    int? minLimit,
+    int? quantity,
+    double? buyingPrice,
+    double? sellingPrice,
+    String? batchId,
+    String? purchaseDate,
+    double? profitMargin,
+    String? imageUrl,
+  }) {
+    return BoughtProduct(
+      id: id ?? this.id,
+      date: date ?? this.date,
+      productName: productName ?? this.productName,
+      supplierName: supplierName ?? this.supplierName,
+      unit: unit ?? this.unit,
+      expiryDate: expiryDate ?? this.expiryDate,
+      minLimit: minLimit ?? this.minLimit,
+      quantity: quantity ?? this.quantity,
+      buyingPrice: buyingPrice ?? this.buyingPrice,
+      sellingPrice: sellingPrice ?? this.sellingPrice,
+      batchId: batchId ?? this.batchId,
+      purchaseDate: purchaseDate ?? this.purchaseDate,
+      profitMargin: profitMargin ?? this.profitMargin,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }

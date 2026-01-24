@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'dart:async';
+import 'dart:io';
 import 'package:flashbill/pages/products/available_products.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/pages/products/tabs/sales_history_tab.dart';
@@ -375,6 +381,328 @@ class _AvailableProductDetailScreenState
         return _sortSalesAscending ? comparison : -comparison;
       });
     });
+  }
+
+  Future<String?> _uploadImageToStorage(String productId, File? image) async {
+    if (image == null) return null;
+
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('product-images')
+          .child(widget.userId)
+          .child('$productId.jpg');
+
+      // Delete the old image if it exists
+      try {
+        await storageRef.delete();
+      } catch (e) {
+        // Ignore if the file doesn't exist
+      }
+
+      final uploadTask = storageRef.putFile(image);
+      await uploadTask;
+      final downloadUrl = await storageRef.getDownloadURL();
+
+      return downloadUrl;
+    } catch (e) {
+      // Error uploading image
+      return null;
+    }
+  }
+
+  Future<void> _showImageSourceDialog(
+    Function(ImageSource) onSourceSelected,
+  ) async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Choose Image Source', style: context.bodyLargeText),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera),
+              title: Text('Camera'),
+              onTap: () {
+                Navigator.pop(context);
+                onSourceSelected(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library),
+              title: Text('Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                onSourceSelected(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectImage() async {
+    await _showImageSourceDialog((source) async {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(source: source);
+      if (image != null) {
+        // Show loading dialog
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return const Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          },
+        );
+
+        try {
+          // Upload image to Firebase Storage
+          final imageUrl = await _uploadImageToStorage(
+            widget.product.id,
+            File(image.path),
+          );
+
+          if (imageUrl != null) {
+            // Update the product document with new image URL
+            await FirebaseFirestore.instance
+                .collection('purchased-products')
+                .doc(widget.userId)
+                .collection('items')
+                .doc(widget.product.id)
+                .update({'imageUrl': imageUrl});
+
+            // Close loading dialog
+            if (mounted) {
+              Navigator.pop(context);
+            }
+
+            // Show success message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Product image updated successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+
+            // Refresh the page to show new image
+            // Note: In a real app, you might want to update the state instead
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AvailableProductDetailScreen(
+                  product: widget.product.copyWith(imageUrl: imageUrl),
+                  userId: widget.userId,
+                ),
+              ),
+            );
+          } else {
+            // Close loading dialog
+            if (mounted) {
+              Navigator.pop(context);
+            }
+
+            // Show error message
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to upload image. Please try again.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          // Close loading dialog
+          if (mounted) {
+            Navigator.pop(context);
+          }
+
+          // Show error message
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Error updating image: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    });
+  }
+
+  void _shareProduct(String productName, String? imageUrl) async {
+    // Check if there are multiple batches
+    if (_allBatches.length > 1) {
+      // Show batch selection dialog
+      final selectedBatch = await showDialog<BoughtProduct>(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Select Batch to Share', style: context.bodyLargeText),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: _allBatches.length,
+                itemBuilder: (context, index) {
+                  final batch = _allBatches[index];
+                  return ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Colors.blue.shade100,
+                      child: Text('${index + 1}', style: TextStyle(color: Colors.blue.shade800)),
+                    ),
+                    title: Text('${batch.supplierName} - ${batch.purchaseDate}'),
+                    subtitle: Text('${batch.quantity} ${batch.unit} @ ₹${batch.sellingPrice.toStringAsFixed(2)}'),
+                    onTap: () => Navigator.of(context).pop(batch),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      );
+
+      if (selectedBatch == null) return; // User cancelled
+
+      // Share selected batch
+      await _shareBatch(selectedBatch, imageUrl);
+    } else if (_allBatches.length == 1) {
+      // Share the single batch
+      await _shareBatch(_allBatches.first, imageUrl);
+    } else {
+      // No batches available
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No batches available to share'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _shareBatch(BoughtProduct batch, String? imageUrl) async {
+    try {
+      // Create share text with essential product details
+      final shareText = '📦 ${batch.productName}\n'
+          '💰 Price: ₹${batch.sellingPrice.toStringAsFixed(2)}\n'
+          '📊 Available Stock: ${batch.quantity} ${batch.unit}';
+
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        // Show loading dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return Dialog(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).scaffoldBackgroundColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Preparing image for sharing...',
+                          style: Theme.of(context).textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
+        }
+
+        // Download the image
+        final response = await http.get(Uri.parse(imageUrl));
+        if (response.statusCode == 200) {
+          // Close loading dialog
+          if (mounted) {
+            Navigator.pop(context);
+          }
+
+          // Save to temporary file
+          final tempDir = await getTemporaryDirectory();
+          final fileName =
+              'shared_product_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final tempFile = File('${tempDir.path}/$fileName');
+          await tempFile.writeAsBytes(response.bodyBytes);
+
+          // Share with image
+          await Share.shareXFiles([XFile(tempFile.path)], text: shareText);
+
+          // Clean up temp file after sharing
+          tempFile.delete().ignore();
+        } else {
+          // Close loading dialog
+          if (mounted) {
+            Navigator.pop(context);
+          }
+
+          // Fallback to text-only sharing if image download fails
+          await Share.share(shareText);
+        }
+      } else {
+        // Share text only
+        await Share.share(shareText);
+      }
+    } catch (e) {
+      // Close loading dialog if it's open
+      if (mounted) {
+        Navigator.pop(context);
+      }
+
+      // Fallback to text-only sharing on any error
+      try {
+        // Create fallback share text with essential product details
+        final fallbackText = '📦 ${batch.productName}\n'
+            '💰 Price: ₹${batch.sellingPrice.toStringAsFixed(2)}\n'
+            '📊 Available: ${batch.quantity} ${batch.unit}';
+
+        await Share.share(fallbackText);
+      } catch (fallbackError) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to share product: ${e.toString()}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -1050,6 +1378,331 @@ class _AvailableProductDetailScreenState
       padding: const EdgeInsets.only(right: 12, left: 12, top: 0, bottom: 12),
       child: Column(
         children: [
+          // Product Header Card
+          Card(
+            color: cardColor,
+            margin: const EdgeInsets.only(bottom: 12.0),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product Image (Left side)
+                  Container(
+                    width: 160,
+                    height: 160,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(color: Colors.grey.shade200, width: 1),
+                    ),
+                    child: Stack(
+                      children: [
+                        // Main image with tap functionality
+                        Positioned.fill(
+                          child: InkWell(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return Dialog(
+                                    backgroundColor: Colors.transparent,
+                                    insetPadding: const EdgeInsets.all(10),
+                                    child: InteractiveViewer(
+                                      panEnabled: true,
+                                      minScale: 0.5,
+                                      maxScale: 4.0,
+                                      child:
+                                          widget.product.imageUrl != null &&
+                                              widget
+                                                  .product
+                                                  .imageUrl!
+                                                  .isNotEmpty
+                                          ? Image.network(
+                                              widget.product.imageUrl!,
+                                              fit: BoxFit.contain,
+                                              loadingBuilder:
+                                                  (
+                                                    context,
+                                                    child,
+                                                    loadingProgress,
+                                                  ) {
+                                                    if (loadingProgress ==
+                                                        null) {
+                                                      return child;
+                                                    }
+                                                    return Container(
+                                                      height: 300,
+                                                      width: 300,
+                                                      color:
+                                                          Colors.grey.shade100,
+                                                      child: const Center(
+                                                        child:
+                                                            CircularProgressIndicator(),
+                                                      ),
+                                                    );
+                                                  },
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
+                                                    return Container(
+                                                      height: 300,
+                                                      width: 300,
+                                                      color:
+                                                          Colors.grey.shade100,
+                                                      child: const Icon(
+                                                        Icons.inventory_2,
+                                                        size: 100,
+                                                        color: Colors.grey,
+                                                      ),
+                                                    );
+                                                  },
+                                            )
+                                          : Container(
+                                              height: 300,
+                                              width: 300,
+                                              color: Colors.grey.shade100,
+                                              child: const Icon(
+                                                Icons.inventory_2,
+                                                size: 100,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(11),
+                              child:
+                                  widget.product.imageUrl != null &&
+                                      widget.product.imageUrl!.isNotEmpty
+                                  ? Image.network(
+                                      widget.product.imageUrl!,
+                                      fit: BoxFit.cover,
+                                      loadingBuilder:
+                                          (context, child, loadingProgress) {
+                                            if (loadingProgress == null) {
+                                              return child;
+                                            }
+                                            return Container(
+                                              color: Colors.grey.shade100,
+                                              child: const Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              ),
+                                            );
+                                          },
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Container(
+                                              color: Colors.grey.shade100,
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.inventory_2,
+                                                  size: 50,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                    )
+                                  : Container(
+                                      color: Colors.grey.shade100,
+                                      child: const Center(
+                                        child: Icon(
+                                          Icons.inventory_2,
+                                          size: 50,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+
+                        // Maximize button overlay
+                        Positioned(
+                          top: 6,
+                          right: 6,
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.6),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              icon: const Icon(
+                                Icons.fullscreen,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (BuildContext context) {
+                                    return Dialog(
+                                      backgroundColor: Colors.transparent,
+                                      insetPadding: const EdgeInsets.all(10),
+                                      child: InteractiveViewer(
+                                        panEnabled: true,
+                                        minScale: 0.5,
+                                        maxScale: 4.0,
+                                        child:
+                                            widget.product.imageUrl != null &&
+                                                widget
+                                                    .product
+                                                    .imageUrl!
+                                                    .isNotEmpty
+                                            ? Image.network(
+                                                widget.product.imageUrl!,
+                                                fit: BoxFit.contain,
+                                                loadingBuilder:
+                                                    (
+                                                      context,
+                                                      child,
+                                                      loadingProgress,
+                                                    ) {
+                                                      if (loadingProgress ==
+                                                          null)
+                                                        return child;
+                                                      return Container(
+                                                        height: 300,
+                                                        width: 300,
+                                                        color: Colors
+                                                            .grey
+                                                            .shade100,
+                                                        child: const Center(
+                                                          child:
+                                                              CircularProgressIndicator(),
+                                                        ),
+                                                      );
+                                                    },
+                                                errorBuilder:
+                                                    (
+                                                      context,
+                                                      error,
+                                                      stackTrace,
+                                                    ) {
+                                                      return Container(
+                                                        height: 300,
+                                                        width: 300,
+                                                        color: Colors
+                                                            .grey
+                                                            .shade100,
+                                                        child: const Icon(
+                                                          Icons.inventory_2,
+                                                          size: 100,
+                                                          color: Colors.grey,
+                                                        ),
+                                                      );
+                                                    },
+                                              )
+                                            : Container(
+                                                height: 300,
+                                                width: 300,
+                                                color: Colors.grey.shade100,
+                                                child: const Icon(
+                                                  Icons.inventory_2,
+                                                  size: 100,
+                                                  color: Colors.grey,
+                                                ),
+                                              ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
+                              tooltip: 'View full image',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Product Details and Actions (Right side)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Product Name
+                        Text(
+                          widget.product.productName[0].toUpperCase() +
+                              widget.product.productName.substring(1),
+                          style: context.headingMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Action Buttons
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _shareProduct(
+                              widget.product.productName,
+                              widget.product.imageUrl,
+                            ),
+                            icon: const Icon(Icons.share, size: 16),
+                            label: const Text('Share'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade50,
+                              foregroundColor: Colors.blue.shade700,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(color: Colors.blue.shade200),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Edit Image Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _selectImage,
+                            icon: const Icon(Icons.camera_alt, size: 16),
+                            label: const Text('Edit Image'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.shade50,
+                              foregroundColor: Colors.orange.shade700,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                side: BorderSide(color: Colors.orange.shade200),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
           // --- Total Quantity By Unit ---
           if (_allBatches.isNotEmpty)
             Card(
