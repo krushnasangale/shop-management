@@ -168,6 +168,9 @@ class AppLocalizations {
   String get noUpcomingPayments => translate('no_upcoming_payments');
   String get pendingPayments => translate('pending_payments');
   String get noPendingPayments => translate('no_pending_payments');
+  String get previousDueTracking => translate('previous_due_tracking');
+  String get collected => translate('collected');
+  String get pending => translate('pending');
   String get orderNow => translate('order_now');
   String get noProductsToOrder => translate('no_products_to_order');
   String get stock0 => translate('stock_0');
@@ -675,7 +678,7 @@ class AppLocalizations {
   String get previousDueAmountInfo => translate('previous_due_amount_info');
   String get previousDueAmount => translate('previous_due_amount');
   String get previousDueDescription => translate('previous_due_description');
-  
+
   String get description => translate('description');
   String get enterDescriptionOptional =>
       translate('enter_description_optional');

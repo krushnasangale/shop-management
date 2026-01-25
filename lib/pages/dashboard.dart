@@ -59,6 +59,10 @@ class _DashboardState extends State<Dashboard> {
   double _totalAvailableAmount = 0.0;
   int _availableProductsCount = 0;
 
+  // Previous Due Tracking
+  double _totalPreviousDueCollected = 0.0;
+  double _totalPreviousDuePending = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -130,6 +134,7 @@ class _DashboardState extends State<Dashboard> {
           _loadUpcomingPayments(userId);
           _loadOrderNowProducts(userId);
           _loadAvailability(userId);
+          _loadPreviousDueTracking(userId);
         });
 
     // Listen to purchases changes
@@ -465,6 +470,47 @@ class _DashboardState extends State<Dashboard> {
       }
     } catch (e) {
       print('Error loading availability: $e');
+    }
+  }
+
+  Future<void> _loadPreviousDueTracking(String userId) async {
+    try {
+      final firestore = FirebaseFirestore.instance;
+      final billsSnapshot = await firestore
+          .collection('bills')
+          .doc(userId)
+          .collection('items')
+          .get();
+
+      double totalCollected = 0.0;
+      double totalPending = 0.0;
+
+      for (var billDoc in billsSnapshot.docs) {
+        final billData = billDoc.data();
+        final previousDueAmount =
+            (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0;
+        final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? false;
+
+        // Only count if there's actually a previous due amount
+        if (previousDueAmount > 0) {
+          if (totalAmountPaid) {
+            // Bill is fully paid - previous due is collected
+            totalCollected += previousDueAmount;
+          } else {
+            // Bill is not fully paid - previous due is still pending
+            totalPending += previousDueAmount;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _totalPreviousDueCollected = totalCollected;
+          _totalPreviousDuePending = totalPending;
+        });
+      }
+    } catch (e) {
+      print('Error loading previous due tracking: $e');
     }
   }
 
@@ -964,6 +1010,102 @@ class _DashboardState extends State<Dashboard> {
               ),
             ],
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreviousDueCard(AppLocalizations? loc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.purple.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.purple.withOpacity(0.3)
+              : Colors.purple.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                loc?.previousDueTracking ?? 'Previous Due Tracking',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.grey[100] : Colors.grey[800],
+                ),
+              ),
+              Icon(Icons.history, color: Colors.purple[600], size: 20),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      loc?.collected ?? 'Collected',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '₹${_formatCurrency(_totalPreviousDueCollected.toInt(), loc: loc)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.green[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 1,
+                height: 40,
+                color: isDark ? Colors.grey[700] : Colors.grey[300],
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      loc?.pending ?? 'Pending',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '₹${_formatCurrency(_totalPreviousDuePending.toInt(), loc: loc)}',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.orange[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -1926,6 +2068,10 @@ class _DashboardState extends State<Dashboard> {
 
                           // Pending Payments
                           _buildPendingPaymentsCard(loc),
+                          const SizedBox(height: 12),
+
+                          // Previous Due Tracking
+                          _buildPreviousDueCard(loc),
                           const SizedBox(height: 12),
 
                           // Order Now
