@@ -329,6 +329,7 @@
     "bill_date": "बिल तारीख",
     "total_amount": "एकूण रक्कम",
     "delivery_charges": "डिलिव्हरी चार्जेस",
+    "enter_delivery_charges": "डिलिव्हरी चार्जेस प्रविष्ट करा",
     "paid": "भरणा केला",
     "payment_progress": "देयक प्रगती",
     "purchased_entries": "खरेदी केलेल्या नोंदी",
@@ -658,5 +659,10 @@
     "financial_metrics_current_stock": "आर्थिक मेट्रिक्स (सध्याचा स्टॉक)",
     "total_potential_revenue": "एकूण संभाव्य महसूल",
     "total_potential_profit": "एकूण संभाव्य नफा",
-    "profit_margin_per_unit": "प्रति युनिट नफा मार्जिन"
+    "profit_margin_per_unit": "प्रति युनिट नफा मार्जिन",
+    "previous_due_amount_info": "ग्राहकाकडून मागील थकबाकी रक्कम (या बिलाशी संबंधित नाही)",
+    "previous_due_amount": "मागील थकबाकी रक्कम",
+    "previous_due_description": "वर्णन",
+    "enter_description_optional": "वर्णन प्रविष्ट करा (पर्यायी)",
+    "description_required_when_amount_entered": "रक्कम प्रविष्ट केल्यावर वर्णन आवश्यक आहे"
 }

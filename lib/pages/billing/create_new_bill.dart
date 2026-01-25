@@ -136,6 +136,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
   late TextEditingController _nextPaymentDateController;
   late TextEditingController _deliveryChargesController;
   double _deliveryCharges = 0.0;
+  late TextEditingController _previousDueAmountController;
+  double _previousDueAmount = 0.0;
+  late TextEditingController _previousDueDescriptionController;
+  String _previousDueAmountError = '';
+  String _previousDueDescriptionError = '';
 
   @override
   void initState() {
@@ -151,6 +156,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _amountRemainingController = TextEditingController();
     _nextPaymentDateController = TextEditingController();
     _deliveryChargesController = TextEditingController();
+    _previousDueAmountController = TextEditingController();
+    _previousDueDescriptionController = TextEditingController();
     _loadProducts();
     _loadCustomers();
 
@@ -250,6 +257,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _amountRemainingController.dispose();
     _nextPaymentDateController.dispose();
     _deliveryChargesController.dispose();
+    _previousDueAmountController.dispose();
+    _previousDueDescriptionController.dispose();
     _productsSubscription?.cancel();
     _customersSubscription?.cancel();
     super.dispose();
@@ -284,6 +293,35 @@ class _CreateNewBillState extends State<CreateNewBill> {
     // Indian vehicle number format: 2 letters, 2 digits, 2 letters, 4 digits (flexible)
     if (!RegExp(r'^[A-Z]{2}[0-9]{2}[A-Z]{2}[0-9]{4}$').hasMatch(cleanedValue)) {
       return localizations.translate('invalid_vehicle_number_format');
+    }
+    return null;
+  }
+
+  String? _validatePreviousDueAmount(
+    String? value,
+    AppLocalizations localizations,
+  ) {
+    if (value == null || value.trim().isEmpty) {
+      return null; // Optional field
+    }
+    final amount = double.tryParse(value);
+    if (amount == null) {
+      return localizations.translate('please_enter_valid_amount');
+    }
+    if (amount < 0) {
+      return localizations.translate('amount_cannot_be_negative');
+    }
+    return null;
+  }
+
+  String? _validatePreviousDueDescription(
+    String? value,
+    AppLocalizations localizations,
+  ) {
+    if (_previousDueAmount > 0 && (value == null || value.trim().isEmpty)) {
+      return localizations.translate(
+        'description_required_when_amount_entered',
+      );
     }
     return null;
   }
@@ -1070,6 +1108,136 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         ),
                     ],
                   ),
+                // Previous Due Amount Section
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    border: Border.all(color: Colors.blue[200]!),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: Colors.blue[700],
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          localizations.translate('previous_due_amount_info'),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.blue[700],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    buildFormField(
+                      localizations.translate('previous_due_amount'),
+                      _previousDueAmountController,
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        setState(() {
+                          _previousDueAmount = double.tryParse(value) ?? 0.0;
+                          _previousDueAmountError =
+                              _validatePreviousDueAmount(
+                                value,
+                                localizations,
+                              ) ??
+                              '';
+                          _previousDueDescriptionError =
+                              _validatePreviousDueDescription(
+                                _previousDueDescriptionController.text,
+                                localizations,
+                              ) ??
+                              '';
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    if (_previousDueAmountError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16, bottom: 10),
+                        child: Text(
+                          _previousDueAmountError,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    Text(
+                      localizations.translate('previous_due_description'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 80,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12.0),
+                        border: Border.all(
+                          color: _previousDueDescriptionError.isNotEmpty
+                              ? Colors.red
+                              : Colors.grey[700]!,
+                        ),
+                        color: Colors.grey[100],
+                      ),
+                      child: TextField(
+                        controller: _previousDueDescriptionController,
+                        maxLines: 3,
+                        decoration: InputDecoration(
+                          fillColor: Colors.white,
+                          hintText: localizations.translate(
+                            'enter_description_optional',
+                          ),
+                          filled: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12.0,
+                            horizontal: 16.0,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            _previousDueDescriptionError =
+                                _validatePreviousDueDescription(
+                                  value,
+                                  localizations,
+                                ) ??
+                                '';
+                          });
+                        },
+                      ),
+                    ),
+                    if (_previousDueDescriptionError.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, left: 16),
+                        child: Text(
+                          _previousDueDescriptionError,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
                 // Buttons fixed at the bottom
                 const SizedBox(height: 30),
                 Row(
@@ -1130,12 +1298,26 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     localizations,
                                   ) ??
                                   '';
+                              _previousDueAmountError =
+                                  _validatePreviousDueAmount(
+                                    _previousDueAmountController.text,
+                                    localizations,
+                                  ) ??
+                                  '';
+                              _previousDueDescriptionError =
+                                  _validatePreviousDueDescription(
+                                    _previousDueDescriptionController.text,
+                                    localizations,
+                                  ) ??
+                                  '';
                             });
 
                             // Check if there are any errors
                             if (_customerNameError.isNotEmpty ||
                                 _customerMobileError.isNotEmpty ||
-                                _customerVehicleError.isNotEmpty) {
+                                _customerVehicleError.isNotEmpty ||
+                                _previousDueAmountError.isNotEmpty ||
+                                _previousDueDescriptionError.isNotEmpty) {
                               return;
                             }
 
@@ -1232,6 +1414,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 isEditMode: widget.isEditMode,
                                 billId: widget.billId,
                                 deliveryCharges: _deliveryCharges.toInt(),
+                                previousDueAmount: _previousDueAmount,
+                                previousDueDescription:
+                                    _previousDueDescriptionController.text
+                                        .trim(),
                               ),
                             );
                           },

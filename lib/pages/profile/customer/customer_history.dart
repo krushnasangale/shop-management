@@ -361,6 +361,10 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                   bill['products'] as Map<dynamic, dynamic>? ??
                                       {},
                                 ),
+                                previousDueAmount:
+                                    (bill['previousDueAmount'] ?? 0).toDouble(),
+                                previousDueDescription:
+                                    bill['previousDueDescription'] ?? '',
                               ),
                             );
                           },

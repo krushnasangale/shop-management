@@ -327,6 +327,7 @@
     "bill_date": "बिल तारीख",
     "total_amount": "कुल राशि",
     "delivery_charges": "डिलीवरी चार्ज",
+    "enter_delivery_charges": "डिलीवरी चार्ज दर्ज करें",
     "paid": "भुगतान किया",
     "payment_progress": "भुगतान प्रगति",
     "purchased_entries": "खरीदी गई एंट्रीज़",
@@ -658,5 +659,10 @@
     "financial_metrics_current_stock": "वित्तीय मीट्रिक्स (वर्तमान स्टॉक)",
     "total_potential_revenue": "कुल संभावित राजस्व",
     "total_potential_profit": "कुल संभावित लाभ",
-    "profit_margin_per_unit": "प्रति इकाई लाभ मार्जिन"
+    "profit_margin_per_unit": "प्रति इकाई लाभ मार्जिन",
+    "previous_due_amount_info": "ग्राहक से पिछली बकाया राशि (इस बिल से संबंधित नहीं)",
+    "previous_due_amount": "पिछली बकाया राशि",
+    "previous_due_description": "विवरण",
+    "enter_description_optional": "विवरण दर्ज करें (वैकल्पिक)",
+    "description_required_when_amount_entered": "राशि दर्ज करने पर विवरण आवश्यक है"
 }

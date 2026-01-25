@@ -186,6 +186,8 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
         amountRemaining: payment['amountRemaining'],
         products: productsList,
         nextPaymentDate: null,
+        previousDueAmount: (payment['previousDueAmount'] ?? 0).toDouble(),
+        previousDueDescription: payment['previousDueDescription'] ?? '',
       ),
     );
   }

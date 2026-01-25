@@ -328,6 +328,7 @@
     "bill_date": "Bill Date",
     "total_amount": "Total Amount",
     "delivery_charges": "Delivery Charges",
+    "enter_delivery_charges": "Enter Delivery Charges",
     "paid": "Paid",
     "payment_progress": "Payment Progress",
     "purchased_entries": "Purchased Entries",
@@ -657,5 +658,10 @@
     "financial_metrics_current_stock": "Financial Metrics (Current Stock)",
     "total_potential_revenue": "Total Potential Revenue",
     "total_potential_profit": "Total Potential Profit",
-    "profit_margin_per_unit": "Profit Margin (per unit)"
+    "profit_margin_per_unit": "Profit Margin (per unit)",
+    "previous_due_amount_info": "Previous outstanding amount from customer (not related to this bill)",
+    "previous_due_amount": "Previous Due Amount",
+    "previous_due_description": "Description",
+    "enter_description_optional": "Enter description (optional)",
+    "description_required_when_amount_entered": "Description is required when amount is entered"
 }

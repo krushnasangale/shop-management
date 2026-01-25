@@ -270,6 +270,7 @@ class AppLocalizations {
   String get totalRemaining => translate('total_remaining');
   String get billDate => translate('bill_date');
   String get deliveryCharges => translate('delivery_charges');
+  String get enterDeliveryCharges => translate('enter_delivery_charges');
   String get paidAmount => translate('paid_amount');
 
   // Product Names Page
@@ -671,6 +672,15 @@ class AppLocalizations {
   String get totalPotentialRevenue => translate('total_potential_revenue');
   String get totalPotentialProfit => translate('total_potential_profit');
   String get profitMarginPerUnit => translate('profit_margin_per_unit');
+  String get previousDueAmountInfo => translate('previous_due_amount_info');
+  String get previousDueAmount => translate('previous_due_amount');
+  String get previousDueDescription => translate('previous_due_description');
+  
+  String get description => translate('description');
+  String get enterDescriptionOptional =>
+      translate('enter_description_optional');
+  String get descriptionRequiredWhenAmountEntered =>
+      translate('description_required_when_amount_entered');
 
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {

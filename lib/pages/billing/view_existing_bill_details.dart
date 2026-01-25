@@ -53,6 +53,8 @@ class ViewBillDetailsScreen extends StatefulWidget {
   final List<Map<String, dynamic>>? products;
   final String paymentMethod;
   final String? nextPaymentDate;
+  final double previousDueAmount;
+  final String previousDueDescription;
 
   const ViewBillDetailsScreen({
     required this.billId,
@@ -67,6 +69,8 @@ class ViewBillDetailsScreen extends StatefulWidget {
     this.products,
     this.paymentMethod = 'cash',
     this.nextPaymentDate,
+    this.previousDueAmount = 0.0,
+    this.previousDueDescription = '',
     super.key,
   });
 
@@ -94,6 +98,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   int deliveryCharges = 0;
   late String paymentMethod;
   String? nextPaymentDate;
+  late double previousDueAmount;
+  late String previousDueDescription;
   late TextEditingController _nextPaymentDateController;
   late final AppLocalizations localizations;
 
@@ -108,6 +114,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     customerVehicle = widget.customerVehicle;
     paymentMethod = widget.paymentMethod;
     nextPaymentDate = widget.nextPaymentDate;
+    previousDueAmount = widget.previousDueAmount;
+    previousDueDescription = widget.previousDueDescription;
     _nextPaymentDateController = TextEditingController(
       text: nextPaymentDate ?? '',
     );
@@ -531,6 +539,27 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       fontWeight: pw.FontWeight.bold,
                     ),
                     textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 15),
+                ],
+
+                // Previous Due Information (if applicable)
+                if (widget.previousDueAmount > 0) ...[
+                  pw.Text(
+                    'Previous Due: Rs. ${widget.previousDueAmount.toStringAsFixed(2)} ${widget.previousDueDescription.isNotEmpty ? '(${widget.previousDueDescription})' : ''}',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.left,
+                  ),
+                  pw.Text(
+                    'Due against: ${widget.previousDueDescription.isNotEmpty ? '(${widget.previousDueDescription})' : ''}',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.left,
                   ),
                   pw.SizedBox(height: 15),
                 ],
@@ -1081,11 +1110,15 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   _buildSummaryCard(context, cardColor),
                   const SizedBox(height: 10),
 
-                  // --- 4. Profit & Loss Card ---
+                  // --- 4. Previous Due Card ---
+                  _buildPreviousDueCard(context, cardColor),
+                  const SizedBox(height: 10),
+
+                  // --- 5. Profit & Loss Card ---
                   _buildProfitLossCard(context, cardColor),
                   const SizedBox(height: 10),
 
-                  // --- 5. Payment History Card ---
+                  // --- 6. Payment History Card ---
                   _buildPaymentHistoryCard(context, cardColor),
 
                   // --- 6. Fixed Bottom Action (e.g., Record Payment) ---
@@ -3050,6 +3083,117 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPreviousDueCard(BuildContext context, Color? cardColor) {
+    if (previousDueAmount <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      color: cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.account_balance_wallet,
+                  color: Theme.of(context).primaryColor,
+                  size: 24,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  localizations.previousDueAmount,
+                  style: context.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.orange.withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          localizations.amount,
+                          style: TextStyle(
+                            color: Colors.orange.shade700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '₹${previousDueAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: Colors.orange,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 32,
+                    color: Colors.orange,
+                  ),
+                ],
+              ),
+            ),
+            if (previousDueDescription.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localizations.description,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      previousDueDescription,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ],
         ),
       ),

@@ -21,6 +21,8 @@ class ReviewBillingDetails extends StatefulWidget {
   final bool isEditMode;
   final String? billId;
   final int deliveryCharges;
+  final double previousDueAmount;
+  final String previousDueDescription;
 
   const ReviewBillingDetails({
     required this.billDate,
@@ -38,6 +40,8 @@ class ReviewBillingDetails extends StatefulWidget {
     this.isEditMode = false,
     this.billId,
     this.deliveryCharges = 0,
+    this.previousDueAmount = 0.0,
+    this.previousDueDescription = '',
     super.key,
   });
 
@@ -84,6 +88,12 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               // Products Card
               _buildProductsCard(context, cardColor),
               const SizedBox(height: 12),
+
+              // Previous Due Card (only show if there's a previous due amount)
+              if (widget.previousDueAmount > 0) ...[
+                _buildPreviousDueCard(context, cardColor),
+                const SizedBox(height: 12),
+              ],
 
               // Financial Summary Card
               _buildSummaryCard(context, cardColor),
@@ -518,6 +528,81 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     );
   }
 
+  Widget _buildPreviousDueCard(BuildContext context, Color? cardColor) {
+    return Card(
+      color: cardColor,
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.account_balance_wallet,
+                  color: Colors.orange[700],
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  localizations!.previousDueAmount,
+                  style: context.headingMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange[700],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  localizations!.amount,
+                  style: context.subtitleMedium?.copyWith(fontSize: 14),
+                ),
+                Text(
+                  '₹${widget.previousDueAmount.toStringAsFixed(2)}',
+                  style: context.bodyLargeText?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Colors.orange[700],
+                  ),
+                ),
+              ],
+            ),
+            if (widget.previousDueDescription.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                localizations!.description,
+                style: context.subtitleMedium?.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey[300]!),
+                ),
+                child: Text(
+                  widget.previousDueDescription,
+                  style: context.bodyMediumText?.copyWith(
+                    fontSize: 14,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBottomButtons(BuildContext context, bool isDarkMode) {
     return Row(
       children: [
@@ -677,6 +762,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 nextPaymentDate: widget.nextPaymentDate,
                 billNumber: _currentBillNumber,
                 deliveryCharges: widget.deliveryCharges,
+                previousDueAmount: widget.previousDueAmount,
+                previousDueDescription: widget.previousDueDescription,
               ),
             ),
           );
@@ -764,6 +851,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       'paymentMethod': widget.paymentMethod,
       'nextPaymentDate': widget.nextPaymentDate,
       'deliveryCharges': widget.deliveryCharges,
+      'previousDueAmount': widget.previousDueAmount,
+      'previousDueDescription': widget.previousDueDescription,
       'timestamp': DateTime.now().toIso8601String(),
       'products': {
         for (int i = 0; i < widget.products.length; i++)

@@ -157,6 +157,8 @@ class _BillsState extends State<Bills> {
                     amountRemaining,
                     productsList,
                     billData['nextPaymentDate'],
+                    (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0,
+                    billData['previousDueDescription'] ?? '',
                   ),
                 );
               }
@@ -1188,6 +1190,8 @@ class _BillsState extends State<Bills> {
                 amountRemaining: bill.amountRemaining,
                 products: bill.products,
                 nextPaymentDate: bill.nextPaymentDate,
+                previousDueAmount: bill.previousDueAmount,
+                previousDueDescription: bill.previousDueDescription,
               ),
             );
           },
@@ -1363,6 +1367,8 @@ class Bill {
   final int amountRemaining;
   final List<Map<String, dynamic>>? products;
   final String? nextPaymentDate;
+  final double previousDueAmount;
+  final String previousDueDescription;
 
   Bill(
     this.billId,
@@ -1379,5 +1385,7 @@ class Bill {
     this.amountRemaining,
     this.products,
     this.nextPaymentDate,
+    this.previousDueAmount,
+    this.previousDueDescription,
   );
 }

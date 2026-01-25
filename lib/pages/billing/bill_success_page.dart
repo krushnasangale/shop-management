@@ -48,6 +48,8 @@ class BillSuccessPage extends StatefulWidget {
   final String nextPaymentDate;
   final int billNumber;
   final int deliveryCharges;
+  final double previousDueAmount;
+  final String previousDueDescription;
 
   const BillSuccessPage({
     required this.customerName,
@@ -61,6 +63,8 @@ class BillSuccessPage extends StatefulWidget {
     this.nextPaymentDate = '',
     required this.billNumber,
     this.deliveryCharges = 0,
+    this.previousDueAmount = 0.0,
+    this.previousDueDescription = '',
     super.key,
   });
 
@@ -80,6 +84,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   late String nextPaymentDate;
   late int billNumber;
   late int deliveryCharges;
+  late double previousDueAmount;
+  late String previousDueDescription;
 
   @override
   void initState() {
@@ -95,6 +101,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     nextPaymentDate = widget.nextPaymentDate;
     billNumber = widget.billNumber;
     deliveryCharges = widget.deliveryCharges;
+    previousDueAmount = widget.previousDueAmount;
+    previousDueDescription = widget.previousDueDescription;
   }
 
   @override
@@ -503,6 +511,27 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                       fontWeight: pw.FontWeight.bold,
                     ),
                     textAlign: pw.TextAlign.center,
+                  ),
+                  pw.SizedBox(height: 15),
+                ],
+
+                // Previous Due Information (if applicable)
+                if (previousDueAmount > 0) ...[
+                  pw.Text(
+                    'Previous Due: Rs. ${previousDueAmount.toStringAsFixed(2)}}',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.left,
+                  ),
+                  pw.Text(
+                    'Due against: ${widget.previousDueDescription.isNotEmpty ? '(${widget.previousDueDescription})' : ''}',
+                    style: pw.TextStyle(
+                      fontSize: 10,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    textAlign: pw.TextAlign.left,
                   ),
                   pw.SizedBox(height: 15),
                 ],

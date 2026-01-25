@@ -2316,6 +2316,10 @@ class _DashboardState extends State<Dashboard> {
                       .toList()
                 : null,
             paymentMethod: (bill['paymentMethod'] ?? 'cash') as String,
+            previousDueAmount: ((bill['previousDueAmount'] ?? 0) as num)
+                .toDouble(),
+            previousDueDescription:
+                (bill['previousDueDescription'] ?? '') as String,
           ),
         ),
       );
