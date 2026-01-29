@@ -21,6 +21,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
   double _totalCollectedAmount = 0.0;
   double _totalPendingAmount = 0.0;
   String _sortBy = 'amount'; // 'amount', 'date', 'name'
+  String _statusFilter = 'all'; // 'all', 'paid', 'partial', 'unpaid'
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _showSearchBar = false;
@@ -117,7 +118,17 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
     setState(() {
       _filteredPayments = _previousDuePayments.where((payment) {
         final customerName = payment['customerName'].toString().toLowerCase();
-        return customerName.contains(query);
+        final matchesSearch = customerName.contains(query);
+
+        // Apply status filter
+        final status = _getPreviousDueStatus(payment);
+        final matchesStatus =
+            _statusFilter == 'all' ||
+            (_statusFilter == 'paid' && status == 'paid') ||
+            (_statusFilter == 'partial' && status == 'partial') ||
+            (_statusFilter == 'unpaid' && status == 'unpaid');
+
+        return matchesSearch && matchesStatus;
       }).toList();
 
       // Apply sorting
@@ -144,6 +155,39 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
           break;
       }
     });
+  }
+
+  Widget _buildFilterChip(String label, String filterValue, Color color) {
+    final isSelected = _statusFilter == filterValue;
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? Colors.white : color,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          fontSize: 12,
+        ),
+      ),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _statusFilter = selected ? filterValue : 'all';
+          _filterPayments();
+        });
+      },
+      backgroundColor: Colors.grey[100],
+      selectedColor: color,
+      checkmarkColor: Colors.white,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isSelected ? color : Colors.grey[300]!,
+          width: 1,
+        ),
+      ),
+    );
   }
 
   void _navigateToBillDetails(Map<String, dynamic> payment) async {
@@ -291,66 +335,71 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
 
           // Search Bar
           if (_showSearchBar)
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: isDark ? Colors.grey[800] : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-                border: Border.all(
-                  color: Colors.purple.withOpacity(0.2),
-                  width: 1,
-                ),
-              ),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                decoration: InputDecoration(
-                  hintText: loc?.searchCustomers ?? 'Search customers...',
-                  hintStyle: TextStyle(
-                    color: isDark ? Colors.grey[400] : Colors.grey[500],
-                    fontSize: 16,
-                  ),
-                  prefixIcon: Container(
-                    padding: const EdgeInsets.all(10),
-                    child: Icon(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Card(
+                child: TextField(
+                  controller: _searchController,
+                  focusNode: _searchFocusNode,
+                  decoration: InputDecoration(
+                    filled: false,
+                    hintText: loc?.searchCustomers ?? 'Search customers...',
+                    hintStyle: TextStyle(
+                      color: isDark ? Colors.grey[400] : Colors.grey[500],
+                      fontSize: 16,
+                    ),
+                    prefixIcon: Icon(
                       Icons.search,
                       color: Colors.purple[600],
                       size: 20,
                     ),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(
+                              Icons.clear,
+                              color: Colors.grey[500],
+                              size: 18,
+                            ),
+                            onPressed: () {
+                              _searchController.clear();
+                              _filterPayments();
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                   ),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(
-                            Icons.clear,
-                            color: Colors.grey[500],
-                            size: 18,
-                          ),
-                          onPressed: () {
-                            _searchController.clear();
-                            _filterPayments();
-                          },
-                        )
-                      : null,
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 12,
+                  style: TextStyle(
+                    color: isDark ? Colors.white : Colors.black,
+                    fontSize: 16,
                   ),
+                  onChanged: (_) => _filterPayments(),
                 ),
-                style: TextStyle(
-                  color: isDark ? Colors.white : Colors.black,
-                  fontSize: 16,
-                ),
-                onChanged: (_) => _filterPayments(),
               ),
             ),
+
+          // Filter Chips
+          const SizedBox(height: 8),
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('All', 'all', Colors.blue),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Paid', 'paid', Colors.green),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Partial', 'partial', Colors.orange),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('Unpaid', 'unpaid', Colors.red),
+                ],
+              ),
+            ),
+          ),
 
           // Payments List
           Expanded(
@@ -397,7 +446,10 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     itemCount: _filteredPayments.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
@@ -440,125 +492,150 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                               splashColor: statusColor.withOpacity(0.1),
                               highlightColor: statusColor.withOpacity(0.05),
                               child: Padding(
-                                padding: const EdgeInsets.all(16),
+                                padding: const EdgeInsets.all(12),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: statusColor.withOpacity(0.1),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: Icon(
-                                            status == 'paid'
-                                                ? Icons.check_circle
-                                                : status == 'partial'
-                                                ? Icons.pending
-                                                : Icons.cancel,
-                                            color: statusColor,
-                                            size: 20,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
                                         Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                payment['customerName'],
-                                                style: TextStyle(
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: isDark
-                                                      ? Colors.grey[100]
-                                                      : Colors.grey[900],
-                                                  letterSpacing: -0.5,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 2,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: statusColor
-                                                      .withOpacity(0.15),
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                ),
-                                                child: Text(
-                                                  _getStatusText(status, loc),
-                                                  style: TextStyle(
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: statusColor,
-                                                    letterSpacing: 0.5,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                          child: Text(
+                                            payment['customerName'],
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w700,
+                                              color: isDark
+                                                  ? Colors.grey[100]
+                                                  : Colors.grey[900],
+                                              letterSpacing: -0.5,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                         Icon(
                                           Icons.arrow_forward_ios,
-                                          size: 16,
+                                          size: 14,
                                           color: Colors.grey[400],
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 12),
+                                    const SizedBox(height: 6),
                                     Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Icon(
-                                          Icons.calendar_today,
-                                          size: 14,
-                                          color: isDark
-                                              ? Colors.grey[400]
-                                              : Colors.grey[600],
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.calendar_today,
+                                              size: 12,
+                                              color: isDark
+                                                  ? Colors.grey[400]
+                                                  : Colors.grey[600],
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              payment['billDate'],
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: isDark
+                                                    ? Colors.grey[300]
+                                                    : Colors.grey[700],
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(width: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: statusColor.withOpacity(
+                                              0.15,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            _getStatusText(status, loc),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                              color: statusColor,
+                                              letterSpacing: 0.3,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
                                         Text(
-                                          payment['billDate'],
+                                          '₹ ${payment['previousDueAmount']}',
                                           style: TextStyle(
                                             fontSize: 13,
+                                            fontWeight: FontWeight.w600,
                                             color: isDark
                                                 ? Colors.grey[300]
                                                 : Colors.grey[700],
-                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
-                                        const SizedBox(width: 12),
-                                        Container(
-                                          height: 3,
-                                          width: 3,
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey[400],
-                                            shape: BoxShape.circle,
+                                        Row(
+                                          children: [
+                                            const SizedBox(width: 8),
+                                            Icon(
+                                              Icons.payment,
+                                              size: 12,
+                                              color: Colors.green[600],
+                                            ),
+                                            const SizedBox(width: 2),
+                                            Text(
+                                              '₹${payment['previousPaidAmount']}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.green[600],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        if ((payment['previousDueAmount']
+                                                as double) >
+                                            (payment['previousPaidAmount']
+                                                as double))
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.orange.withOpacity(
+                                                0.1,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                              border: Border.all(
+                                                color: Colors.orange
+                                                    .withOpacity(0.3),
+                                                width: 1,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'Pending: ₹${((payment['previousDueAmount'] as double) - (payment['previousPaidAmount'] as double)).toStringAsFixed(0)}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.orange[600],
+                                              ),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Icon(
-                                          Icons.currency_rupee,
-                                          size: 14,
-                                          color: statusColor,
-                                        ),
-                                        const SizedBox(width: 2),
-                                        Text(
-                                          '₹${payment['previousDueAmount']}',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            color: statusColor,
-                                          ),
-                                        ),
                                       ],
                                     ),
                                   ],

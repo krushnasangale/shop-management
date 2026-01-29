@@ -62,6 +62,7 @@ class _DashboardState extends State<Dashboard> {
   int _availableProductsCount = 0;
 
   // Previous Due Tracking
+  int _totalPreviousDueBills = 0;
   double _totalPreviousDueCollected = 0.0;
   double _totalPreviousDuePending = 0.0;
 
@@ -486,27 +487,30 @@ class _DashboardState extends State<Dashboard> {
 
       double totalCollected = 0.0;
       double totalPending = 0.0;
+      int totalBills = 0;
 
       for (var billDoc in billsSnapshot.docs) {
         final billData = billDoc.data();
         final previousDueAmount =
             (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0;
-        final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? false;
+        final previousPaidAmount =
+            (billData['previousPaidAmount'] as num?)?.toDouble() ?? 0.0;
 
         // Only count if there's actually a previous due amount
         if (previousDueAmount > 0) {
-          if (totalAmountPaid) {
-            // Bill is fully paid - previous due is collected
-            totalCollected += previousDueAmount;
-          } else {
-            // Bill is not fully paid - previous due is still pending
-            totalPending += previousDueAmount;
-          }
+          totalBills++; // Count total bills with previous due
+
+          // Add the paid amount to collected
+          totalCollected += previousPaidAmount;
+
+          // Add the remaining amount to pending
+          totalPending += (previousDueAmount - previousPaidAmount);
         }
       }
 
       if (mounted) {
         setState(() {
+          _totalPreviousDueBills = totalBills;
           _totalPreviousDueCollected = totalCollected;
           _totalPreviousDuePending = totalPending;
         });
@@ -1068,7 +1072,7 @@ class _DashboardState extends State<Dashboard> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '₹${_formatCurrency((_totalPreviousDueCollected + _totalPreviousDuePending).toInt() == 0 ? 1500 : (_totalPreviousDueCollected + _totalPreviousDuePending).toInt(), loc: AppLocalizations.of(context))}',
+                          '${_totalPreviousDueBills == 1 ? (loc?.bill ?? 'Bill') : (loc?.bills ?? 'Bills')} $_totalPreviousDueBills',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -1106,6 +1110,38 @@ class _DashboardState extends State<Dashboard> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
+                              'Total Due',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '₹${_formatCurrency((_totalPreviousDueCollected + _totalPreviousDuePending).toInt() == 0 ? 1500 : (_totalPreviousDueCollected + _totalPreviousDuePending).toInt(), loc: AppLocalizations.of(context))}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.purple[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 1,
+                        height: 40,
+                        color: isDark ? Colors.grey[700] : Colors.grey[300],
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
                               loc?.collected ?? 'Collected',
                               style: TextStyle(
                                 fontSize: 12,
@@ -1117,7 +1153,7 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '₹${_formatCurrency(_totalPreviousDueCollected.toInt() == 0 ? 800 : _totalPreviousDueCollected.toInt(), loc: loc)}',
+                              '₹${_formatCurrency(_totalPreviousDueCollected.toInt(), loc: loc)}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -1149,7 +1185,7 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '₹${_formatCurrency(_totalPreviousDuePending.toInt() == 0 ? 700 : _totalPreviousDuePending.toInt(), loc: loc)}',
+                              '₹${_formatCurrency(_totalPreviousDuePending.toInt(), loc: loc)}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
