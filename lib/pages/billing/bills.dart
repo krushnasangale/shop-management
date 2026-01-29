@@ -1285,13 +1285,13 @@ class _BillsState extends State<Bills> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: bill.status == PaymentFilter.unpaid
-                          ? Colors.red.withOpacity(0.08)
+                      color: bill.status == PaymentFilter.paid
+                          ? Colors.green.withOpacity(0.08)
                           : Colors.orange.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
-                        color: bill.status == PaymentFilter.unpaid
-                            ? Colors.red.withOpacity(0.2)
+                        color: bill.status == PaymentFilter.paid
+                            ? Colors.green.withOpacity(0.2)
                             : Colors.orange.withOpacity(0.2),
                       ),
                     ),

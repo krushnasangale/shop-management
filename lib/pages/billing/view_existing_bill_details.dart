@@ -3114,6 +3114,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       return const SizedBox.shrink();
     }
 
+    final pendingAmount = previousDueAmount - previousPaidAmount;
+
     return Card(
       color: cardColor,
       child: Padding(
@@ -3130,7 +3132,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  localizations.previousDueAmount,
+                  'Previous Due Details',
                   style: context.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 18,
@@ -3138,8 +3140,96 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            if (previousDueAmount > 0) ...[
+            const SizedBox(height: 16),
+
+            // Total Due
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.blue.withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Total Due',
+                          style: TextStyle(
+                            color: Colors.blue.shade700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '₹${previousDueAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: Colors.blue,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.receipt_long, size: 28, color: Colors.blue),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Paid Amount
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.green.withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Paid Amount',
+                          style: TextStyle(
+                            color: Colors.green.shade700,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          '₹${previousPaidAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            color: Colors.green,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.check_circle, size: 28, color: Colors.green),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Pending Amount
+            if (pendingAmount > 0) ...[
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -3158,7 +3248,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            localizations.amount,
+                            'Pending Amount',
                             style: TextStyle(
                               color: Colors.orange.shade700,
                               fontSize: 14,
@@ -3166,74 +3256,25 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             ),
                           ),
                           Text(
-                            '₹${previousDueAmount.toStringAsFixed(2)}',
+                            '₹${pendingAmount.toStringAsFixed(2)}',
                             style: const TextStyle(
                               color: Colors.orange,
-                              fontSize: 24,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(
-                      Icons.warning_amber_rounded,
-                      size: 32,
-                      color: Colors.orange,
-                    ),
+                    const Icon(Icons.schedule, size: 28, color: Colors.orange),
                   ],
                 ),
               ),
               const SizedBox(height: 8),
             ],
-            if (previousPaidAmount > 0) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.green.withOpacity(0.3),
-                    width: 2,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            localizations.previousPaidAmount,
-                            style: TextStyle(
-                              color: Colors.green.shade700,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            '₹${previousPaidAmount.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.green,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(
-                      Icons.check_circle,
-                      size: 32,
-                      color: Colors.green,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+
+            // Description
             if (previousDueDescription.isNotEmpty) ...[
-              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -3244,7 +3285,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      localizations.description,
+                      'Description',
                       style: TextStyle(
                         color: Colors.grey.shade700,
                         fontSize: 14,

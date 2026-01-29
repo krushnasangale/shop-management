@@ -128,14 +128,14 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Status Card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: statusColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
@@ -146,31 +146,31 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
               ),
               child: Column(
                 children: [
-                  Icon(statusIcon, size: 48, color: statusColor),
-                  const SizedBox(height: 12),
+                  Icon(statusIcon, size: 40, color: statusColor),
+                  const SizedBox(height: 8),
                   Text(
                     statusText,
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 18,
                       fontWeight: FontWeight.w700,
                       color: statusColor,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     '₹${previousDueAmount.toStringAsFixed(2)}',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: statusColor,
                     ),
                   ),
                   if (previousPaidAmount > 0) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
                       'Paid: ₹${previousPaidAmount.toStringAsFixed(2)}',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: statusColor.withValues(alpha: 0.8),
                       ),
@@ -181,7 +181,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                     Text(
                       'Remaining: ₹${(previousDueAmount - previousPaidAmount).toStringAsFixed(2)}',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: statusColor.withValues(alpha: 0.7),
                       ),
@@ -191,20 +191,20 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Customer Information
             Text(
               loc?.customerInformation ?? 'Customer Information',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: isDark ? Colors.grey[100] : Colors.grey[800],
               ),
             ),
             const SizedBox(height: 12),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDark ? Colors.grey[800]! : Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -225,20 +225,20 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Previous Due Details
             Text(
               loc?.previousDue ?? 'Previous Due',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: isDark ? Colors.grey[100] : Colors.grey[800],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: isDark ? Colors.grey[800]! : Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -249,29 +249,48 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
               ),
               child: Column(
                 children: [
-                  _buildInfoRow(
-                    Icons.history,
-                    loc?.previousDue ?? 'Previous Due Amount',
-                    '₹${previousDueAmount.toStringAsFixed(2)}',
-                    isDark,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildInfoRow(
-                    Icons.payment,
-                    loc?.paid ?? 'Amount Paid',
-                    '₹${previousPaidAmount.toStringAsFixed(2)}',
-                    isDark,
+                  // Two items per row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildInfoRow(
+                          Icons.history,
+                          loc?.previousDue ?? 'Previous Due Amount',
+                          '₹${previousDueAmount.toStringAsFixed(2)}',
+                          isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _buildInfoRow(
+                          Icons.payment,
+                          loc?.paid ?? 'Amount Paid',
+                          '₹${previousPaidAmount.toStringAsFixed(2)}',
+                          isDark,
+                        ),
+                      ),
+                    ],
                   ),
                   if (previousPaidAmount < previousDueAmount) ...[
                     const SizedBox(height: 12),
-                    _buildInfoRow(
-                      Icons.pending,
-                      loc?.pending ?? 'Amount Pending',
-                      '₹${(previousDueAmount - previousPaidAmount).toStringAsFixed(2)}',
-                      isDark,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildInfoRow(
+                            Icons.pending,
+                            loc?.pending ?? 'Amount Pending',
+                            '₹${(previousDueAmount - previousPaidAmount).toStringAsFixed(2)}',
+                            isDark,
+                          ),
+                        ),
+                        const Expanded(
+                          child: SizedBox(),
+                        ), // Empty space for balance
+                      ],
                     ),
                   ],
                   const SizedBox(height: 12),
+                  // Bill Date takes full width
                   _buildInfoRow(
                     Icons.calendar_today,
                     loc?.billDate ?? 'Bill Date',
@@ -282,18 +301,18 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // Payment History
             Text(
               loc?.paymentHistory ?? 'Payment History',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
                 color: isDark ? Colors.grey[100] : Colors.grey[800],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Container(
               constraints: const BoxConstraints(maxHeight: 300),
               decoration: BoxDecoration(
@@ -540,6 +559,31 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                         helperText:
                             '${loc?.max ?? 'Max'}: ₹${remainingAmount.toStringAsFixed(2)}',
                       ),
+                      onChanged: (value) {
+                        if (value.isNotEmpty) {
+                          final enteredAmount = double.tryParse(value);
+                          if (enteredAmount != null &&
+                              enteredAmount > remainingAmount) {
+                            // Reset to maximum allowed amount
+                            amountController.text = remainingAmount
+                                .toStringAsFixed(2);
+                            amountController.selection =
+                                TextSelection.fromPosition(
+                                  TextPosition(
+                                    offset: amountController.text.length,
+                                  ),
+                                );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Amount cannot exceed ₹${remainingAmount.toStringAsFixed(2)}',
+                                ),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
                     Column(
@@ -622,7 +666,10 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                     if (paymentAmount > remainingAmount) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Payment cannot exceed pending amount'),
+                          content: Text(
+                            'Payment amount cannot exceed pending amount of ₹${remainingAmount.toStringAsFixed(2)}',
+                          ),
+                          duration: const Duration(seconds: 3),
                         ),
                       );
                       return;
