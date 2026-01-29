@@ -1415,6 +1415,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 billId: widget.billId,
                                 deliveryCharges: _deliveryCharges.toInt(),
                                 previousDueAmount: _previousDueAmount,
+                                previousPaidAmount: 0.0,
                                 previousDueDescription:
                                     _previousDueDescriptionController.text
                                         .trim(),

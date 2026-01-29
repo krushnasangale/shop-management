@@ -73,10 +73,13 @@ class AppLocalizations {
   String get delete => translate('delete');
   String get edit => translate('edit');
   String get search => translate('search');
+  String get closeSearch => translate('close_search');
+  String get sort => translate('sort');
   String get supplier => translate('supplier');
   String get customer => translate('customer');
   String get date => translate('date');
   String get total => translate('total');
+  String get totalDue => translate('total_due');
   String get amount => translate('amount');
   String get unit => translate('unit');
   String get expiryDate => translate('expiry_date');
@@ -169,6 +172,11 @@ class AppLocalizations {
   String get pendingPayments => translate('pending_payments');
   String get noPendingPayments => translate('no_pending_payments');
   String get previousDueTracking => translate('previous_due_tracking');
+  String get viewAllPreviousDuePayments =>
+      translate('view_all_previous_due_payments');
+  String get previousDuePayments => translate('previous_due_payments');
+  String get noPreviousDuePayments => translate('no_previous_due_payments');
+  String get previousDue => translate('previous_due');
   String get collected => translate('collected');
   String get pending => translate('pending');
   String get orderNow => translate('order_now');
@@ -193,6 +201,9 @@ class AppLocalizations {
   String get monthOct => translate('month_oct');
   String get monthNov => translate('month_nov');
   String get monthDec => translate('month_dec');
+  String get customerInformation => translate('customer_information');
+  String get paymentDetails => translate('payment_details');
+  String get viewBillDetails => translate('view_bill_details');
 
   // Full month names
   String get monthJanuary => translate('month_january');
@@ -677,6 +688,7 @@ class AppLocalizations {
   String get profitMarginPerUnit => translate('profit_margin_per_unit');
   String get previousDueAmountInfo => translate('previous_due_amount_info');
   String get previousDueAmount => translate('previous_due_amount');
+  String get previousPaidAmount => translate('previous_paid_amount');
   String get previousDueDescription => translate('previous_due_description');
 
   String get description => translate('description');

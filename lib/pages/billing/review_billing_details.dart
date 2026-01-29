@@ -22,6 +22,7 @@ class ReviewBillingDetails extends StatefulWidget {
   final String? billId;
   final int deliveryCharges;
   final double previousDueAmount;
+  final double previousPaidAmount;
   final String previousDueDescription;
 
   const ReviewBillingDetails({
@@ -41,6 +42,7 @@ class ReviewBillingDetails extends StatefulWidget {
     this.billId,
     this.deliveryCharges = 0,
     this.previousDueAmount = 0.0,
+    this.previousPaidAmount = 0.0,
     this.previousDueDescription = '',
     super.key,
   });
@@ -571,6 +573,26 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 ),
               ],
             ),
+            if (widget.previousPaidAmount > 0) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    localizations!.previousPaidAmount,
+                    style: context.subtitleMedium?.copyWith(fontSize: 14),
+                  ),
+                  Text(
+                    '₹${widget.previousPaidAmount.toStringAsFixed(2)}',
+                    style: context.bodyLargeText?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                ],
+              ),
+            ],
             if (widget.previousDueDescription.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
@@ -581,19 +603,11 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 ),
               ),
               const SizedBox(height: 4),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Text(
-                  widget.previousDueDescription,
-                  style: context.bodyMediumText?.copyWith(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
+              Text(
+                ':-- ${widget.previousDueDescription}',
+                style: context.bodyMediumText?.copyWith(
+                  fontSize: 14,
+                  color: Colors.grey[700],
                 ),
               ),
             ],
@@ -727,6 +741,13 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       },
     );
 
+    // Calculate total amount including delivery charges
+    final productsTotal = widget.products.fold<double>(
+      0.0,
+      (sum, product) => sum + product.total,
+    );
+    final totalAmount = (productsTotal + widget.deliveryCharges).toInt();
+
     try {
       await _saveBillToDatabase();
       if (mounted) {
@@ -750,9 +771,9 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 customerName: widget.customerName,
                 customerMobile: widget.customerMobile,
                 customerVehicle: widget.customerVehicle ?? '',
-                totalAmount: widget.totalAmount,
+                totalAmount: totalAmount,
                 amountPaid: widget.totalAmountPaid
-                    ? widget.totalAmount
+                    ? totalAmount
                     : (widget.amountPaid ?? 0),
                 amountRemaining: widget.totalAmountPaid
                     ? 0
@@ -763,6 +784,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 billNumber: _currentBillNumber,
                 deliveryCharges: widget.deliveryCharges,
                 previousDueAmount: widget.previousDueAmount,
+                previousPaidAmount: widget.previousPaidAmount,
                 previousDueDescription: widget.previousDueDescription,
               ),
             ),
@@ -829,8 +851,14 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
         .collection('items');
 
     // Prepare bill data
+    final productsTotal = widget.products.fold<double>(
+      0.0,
+      (double sum, product) => sum + product.total,
+    );
+    final totalAmount = (productsTotal + widget.deliveryCharges).toInt();
+
     final actualAmountPaid = widget.totalAmountPaid
-        ? widget.totalAmount
+        ? totalAmount
         : (widget.amountPaid ?? 0);
     final actualAmountRemaining = widget.totalAmountPaid
         ? 0
@@ -844,7 +872,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       'customerName': widget.customerName,
       'customerMobile': widget.customerMobile,
       'customerVehicle': widget.customerVehicle ?? '',
-      'totalAmount': widget.totalAmount,
+      'totalAmount': totalAmount,
       'totalAmountPaid': widget.totalAmountPaid,
       'amountPaid': actualAmountPaid,
       'amountRemaining': actualAmountRemaining,
@@ -852,6 +880,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       'nextPaymentDate': widget.nextPaymentDate,
       'deliveryCharges': widget.deliveryCharges,
       'previousDueAmount': widget.previousDueAmount,
+      'previousPaidAmount': widget.previousPaidAmount,
       'previousDueDescription': widget.previousDueDescription,
       'timestamp': DateTime.now().toIso8601String(),
       'products': {

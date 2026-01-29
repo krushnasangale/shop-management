@@ -54,6 +54,7 @@ class ViewBillDetailsScreen extends StatefulWidget {
   final String paymentMethod;
   final String? nextPaymentDate;
   final double previousDueAmount;
+  final double previousPaidAmount;
   final String previousDueDescription;
 
   const ViewBillDetailsScreen({
@@ -70,6 +71,7 @@ class ViewBillDetailsScreen extends StatefulWidget {
     this.paymentMethod = 'cash',
     this.nextPaymentDate,
     this.previousDueAmount = 0.0,
+    this.previousPaidAmount = 0.0,
     this.previousDueDescription = '',
     super.key,
   });
@@ -99,6 +101,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   late String paymentMethod;
   String? nextPaymentDate;
   late double previousDueAmount;
+  late double previousPaidAmount;
   late String previousDueDescription;
   late TextEditingController _nextPaymentDateController;
   late final AppLocalizations localizations;
@@ -115,6 +118,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     paymentMethod = widget.paymentMethod;
     nextPaymentDate = widget.nextPaymentDate;
     previousDueAmount = widget.previousDueAmount;
+    previousPaidAmount = widget.previousPaidAmount;
     previousDueDescription = widget.previousDueDescription;
     _nextPaymentDateController = TextEditingController(
       text: nextPaymentDate ?? '',
@@ -544,23 +548,39 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ],
 
                 // Previous Due Information (if applicable)
-                if (widget.previousDueAmount > 0) ...[
-                  pw.Text(
-                    'Previous Due: Rs. ${widget.previousDueAmount.toStringAsFixed(2)} ${widget.previousDueDescription.isNotEmpty ? '(${widget.previousDueDescription})' : ''}',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
+                if (widget.previousDueAmount > 0 ||
+                    widget.previousPaidAmount > 0) ...[
+                  if (widget.previousDueAmount > 0) ...[
+                    pw.Text(
+                      'Previous Due: Rs. ${widget.previousDueAmount.toStringAsFixed(2)} ${widget.previousDueDescription.isNotEmpty ? '(${widget.previousDueDescription})' : ''}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.left,
                     ),
-                    textAlign: pw.TextAlign.left,
-                  ),
-                  pw.Text(
-                    'Due against: ${widget.previousDueDescription.isNotEmpty ? '(${widget.previousDueDescription})' : ''}',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
+                  ],
+                  if (widget.previousPaidAmount > 0) ...[
+                    pw.Text(
+                      'Previous Paid: Rs. ${widget.previousPaidAmount.toStringAsFixed(2)}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.green,
+                      ),
+                      textAlign: pw.TextAlign.left,
                     ),
-                    textAlign: pw.TextAlign.left,
-                  ),
+                  ],
+                  if (widget.previousDueDescription.isNotEmpty) ...[
+                    pw.Text(
+                      'Due against: ${widget.previousDueDescription}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textAlign: pw.TextAlign.left,
+                    ),
+                  ],
                   pw.SizedBox(height: 15),
                 ],
 
@@ -3090,7 +3110,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   Widget _buildPreviousDueCard(BuildContext context, Color? cardColor) {
-    if (previousDueAmount <= 0) {
+    if (previousDueAmount <= 0 && previousPaidAmount <= 0) {
       return const SizedBox.shrink();
     }
 
@@ -3119,50 +3139,99 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.orange.withOpacity(0.3),
-                  width: 2,
+            if (previousDueAmount > 0) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.orange.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            localizations.amount,
+                            style: TextStyle(
+                              color: Colors.orange.shade700,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '₹${previousDueAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: Colors.orange,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(
+                      Icons.warning_amber_rounded,
+                      size: 32,
+                      color: Colors.orange,
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          localizations.amount,
-                          style: TextStyle(
-                            color: Colors.orange.shade700,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+              const SizedBox(height: 8),
+            ],
+            if (previousPaidAmount > 0) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.green.withOpacity(0.3),
+                    width: 2,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            localizations.previousPaidAmount,
+                            style: TextStyle(
+                              color: Colors.green.shade700,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
-                        Text(
-                          '₹${previousDueAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: Colors.orange,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                          Text(
+                            '₹${previousPaidAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const Icon(
-                    Icons.warning_amber_rounded,
-                    size: 32,
-                    color: Colors.orange,
-                  ),
-                ],
+                    const Icon(
+                      Icons.check_circle,
+                      size: 32,
+                      color: Colors.green,
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
             if (previousDueDescription.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(

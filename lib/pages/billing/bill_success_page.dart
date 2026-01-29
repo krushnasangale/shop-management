@@ -49,6 +49,7 @@ class BillSuccessPage extends StatefulWidget {
   final int billNumber;
   final int deliveryCharges;
   final double previousDueAmount;
+  final double previousPaidAmount;
   final String previousDueDescription;
 
   const BillSuccessPage({
@@ -64,6 +65,7 @@ class BillSuccessPage extends StatefulWidget {
     required this.billNumber,
     this.deliveryCharges = 0,
     this.previousDueAmount = 0.0,
+    this.previousPaidAmount = 0.0,
     this.previousDueDescription = '',
     super.key,
   });

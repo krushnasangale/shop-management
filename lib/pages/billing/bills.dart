@@ -158,6 +158,7 @@ class _BillsState extends State<Bills> {
                     productsList,
                     billData['nextPaymentDate'],
                     (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0,
+                    (billData['previousPaidAmount'] as num?)?.toDouble() ?? 0.0,
                     billData['previousDueDescription'] ?? '',
                   ),
                 );
@@ -197,9 +198,15 @@ class _BillsState extends State<Bills> {
 
     // Apply payment filter
     if (_selectedFilter != PaymentFilter.all) {
-      filtered = filtered
-          .where((bill) => bill.status == _selectedFilter)
-          .toList();
+      if (_selectedFilter == PaymentFilter.previousDue) {
+        filtered = filtered
+            .where((bill) => bill.previousDueAmount > 0)
+            .toList();
+      } else {
+        filtered = filtered
+            .where((bill) => bill.status == _selectedFilter)
+            .toList();
+      }
     }
 
     // Apply search filter
@@ -378,6 +385,8 @@ class _BillsState extends State<Bills> {
         return localizations.translate('partial_payment');
       case PaymentFilter.unpaid:
         return localizations.translate('unpaid');
+      case PaymentFilter.previousDue:
+        return 'Previous Due';
     }
   }
 
@@ -392,6 +401,8 @@ class _BillsState extends State<Bills> {
         return 'Partial Payment';
       case PaymentFilter.unpaid:
         return 'Unpaid';
+      case PaymentFilter.previousDue:
+        return 'Previous Due';
     }
   }
 
@@ -1023,6 +1034,11 @@ class _BillsState extends State<Bills> {
                         _buildFilterChip(PaymentFilter.partial, localizations),
                         const SizedBox(width: 8),
                         _buildFilterChip(PaymentFilter.unpaid, localizations),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          PaymentFilter.previousDue,
+                          localizations,
+                        ),
                       ],
                     ),
                   ),
@@ -1082,6 +1098,10 @@ class _BillsState extends State<Bills> {
       case PaymentFilter.unpaid:
         color = Colors.red;
         text = localizations.translate('unpaid');
+        break;
+      case PaymentFilter.previousDue:
+        color = Colors.blue;
+        text = 'Previous Due';
         break;
       default:
         return const SizedBox.shrink(); // Hide 'All' filter on card
@@ -1191,6 +1211,7 @@ class _BillsState extends State<Bills> {
                 products: bill.products,
                 nextPaymentDate: bill.nextPaymentDate,
                 previousDueAmount: bill.previousDueAmount,
+                previousPaidAmount: bill.previousPaidAmount,
                 previousDueDescription: bill.previousDueDescription,
               ),
             );
@@ -1256,14 +1277,12 @@ class _BillsState extends State<Bills> {
                   ],
                 ),
 
-                // Show payment details if partially paid or unpaid
-                if (bill.status == PaymentFilter.partial ||
-                    bill.status == PaymentFilter.unpaid) ...[
+                if (bill.previousDueAmount > 0) ...[
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 8,
-                      vertical: 6,
+                      vertical: 2,
                     ),
                     decoration: BoxDecoration(
                       color: bill.status == PaymentFilter.unpaid
@@ -1276,52 +1295,55 @@ class _BillsState extends State<Bills> {
                             : Colors.orange.withOpacity(0.2),
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (bill.amountPaid > 0) ...[
-                          Row(
-                            children: [
-                              Text(
-                                'Paid: ',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: isDark
-                                      ? Colors.grey[400]
-                                      : Colors.grey[600],
-                                ),
-                              ),
-                              Text(
-                                '₹${bill.amountPaid}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.green[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                        const SizedBox(height: 4),
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              'Remaining: ',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: isDark
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
+                            Row(
+                              children: [
+                                Text(
+                                  'Other Due: ',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  '₹${bill.previousDueAmount}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue[700],
+                                  ),
+                                ),
+                              ],
                             ),
-                            Text(
-                              '₹${bill.amountRemaining}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: bill.status == PaymentFilter.unpaid
-                                    ? Colors.red[700]
-                                    : Colors.orange[700],
-                              ),
+
+                            Row(
+                              children: [
+                                Text(
+                                  'Paid: ',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark
+                                        ? Colors.grey[400]
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  '₹${bill.previousPaidAmount}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.green[700],
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -1339,7 +1361,7 @@ class _BillsState extends State<Bills> {
 }
 
 // --- Data Model for Bill Status ---
-enum PaymentFilter { all, paid, partial, unpaid }
+enum PaymentFilter { all, paid, partial, unpaid, previousDue }
 
 // --- Sort Options ---
 enum SortOption {
@@ -1368,6 +1390,7 @@ class Bill {
   final List<Map<String, dynamic>>? products;
   final String? nextPaymentDate;
   final double previousDueAmount;
+  final double previousPaidAmount;
   final String previousDueDescription;
 
   Bill(
@@ -1386,6 +1409,7 @@ class Bill {
     this.products,
     this.nextPaymentDate,
     this.previousDueAmount,
+    this.previousPaidAmount,
     this.previousDueDescription,
   );
 }
