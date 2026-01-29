@@ -541,12 +541,14 @@ class _DashboardState extends State<Dashboard> {
         final billData = billDoc.data();
         final billDate = billData['billDate'] as String? ?? '';
         final totalAmount = (billData['totalAmount'] as num?)?.toInt() ?? 0;
+        final deliveryCharges =
+            (billData['deliveryCharges'] as num?)?.toInt() ?? 0;
         final products = billData['products'] as Map<String, dynamic>?;
         final discount = (billData['discount'] as num?)?.toInt() ?? 0;
 
         // Check if bill is from selected month
         if (_isFromSelectedMonth(billDate)) {
-          totalSales += totalAmount;
+          totalSales += (totalAmount - deliveryCharges);
           salesCount++; // Increment sales count
 
           int billProfit = 0;
