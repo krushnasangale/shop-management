@@ -65,6 +65,8 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
             (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0;
 
         if (previousDueAmount > 0) {
+          final previousPaidAmount =
+              (billData['previousPaidAmount'] as num?)?.toDouble() ?? 0.0;
           final isFullyPaid = billData['totalAmountPaid'] ?? false;
           final customerName = billData['customerName'] ?? 'Unknown';
           final billDate = billData['billDate'] ?? '';
@@ -74,6 +76,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
             'customerName': customerName,
             'billDate': billDate,
             'previousDueAmount': previousDueAmount,
+            'previousPaidAmount': previousPaidAmount,
             'isFullyPaid': isFullyPaid,
             'totalAmount': billData['totalAmount'] ?? 0,
             'amountPaid': billData['amountPaid'] ?? 0,
@@ -81,11 +84,8 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
           });
 
           totalPreviousDue += previousDueAmount;
-          if (isFullyPaid) {
-            totalCollected += previousDueAmount;
-          } else {
-            totalPending += previousDueAmount;
-          }
+          totalCollected += previousPaidAmount;
+          totalPending += previousDueAmount - previousPaidAmount;
         }
       }
 
@@ -146,8 +146,10 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
     });
   }
 
-  void _navigateToBillDetails(Map<String, dynamic> payment) {
-    AppNavigator.push(context, PreviousDueDetailsPage(payment: payment));
+  void _navigateToBillDetails(Map<String, dynamic> payment) async {
+    await AppNavigator.push(context, PreviousDueDetailsPage(payment: payment));
+    // Refresh data when returning from details page
+    _loadPreviousDuePayments();
   }
 
   @override
@@ -400,7 +402,8 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                     separatorBuilder: (_, __) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final payment = _filteredPayments[index];
-                      final isFullyPaid = payment['isFullyPaid'] as bool;
+                      final status = _getPreviousDueStatus(payment);
+                      final statusColor = _getStatusColor(status);
 
                       return Container(
                         margin: const EdgeInsets.symmetric(vertical: 2),
@@ -420,18 +423,12 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                               ),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: isFullyPaid
-                                    ? Colors.green.withOpacity(0.2)
-                                    : Colors.orange.withOpacity(0.2),
+                                color: statusColor.withOpacity(0.2),
                                 width: 1,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color:
-                                      (isFullyPaid
-                                              ? Colors.green
-                                              : Colors.orange)
-                                          .withOpacity(0.08),
+                                  color: statusColor.withOpacity(0.08),
                                   blurRadius: 12,
                                   offset: const Offset(0, 6),
                                 ),
@@ -440,12 +437,8 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                             child: InkWell(
                               onTap: () => _navigateToBillDetails(payment),
                               borderRadius: BorderRadius.circular(16),
-                              splashColor:
-                                  (isFullyPaid ? Colors.green : Colors.orange)
-                                      .withOpacity(0.1),
-                              highlightColor:
-                                  (isFullyPaid ? Colors.green : Colors.orange)
-                                      .withOpacity(0.05),
+                              splashColor: statusColor.withOpacity(0.1),
+                              highlightColor: statusColor.withOpacity(0.05),
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
@@ -456,20 +449,16 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color:
-                                                (isFullyPaid
-                                                        ? Colors.green
-                                                        : Colors.orange)
-                                                    .withOpacity(0.1),
+                                            color: statusColor.withOpacity(0.1),
                                             shape: BoxShape.circle,
                                           ),
                                           child: Icon(
-                                            isFullyPaid
+                                            status == 'paid'
                                                 ? Icons.check_circle
-                                                : Icons.pending,
-                                            color: isFullyPaid
-                                                ? Colors.green[600]
-                                                : Colors.orange[600],
+                                                : status == 'partial'
+                                                ? Icons.pending
+                                                : Icons.cancel,
+                                            color: statusColor,
                                             size: 20,
                                           ),
                                         ),
@@ -500,26 +489,17 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                                                       vertical: 2,
                                                     ),
                                                 decoration: BoxDecoration(
-                                                  color:
-                                                      (isFullyPaid
-                                                              ? Colors.green
-                                                              : Colors.orange)
-                                                          .withOpacity(0.15),
+                                                  color: statusColor
+                                                      .withOpacity(0.15),
                                                   borderRadius:
                                                       BorderRadius.circular(16),
                                                 ),
                                                 child: Text(
-                                                  isFullyPaid
-                                                      ? (loc?.collected ??
-                                                            'Collected')
-                                                      : (loc?.pending ??
-                                                            'Pending'),
+                                                  _getStatusText(status, loc),
                                                   style: TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w600,
-                                                    color: isFullyPaid
-                                                        ? Colors.green[700]
-                                                        : Colors.orange[700],
+                                                    color: statusColor,
                                                     letterSpacing: 0.5,
                                                   ),
                                                 ),
@@ -568,9 +548,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                                         Icon(
                                           Icons.currency_rupee,
                                           size: 14,
-                                          color: isFullyPaid
-                                              ? Colors.green[600]
-                                              : Colors.orange[600],
+                                          color: statusColor,
                                         ),
                                         const SizedBox(width: 2),
                                         Text(
@@ -578,9 +556,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                                           style: TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
-                                            color: isFullyPaid
-                                                ? Colors.green[600]
-                                                : Colors.orange[600],
+                                            color: statusColor,
                                           ),
                                         ),
                                       ],
@@ -598,6 +574,48 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
         ],
       ),
     );
+  }
+
+  // Determine payment status for previous due
+  String _getPreviousDueStatus(Map<String, dynamic> payment) {
+    final previousDueAmount = payment['previousDueAmount'] as double;
+    final previousPaidAmount = payment['previousPaidAmount'] as double;
+
+    if (previousPaidAmount == 0) {
+      return 'unpaid';
+    } else if (previousPaidAmount >= previousDueAmount) {
+      return 'paid';
+    } else {
+      return 'partial';
+    }
+  }
+
+  // Get color for status
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'paid':
+        return Colors.green;
+      case 'partial':
+        return Colors.orange;
+      case 'unpaid':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  // Get status text
+  String _getStatusText(String status, AppLocalizations? loc) {
+    switch (status) {
+      case 'paid':
+        return loc?.paid ?? 'Paid';
+      case 'partial':
+        return loc?.partiallyPaid ?? 'Partially Paid';
+      case 'unpaid':
+        return loc?.unpaid ?? 'Unpaid';
+      default:
+        return 'Unknown';
+    }
   }
 
   Widget _buildSummaryCard(
