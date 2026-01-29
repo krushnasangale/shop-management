@@ -469,6 +469,24 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
   }
 
   void _navigateToBillDetails(BuildContext context) {
+    // Convert products Map to List (products are stored as Map in Firestore)
+    List<Map<String, dynamic>>? products;
+    if (currentBillData?['products'] is Map) {
+      final productsMap = currentBillData!['products'] as Map<String, dynamic>;
+      products = productsMap.entries.map((entry) {
+        final product = entry.value as Map<String, dynamic>;
+        return Map<String, dynamic>.from(product);
+      }).toList();
+    } else if (widget.payment['products'] is Map) {
+      final productsMap = widget.payment['products'] as Map<String, dynamic>;
+      products = productsMap.entries.map((entry) {
+        final product = entry.value as Map<String, dynamic>;
+        return Map<String, dynamic>.from(product);
+      }).toList();
+    } else {
+      products = <Map<String, dynamic>>[];
+    }
+
     AppNavigator.push(
       context,
       ViewBillDetailsScreen(
@@ -481,7 +499,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
         totalAmountPaid: widget.payment['isFullyPaid'],
         amountPaid: widget.payment['amountPaid'],
         amountRemaining: widget.payment['amountRemaining'],
-        products: [],
+        products: products,
         nextPaymentDate: '',
         previousDueAmount: widget.payment['previousDueAmount'],
         previousPaidAmount: widget.payment['previousPaidAmount'],
