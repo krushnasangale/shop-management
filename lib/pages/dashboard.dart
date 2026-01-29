@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/helpers/utils.dart';
@@ -9,6 +8,7 @@ import 'package:flashbill/pages/pending_payments_page.dart';
 import 'package:flashbill/pages/previous_due_payments_page.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flashbill/services/dashboard_service.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -22,61 +22,32 @@ class _DashboardState extends State<Dashboard> {
   String filterType = 'month'; // 'month', 'year', 'day', 'range', or 'all'
   DateTime? _rangeStartDate;
   DateTime? _rangeEndDate;
+
+  // Services
+  late final DashboardService _dashboardService;
+
+  // Single source of truth for all dashboard data
+  DashboardData? _dashboardData;
   bool _isLoading = true;
-  int _totalSales = 0;
-  int _totalBuying = 0;
-  int _totalProfitLoss = 0;
-  int _totalSalesCount = 0; // Number of bills/sales
-  int _totalItemsSold = 0; // Total items sold
-  int _totalBuyingCount = 0; // Number of purchase transactions
-  int _totalQuantityBought = 0;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _billsSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-  _purchasesSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-  _productsSubscription;
 
-  // Top Selling Products
-  List<Map<String, dynamic>> _topSellingProducts = [];
-
-  // Pending Payments
-  List<Map<String, dynamic>> _pendingPayments = [];
-  int _totalPendingAmount = 0;
-
-  // Upcoming Payments (based on next payment date where remaining amount is 0)
-  List<Map<String, dynamic>> _upcomingPayments = [];
-
-  // Expansion states
+  // UI Expansion states
   bool _expandTopProducts = false;
   bool _expandPendingPayments = false;
   bool _expandUpcomingPayments = false;
   bool _expandOrderNow = false;
   bool _expandPreviousDue = false;
 
-  // Order Now Products (qty = 0)
-  List<Map<String, dynamic>> _orderNowProducts = [];
-
-  // Availability Section
-  int _totalAvailableQty = 0;
-  double _totalAvailableAmount = 0.0;
-  int _availableProductsCount = 0;
-
-  // Previous Due Tracking
-  int _totalPreviousDueBills = 0;
-  double _totalPreviousDueCollected = 0.0;
-  double _totalPreviousDuePending = 0.0;
-
   @override
   void initState() {
     super.initState();
+    _dashboardService = DashboardService();
     _loadFilterPreference();
   }
 
   @override
   void dispose() {
-    _billsSubscription?.cancel();
-    _purchasesSubscription?.cancel();
-    _productsSubscription?.cancel();
+    _dashboardSubscription?.cancel();
+    _dashboardService.dispose();
     super.dispose();
   }
 
@@ -96,7 +67,7 @@ class _DashboardState extends State<Dashboard> {
         }
       });
     }
-    _loadSalesReport();
+    _initializeDashboardData();
   }
 
   Future<void> _saveFilterPreference(String filter) async {
@@ -114,593 +85,57 @@ class _DashboardState extends State<Dashboard> {
     }
   }
 
-  void _loadSalesReport() {
+  StreamSubscription<DashboardData>? _dashboardSubscription;
+
+  void _initializeDashboardData() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       setState(() => _isLoading = false);
       return;
     }
 
-    final userId = user.uid;
-    final firestore = FirebaseFirestore.instance;
+    // Initialize services
+    _dashboardService.initialize(user.uid);
 
-    // Listen to bills changes
-    _billsSubscription = firestore
-        .collection('bills')
-        .doc(userId)
-        .collection('items')
-        .snapshots()
-        .listen((_) {
-          _calculateAndUpdateDashboard(userId);
-          _loadTopSellingProducts(userId);
-          _loadPendingPayments(userId);
-          _loadUpcomingPayments(userId);
-          _loadOrderNowProducts(userId);
-          _loadAvailability(userId);
-          _loadPreviousDueTracking(userId);
-        });
-
-    // Listen to purchases changes
-    _purchasesSubscription = firestore
-        .collection('purchases')
-        .doc(userId)
-        .collection('items')
-        .snapshots()
-        .listen((_) {
-          _calculateAndUpdateDashboard(userId);
-        });
-
-    // Listen to purchased products changes
-    _productsSubscription = firestore
-        .collection('purchased-products')
-        .doc(userId)
-        .collection('items')
-        .snapshots()
-        .listen((_) {
-          _calculateAndUpdateDashboard(userId);
-          _loadOrderNowProducts(userId);
-          _loadAvailability(userId);
-        });
+    // Listen to dashboard data updates with current filter settings
+    _updateDashboardSubscription();
   }
 
-  Future<void> _loadTopSellingProducts(String userId) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final billsSnapshot = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .get();
+  void _updateDashboardSubscription() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-      final productSales = <String, Map<String, dynamic>>{};
+    // Set loading state
+    setState(() => _isLoading = true);
 
-      for (var billDoc in billsSnapshot.docs) {
-        final billData = billDoc.data();
-        final products = billData['products'] as Map<String, dynamic>?;
-        final billDiscount = (billData['discount'] as num?)?.toInt() ?? 0;
+    // Cancel existing subscription
+    _dashboardSubscription?.cancel();
 
-        if (products != null) {
-          // First, calculate total bill profit to determine discount distribution
-          int billTotalProfit = 0;
-          final productProfits = <String, int>{};
-
-          products.forEach((pKey, pValue) {
-            if (pValue is Map<String, dynamic>) {
-              final productName = pValue['productName'] as String? ?? 'Unknown';
-              final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
-              final price = (pValue['price'] as num?)?.toInt() ?? 0;
-              final boughtPrice = (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
-
-              // Use stored profitTotal if available, else calculate
-              final profitTotal = (pValue['profitTotal'] as num?)?.toInt();
-              final productProfit =
-                  profitTotal ?? ((price - boughtPrice) * quantity);
-
-              billTotalProfit += productProfit;
-              productProfits[productName] =
-                  (productProfits[productName] ?? 0) + productProfit;
+    // Create new subscription with current filter settings
+    _dashboardSubscription = _dashboardService
+        .getDashboardStream(
+          user.uid,
+          filterType: filterType,
+          selectedDate: selectedDate,
+          rangeStartDate: _rangeStartDate,
+          rangeEndDate: _rangeEndDate,
+        )
+        .listen(
+          (dashboardData) {
+            if (mounted) {
+              setState(() {
+                _dashboardData = dashboardData;
+                _isLoading = false;
+              });
             }
-          });
-
-          // Now distribute discount proportionally and accumulate product sales
-          products.forEach((pKey, pValue) {
-            if (pValue is Map<String, dynamic>) {
-              final productName = pValue['productName'] as String? ?? 'Unknown';
-              final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
-              final price = (pValue['price'] as num?)?.toInt() ?? 0;
-              final boughtPrice = (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
-
-              // Use stored profitTotal if available, else calculate
-              final profitTotal = (pValue['profitTotal'] as num?)?.toInt();
-              final productProfit =
-                  profitTotal ?? ((price - boughtPrice) * quantity);
-
-              // Calculate this product's share of the discount
-              final productDiscountShare = billTotalProfit > 0
-                  ? ((productProfit / billTotalProfit) * billDiscount).round()
-                  : 0;
-
-              // Adjusted profit after discount
-              final adjustedProfit = productProfit - productDiscountShare;
-
-              if (productSales.containsKey(productName)) {
-                productSales[productName]!['quantity'] += quantity;
-                productSales[productName]!['revenue'] += (quantity * price);
-                productSales[productName]!['totalProfit'] += adjustedProfit;
-              } else {
-                productSales[productName] = {
-                  'quantity': quantity,
-                  'revenue': (quantity * price),
-                  'totalProfit': adjustedProfit,
-                  'name': productName,
-                };
-              }
+          },
+          onError: (error) {
+            print('Dashboard data error: $error');
+            if (mounted) {
+              setState(() => _isLoading = false);
             }
-          });
-        }
-      }
-
-      // Convert to list and sort by revenue
-      final topProducts = productSales.values.toList()
-        ..sort(
-          (a, b) => ((b['revenue'] as num?)?.toInt() ?? 0).compareTo(
-            (a['revenue'] as num?)?.toInt() ?? 0,
-          ),
+          },
         );
-
-      if (mounted) {
-        setState(() {
-          _topSellingProducts = topProducts.take(3).toList();
-        });
-      }
-    } catch (e) {
-      print('Error loading top selling products: $e');
-    }
-  }
-
-  Future<void> _loadPendingPayments(String userId) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final billsSnapshot = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .get();
-
-      final pendingBills = <Map<String, dynamic>>[];
-      int totalPending = 0;
-
-      for (var billDoc in billsSnapshot.docs) {
-        final billData = billDoc.data();
-        final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? false;
-
-        // Only process unpaid bills
-        if (!totalAmountPaid) {
-          final amountRemaining =
-              (billData['amountRemaining'] as num?)?.toInt() ?? 0;
-
-          // Only add if there's an actual amount remaining
-          if (amountRemaining > 0) {
-            pendingBills.add({
-              'id': billDoc.id,
-              'customerName': billData['customerName'] ?? 'Unknown',
-              'customerMobile': billData['customerMobile'] ?? 'N/A',
-              'customerVehicle': billData['customerVehicle'],
-              'billDate': billData['billDate'] ?? 'N/A',
-              'amountRemaining': amountRemaining,
-              'totalAmount': billData['totalAmount'] ?? 0,
-              'totalAmountPaid': false,
-              'amountPaid': billData['amountPaid'] ?? 0,
-              'products': billData['products'],
-              'paymentMethod': billData['paymentMethod'] ?? 'cash',
-            });
-            totalPending += amountRemaining;
-          }
-        }
-      }
-
-      // Sort by amount remaining (highest first) and take top 5
-      pendingBills.sort(
-        (a, b) => ((b['amountRemaining'] as num?)?.toInt() ?? 0).compareTo(
-          (a['amountRemaining'] as num?)?.toInt() ?? 0,
-        ),
-      );
-
-      if (mounted) {
-        setState(() {
-          _pendingPayments = pendingBills.take(5).toList();
-          _totalPendingAmount = totalPending;
-        });
-      }
-    } catch (e) {
-      print('Error loading pending payments: $e');
-    }
-  }
-
-  Future<void> _loadUpcomingPayments(String userId) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final billsSnapshot = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .get();
-
-      final upcomingBills = <Map<String, dynamic>>[];
-      final now = DateTime.now();
-      final currentMonth = now.month;
-      final currentYear = now.year;
-
-      for (var billDoc in billsSnapshot.docs) {
-        final billData = billDoc.data();
-        final nextPaymentDate = billData['nextPaymentDate'] as String?;
-        final amountRemaining =
-            (billData['amountRemaining'] as num?)?.toInt() ?? 0;
-
-        // Show upcoming payments where nextPaymentDate is set AND amountRemaining > 0
-        if (nextPaymentDate != null &&
-            nextPaymentDate.isNotEmpty &&
-            amountRemaining > 0) {
-          try {
-            // Parse date in dd/MM/yyyy format
-            final dateParts = nextPaymentDate.split('/');
-            if (dateParts.length == 3) {
-              final month = int.parse(dateParts[1]);
-              final year = int.parse(dateParts[2]);
-
-              // Only include if it's in the current month and year
-              if (month == currentMonth && year == currentYear) {
-                upcomingBills.add({
-                  'id': billDoc.id,
-                  'customerName': billData['customerName'] ?? 'Unknown',
-                  'customerMobile': billData['customerMobile'] ?? 'N/A',
-                  'customerVehicle': billData['customerVehicle'],
-                  'billDate': billData['billDate'] ?? 'N/A',
-                  'nextPaymentDate': nextPaymentDate,
-                  'totalAmount': billData['totalAmount'] ?? 0,
-                  'amountPaid': billData['amountPaid'] ?? 0,
-                  'amountRemaining': amountRemaining,
-                  'products': billData['products'],
-                });
-              }
-            }
-          } catch (e) {
-            print('Error parsing date $nextPaymentDate: $e');
-          }
-        }
-      }
-
-      // Sort by next payment date (upcoming first)
-      upcomingBills.sort((a, b) {
-        try {
-          final dateA = DateTime.parse(
-            a['nextPaymentDate'].replaceAll('/', '-'),
-          );
-          final dateB = DateTime.parse(
-            b['nextPaymentDate'].replaceAll('/', '-'),
-          );
-          return dateA.compareTo(dateB);
-        } catch (e) {
-          return 0;
-        }
-      });
-
-      if (mounted) {
-        setState(() {
-          _upcomingPayments = upcomingBills;
-        });
-      }
-    } catch (e) {
-      print('Error loading upcoming payments: $e');
-    }
-  }
-
-  Future<void> _loadOrderNowProducts(String userId) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final productsSnapshot = await firestore
-          .collection('purchased-products')
-          .doc(userId)
-          .collection('items')
-          .get();
-
-      final orderNowList = <Map<String, dynamic>>[];
-
-      for (var productDoc in productsSnapshot.docs) {
-        final productData = productDoc.data();
-        final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
-
-        // Only process products with zero quantity (out of stock)
-        if (quantity == 0) {
-          orderNowList.add({
-            'productName': productData['productName'] ?? 'Unknown',
-            'supplierName': productData['supplierName'] ?? 'Unknown Supplier',
-            'unit': productData['unit'] ?? 'N/A',
-            'quantity': 0,
-          });
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _orderNowProducts = orderNowList;
-        });
-      }
-    } catch (e) {
-      print('Error loading order now products: $e');
-    }
-  }
-
-  Future<void> _loadAvailability(String userId) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final productsSnapshot = await firestore
-          .collection('purchased-products')
-          .doc(userId)
-          .collection('items')
-          .get();
-
-      int totalQty = 0;
-      double totalAmount = 0.0;
-
-      // Use a Set to track unique product names with quantity > 0
-      final availableProductNames = <String>{};
-
-      for (var productDoc in productsSnapshot.docs) {
-        final productData = productDoc.data();
-        final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
-        final buyingPrice =
-            (productData['buyingPrice'] as num?)?.toDouble() ?? 0.0;
-        final productName = productData['productName'] as String? ?? '';
-
-        // Only count products with quantity > 0
-        if (quantity > 0) {
-          totalQty += quantity;
-          totalAmount += quantity * buyingPrice;
-          // Add product name to the set (duplicates are automatically ignored)
-          if (productName.isNotEmpty) {
-            availableProductNames.add(productName);
-          }
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _totalAvailableQty = totalQty;
-          _totalAvailableAmount = totalAmount;
-          _availableProductsCount = availableProductNames.length;
-        });
-      }
-    } catch (e) {
-      print('Error loading availability: $e');
-    }
-  }
-
-  Future<void> _loadPreviousDueTracking(String userId) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-      final billsSnapshot = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .get();
-
-      double totalCollected = 0.0;
-      double totalPending = 0.0;
-      int totalBills = 0;
-
-      for (var billDoc in billsSnapshot.docs) {
-        final billData = billDoc.data();
-        final previousDueAmount =
-            (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0;
-        final previousPaidAmount =
-            (billData['previousPaidAmount'] as num?)?.toDouble() ?? 0.0;
-
-        // Only count if there's actually a previous due amount
-        if (previousDueAmount > 0) {
-          totalBills++; // Count total bills with previous due
-
-          // Add the paid amount to collected
-          totalCollected += previousPaidAmount;
-
-          // Add the remaining amount to pending
-          totalPending += (previousDueAmount - previousPaidAmount);
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _totalPreviousDueBills = totalBills;
-          _totalPreviousDueCollected = totalCollected;
-          _totalPreviousDuePending = totalPending;
-        });
-      }
-    } catch (e) {
-      print('Error loading previous due tracking: $e');
-    }
-  }
-
-  Future<void> _calculateAndUpdateDashboard(String userId) async {
-    try {
-      final firestore = FirebaseFirestore.instance;
-
-      // Load bills data and calculate sales + profit
-      int totalSales = 0;
-      int totalProfit = 0;
-      int totalBuying = 0;
-      int salesCount = 0;
-      int itemsSold = 0;
-
-      final billsSnapshot = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .get();
-
-      for (var billDoc in billsSnapshot.docs) {
-        final billData = billDoc.data();
-        final billDate = billData['billDate'] as String? ?? '';
-        final totalAmount = (billData['totalAmount'] as num?)?.toInt() ?? 0;
-        final products = billData['products'] as Map<String, dynamic>?;
-        final discount = (billData['discount'] as num?)?.toInt() ?? 0;
-
-        // Check if bill is from selected month
-        if (_isFromSelectedMonth(billDate)) {
-          totalSales += totalAmount;
-          salesCount++; // Increment sales count
-
-          int billProfit = 0;
-
-          // Calculate profit for this bill using profitMargin if available, else calculate
-          if (products != null) {
-            products.forEach((pKey, pValue) {
-              if (pValue is Map<String, dynamic>) {
-                final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
-                final sellingPrice = (pValue['price'] as num?)?.toInt() ?? 0;
-                final boughtPrice =
-                    (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
-                itemsSold += quantity;
-                // Fallback: calculate from prices (legacy bills)
-                final profitPerUnit = sellingPrice - boughtPrice;
-                final productProfit = profitPerUnit * quantity;
-                billProfit += productProfit;
-              }
-            });
-          }
-
-          // IMPORTANT: Discount reduces profit, never increases it
-          // Ensure discount is always positive before subtracting
-          final validDiscount = discount > 0 ? discount : 0;
-          final netBillProfit = billProfit - validDiscount;
-          totalProfit += netBillProfit;
-        }
-      }
-
-      // Load bought products data for the selected month
-      int buyingCount = 0;
-      int totalQuantityBoughtThisMonth = 0;
-
-      // Try to get data from purchases (purchase entry headers)
-      final purchasesSnapshot = await firestore
-          .collection('purchases')
-          .doc(userId)
-          .collection('items')
-          .get();
-
-      if (purchasesSnapshot.docs.isNotEmpty) {
-        for (var purchaseDoc in purchasesSnapshot.docs) {
-          final purchaseData = purchaseDoc.data();
-          final purchaseDate = purchaseData['date'] as String? ?? '';
-
-          // Check if purchase is from selected month
-          if (_isFromSelectedMonth(purchaseDate)) {
-            final amount = (purchaseData['totalAmount'] as num?)?.toInt() ?? 0;
-            totalBuying += amount;
-            buyingCount++;
-
-            // Get total units for this purchase
-            final totalUnits =
-                (purchaseData['totalUnits'] as num?)?.toInt() ?? 0;
-            totalQuantityBoughtThisMonth += totalUnits;
-          }
-        }
-      } else {
-        // Fallback: Calculate from purchased-products if purchases doesn't exist
-        final productsSnapshot = await firestore
-            .collection('purchased-products')
-            .doc(userId)
-            .collection('items')
-            .get();
-
-        if (productsSnapshot.docs.isNotEmpty) {
-          for (var productDoc in productsSnapshot.docs) {
-            final productData = productDoc.data();
-            final productDate = productData['date'] as String? ?? '';
-
-            // Check if product purchase is from selected month
-            if (_isFromSelectedMonth(productDate)) {
-              final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
-              final buyingPrice =
-                  (productData['buyingPrice'] as num?)?.toInt() ?? 0;
-              final amount = quantity * buyingPrice;
-
-              totalBuying += amount;
-              totalQuantityBoughtThisMonth += quantity;
-            }
-          }
-
-          // Count distinct purchases from the products
-          final purchasesFromProducts = <String>{};
-          for (var productDoc in productsSnapshot.docs) {
-            final productData = productDoc.data();
-            final productDate = productData['date'] as String? ?? '';
-            if (_isFromSelectedMonth(productDate)) {
-              final purchaseId = productData['purchaseId'] as String?;
-              if (purchaseId != null) {
-                purchasesFromProducts.add(purchaseId);
-              }
-            }
-          }
-          buyingCount = purchasesFromProducts.length;
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _totalSales = totalSales;
-          _totalBuying = totalBuying;
-          _totalProfitLoss = totalProfit;
-          _totalSalesCount = salesCount;
-          _totalItemsSold = itemsSold;
-          _totalBuyingCount = buyingCount;
-          _totalQuantityBought = totalQuantityBoughtThisMonth;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error calculating dashboard: $e');
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  bool _isFromSelectedMonth(String billDate) {
-    try {
-      // If 'all' is selected, show all data
-      if (filterType == 'all') {
-        return true;
-      }
-
-      // Expected format: "dd/MM/yyyy" (e.g., "18/11/2025")
-      final parts = billDate.split('/');
-      if (parts.length != 3) return false;
-
-      final day = int.parse(parts[0]);
-      final month = int.parse(parts[1]);
-      final year = int.parse(parts[2]);
-      final date = DateTime(year, month, day);
-
-      if (filterType == 'range') {
-        if (_rangeStartDate == null || _rangeEndDate == null) return false;
-        return date.isAfter(
-              _rangeStartDate!.subtract(const Duration(days: 1)),
-            ) &&
-            date.isBefore(_rangeEndDate!.add(const Duration(days: 1)));
-      } else if (filterType == 'month') {
-        return month == selectedDate.month && year == selectedDate.year;
-      } else if (filterType == 'year') {
-        return year == selectedDate.year;
-      } else if (filterType == 'day') {
-        return day == selectedDate.day &&
-            month == selectedDate.month &&
-            year == selectedDate.year;
-      }
-      return false;
-    } catch (e) {
-      print('Error parsing date "$billDate": $e');
-      return false;
-    }
   }
 
   Widget _buildTopSellingProductsCard(AppLocalizations? loc) {
@@ -748,7 +183,7 @@ class _DashboardState extends State<Dashboard> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '${_topSellingProducts.length}',
+                          '${_dashboardData?.topSellingProducts.length ?? 0}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -777,7 +212,7 @@ class _DashboardState extends State<Dashboard> {
             ),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: _topSellingProducts.isEmpty
+              child: (_dashboardData?.topSellingProducts.isEmpty ?? true)
                   ? Center(
                       child: Text(
                         loc?.noSalesDataYet ?? 'No sales data yet',
@@ -787,13 +222,14 @@ class _DashboardState extends State<Dashboard> {
                   : ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _topSellingProducts.length,
+                      itemCount: _dashboardData?.topSellingProducts.length ?? 0,
                       separatorBuilder: (_, __) => Divider(
                         color: isDark ? Colors.grey[700] : Colors.grey[300],
                         height: 12,
                       ),
                       itemBuilder: (context, index) {
-                        final product = _topSellingProducts[index];
+                        final product =
+                            _dashboardData!.topSellingProducts[index];
                         final profit =
                             (product['totalProfit'] as num?)?.toInt() ?? 0;
                         return Row(
@@ -902,7 +338,7 @@ class _DashboardState extends State<Dashboard> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '₹${_formatCurrency(_totalPendingAmount, loc: AppLocalizations.of(context))}',
+                          '₹${_formatCurrency(_dashboardData?.pendingPayments.totalAmount ?? 0, loc: AppLocalizations.of(context))}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -931,7 +367,7 @@ class _DashboardState extends State<Dashboard> {
             ),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: _pendingPayments.isEmpty
+              child: (_dashboardData?.pendingPayments.payments.isEmpty ?? true)
                   ? Center(
                       child: Text(
                         loc?.noPendingPayments ?? 'No pending payments',
@@ -941,13 +377,15 @@ class _DashboardState extends State<Dashboard> {
                   : ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _pendingPayments.length,
+                      itemCount:
+                          _dashboardData?.pendingPayments.payments.length ?? 0,
                       separatorBuilder: (_, __) => Divider(
                         color: isDark ? Colors.grey[700] : Colors.grey[300],
                         height: 12,
                       ),
                       itemBuilder: (context, index) {
-                        final payment = _pendingPayments[index];
+                        final payment =
+                            _dashboardData!.pendingPayments.payments[index];
                         return InkWell(
                           onTap: () => _navigateToBillDetails(payment),
                           child: Row(
@@ -988,7 +426,9 @@ class _DashboardState extends State<Dashboard> {
                       },
                     ),
             ),
-            if (_expandPendingPayments && _pendingPayments.isNotEmpty) ...[
+            if (_expandPendingPayments &&
+                (_dashboardData?.pendingPayments.payments.isNotEmpty ??
+                    false)) ...[
               const SizedBox(height: 8),
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -1072,7 +512,7 @@ class _DashboardState extends State<Dashboard> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '${_totalPreviousDueBills == 1 ? (loc?.bill ?? 'Bill') : (loc?.bills ?? 'Bills')} $_totalPreviousDueBills',
+                          '${_dashboardData?.previousDueTracking.totalBills == 1 ? (loc?.bill ?? 'Bill') : (loc?.bills ?? 'Bills')} ${_dashboardData?.previousDueTracking.totalBills ?? 0}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -1121,7 +561,7 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '₹${_formatCurrency((_totalPreviousDueCollected + _totalPreviousDuePending).toInt() == 0 ? 1500 : (_totalPreviousDueCollected + _totalPreviousDuePending).toInt(), loc: AppLocalizations.of(context))}',
+                              '₹${_formatCurrency(((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt() == 0 ? 1500 : ((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt(), loc: AppLocalizations.of(context))}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -1153,7 +593,7 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '₹${_formatCurrency(_totalPreviousDueCollected.toInt(), loc: loc)}',
+                              '₹${_formatCurrency(_dashboardData?.previousDueTracking.totalCollected.toInt() ?? 0, loc: loc)}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -1185,7 +625,7 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '₹${_formatCurrency(_totalPreviousDuePending.toInt(), loc: loc)}',
+                              '₹${_formatCurrency(_dashboardData?.previousDueTracking.totalPending.toInt() ?? 0, loc: loc)}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w700,
@@ -1293,7 +733,9 @@ class _DashboardState extends State<Dashboard> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        _availableProductsCount.toString(),
+                        (_dashboardData?.productsData.availableProductsCount ??
+                                0)
+                            .toString(),
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -1357,7 +799,8 @@ class _DashboardState extends State<Dashboard> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _totalAvailableQty.toString(),
+                          (_dashboardData?.productsData.totalAvailableQty ?? 0)
+                              .toString(),
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
@@ -1414,7 +857,7 @@ class _DashboardState extends State<Dashboard> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '₹${_formatCurrency(_totalAvailableAmount.toInt(), loc: AppLocalizations.of(context))}',
+                          '₹${_formatCurrency((_dashboardData?.productsData.totalAvailableAmount ?? 0).toInt(), loc: AppLocalizations.of(context))}',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w700,
@@ -1489,7 +932,7 @@ class _DashboardState extends State<Dashboard> {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              '${_upcomingPayments.length} ${loc?.due ?? 'due'}',
+                              '${_dashboardData?.upcomingPayments.length ?? 0} ${loc?.due ?? 'due'}',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -1528,7 +971,7 @@ class _DashboardState extends State<Dashboard> {
             ),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: _upcomingPayments.isEmpty
+              child: (_dashboardData?.upcomingPayments.isEmpty ?? true)
                   ? Center(
                       child: Text(
                         loc?.noUpcomingPayments ?? 'No upcoming payments',
@@ -1538,13 +981,13 @@ class _DashboardState extends State<Dashboard> {
                   : ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _upcomingPayments.length,
+                      itemCount: _dashboardData?.upcomingPayments.length ?? 0,
                       separatorBuilder: (_, __) => Divider(
                         color: isDark ? Colors.grey[700] : Colors.grey[300],
                         height: 12,
                       ),
                       itemBuilder: (context, index) {
-                        final payment = _upcomingPayments[index];
+                        final payment = _dashboardData!.upcomingPayments[index];
                         return InkWell(
                           onTap: () => _navigateToBillDetails(payment),
                           child: Row(
@@ -1658,7 +1101,7 @@ class _DashboardState extends State<Dashboard> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '${_orderNowProducts.length}',
+                          '${_dashboardData?.productsData.orderNowProducts.length ?? 0}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -1685,7 +1128,9 @@ class _DashboardState extends State<Dashboard> {
             ),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: _orderNowProducts.isEmpty
+              child:
+                  (_dashboardData?.productsData.orderNowProducts.isEmpty ??
+                      true)
                   ? Center(
                       child: Text(
                         loc?.noProductsToOrder ?? 'No products to order',
@@ -1695,13 +1140,20 @@ class _DashboardState extends State<Dashboard> {
                   : ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _orderNowProducts.length,
+                      itemCount:
+                          _dashboardData
+                              ?.productsData
+                              .orderNowProducts
+                              .length ??
+                          0,
                       separatorBuilder: (_, __) => Divider(
                         color: isDark ? Colors.grey[700] : Colors.grey[300],
                         height: 12,
                       ),
                       itemBuilder: (context, index) {
-                        final product = _orderNowProducts[index];
+                        final product = _dashboardData!
+                            .productsData
+                            .orderNowProducts[index];
                         return Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -2036,10 +1488,9 @@ class _DashboardState extends State<Dashboard> {
                                       onSelected: (String newValue) {
                                         setState(() {
                                           filterType = newValue;
-                                          _isLoading = true;
                                         });
                                         _saveFilterPreference(newValue);
-                                        _loadSalesReport();
+                                        _updateDashboardSubscription();
                                       },
                                       child: Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -2101,9 +1552,9 @@ class _DashboardState extends State<Dashboard> {
                                 child: _buildModernCard(
                                   title: loc?.totalSales ?? 'Total Sales',
                                   value:
-                                      '₹${_formatCurrency(_totalSales, loc: loc)}',
+                                      '₹${_formatCurrency(_dashboardData?.salesMetrics.totalSales ?? 0, loc: loc)}',
                                   subtitle:
-                                      '${loc?.bills ?? "Bills"}: $_totalSalesCount • ${loc?.items ?? "Items"}: $_totalItemsSold',
+                                      '${loc?.bills ?? "Bills"}: ${_dashboardData?.salesMetrics.salesCount ?? 0} • ${loc?.items ?? "Items"}: ${_dashboardData?.salesMetrics.itemsSold ?? 0}',
                                   backgroundColor: Colors.blue.withOpacity(0.1),
                                   textColor: Colors.blue[700]!,
                                   icon: Icons.trending_up,
@@ -2114,9 +1565,9 @@ class _DashboardState extends State<Dashboard> {
                                 child: _buildModernCard(
                                   title: loc?.totalPurchase ?? 'Total Purchase',
                                   value:
-                                      '₹${_formatCurrency(_totalBuying, loc: loc)}',
+                                      '₹${_formatCurrency(_dashboardData?.purchasesData.totalBuying ?? 0, loc: loc)}',
                                   subtitle:
-                                      '${loc?.orders ?? "Orders"}: $_totalBuyingCount • ${loc?.qtyLabel ?? "Qty"}: $_totalQuantityBought',
+                                      '${loc?.orders ?? "Orders"}: ${_dashboardData?.purchasesData.buyingCount ?? 0} • ${loc?.qtyLabel ?? "Qty"}: ${_dashboardData?.purchasesData.totalQuantityBought ?? 0}',
                                   backgroundColor: Colors.orange.withOpacity(
                                     0.1,
                                   ),
@@ -2287,7 +1738,8 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget _buildProfitLossCard() {
-    final isProfitable = _totalProfitLoss >= 0;
+    final profit = _dashboardData?.salesMetrics.totalProfit ?? 0;
+    final isProfitable = profit >= 0;
     final bgColor = isProfitable ? Colors.green : Colors.red;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final loc = AppLocalizations.of(context);
@@ -2321,7 +1773,7 @@ class _DashboardState extends State<Dashboard> {
               ),
               const SizedBox(height: 8),
               Text(
-                '₹${_formatCurrency(_totalProfitLoss.abs(), loc: loc)}',
+                '₹${_formatCurrency(profit.abs(), loc: loc)}',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w800,
@@ -2374,10 +1826,9 @@ class _DashboardState extends State<Dashboard> {
           setState(() {
             _rangeStartDate = pickedRange.start;
             _rangeEndDate = pickedRange.end;
-            _isLoading = true;
           });
           _saveFilterPreference('range');
-          _loadSalesReport();
+          _updateDashboardSubscription();
         }
       });
       return;
@@ -2394,9 +1845,8 @@ class _DashboardState extends State<Dashboard> {
         if (pickedDate != null) {
           setState(() {
             selectedDate = pickedDate;
-            _isLoading = true;
           });
-          _loadSalesReport();
+          _updateDashboardSubscription();
         }
       });
       return;
@@ -2516,10 +1966,9 @@ class _DashboardState extends State<Dashboard> {
               onPressed: () {
                 setState(() {
                   selectedDate = DateTime(selectedYear, selectedMonth, 1);
-                  _isLoading = true;
                 });
                 Navigator.of(context).pop();
-                _loadSalesReport();
+                _updateDashboardSubscription();
               },
               child: Text(loc?.select ?? 'Select'),
             ),
