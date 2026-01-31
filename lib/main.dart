@@ -372,20 +372,82 @@ class _MyHomePageState extends State<MyHomePage> {
       body: IndexedStack(index: _selectedIndex, children: _screens),
 
       floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3
-          ? FloatingActionButton(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          ? Container(
+              height: 60,
+              width: 60,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.purple.shade400,
+                    Colors.blue.shade400,
+                    Colors.cyan.shade400,
+                    Colors.teal.shade400,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.purple.shade300.withOpacity(0.6),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: Colors.blue.shade300.withOpacity(0.4),
+                    blurRadius: 15,
+                    spreadRadius: 1,
+                    offset: const Offset(0, 2),
+                  ),
+                  BoxShadow(
+                    color: Colors.cyan.shade300.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
-              onPressed: () {
-                if (_selectedIndex == 2) {
-                  AppNavigator.push(context, const CreateNewBill());
-                } else if (_selectedIndex == 3) {
-                  AppNavigator.push(context, const AddPurchaseEntry());
-                }
-              },
-              backgroundColor: const Color(0xFF2196F3),
-              tooltip: localizations?.addItem ?? 'Add Item',
-              child: const Icon(Icons.add, color: Colors.white, size: 45),
+              child: Container(
+                margin: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.white.withOpacity(0.9),
+                      Colors.white.withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: FloatingActionButton(
+                  onPressed: () {
+                    if (_selectedIndex == 2) {
+                      AppNavigator.push(context, const CreateNewBill());
+                    } else if (_selectedIndex == 3) {
+                      AppNavigator.push(context, const AddPurchaseEntry());
+                    }
+                  },
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  tooltip: localizations?.addItem ?? 'Add Item',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.purple.shade500,
+                          Colors.blue.shade500,
+                          Colors.cyan.shade500,
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 32),
+                  ),
+                ),
+              ),
             )
           : null,
       bottomNavigationBar: Container(
