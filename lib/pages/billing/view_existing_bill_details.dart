@@ -105,6 +105,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   late String previousDueDescription;
   late TextEditingController _nextPaymentDateController;
   late final AppLocalizations localizations;
+  bool _vehicleNumberEnabled = false; // App setting for vehicle number field
 
   @override
   void initState() {
@@ -127,6 +128,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     isTotalAmountPaid = widget.totalAmountPaid;
     amountPaid = '₹ ${widget.amountPaid.toString()}';
     amountRemaining = '₹ ${widget.amountRemaining.toString()}';
+
+    // Load app settings
+    _loadAppSettings();
 
     // Convert products if provided
     if (widget.products != null && widget.products!.isNotEmpty) {
@@ -244,6 +248,28 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       }
     } catch (e) {
       print('Error loading discount: $e');
+    }
+  }
+
+  Future<void> _loadAppSettings() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('shop-profile')
+          .doc(user.uid)
+          .get();
+
+      if (snapshot.exists) {
+        final data = snapshot.data() ?? {};
+        final appSettings = data['appSettings'] as Map<String, dynamic>? ?? {};
+        setState(() {
+          _vehicleNumberEnabled = appSettings['vehicleNumberEnabled'] ?? false;
+        });
+      }
+    } catch (e) {
+      print('Error loading app settings: $e');
     }
   }
 
@@ -2378,35 +2404,40 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            Text(
-              localizations.customerVehicleNumber,
-              style: context.subtitleMedium?.copyWith(fontSize: 14),
-            ),
-            GestureDetector(
-              onTap: _showEditVehicleDialog,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.2)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      customerVehicle ?? localizations.nA,
-                      style: context.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 18,
+            if (_vehicleNumberEnabled) ...[
+              Text(
+                localizations.customerVehicleNumber,
+                style: context.subtitleMedium?.copyWith(fontSize: 14),
+              ),
+              GestureDetector(
+                onTap: _showEditVehicleDialog,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        customerVehicle ?? localizations.nA,
+                        style: context.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 18,
+                        ),
                       ),
-                    ),
-                    Icon(Icons.edit, size: 16, color: Colors.blue[600]),
-                  ],
+                      Icon(Icons.edit, size: 16, color: Colors.blue[600]),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
+              const SizedBox(height: 12),
+            ],
           ],
         ),
       ),

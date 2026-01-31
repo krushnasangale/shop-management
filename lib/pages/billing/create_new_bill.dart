@@ -141,6 +141,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
   late TextEditingController _previousDueDescriptionController;
   String _previousDueAmountError = '';
   String _previousDueDescriptionError = '';
+  bool _vehicleNumberEnabled = false; // App setting for vehicle number field
+  bool _deliveryChargesEnabled =
+      false; // App setting for delivery charges field
+  bool _previousDueEnabled = false; // App setting for previous due field
 
   @override
   void initState() {
@@ -160,6 +164,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _previousDueDescriptionController = TextEditingController();
     _loadProducts();
     _loadCustomers();
+    _loadAppSettings();
 
     // Load existing bill data if in edit mode
     if (widget.isEditMode && widget.existingBillData != null) {
@@ -380,6 +385,35 @@ class _CreateNewBillState extends State<CreateNewBill> {
         });
   }
 
+  Future<void> _loadAppSettings() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('shop-profile')
+          .doc(user.uid)
+          .get();
+
+      if (snapshot.exists) {
+        final data = snapshot.data() ?? {};
+        final appSettings = data['appSettings'] as Map<String, dynamic>? ?? {};
+        setState(() {
+          _vehicleNumberEnabled = appSettings['vehicleNumberEnabled'] ?? false;
+          _deliveryChargesEnabled =
+              appSettings['deliveryChargesEnabled'] ?? false;
+          _previousDueEnabled = appSettings['previousDueEnabled'] ?? false;
+        });
+      }
+    } catch (e) {
+      print('Error loading app settings: $e');
+      // Default to true if error
+      setState(() {
+        _vehicleNumberEnabled = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
@@ -561,50 +595,52 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   ],
                 ),
 
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    buildFormField(
-                      localizations.translate('customer_vehicle_number'),
-                      _customerVehicleController,
-                      keyboardType: TextInputType.text,
-                      onChanged: (value) {
-                        // Convert to uppercase
-                        if (value != value.toUpperCase()) {
-                          _customerVehicleController.text = value.toUpperCase();
-                          _customerVehicleController
-                              .selection = TextSelection.fromPosition(
-                            TextPosition(offset: value.toUpperCase().length),
-                          );
-                        }
-                        setState(() {
-                          _customerVehicleError =
-                              _validateVehicleNumber(
-                                _customerVehicleController.text,
-                                localizations,
-                              ) ??
-                              '';
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    if (_customerVehicleError.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          top: 4,
-                          left: 16,
-                          bottom: 10,
-                        ),
-                        child: Text(
-                          _customerVehicleError,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
+                if (_vehicleNumberEnabled)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      buildFormField(
+                        localizations.translate('customer_vehicle_number'),
+                        _customerVehicleController,
+                        keyboardType: TextInputType.text,
+                        onChanged: (value) {
+                          // Convert to uppercase
+                          if (value != value.toUpperCase()) {
+                            _customerVehicleController.text = value
+                                .toUpperCase();
+                            _customerVehicleController
+                                .selection = TextSelection.fromPosition(
+                              TextPosition(offset: value.toUpperCase().length),
+                            );
+                          }
+                          setState(() {
+                            _customerVehicleError =
+                                _validateVehicleNumber(
+                                  _customerVehicleController.text,
+                                  localizations,
+                                ) ??
+                                '';
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      if (_customerVehicleError.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(
+                            top: 4,
+                            left: 16,
+                            bottom: 10,
+                          ),
+                          child: Text(
+                            _customerVehicleError,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
+                    ],
+                  ),
 
                 // Products section
                 Row(
@@ -797,29 +833,30 @@ class _CreateNewBillState extends State<CreateNewBill> {
                 ),
                 const SizedBox(height: 20),
                 // Delivery Charges Field
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      localizations.translate('delivery_charges'),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                if (_deliveryChargesEnabled)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        localizations.translate('delivery_charges'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    buildFormField(
-                      localizations.translate('enter_delivery_charges'),
-                      _deliveryChargesController,
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        setState(() {
-                          _deliveryCharges = double.tryParse(value) ?? 0.0;
-                        });
-                      },
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 8),
+                      buildFormField(
+                        localizations.translate('enter_delivery_charges'),
+                        _deliveryChargesController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          setState(() {
+                            _deliveryCharges = double.tryParse(value) ?? 0.0;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -1109,135 +1146,137 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     ],
                   ),
                 // Previous Due Amount Section
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    border: Border.all(color: Colors.blue[200]!),
-                    borderRadius: BorderRadius.circular(8),
+                if (_previousDueEnabled) ...[
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      border: Border.all(color: Colors.blue[200]!),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.blue[700],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            localizations.translate('previous_due_amount_info'),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
+                  const SizedBox(height: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.info_outline,
-                        color: Colors.blue[700],
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          localizations.translate('previous_due_amount_info'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.blue[700],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    buildFormField(
-                      localizations.translate('previous_due_amount'),
-                      _previousDueAmountController,
-                      keyboardType: TextInputType.number,
-                      onChanged: (value) {
-                        setState(() {
-                          _previousDueAmount = double.tryParse(value) ?? 0.0;
-                          _previousDueAmountError =
-                              _validatePreviousDueAmount(
-                                value,
-                                localizations,
-                              ) ??
-                              '';
-                          _previousDueDescriptionError =
-                              _validatePreviousDueDescription(
-                                _previousDueDescriptionController.text,
-                                localizations,
-                              ) ??
-                              '';
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    if (_previousDueAmountError.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 16, bottom: 10),
-                        child: Text(
-                          _previousDueAmountError,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    Text(
-                      localizations.translate('previous_due_description'),
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      height: 80,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12.0),
-                        border: Border.all(
-                          color: _previousDueDescriptionError.isNotEmpty
-                              ? Colors.red
-                              : Colors.grey[700]!,
-                        ),
-                        color: Colors.grey[100],
-                      ),
-                      child: TextField(
-                        controller: _previousDueDescriptionController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          fillColor: Colors.white,
-                          hintText: localizations.translate(
-                            'enter_description_optional',
-                          ),
-                          filled: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 12.0,
-                            horizontal: 16.0,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+                      buildFormField(
+                        localizations.translate('previous_due_amount'),
+                        _previousDueAmountController,
+                        keyboardType: TextInputType.number,
                         onChanged: (value) {
                           setState(() {
+                            _previousDueAmount = double.tryParse(value) ?? 0.0;
+                            _previousDueAmountError =
+                                _validatePreviousDueAmount(
+                                  value,
+                                  localizations,
+                                ) ??
+                                '';
                             _previousDueDescriptionError =
                                 _validatePreviousDueDescription(
-                                  value,
+                                  _previousDueDescriptionController.text,
                                   localizations,
                                 ) ??
                                 '';
                           });
                         },
                       ),
-                    ),
-                    if (_previousDueDescriptionError.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4, left: 16),
-                        child: Text(
-                          _previousDueDescriptionError,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 12,
+                      const SizedBox(height: 10),
+                      if (_previousDueAmountError.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(left: 16, bottom: 10),
+                          child: Text(
+                            _previousDueAmountError,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
                           ),
                         ),
+                      Text(
+                        localizations.translate('previous_due_description'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                  ],
-                ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 80,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12.0),
+                          border: Border.all(
+                            color: _previousDueDescriptionError.isNotEmpty
+                                ? Colors.red
+                                : Colors.grey[700]!,
+                          ),
+                          color: Colors.grey[100],
+                        ),
+                        child: TextField(
+                          controller: _previousDueDescriptionController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            fillColor: Colors.white,
+                            hintText: localizations.translate(
+                              'enter_description_optional',
+                            ),
+                            filled: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12.0,
+                              horizontal: 16.0,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _previousDueDescriptionError =
+                                  _validatePreviousDueDescription(
+                                    value,
+                                    localizations,
+                                  ) ??
+                                  '';
+                            });
+                          },
+                        ),
+                      ),
+                      if (_previousDueDescriptionError.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4, left: 16),
+                          child: Text(
+                            _previousDueDescriptionError,
+                            style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
                 // Buttons fixed at the bottom
                 const SizedBox(height: 30),
                 Row(
@@ -1292,32 +1331,39 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     localizations,
                                   ) ??
                                   '';
-                              _customerVehicleError =
-                                  _validateVehicleNumber(
-                                    _customerVehicleController.text,
-                                    localizations,
-                                  ) ??
-                                  '';
-                              _previousDueAmountError =
-                                  _validatePreviousDueAmount(
-                                    _previousDueAmountController.text,
-                                    localizations,
-                                  ) ??
-                                  '';
-                              _previousDueDescriptionError =
-                                  _validatePreviousDueDescription(
-                                    _previousDueDescriptionController.text,
-                                    localizations,
-                                  ) ??
-                                  '';
+                              _customerVehicleError = _vehicleNumberEnabled
+                                  ? (_validateVehicleNumber(
+                                          _customerVehicleController.text,
+                                          localizations,
+                                        ) ??
+                                        '')
+                                  : '';
+                              _previousDueAmountError = _previousDueEnabled
+                                  ? (_validatePreviousDueAmount(
+                                          _previousDueAmountController.text,
+                                          localizations,
+                                        ) ??
+                                        '')
+                                  : '';
+                              _previousDueDescriptionError = _previousDueEnabled
+                                  ? (_validatePreviousDueDescription(
+                                          _previousDueDescriptionController
+                                              .text,
+                                          localizations,
+                                        ) ??
+                                        '')
+                                  : '';
                             });
 
                             // Check if there are any errors
                             if (_customerNameError.isNotEmpty ||
                                 _customerMobileError.isNotEmpty ||
-                                _customerVehicleError.isNotEmpty ||
-                                _previousDueAmountError.isNotEmpty ||
-                                _previousDueDescriptionError.isNotEmpty) {
+                                (_vehicleNumberEnabled &&
+                                    _customerVehicleError.isNotEmpty) ||
+                                (_previousDueEnabled &&
+                                    _previousDueAmountError.isNotEmpty) ||
+                                (_previousDueEnabled &&
+                                    _previousDueDescriptionError.isNotEmpty)) {
                               return;
                             }
 
@@ -1413,12 +1459,17 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     : '',
                                 isEditMode: widget.isEditMode,
                                 billId: widget.billId,
-                                deliveryCharges: _deliveryCharges.toInt(),
-                                previousDueAmount: _previousDueAmount,
+                                deliveryCharges: _deliveryChargesEnabled
+                                    ? _deliveryCharges.toInt()
+                                    : 0,
+                                previousDueAmount: _previousDueEnabled
+                                    ? _previousDueAmount
+                                    : 0.0,
                                 previousPaidAmount: 0.0,
-                                previousDueDescription:
-                                    _previousDueDescriptionController.text
-                                        .trim(),
+                                previousDueDescription: _previousDueEnabled
+                                    ? _previousDueDescriptionController.text
+                                          .trim()
+                                    : '',
                               ),
                             );
                           },

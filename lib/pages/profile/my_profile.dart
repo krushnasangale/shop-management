@@ -1,3 +1,4 @@
+import 'package:flashbill/pages/profile/app_preferences/app_settings.dart';
 import 'package:flashbill/pages/profile/logged_in_devices.dart';
 import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
@@ -613,6 +614,14 @@ class _MyProfileState extends State<MyProfile> {
                   _buildSectionHeader(
                     localizations?.general.toUpperCase() ?? 'GENERAL',
                     context,
+                  ),
+                  _buildMenuItem(
+                    Icons.settings,
+                    'App Settings',
+                    context,
+                    onTap: () {
+                      AppNavigator.push(context, const AppSettings());
+                    },
                   ),
                   Consumer<LanguageProvider>(
                     builder: (context, languageProvider, _) {
