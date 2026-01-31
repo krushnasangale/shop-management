@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flutter/material.dart';
+import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
@@ -21,42 +22,46 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
   String _searchQuery = '';
   String _sortBy = 'amount'; // 'amount', 'date', 'name'
   final TextEditingController _searchController = TextEditingController();
+  late BillsDataService _billsDataService;
+  StreamSubscription? _billsDataServiceSubscription;
   bool _showSearchBar = false;
 
   @override
   void initState() {
     super.initState();
-    _loadPendingPayments();
+    _initializeBillsDataService();
     _searchController.addListener(_filterPayments);
+  }
+
+  void _initializeBillsDataService() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _billsDataService = BillsDataService();
+      _billsDataService.initialize(user.uid);
+      _billsDataServiceSubscription = _billsDataService.billsStream.listen((_) {
+        _loadPendingPayments();
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   void dispose() {
+    _billsDataServiceSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _loadPendingPayments() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      final userId = user.uid;
-      final firestore = FirebaseFirestore.instance;
-      final billsSnapshot = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .get();
+      // Get cached bills from BillsDataService
+      final cachedBills = _billsDataService.getCachedBills();
 
       final pendingBills = <Map<String, dynamic>>[];
       int totalPending = 0;
 
-      for (var billDoc in billsSnapshot.docs) {
-        final billData = billDoc.data();
+      for (var billData in cachedBills) {
         final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? false;
 
         if (!totalAmountPaid) {
@@ -65,7 +70,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
 
           if (amountRemaining > 0) {
             pendingBills.add({
-              'id': billDoc.id,
+              'id': billData['id'],
               'customerName': billData['customerName'] ?? 'Unknown',
               'customerMobile': billData['customerMobile'] ?? 'N/A',
               'customerVehicle': billData['customerVehicle'],

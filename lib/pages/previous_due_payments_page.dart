@@ -1,6 +1,7 @@
+import 'dart:async';
 import 'package:flashbill/pages/previous_due_details_page.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flashbill/services/bills_data_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
@@ -25,43 +26,47 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   bool _showSearchBar = false;
+  late BillsDataService _billsDataService;
+  StreamSubscription? _billsDataServiceSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadPreviousDuePayments();
+    _initializeBillsDataService();
     _searchController.addListener(_filterPayments);
+  }
+
+  void _initializeBillsDataService() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _billsDataService = BillsDataService();
+      _billsDataService.initialize(user.uid);
+      _billsDataServiceSubscription = _billsDataService.billsStream.listen((_) {
+        _loadPreviousDuePayments();
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
   void dispose() {
+    _billsDataServiceSubscription?.cancel();
     _searchController.dispose();
     super.dispose();
   }
 
   Future<void> _loadPreviousDuePayments() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      final userId = user.uid;
-      final firestore = FirebaseFirestore.instance;
-      final billsSnapshot = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .get();
+      // Get cached bills from BillsDataService
+      final cachedBills = _billsDataService.getCachedBills();
 
       final payments = <Map<String, dynamic>>[];
       double totalPreviousDue = 0.0;
       double totalCollected = 0.0;
       double totalPending = 0.0;
 
-      for (final billDoc in billsSnapshot.docs) {
-        final billData = billDoc.data();
+      for (final billData in cachedBills) {
         final previousDueAmount =
             (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0;
 
@@ -73,7 +78,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
           final billDate = billData['billDate'] ?? '';
 
           payments.add({
-            'billId': billDoc.id,
+            'billId': billData['id'],
             'customerName': customerName,
             'billDate': billDate,
             'previousDueAmount': previousDueAmount,

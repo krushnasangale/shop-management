@@ -1,6 +1,6 @@
-// --- Customer History Screen ---
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
@@ -30,28 +30,33 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
   double _totalBilledAmount = 0;
   double _totalPaidAmount = 0;
   int _totalBills = 0;
+  late BillsDataService _billsDataService;
+  StreamSubscription? _billsDataServiceSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadCustomerBills();
+    _initializeBillsDataService();
+  }
+
+  void _initializeBillsDataService() {
+    _billsDataService = BillsDataService();
+    _billsDataService.initialize(widget.userId);
+    _billsDataServiceSubscription = _billsDataService.billsStream.listen((_) {
+      _loadCustomerBills();
+    });
   }
 
   Future<void> _loadCustomerBills() async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('bills')
-          .doc(widget.userId)
-          .collection('items')
-          .get();
+      // Get cached bills from BillsDataService
+      final cachedBills = _billsDataService.getCachedBills();
 
       final bills = <Map<String, dynamic>>[];
       double totalBilled = 0;
       double totalPaid = 0;
 
-      for (var doc in snapshot.docs) {
-        final bill = doc.data();
-
+      for (var bill in cachedBills) {
         // Filter by customerId
         if (bill['customerId'] == widget.customerId) {
           final billDate = bill['billDate'] as String? ?? 'N/A';
@@ -65,8 +70,8 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
           totalPaid += amountPaid;
 
           bills.add({
-            'id': doc.id,
-            'billId': doc.id,
+            'id': bill['id'],
+            'billId': bill['id'],
             'date': billDate,
             'billDate': billDate,
             'customerName': widget.customerName,
@@ -496,5 +501,11 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
     });
 
     return productList.isEmpty ? null : productList;
+  }
+
+  @override
+  void dispose() {
+    _billsDataServiceSubscription?.cancel();
+    super.dispose();
   }
 }

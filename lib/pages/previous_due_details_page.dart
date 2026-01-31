@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flutter/material.dart';
+import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -19,30 +21,44 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
   List<Map<String, dynamic>> paymentRecords = [];
   bool isLoadingPayments = true;
   Map<String, dynamic>? currentBillData;
+  late BillsDataService _billsDataService;
+  StreamSubscription? _billsDataServiceSubscription;
 
   @override
   void initState() {
     super.initState();
-    _loadBillData();
+    _initializeBillsDataService();
+  }
+
+  void _initializeBillsDataService() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _billsDataService = BillsDataService();
+      _billsDataService.initialize(user.uid);
+      _billsDataServiceSubscription = _billsDataService.billsStream.listen((_) {
+        _loadBillData();
+      });
+    } else {
+      setState(() => isLoadingPayments = false);
+    }
   }
 
   Future<void> _loadBillData() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      // Get cached bills from BillsDataService
+      final cachedBills = _billsDataService.getCachedBills();
+      final billData = cachedBills.firstWhere(
+        (bill) => bill['id'] == widget.payment['billId'],
+        orElse: () => <String, dynamic>{},
+      );
 
-      final billDoc = await FirebaseFirestore.instance
-          .collection('bills')
-          .doc(user.uid)
-          .collection('items')
-          .doc(widget.payment['billId'])
-          .get();
-
-      if (billDoc.exists) {
+      if (billData.isNotEmpty) {
         setState(() {
-          currentBillData = billDoc.data();
+          currentBillData = billData;
         });
         await _loadPaymentRecords();
+      } else {
+        setState(() => isLoadingPayments = false);
       }
     } catch (e) {
       debugPrint('Error loading bill data: $e');
@@ -52,19 +68,9 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
 
   Future<void> _loadPaymentRecords() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final billDoc = await FirebaseFirestore.instance
-          .collection('bills')
-          .doc(user.uid)
-          .collection('items')
-          .doc(widget.payment['billId'])
-          .get();
-
-      if (billDoc.exists) {
-        final data = billDoc.data();
-        final payments = data?['previousDuePayments'] as List<dynamic>? ?? [];
+      if (currentBillData != null) {
+        final payments =
+            currentBillData!['previousDuePayments'] as List<dynamic>? ?? [];
         setState(() {
           paymentRecords = payments
               .map((p) => Map<String, dynamic>.from(p))
@@ -73,6 +79,8 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
               .toList();
           isLoadingPayments = false;
         });
+      } else {
+        setState(() => isLoadingPayments = false);
       }
     } catch (e) {
       debugPrint('Error loading payment records: $e');
@@ -760,5 +768,11 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
         );
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _billsDataServiceSubscription?.cancel();
+    super.dispose();
   }
 }

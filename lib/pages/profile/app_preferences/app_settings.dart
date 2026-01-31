@@ -96,7 +96,7 @@ class _AppSettingsState extends State<AppSettings> {
     return Scaffold(
       appBar: AppBar(title: const Text('App Settings')),
       body: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         children: [
           _buildSettingCard(
             title: 'Vehicle Number in Bills',
@@ -109,7 +109,7 @@ class _AppSettingsState extends State<AppSettings> {
             },
             icon: Icons.directions_car,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _buildSettingCard(
             title: 'Delivery Charges',
             subtitle: 'Enable delivery charges field in bill creation',
@@ -120,7 +120,7 @@ class _AppSettingsState extends State<AppSettings> {
             },
             icon: Icons.local_shipping,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _buildSettingCard(
             title: 'Previous Due Amount',
             subtitle: 'Enable previous due amount field in bill creation',
@@ -131,7 +131,7 @@ class _AppSettingsState extends State<AppSettings> {
             },
             icon: Icons.account_balance_wallet,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           _buildSettingCard(
             title: 'Expiry Date in Purchases',
             subtitle: 'Enable expiry date field when adding purchase entries',
@@ -155,9 +155,9 @@ class _AppSettingsState extends State<AppSettings> {
     required IconData icon,
   }) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
+      margin: const EdgeInsets.symmetric(vertical: 4.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20.0),
         boxShadow: [
           BoxShadow(
@@ -177,15 +177,15 @@ class _AppSettingsState extends State<AppSettings> {
           borderRadius: BorderRadius.circular(20.0),
           onTap: () => onChanged(!value),
           child: Padding(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 48,
+                  height: 48,
                   decoration: BoxDecoration(
                     color: Theme.of(context).primaryColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(16.0),
+                    borderRadius: BorderRadius.circular(12.0),
                     border: Border.all(
                       color: Theme.of(context).primaryColor.withOpacity(0.2),
                       width: 1,
@@ -194,10 +194,10 @@ class _AppSettingsState extends State<AppSettings> {
                   child: Icon(
                     icon,
                     color: Theme.of(context).primaryColor,
-                    size: 28,
+                    size: 24,
                   ),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,17 +205,17 @@ class _AppSettingsState extends State<AppSettings> {
                       Text(
                         title,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: Theme.of(context).textTheme.titleLarge?.color,
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         subtitle,
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           color: Theme.of(
                             context,
                           ).textTheme.bodyMedium?.color?.withOpacity(0.8),
@@ -225,7 +225,7 @@ class _AppSettingsState extends State<AppSettings> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Transform.scale(
                   scale: 1.1,
                   child: Switch(

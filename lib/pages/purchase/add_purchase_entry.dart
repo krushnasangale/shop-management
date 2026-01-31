@@ -82,6 +82,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   late TextEditingController _minLimitController;
   String? _selectedProductImageUrl;
   final ProfileService _profileService = ProfileService();
+  StreamSubscription? _profileServiceSubscription;
 
   AppLocalizations get appLocalizations => AppLocalizations.of(context)!;
 
@@ -278,8 +279,23 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
+      // Initialize ProfileService if not already initialized
+      _profileService.initialize(user.uid);
+
+      // Listen to app settings stream for real-time updates
+      _profileServiceSubscription = _profileService.appSettingsStream.listen((
+        appSettings,
+      ) {
+        if (mounted) {
+          setState(() {
+            _expiryDateEnabled = appSettings['expiryDateEnabled'] ?? false;
+          });
+        }
+      });
+
+      // Also try to get current settings immediately in case stream hasn't emitted yet
       final profileData = await _profileService.getCurrentUserProfile();
-      if (profileData != null) {
+      if (profileData != null && mounted) {
         final appSettings =
             profileData['appSettings'] as Map<String, dynamic>? ?? {};
         setState(() {
@@ -289,9 +305,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     } catch (e) {
       print('Error loading app settings: $e');
       // Default to false if error
-      setState(() {
-        _expiryDateEnabled = false;
-      });
+      if (mounted) {
+        setState(() {
+          _expiryDateEnabled = false;
+        });
+      }
     }
   }
 
@@ -2174,6 +2192,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _productsSubscription?.cancel();
     _supplierSubscription?.cancel();
     _unitsSubscription?.cancel();
+    _profileServiceSubscription?.cancel();
     _profileService.dispose();
     super.dispose();
   }
@@ -2276,26 +2295,29 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       _showSelectionSheet('Units', _allUnits, _unitController),
                   enabled: false,
                 ),
-                // Expiry Date Field
-                buildFormField(
-                  appLocalizations.expiryDateOptional,
-                  _expiryDateController,
-                  suffixIcon: Icons.calendar_today_outlined,
-                  onTap: () async {
-                    final DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now().add(const Duration(days: 30)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2101),
-                    );
-                    if (pickedDate != null) {
-                      _expiryDateController.text = DateFormat(
-                        'dd/MM/yyyy',
-                      ).format(pickedDate);
-                    }
-                  },
-                  enabled: false,
-                ),
+                // Expiry Date Field (conditionally shown based on settings)
+                if (_expiryDateEnabled) ...[
+                  buildFormField(
+                    appLocalizations.expiryDateOptional,
+                    _expiryDateController,
+                    suffixIcon: Icons.calendar_today_outlined,
+                    onTap: () async {
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now().add(
+                          const Duration(days: 30),
+                        ),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2101),
+                      );
+                      if (pickedDate != null) {
+                        _expiryDateController.text = DateFormat(
+                          'dd/MM/yyyy',
+                        ).format(pickedDate);
+                      }
+                    },
+                  ),
+                ],
                 // Quantity Field
                 Row(
                   children: [
