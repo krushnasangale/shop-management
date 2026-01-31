@@ -76,6 +76,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   String _supplierNameError = '';
   String _selectedSupplierId = '';
   double _totalBoughtAmount = 0.0;
+  bool _expiryDateEnabled = false; // App setting for expiry date field
 
   late TextEditingController _minLimitController;
   String? _selectedProductImageUrl;
@@ -100,6 +101,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _loadProductNames();
     _loadSupplierDetails();
     _loadUnits();
+    _loadAppSettings();
 
     // Load existing data if editing or from scanned invoice
     if (widget.existingEntry != null) {
@@ -269,6 +271,32 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     }
   }
 
+  Future<void> _loadAppSettings() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('shop-profile')
+          .doc(user.uid)
+          .get();
+
+      if (snapshot.exists) {
+        final data = snapshot.data() ?? {};
+        final appSettings = data['appSettings'] as Map<String, dynamic>? ?? {};
+        setState(() {
+          _expiryDateEnabled = appSettings['expiryDateEnabled'] ?? false;
+        });
+      }
+    } catch (e) {
+      print('Error loading app settings: $e');
+      // Default to false if error
+      setState(() {
+        _expiryDateEnabled = false;
+      });
+    }
+  }
+
   void _calculateTotalBoughtAmount() {
     _totalBoughtAmount = _boughtItems.fold(
       0.0,
@@ -412,7 +440,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           fontSize: 14,
                         ),
                       ),
-                      if (item.expiryDate != null &&
+                      if (_expiryDateEnabled &&
+                          item.expiryDate != null &&
                           item.expiryDate!.isNotEmpty)
                         Text(
                           '${appLocalizations.expiryDateLabel}${item.expiryDate}',
@@ -496,31 +525,33 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                TextField(
-                  controller: expiryDateController,
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    labelText: appLocalizations.expiryDateOptional,
-                    border: const OutlineInputBorder(),
-                    suffixIcon: const Icon(Icons.calendar_today_outlined),
+                if (_expiryDateEnabled)
+                  TextField(
+                    controller: expiryDateController,
+                    readOnly: true,
+                    decoration: InputDecoration(
+                      labelText: appLocalizations.expiryDateOptional,
+                      border: const OutlineInputBorder(),
+                      suffixIcon: const Icon(Icons.calendar_today_outlined),
+                    ),
+                    onTap: () async {
+                      final DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate:
+                            item.expiryDate != null &&
+                                item.expiryDate!.isNotEmpty
+                            ? DateFormat('dd/MM/yyyy').parse(item.expiryDate!)
+                            : DateTime.now().add(const Duration(days: 30)),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2101),
+                      );
+                      if (pickedDate != null) {
+                        expiryDateController.text = DateFormat(
+                          'dd/MM/yyyy',
+                        ).format(pickedDate);
+                      }
+                    },
                   ),
-                  onTap: () async {
-                    final DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate:
-                          item.expiryDate != null && item.expiryDate!.isNotEmpty
-                          ? DateFormat('dd/MM/yyyy').parse(item.expiryDate!)
-                          : DateTime.now().add(const Duration(days: 30)),
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2101),
-                    );
-                    if (pickedDate != null) {
-                      expiryDateController.text = DateFormat(
-                        'dd/MM/yyyy',
-                      ).format(pickedDate);
-                    }
-                  },
-                ),
               ],
             ),
           ),
@@ -545,7 +576,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     item.sellingPrice = sellingPrice;
                     item.minLimit = minLimit;
                     item.unit = unitController.text;
-                    item.expiryDate = expiryDateController.text.isNotEmpty
+                    item.expiryDate =
+                        _expiryDateEnabled &&
+                            expiryDateController.text.isNotEmpty
                         ? expiryDateController.text
                         : null;
                     _calculateTotalBoughtAmount();
