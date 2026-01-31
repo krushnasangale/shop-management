@@ -1677,9 +1677,15 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   final batchLabel = availableBatches.length > 1
                       ? '${dialogLocalizations.translate('batch')} ${index + 1} ${isFifo ? dialogLocalizations.translate('fifo_oldest') : ''}'
                       : '';
-                  final isBatchAlreadyAdded = _billItems.any(
-                    (item) => item.batchId == batch.batchId,
+                  final existingBillItems = _billItems
+                      .where((item) => item.batchId == batch.batchId)
+                      .toList();
+                  final totalQuantityAlreadyAdded = existingBillItems.fold(
+                    0,
+                    (sum, item) => sum + item.billQuantity.toInt(),
                   );
+                  final isBatchFullyUsed =
+                      totalQuantityAlreadyAdded >= batch.quantity;
 
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
@@ -1724,7 +1730,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             ),
                         ],
                       ),
-                      trailing: isBatchAlreadyAdded
+                      trailing: isBatchFullyUsed
                           ? Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -1744,7 +1750,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               ),
                             )
                           : null,
-                      onTap: isBatchAlreadyAdded
+                      onTap: isBatchFullyUsed
                           ? null
                           : () {
                               _addProductToBill(batch);
@@ -2241,20 +2247,32 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
   void showAvailableProductsDrawer(BuildContext context) {
     final searchController = TextEditingController();
-    // Group products by name and show total quantity across all batches
+    // Group products by name and show total quantity across all batches with quantity > 0 and not fully used in bill
     Map<String, Map<String, dynamic>> uniqueProducts = {};
     for (var product in _availableProducts) {
-      if (!uniqueProducts.containsKey(product.productName)) {
-        uniqueProducts[product.productName] = {
-          'product': product,
-          'totalQuantity': product.quantity,
-          'batchCount': 1,
-        };
-      } else {
-        // Add quantity from additional batches
-        uniqueProducts[product.productName]!['totalQuantity'] +=
-            product.quantity;
-        uniqueProducts[product.productName]!['batchCount'] += 1;
+      // Calculate how much quantity is already used for this batch
+      final existingBillItems = _billItems
+          .where((item) => item.batchId == product.batchId)
+          .toList();
+      final totalQuantityAlreadyAdded = existingBillItems.fold(
+        0,
+        (sum, item) => sum + item.billQuantity.toInt(),
+      );
+
+      // Only include products with remaining quantity > 0
+      if (product.quantity > totalQuantityAlreadyAdded) {
+        if (!uniqueProducts.containsKey(product.productName)) {
+          uniqueProducts[product.productName] = {
+            'product': product,
+            'totalQuantity': product.quantity - totalQuantityAlreadyAdded,
+            'batchCount': 1,
+          };
+        } else {
+          // Add quantity from additional batches
+          uniqueProducts[product.productName]!['totalQuantity'] +=
+              (product.quantity - totalQuantityAlreadyAdded);
+          uniqueProducts[product.productName]!['batchCount'] += 1;
+        }
       }
     }
     List<Map<String, dynamic>> displayProducts = uniqueProducts.values.toList();
@@ -2309,21 +2327,43 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             Map<String, Map<String, dynamic>>
                             uniqueFilteredProducts = {};
                             for (var product in _availableProducts) {
-                              if (!uniqueFilteredProducts.containsKey(
-                                product.productName,
-                              )) {
-                                uniqueFilteredProducts[product.productName] = {
-                                  'product': product,
-                                  'totalQuantity': product.quantity,
-                                  'batchCount': 1,
-                                };
-                              } else {
-                                uniqueFilteredProducts[product
-                                        .productName]!['totalQuantity'] +=
-                                    product.quantity;
-                                uniqueFilteredProducts[product
-                                        .productName]!['batchCount'] +=
-                                    1;
+                              // Calculate how much quantity is already used for this batch
+                              final existingBillItems = _billItems
+                                  .where(
+                                    (item) => item.batchId == product.batchId,
+                                  )
+                                  .toList();
+                              final totalQuantityAlreadyAdded =
+                                  existingBillItems.fold(
+                                    0,
+                                    (sum, item) =>
+                                        sum + item.billQuantity.toInt(),
+                                  );
+
+                              // Only include products with remaining quantity > 0
+                              if (product.quantity >
+                                  totalQuantityAlreadyAdded) {
+                                if (!uniqueFilteredProducts.containsKey(
+                                  product.productName,
+                                )) {
+                                  uniqueFilteredProducts[product.productName] =
+                                      {
+                                        'product': product,
+                                        'totalQuantity':
+                                            product.quantity -
+                                            totalQuantityAlreadyAdded,
+                                        'batchCount': 1,
+                                      };
+                                } else {
+                                  // Add quantity from additional batches
+                                  uniqueFilteredProducts[product
+                                          .productName]!['totalQuantity'] +=
+                                      (product.quantity -
+                                      totalQuantityAlreadyAdded);
+                                  uniqueFilteredProducts[product
+                                          .productName]!['batchCount'] +=
+                                      1;
+                                }
                               }
                             }
                             displayProducts = uniqueFilteredProducts.values
@@ -2339,22 +2379,42 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                   product.supplierName.toLowerCase().contains(
                                     query.toLowerCase(),
                                   ))) {
-                                if (!uniqueFilteredProducts.containsKey(
-                                  product.productName,
-                                )) {
-                                  uniqueFilteredProducts[product.productName] =
-                                      {
-                                        'product': product,
-                                        'totalQuantity': product.quantity,
-                                        'batchCount': 1,
-                                      };
-                                } else {
-                                  uniqueFilteredProducts[product
-                                          .productName]!['totalQuantity'] +=
-                                      product.quantity;
-                                  uniqueFilteredProducts[product
-                                          .productName]!['batchCount'] +=
-                                      1;
+                                // Calculate how much quantity is already used for this batch
+                                final existingBillItems = _billItems
+                                    .where(
+                                      (item) => item.batchId == product.batchId,
+                                    )
+                                    .toList();
+                                final totalQuantityAlreadyAdded =
+                                    existingBillItems.fold(
+                                      0,
+                                      (sum, item) =>
+                                          sum + item.billQuantity.toInt(),
+                                    );
+
+                                // Only include products with remaining quantity > 0
+                                if (product.quantity >
+                                    totalQuantityAlreadyAdded) {
+                                  if (!uniqueFilteredProducts.containsKey(
+                                    product.productName,
+                                  )) {
+                                    uniqueFilteredProducts[product
+                                        .productName] = {
+                                      'product': product,
+                                      'totalQuantity':
+                                          product.quantity -
+                                          totalQuantityAlreadyAdded,
+                                      'batchCount': 1,
+                                    };
+                                  } else {
+                                    uniqueFilteredProducts[product
+                                            .productName]!['totalQuantity'] +=
+                                        (product.quantity -
+                                        totalQuantityAlreadyAdded);
+                                    uniqueFilteredProducts[product
+                                            .productName]!['batchCount'] +=
+                                        1;
+                                  }
                                 }
                               }
                             }
@@ -2465,34 +2525,47 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                       )
                                       .toList();
 
-                                  if (productBatches.length == 1) {
-                                    // Only one batch, add directly (but check if batch already added)
-                                    final batch = productBatches.first;
-                                    final isBatchAlreadyAdded = _billItems.any(
-                                      (item) => item.batchId == batch.batchId,
-                                    );
-                                    if (!isBatchAlreadyAdded) {
-                                      _addProductToBill(batch);
-                                      Navigator.pop(context);
-                                    } else {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            modalLocalizations.translate(
-                                              'batch_already_added_message',
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  } else {
-                                    // Multiple batches, always show selection dialog
+                                  // Filter batches to only include those with remaining quantity after bill items
+                                  final availableBatches = productBatches.where(
+                                    (b) {
+                                      final existingBillItems = _billItems
+                                          .where(
+                                            (item) => item.batchId == b.batchId,
+                                          )
+                                          .toList();
+                                      final totalQuantityAlreadyAdded =
+                                          existingBillItems.fold(
+                                            0,
+                                            (sum, item) =>
+                                                sum + item.billQuantity.toInt(),
+                                          );
+                                      return b.quantity >
+                                          totalQuantityAlreadyAdded;
+                                    },
+                                  ).toList();
+
+                                  if (availableBatches.length == 1) {
+                                    // Only one available batch, add directly
+                                    final batch = availableBatches.first;
+                                    _addProductToBill(batch);
+                                    Navigator.pop(context);
+                                  } else if (availableBatches.length > 1) {
+                                    // Multiple available batches, show selection dialog
                                     _showBatchSelectionDialog(
                                       context,
                                       product.productName,
                                       productBatches,
+                                    );
+                                  } else {
+                                    // No available batches
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          modalLocalizations.translate(
+                                            'no_batches_available',
+                                          ),
+                                        ),
+                                      ),
                                     );
                                   }
                                 },

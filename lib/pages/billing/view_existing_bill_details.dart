@@ -440,6 +440,65 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     }
   }
 
+  void _deleteBill() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Delete Bill'),
+          content: Text(
+            'Are you sure you want to delete this bill? This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: Text(localizations.cancel),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+              child: Text(localizations.delete),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true) {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user == null) throw Exception('User not authenticated');
+
+        // Delete the bill from Firestore
+        await FirebaseFirestore.instance
+            .collection('bills')
+            .doc(user.uid)
+            .collection('items')
+            .doc(billId)
+            .delete();
+
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Bill deleted successfully')));
+          // Navigate back to bills list
+          Navigator.of(
+            context,
+          ).pop(true); // Return true to indicate bill was deleted
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting bill: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
   void _editBill() {
     // Prepare the bill data for editing
     final billData = {
@@ -1216,6 +1275,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         title: Text(localizations.billDetails),
         centerTitle: true,
         actions: [
+          // IconButton(
+          //   icon: const Icon(Icons.delete),
+          //   onPressed: _deleteBill,
+          //   tooltip: 'Delete Bill',
+          // ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _editBill,
