@@ -529,8 +529,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  localizations?.sellingPrice ??
-                                      'Selling Price',
+                                  localizations?.quantity ?? 'Quantity',
                                   style: context.subtitleSmall?.copyWith(
                                     fontSize: 11,
                                   ),
