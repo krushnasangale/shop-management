@@ -13,6 +13,7 @@ import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:flashbill/providers/language_provider.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/services/profile_service.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -249,8 +250,8 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _selectedIndex = 0;
   String _shopName = '----';
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
-  _shopNameSubscription;
+  late final ProfileService _profileService;
+  StreamSubscription<Map<String, dynamic>>? _shopNameSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _productsSubscription;
   int _productsCount = 0;
@@ -258,29 +259,32 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _profileService = ProfileService();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _profileService.initialize(user.uid);
+    }
     _listenToShopName();
     _listenToProductsCount();
   }
 
   void _listenToShopName() {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        _shopNameSubscription = FirebaseFirestore.instance
-            .collection('shop-profile')
-            .doc(user.uid)
-            .snapshots()
-            .listen((DocumentSnapshot<Map<String, dynamic>> snapshot) {
-              if (mounted && snapshot.exists) {
-                final shopName = snapshot.data()?['shopName'] as String?;
-                if (shopName != null && shopName.isNotEmpty) {
-                  setState(() => _shopName = shopName);
-                }
-              }
-            });
-      }
+      _shopNameSubscription = _profileService.profileStream.listen(
+        (profileData) {
+          if (mounted) {
+            final shopName = profileData['shopName'] as String?;
+            if (shopName != null && shopName.isNotEmpty) {
+              setState(() => _shopName = shopName);
+            }
+          }
+        },
+        onError: (error) {
+          print('Error listening to shop name: $error');
+        },
+      );
     } catch (e) {
-      print('Error listening to shop name: $e');
+      print('Error setting up shop name listener: $e');
     }
   }
 
@@ -317,6 +321,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _shopNameSubscription?.cancel();
     _productsSubscription?.cancel();
+    _profileService.dispose();
     super.dispose();
   }
 

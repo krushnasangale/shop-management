@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:async';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/login/login.dart';
 import 'package:flashbill/pages/profile/customer/customers.dart';
@@ -18,6 +17,8 @@ import 'package:flashbill/providers/language_provider.dart';
 import 'package:flashbill/widgets/language_selector.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
+import 'package:flashbill/services/profile_service.dart';
+import 'dart:async';
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -29,12 +30,13 @@ class MyProfile extends StatefulWidget {
 class _MyProfileState extends State<MyProfile> {
   bool _isLoggingOut = false;
   String _shopName = '----';
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
-  _shopNameSubscription;
+  StreamSubscription<Map<String, dynamic>>? _profileSubscription;
+  late final ProfileService _profileService;
 
   @override
   void initState() {
     super.initState();
+    _profileService = ProfileService();
     _listenToShopName();
   }
 
@@ -43,26 +45,30 @@ class _MyProfileState extends State<MyProfile> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      _shopNameSubscription = FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(user.uid)
-          .snapshots()
-          .listen((DocumentSnapshot<Map<String, dynamic>> snapshot) {
-            if (mounted && snapshot.exists) {
-              final shopName = snapshot.data()?['shopName'] as String?;
-              if (shopName != null && shopName.isNotEmpty) {
-                setState(() => _shopName = shopName);
-              }
+      _profileService.initialize(user.uid);
+
+      _profileSubscription = _profileService.profileStream.listen(
+        (profileData) {
+          if (mounted) {
+            final shopName = profileData['shopName'] as String?;
+            if (shopName != null && shopName.isNotEmpty) {
+              setState(() => _shopName = shopName);
             }
-          });
+          }
+        },
+        onError: (error) {
+          print('Error listening to shop name: $error');
+        },
+      );
     } catch (e) {
-      print('Error listening to shop name: $e');
+      print('Error initializing profile service: $e');
     }
   }
 
   @override
   void dispose() {
-    _shopNameSubscription?.cancel();
+    _profileSubscription?.cancel();
+    _profileService.dispose();
     super.dispose();
   }
 

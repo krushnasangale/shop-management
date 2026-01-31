@@ -8,6 +8,7 @@ import 'package:crypto/crypto.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/add_purchase_review.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:flashbill/services/profile_service.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -80,6 +81,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
   late TextEditingController _minLimitController;
   String? _selectedProductImageUrl;
+  final ProfileService _profileService = ProfileService();
 
   AppLocalizations get appLocalizations => AppLocalizations.of(context)!;
 
@@ -276,14 +278,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(user.uid)
-          .get();
-
-      if (snapshot.exists) {
-        final data = snapshot.data() ?? {};
-        final appSettings = data['appSettings'] as Map<String, dynamic>? ?? {};
+      final profileData = await _profileService.getCurrentUserProfile();
+      if (profileData != null) {
+        final appSettings =
+            profileData['appSettings'] as Map<String, dynamic>? ?? {};
         setState(() {
           _expiryDateEnabled = appSettings['expiryDateEnabled'] ?? false;
         });
@@ -2176,6 +2174,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _productsSubscription?.cancel();
     _supplierSubscription?.cancel();
     _unitsSubscription?.cancel();
+    _profileService.dispose();
     super.dispose();
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flashbill/services/profile_service.dart';
 import 'dart:async';
 
 class AppSettings extends StatefulWidget {
@@ -17,18 +17,20 @@ class _AppSettingsState extends State<AppSettings> {
   bool _expiryDateEnabled = false;
   bool _isLoading = true;
 
-  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>?
-  _settingsSubscription;
+  StreamSubscription<Map<String, dynamic>>? _settingsSubscription;
+  late final ProfileService _profileService;
 
   @override
   void initState() {
     super.initState();
+    _profileService = ProfileService();
     _loadSettings();
   }
 
   @override
   void dispose() {
     _settingsSubscription?.cancel();
+    _profileService.dispose();
     super.dispose();
   }
 
@@ -37,61 +39,40 @@ class _AppSettingsState extends State<AppSettings> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      _settingsSubscription = FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(user.uid)
-          .snapshots()
-          .listen((DocumentSnapshot<Map<String, dynamic>> snapshot) {
-            if (mounted && snapshot.exists) {
-              final data = snapshot.data() ?? {};
-              final appSettings =
-                  data['appSettings'] as Map<String, dynamic>? ?? {};
-              setState(() {
-                _vehicleNumberEnabled =
-                    appSettings['vehicleNumberEnabled'] ?? false;
-                _deliveryChargesEnabled =
-                    appSettings['deliveryChargesEnabled'] ?? false;
-                _previousDueEnabled =
-                    appSettings['previousDueEnabled'] ?? false;
-                _expiryDateEnabled = appSettings['expiryDateEnabled'] ?? false;
-                _isLoading = false;
-              });
-            } else {
-              setState(() {
-                _isLoading = false;
-              });
-            }
-          });
+      // Initialize profile service
+      _profileService.initialize(user.uid);
+
+      // Listen to app settings updates
+      _settingsSubscription = _profileService.appSettingsStream.listen(
+        (appSettings) {
+          if (mounted) {
+            setState(() {
+              _vehicleNumberEnabled =
+                  appSettings['vehicleNumberEnabled'] ?? false;
+              _deliveryChargesEnabled =
+                  appSettings['deliveryChargesEnabled'] ?? false;
+              _previousDueEnabled = appSettings['previousDueEnabled'] ?? false;
+              _expiryDateEnabled = appSettings['expiryDateEnabled'] ?? false;
+              _isLoading = false;
+            });
+          }
+        },
+        onError: (error) {
+          print('Error loading settings: $error');
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
+        },
+      );
     } catch (e) {
-      print('Error loading settings: $e');
-      setState(() {
-        _isLoading = false;
-      });
+      print('Error initializing settings: $e');
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _saveSetting(String key, bool value) async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-
-      final docRef = FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(user.uid);
-
-      // Get current appSettings or create new
-      final snapshot = await docRef.get();
-      final data = snapshot.data() ?? {};
-      final appSettings = data['appSettings'] as Map<String, dynamic>? ?? {};
-
-      // Update the setting
-      appSettings[key] = value;
-
-      // Save back
-      await docRef.set({
-        ...data,
-        'appSettings': appSettings,
-      }, SetOptions(merge: true));
+      await _profileService.updateAppSetting(key, value);
     } catch (e) {
       print('Error saving setting: $e');
       // Show error to user

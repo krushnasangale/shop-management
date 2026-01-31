@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/models/user_model.dart';
+import '../services/profile_service.dart';
 
 class DashboardProvider with ChangeNotifier {
   int _totalUsers = 0;
@@ -9,6 +10,7 @@ class DashboardProvider with ChangeNotifier {
   String? _error;
   List<UserModel> _usersList = [];
   bool _isCreatingUser = false;
+  final ProfileService _profileService = ProfileService();
 
   int get totalUsers => _totalUsers;
   bool get isLoading => _isLoading;
@@ -31,55 +33,10 @@ class DashboardProvider with ChangeNotifier {
         return;
       }
 
-      // First, try fetching from 'users' collection
-      final usersSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .get();
-      
-      // If no users found, try 'shop-profile' collection as fallback
-      if (usersSnapshot.docs.isEmpty) {
-        final shopProfileSnapshot = await FirebaseFirestore.instance
-            .collection('shop-profile')
-            .get();
-        
-        _totalUsers = shopProfileSnapshot.docs.length;
-        
-        // Load users from shop-profile as fallback
-        _usersList = shopProfileSnapshot.docs
-            .map((doc) {
-              try {
-                final data = doc.data();
-                return UserModel(
-                  uid: data['userId'] ?? doc.id,
-                  email: data['email'] ?? '',
-                  name: data['shopName'] ?? '',
-                  phone: data['shopPhone'] ?? '',
-                  accessLevel: 'user',
-                  isActive: true,
-                  createdAt: data['createdAt'] is DateTime
-                      ? data['createdAt']
-                      : (data['createdAt']?.toDate() ?? DateTime.now()),
-                  subscription: null,
-                );
-              } catch (e) {
-                rethrow;
-              }
-            })
-            .toList();
-      } else {
-        // Use users collection data
-        _totalUsers = usersSnapshot.docs.length;
-        
-        _usersList = usersSnapshot.docs
-            .map((doc) {
-              try {
-                return UserModel.fromMap(doc.data());
-              } catch (e) {
-                rethrow;
-              }
-            })
-            .toList();
-      }
+      // Only count current user since ProfileService is restricted to current user data
+      _totalUsers = 1; // Current user only
+      _usersList = []; // No admin access to other users
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -131,10 +88,7 @@ class DashboardProvider with ChangeNotifier {
     try {
       // Create user in Firebase Auth
       final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: email,
-            password: password,
-          );
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       final newUser = userCredential.user;
       if (newUser == null) {
@@ -179,15 +133,18 @@ class DashboardProvider with ChangeNotifier {
           .doc(newUser.uid)
           .set(userModel.toMap());
 
-      // Also create an empty shop-profile for the user (for app functionality)
+      // Also create shop-profile for the user (for app functionality)
       await FirebaseFirestore.instance
           .collection('shop-profile')
           .doc(newUser.uid)
           .set({
-            'userId': newUser.uid,
             'email': email,
             'shopName': name,
-            'createdAt': now,
+            'shopPhone': phone,
+            'userType': 'user',
+            'expiryDate': DateTime.now().add(const Duration(days: 30)),
+            'isActive': true,
+            'createdAt': FieldValue.serverTimestamp(),
           });
 
       _isCreatingUser = false;
@@ -212,10 +169,9 @@ class DashboardProvider with ChangeNotifier {
     required String newAccessLevel,
   }) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .update({'accessLevel': newAccessLevel});
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'accessLevel': newAccessLevel,
+      });
 
       // Update local list
       final index = _usersList.indexWhere((user) => user.uid == uid);
@@ -258,10 +214,9 @@ class DashboardProvider with ChangeNotifier {
         amount: plan.price,
       );
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .update({'subscription': subscription.toMap()});
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'subscription': subscription.toMap(),
+      });
 
       // Update local list
       final index = _usersList.indexWhere((user) => user.uid == uid);
@@ -283,10 +238,9 @@ class DashboardProvider with ChangeNotifier {
   /// Deactivate user
   Future<bool> deactivateUser(String uid) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .update({'isActive': false});
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'isActive': false,
+      });
 
       // Update local list
       final index = _usersList.indexWhere((user) => user.uid == uid);
@@ -306,10 +260,9 @@ class DashboardProvider with ChangeNotifier {
   /// Activate user
   Future<bool> activateUser(String uid) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .update({'isActive': true});
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'isActive': true,
+      });
 
       // Update local list
       final index = _usersList.indexWhere((user) => user.uid == uid);
@@ -334,5 +287,12 @@ class DashboardProvider with ChangeNotifier {
     _usersList = [];
     _isCreatingUser = false;
     notifyListeners();
+  }
+
+  /// Clean up resources
+  @override
+  void dispose() {
+    _profileService.dispose();
+    super.dispose();
   }
 }

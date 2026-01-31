@@ -8,6 +8,7 @@ import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
 import 'package:flashbill/pages/billing/review_billing_details.dart';
 import 'package:flashbill/ui%20helpers/ui_helper.dart';
+import 'package:flashbill/services/profile_service.dart';
 import 'package:fast_contacts/fast_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
@@ -120,6 +121,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
   bool _customersLoading = true;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _customersSubscription;
+  StreamSubscription<Map<String, dynamic>>? _appSettingsSubscription;
   late TextEditingController _searchController;
   late TextEditingController _dateController;
   late TextEditingController _customerNameController;
@@ -145,6 +147,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
   bool _deliveryChargesEnabled =
       false; // App setting for delivery charges field
   bool _previousDueEnabled = false; // App setting for previous due field
+  final ProfileService _profileService = ProfileService();
 
   @override
   void initState() {
@@ -266,6 +269,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
     _previousDueDescriptionController.dispose();
     _productsSubscription?.cancel();
     _customersSubscription?.cancel();
+    _appSettingsSubscription?.cancel();
+    _profileService.dispose();
     super.dispose();
   }
 
@@ -390,14 +395,29 @@ class _CreateNewBillState extends State<CreateNewBill> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(user.uid)
-          .get();
+      // Initialize ProfileService if not already initialized
+      _profileService.initialize(user.uid);
 
-      if (snapshot.exists) {
-        final data = snapshot.data() ?? {};
-        final appSettings = data['appSettings'] as Map<String, dynamic>? ?? {};
+      // Listen to app settings stream for real-time updates
+      _appSettingsSubscription = _profileService.appSettingsStream.listen((
+        appSettings,
+      ) {
+        if (mounted) {
+          setState(() {
+            _vehicleNumberEnabled =
+                appSettings['vehicleNumberEnabled'] ?? false;
+            _deliveryChargesEnabled =
+                appSettings['deliveryChargesEnabled'] ?? false;
+            _previousDueEnabled = appSettings['previousDueEnabled'] ?? false;
+          });
+        }
+      });
+
+      // Also try to get current settings immediately in case stream hasn't emitted yet
+      final profileData = await _profileService.getCurrentUserProfile();
+      if (profileData != null && mounted) {
+        final appSettings =
+            profileData['appSettings'] as Map<String, dynamic>? ?? {};
         setState(() {
           _vehicleNumberEnabled = appSettings['vehicleNumberEnabled'] ?? false;
           _deliveryChargesEnabled =
@@ -408,9 +428,13 @@ class _CreateNewBillState extends State<CreateNewBill> {
     } catch (e) {
       print('Error loading app settings: $e');
       // Default to true if error
-      setState(() {
-        _vehicleNumberEnabled = true;
-      });
+      if (mounted) {
+        setState(() {
+          _vehicleNumberEnabled = true;
+          _deliveryChargesEnabled = true;
+          _previousDueEnabled = true;
+        });
+      }
     }
   }
 

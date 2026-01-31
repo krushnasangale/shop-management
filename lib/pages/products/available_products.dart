@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+import 'package:flashbill/services/profile_service.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:typed_data';
@@ -45,6 +46,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
   double _generationProgress = 0.0;
 
   late final AppLocalizations localizations;
+  final ProfileService _profileService = ProfileService();
 
   @override
   void initState() {
@@ -66,6 +68,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     _searchController.dispose();
     _scrollController.dispose();
     _productsSubscription?.cancel();
+    _profileService.dispose();
     super.dispose();
   }
 
@@ -149,14 +152,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('shop-profile')
-            .doc(user.uid)
-            .get();
-        if (snapshot.exists) {
+        final profileData = await _profileService.getCurrentUserProfile();
+        if (profileData != null) {
           if (mounted) {
             setState(() {
-              _shopName = (snapshot.data()?['shopName'] as String?) ?? '--';
+              _shopName = (profileData['shopName'] as String?) ?? '--';
             });
           }
         }

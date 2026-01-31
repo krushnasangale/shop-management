@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/services/profile_service.dart';
 
 class Bills extends StatefulWidget {
   const Bills({super.key});
@@ -39,6 +40,7 @@ class _BillsState extends State<Bills> {
   final int _itemsPerPage = 100;
   int _currentlyLoadedItems = 100;
   bool _isLoadingMore = false;
+  final ProfileService _profileService = ProfileService();
 
   @override
   void initState() {
@@ -54,6 +56,7 @@ class _BillsState extends State<Bills> {
     _searchController.dispose();
     _scrollController.dispose();
     _billsSubscription.cancel();
+    _profileService.dispose();
     super.dispose();
   }
 
@@ -408,19 +411,11 @@ class _BillsState extends State<Bills> {
 
   Future<void> _loadShopName() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('shop-profile')
-            .doc(user.uid)
-            .get();
-        if (snapshot.exists) {
-          if (mounted) {
-            setState(() {
-              _shopName = (snapshot.data()?['shopName'] as String?) ?? '--';
-            });
-          }
-        }
+      final profileData = await _profileService.getCurrentUserProfile();
+      if (profileData != null && mounted) {
+        setState(() {
+          _shopName = (profileData['shopName'] as String?) ?? '--';
+        });
       }
     } catch (e) {
       print('Error loading shop name: $e');

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/profile_service.dart';
 
 class AddUserPage extends StatefulWidget {
   const AddUserPage({super.key});
@@ -15,6 +16,7 @@ class _AddUserPageState extends State<AddUserPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _phoneController = TextEditingController();
+  final ProfileService _profileService = ProfileService();
   bool _isLoading = false;
   bool _obscurePassword = true;
   DateTime _expiryDate = DateTime.now().add(const Duration(days: 30));
@@ -26,6 +28,7 @@ class _AddUserPageState extends State<AddUserPage> {
     _emailController.dispose();
     _passwordController.dispose();
     _phoneController.dispose();
+    _profileService.dispose();
     super.dispose();
   }
 
@@ -282,22 +285,22 @@ class _AddUserPageState extends State<AddUserPage> {
                                   Colors.white,
                                 ),
                               ),
-                                )
-                              : const Text(
-                                  'Create User',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                      ),
+                            )
+                          : const Text(
+                              'Create User',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
           ),
-            const SizedBox(height: 20,),
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -325,7 +328,6 @@ class _AddUserPageState extends State<AddUserPage> {
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
-      final now = DateTime.now();
 
       // Step 1: Create user in Firebase Authentication
       final userCredential = await FirebaseAuth.instance
@@ -336,19 +338,18 @@ class _AddUserPageState extends State<AddUserPage> {
         throw Exception('Failed to create user in authentication');
       }
 
-      // Step 2: Save shop profile details to Firestore
+      // Step 2: Save shop profile details directly to Firestore
       await FirebaseFirestore.instance
           .collection('shop-profile')
           .doc(userId)
           .set({
-            'userId': userId,
             'email': email,
             'shopName': _shopNameController.text.trim(),
             'shopPhone': _phoneController.text.trim(),
             'userType': _selectedUserType,
             'expiryDate': _expiryDate,
             'isActive': true,
-            'createdAt': now,
+            'createdAt': FieldValue.serverTimestamp(),
           });
 
       if (mounted) {

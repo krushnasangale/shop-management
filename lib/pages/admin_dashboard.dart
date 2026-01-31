@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flashbill/pages/admin/add_user_page.dart';
 import 'package:flashbill/pages/widgets/users_list_widget.dart';
+import 'package:flashbill/services/profile_service.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -49,8 +50,27 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 }
 
-class _OverviewTab extends StatelessWidget {
+class _OverviewTab extends StatefulWidget {
   const _OverviewTab();
+
+  @override
+  State<_OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends State<_OverviewTab> {
+  late final ProfileService _profileService;
+
+  @override
+  void initState() {
+    super.initState();
+    _profileService = ProfileService();
+  }
+
+  @override
+  void dispose() {
+    _profileService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +193,6 @@ class _OverviewTab extends StatelessWidget {
                           ),
                         ],
                       ),
-                      
                     ],
                   ),
                 ),

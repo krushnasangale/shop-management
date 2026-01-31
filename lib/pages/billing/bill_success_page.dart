@@ -6,8 +6,8 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:convert' as convert;
+import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 
 class BillProductItem {
@@ -88,6 +88,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   late int deliveryCharges;
   late double previousDueAmount;
   late String previousDueDescription;
+  final ProfileService _profileService = ProfileService();
 
   @override
   void initState() {
@@ -358,12 +359,9 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('shop-profile')
-            .doc(user.uid)
-            .get();
-        if (snapshot.exists) {
-          final data = snapshot.data() as Map<String, dynamic>;
+        final profileData = await _profileService.getCurrentUserProfile();
+        if (profileData != null) {
+          final data = profileData;
           ownerSignatureBase64 = data['ownerSignature'];
           shopName = data['shopName'] ?? '--';
           ownerName = data['ownerName'] ?? '--';
@@ -899,5 +897,11 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _profileService.dispose();
+    super.dispose();
   }
 }

@@ -8,6 +8,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'dart:async';
+import 'package:flashbill/services/profile_service.dart';
 import 'dart:convert' as convert;
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -106,6 +108,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   late TextEditingController _nextPaymentDateController;
   late final AppLocalizations localizations;
   bool _vehicleNumberEnabled = false; // App setting for vehicle number field
+  bool _deliveryChargesEnabled =
+      false; // App setting for delivery charges field
+  final ProfileService _profileService = ProfileService();
+  StreamSubscription<Map<String, dynamic>>? _appSettingsSubscription;
 
   @override
   void initState() {
@@ -181,6 +187,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   @override
   void dispose() {
     _nextPaymentDateController.dispose();
+    _appSettingsSubscription?.cancel();
+    _profileService.dispose();
     super.dispose();
   }
 
@@ -256,20 +264,43 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(user.uid)
-          .get();
+      // Initialize ProfileService if not already initialized
+      _profileService.initialize(user.uid);
 
-      if (snapshot.exists) {
-        final data = snapshot.data() ?? {};
-        final appSettings = data['appSettings'] as Map<String, dynamic>? ?? {};
+      // Listen to app settings stream for real-time updates
+      _appSettingsSubscription = _profileService.appSettingsStream.listen((
+        appSettings,
+      ) {
+        if (mounted) {
+          setState(() {
+            _vehicleNumberEnabled =
+                appSettings['vehicleNumberEnabled'] ?? false;
+            _deliveryChargesEnabled =
+                appSettings['deliveryChargesEnabled'] ?? false;
+          });
+        }
+      });
+
+      // Also try to get current settings immediately in case stream hasn't emitted yet
+      final profileData = await _profileService.getCurrentUserProfile();
+      if (profileData != null && mounted) {
+        final appSettings =
+            profileData['appSettings'] as Map<String, dynamic>? ?? {};
         setState(() {
           _vehicleNumberEnabled = appSettings['vehicleNumberEnabled'] ?? false;
+          _deliveryChargesEnabled =
+              appSettings['deliveryChargesEnabled'] ?? false;
         });
       }
     } catch (e) {
       print('Error loading app settings: $e');
+      // Default to true if error
+      if (mounted) {
+        setState(() {
+          _vehicleNumberEnabled = true;
+          _deliveryChargesEnabled = true;
+        });
+      }
     }
   }
 
@@ -413,17 +444,14 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('shop-profile')
-            .doc(user.uid)
-            .get();
-        if (snapshot.exists) {
-          final data = snapshot.data();
-          ownerSignatureBase64 = data?['ownerSignature'];
-          shopName = data?['shopName'] ?? '--';
-          ownerName = data?['ownerName'] ?? '--';
-          shopAddress = data?['shopAddress'] ?? '--';
-          shopPhone = data?['shopPhone'] ?? '--';
+        final profileData = await _profileService.getCurrentUserProfile();
+        if (profileData != null) {
+          final data = profileData;
+          ownerSignatureBase64 = data['ownerSignature'];
+          shopName = data['shopName'] ?? '--';
+          ownerName = data['ownerName'] ?? '--';
+          shopAddress = data['shopAddress'] ?? '--';
+          shopPhone = data['shopPhone'] ?? '--';
         }
       }
     } catch (e) {
@@ -1666,12 +1694,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('shop-profile')
-            .doc(user.uid)
-            .get();
-        if (snapshot.exists) {
-          shopName = snapshot.data()?['shopName'] ?? 'Our Shop';
+        final profileData = await _profileService.getCurrentUserProfile();
+        if (profileData != null) {
+          shopName = profileData['shopName'] ?? 'Our Shop';
         }
       }
     } catch (e) {
@@ -2404,7 +2429,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            if (_vehicleNumberEnabled) ...[
+            if (_vehicleNumberEnabled ||
+                customerVehicle != null ||
+                customerVehicle!.isNotEmpty) ...[
               Text(
                 localizations.customerVehicleNumber,
                 style: context.subtitleMedium?.copyWith(fontSize: 14),
@@ -2841,29 +2868,31 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ),
             ),
             // delivery charges row
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    localizations.deliveryCharges,
-                    style: context.titleMedium?.copyWith(
-                      fontSize: 16,
-                      fontWeight: FontWeight.normal,
+            if (_deliveryChargesEnabled) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      localizations.deliveryCharges,
+                      style: context.titleMedium?.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.normal,
+                      ),
                     ),
-                  ),
-                  Text(
-                    '₹ $deliveryCharges',
-                    style: TextStyle(
-                      color: Colors.blue[700],
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                    Text(
+                      '₹ $deliveryCharges',
+                      style: TextStyle(
+                        color: Colors.blue[700],
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
             // Final Amount row
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -2879,7 +2908,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     ),
                   ),
                   Text(
-                    '₹ ${int.parse(totalAmount.replaceAll('₹ ', '')) - discount}',
+                    '₹ ${int.parse(totalAmount.replaceAll('₹ ', '')) + (_deliveryChargesEnabled ? deliveryCharges : 0) - discount}',
                     style: TextStyle(
                       color: Colors.green[700],
                       fontSize: 18,

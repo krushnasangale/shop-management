@@ -8,6 +8,7 @@ import 'dart:ui' as ui;
 import 'package:signature/signature.dart';
 import 'package:flutter/services.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/services/profile_service.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -20,6 +21,8 @@ class _EditProfileState extends State<EditProfile> {
   final _formKey = GlobalKey<FormState>();
   bool _isSaving = false;
   bool _isEditMode = false;
+
+  late final ProfileService _profileService;
 
   // Text controllers
   late TextEditingController _shopNameController;
@@ -37,6 +40,7 @@ class _EditProfileState extends State<EditProfile> {
   @override
   void initState() {
     super.initState();
+    _profileService = ProfileService();
     _shopNameController = TextEditingController();
     _ownerNameController = TextEditingController();
     _shopAddressController = TextEditingController();
@@ -45,57 +49,48 @@ class _EditProfileState extends State<EditProfile> {
     _licenseNumberController = TextEditingController();
     _ownerSignatureController = TextEditingController();
     _subscriptionExpiryController = TextEditingController();
-    _loadShopDetails();
+
+    // Initialize the profile service
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _profileService.initialize(user.uid);
+    }
   }
 
-  Future<void> _loadShopDetails() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+  void _populateFormFields(Map<String, dynamic> profileData) {
+    // Only populate if controllers are not already populated (to avoid overwriting user edits)
+    if (_shopNameController.text.isEmpty) {
+      _shopNameController.text = profileData['shopName'] ?? '';
+      _ownerNameController.text = profileData['ownerName'] ?? '';
+      _shopAddressController.text = profileData['shopAddress'] ?? '';
+      _shopPhoneController.text = profileData['shopPhone'] ?? '';
+      _shopEmailController.text = profileData['shopEmail'] ?? '';
+      _licenseNumberController.text = profileData['licenseNumber'] ?? '';
+      _ownerSignatureBase64 = profileData['ownerSignature'];
+      _hasSignature =
+          _ownerSignatureBase64 != null && _ownerSignatureBase64!.isNotEmpty;
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(user.uid)
-          .get();
-
-      if (snapshot.exists) {
-        final data = snapshot.data() ?? {};
-        setState(() {
-          _shopNameController.text = data['shopName'] ?? '';
-          _ownerNameController.text = data['ownerName'] ?? '';
-          _shopAddressController.text = data['shopAddress'] ?? '';
-          _shopPhoneController.text = data['shopPhone'] ?? '';
-          _shopEmailController.text = data['shopEmail'] ?? '';
-          _licenseNumberController.text = data['licenseNumber'] ?? '';
-          _ownerSignatureBase64 = data['ownerSignature'];
-          _hasSignature =
-              _ownerSignatureBase64 != null &&
-              _ownerSignatureBase64!.isNotEmpty;
-
-          // Load subscription expiry date
-          if (data['subscriptionExpiry'] != null) {
-            try {
-              DateTime expiryDate;
-              if (data['subscriptionExpiry'] is Timestamp) {
-                expiryDate = (data['subscriptionExpiry'] as Timestamp).toDate();
-              } else if (data['subscriptionExpiry'] is String) {
-                expiryDate = DateTime.parse(data['subscriptionExpiry']);
-              } else {
-                throw Exception('Invalid subscription expiry format');
-              }
-
-              _subscriptionExpiryController.text =
-                  '${expiryDate.day.toString().padLeft(2, '0')}/${expiryDate.month.toString().padLeft(2, '0')}/${expiryDate.year}';
-            } catch (e) {
-              _subscriptionExpiryController.text = 'Not set';
-            }
+      // Load subscription expiry date
+      if (profileData['subscriptionExpiry'] != null) {
+        try {
+          DateTime expiryDate;
+          if (profileData['subscriptionExpiry'] is Timestamp) {
+            expiryDate = (profileData['subscriptionExpiry'] as Timestamp)
+                .toDate();
+          } else if (profileData['subscriptionExpiry'] is String) {
+            expiryDate = DateTime.parse(profileData['subscriptionExpiry']);
           } else {
-            _subscriptionExpiryController.text = 'Not set';
+            throw Exception('Invalid subscription expiry format');
           }
-        });
+
+          _subscriptionExpiryController.text =
+              '${expiryDate.day.toString().padLeft(2, '0')}/${expiryDate.month.toString().padLeft(2, '0')}/${expiryDate.year}';
+        } catch (e) {
+          _subscriptionExpiryController.text = 'Not set';
+        }
+      } else {
+        _subscriptionExpiryController.text = 'Not set';
       }
-    } catch (e) {
-      print('Error loading shop details: $e');
     }
   }
 
@@ -121,10 +116,7 @@ class _EditProfileState extends State<EditProfile> {
         'lastUpdated': DateTime.now().toIso8601String(),
       };
 
-      await FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(user.uid)
-          .set(shopData);
+      await _profileService.updateProfileData(shopData);
 
       if (mounted) {
         final localizations = AppLocalizations.of(context);
@@ -161,6 +153,7 @@ class _EditProfileState extends State<EditProfile> {
 
   @override
   void dispose() {
+    _profileService.dispose();
     _shopNameController.dispose();
     _ownerNameController.dispose();
     _shopAddressController.dispose();
@@ -168,6 +161,7 @@ class _EditProfileState extends State<EditProfile> {
     _shopEmailController.dispose();
     _licenseNumberController.dispose();
     _ownerSignatureController.dispose();
+    _subscriptionExpiryController.dispose();
     super.dispose();
   }
 
@@ -548,457 +542,507 @@ class _EditProfileState extends State<EditProfile> {
             ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Profile Picture Section
-              Center(
-                child: Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundColor: const Color(0xFF2196F3).withOpacity(0.2),
-                      child: const Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Color(0xFF2196F3),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: () {
-                          // TODO: Add image picker functionality
-                        },
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF2196F3),
-                            borderRadius: BorderRadius.circular(50),
-                            border: Border.all(color: Colors.white, width: 3),
-                          ),
-                          padding: const EdgeInsets.all(8),
+      body: StreamBuilder<Map<String, dynamic>>(
+        stream: _profileService.profileStream,
+        builder: (context, snapshot) {
+          // Populate form fields when data is available
+          if (snapshot.hasData && snapshot.data != null) {
+            final profileData = snapshot.data!;
+            _populateFormFields(profileData);
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Profile Picture Section
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundColor: const Color(
+                            0xFF2196F3,
+                          ).withOpacity(0.2),
                           child: const Icon(
-                            Icons.camera_alt,
-                            color: Colors.white,
-                            size: 20,
+                            Icons.person,
+                            size: 60,
+                            color: Color(0xFF2196F3),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Shop Name Field
-              Text(
-                localizations?.shopName ?? 'Shop Name',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Card(
-                child: TextFormField(
-                  controller: _shopNameController,
-                  enabled: _isEditMode,
-                  decoration: InputDecoration(
-                    hintText:
-                        localizations?.enterShopName ?? 'Enter your shop name',
-                    prefixIcon: const Icon(Icons.store),
-                    filled: false,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 1),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 2),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (_isEditMode && (value == null || value.isEmpty)) {
-                      return localizations?.pleaseEnterShopName ??
-                          'Please enter shop name';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Owner Name Field
-              Text(
-                localizations?.ownerName ?? 'Owner Name',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Card(
-                child: TextFormField(
-                  controller: _ownerNameController,
-                  enabled: _isEditMode,
-                  decoration: InputDecoration(
-                    hintText:
-                        localizations?.enterOwnerName ?? 'Enter owner name',
-                    prefixIcon: const Icon(Icons.person),
-                    filled: false,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 1),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 2),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (_isEditMode && (value == null || value.isEmpty)) {
-                      return localizations?.pleaseEnterOwnerName ??
-                          'Please enter owner name';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Shop Address Field
-              Text(
-                localizations?.shopAddress ?? 'Shop Address',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Card(
-                child: TextFormField(
-                  controller: _shopAddressController,
-                  enabled: _isEditMode,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText:
-                        localizations?.enterCompleteShopAddress ??
-                        'Enter complete shop address',
-                    prefixIcon: const Icon(Icons.location_on),
-                    filled: false,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 1),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 2),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (_isEditMode && (value == null || value.isEmpty)) {
-                      return localizations?.pleaseEnterShopAddress ??
-                          'Please enter shop address';
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Shop Phone Field
-              Text(
-                localizations?.shopPhone ?? 'Shop Phone Number',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Card(
-                child: TextFormField(
-                  controller: _shopPhoneController,
-                  enabled: _isEditMode,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    hintText:
-                        localizations?.enterPhoneNumber ?? 'Enter phone number',
-                    prefixIcon: const Icon(Icons.phone),
-                    filled: false,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 1),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 2),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (_isEditMode) {
-                      if (value == null || value.isEmpty) {
-                        return localizations?.pleaseEnterPhoneNumber ??
-                            'Please enter phone number';
-                      }
-                      if (value.length < 10) {
-                        return localizations?.pleaseEnterValidPhoneNumber ??
-                            'Please enter valid phone number';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Shop Email Field
-              Text(
-                localizations?.shopEmail ?? 'Shop Email',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Card(
-                child: TextFormField(
-                  controller: _shopEmailController,
-                  enabled: _isEditMode,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    hintText:
-                        localizations?.enterEmailAddress ??
-                        'Enter email address',
-                    prefixIcon: const Icon(Icons.email),
-                    filled: false,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 1),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Colors.red, width: 2),
-                    ),
-                  ),
-                  validator: (value) {
-                    if (_isEditMode && value != null && value.isNotEmpty) {
-                      if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                        return localizations?.pleaseEnterValidEmail ??
-                            'Please enter valid email';
-                      }
-                    }
-                    return null;
-                  },
-                ),
-              ),
-              const SizedBox(height: 6),
-
-              // Owner Signature Field
-              Text(
-                localizations?.ownerSignature ?? 'Owner Signature',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!, width: 1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    if (_hasSignature && _ownerSignatureBase64 != null)
-                      Container(
-                        height: 120,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(8),
-                            topRight: Radius.circular(8),
-                          ),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Image.memory(
-                            base64Decode(_ownerSignatureBase64!),
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      )
-                    else
-                      Container(
-                        height: 120,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: const BorderRadius.only(
-                            topLeft: Radius.circular(8),
-                            topRight: Radius.circular(8),
-                          ),
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.draw,
-                                size: 32,
-                                color: Colors.grey,
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: () {
+                              // TODO: Add image picker functionality
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2196F3),
+                                borderRadius: BorderRadius.circular(50),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 3,
+                                ),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                localizations?.noSignatureAdded ??
-                                    'No signature added',
-                                style: TextStyle(color: Colors.grey[600]),
+                              padding: const EdgeInsets.all(8),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.white,
+                                size: 20,
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    if (_isEditMode)
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () => _showSignatureDialog(context),
-                            icon: const Icon(Icons.edit),
-                            label: Text(
-                              _hasSignature
-                                  ? (localizations?.updateSignature ??
-                                        'Update Signature')
-                                  : (localizations?.addSignature ??
-                                        'Add Signature'),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
                             ),
                           ),
                         ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // License/Registration Number Field
-              // const Text(
-              //   'License/Registration Number',
-              //   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              // ),
-              // Card(
-              //   child: TextFormField(
-              //     controller: _licenseNumberController,
-              //     enabled: _isEditMode,
-              //     decoration: InputDecoration(
-              //       hintText: 'GST Number or License ID',
-              //       prefixIcon: const Icon(Icons.assignment),
-              //       filled: false,
-              //       fillColor: Theme.of(context).cardColor,
-              //       border: OutlineInputBorder(
-              //         borderRadius: BorderRadius.circular(8),
-              //         borderSide: BorderSide.none,
-              //       ),
-              //       errorBorder: OutlineInputBorder(
-              //         borderRadius: BorderRadius.circular(8),
-              //         borderSide: const BorderSide(color: Colors.red, width: 1),
-              //       ),
-              //       focusedErrorBorder: OutlineInputBorder(
-              //         borderRadius: BorderRadius.circular(8),
-              //         borderSide: const BorderSide(color: Colors.red, width: 2),
-              //       ),
-              //     ),
-              //     validator: (value) {
-              //       if (_isEditMode && (value == null || value.isEmpty)) {
-              //         return 'Please enter license/registration number';
-              //       }
-              //       return null;
-              //     },
-              //   ),
-              // ),
-
-              // Subscription Expiry Date Field (Non-editable)
-              Text(
-                localizations?.subscriptionExpiry ?? 'Subscription Expiry',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              ),
-              Card(
-                child: TextFormField(
-                  controller: _subscriptionExpiryController,
-                  enabled: false, // Always disabled - not editable
-                  decoration: InputDecoration(
-                    hintText: localizations?.notSet ?? 'Not set',
-                    prefixIcon: const Icon(Icons.calendar_today),
-                    filled: false,
-                    fillColor: Theme.of(context).cardColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
-                    ),
-                    disabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
+                      ],
                     ),
                   ),
-                  style: TextStyle(
-                    color: Colors.grey[700],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const SizedBox(height: 32),
+                  const SizedBox(height: 6),
 
-              // Save Button - Only show in edit mode
-              if (_isEditMode)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isSaving ? null : _saveShopDetails,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2196F3),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  // Shop Name Field
+                  Text(
+                    localizations?.shopName ?? 'Shop Name',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  Card(
+                    child: TextFormField(
+                      controller: _shopNameController,
+                      enabled: _isEditMode,
+                      decoration: InputDecoration(
+                        hintText:
+                            localizations?.enterShopName ??
+                            'Enter your shop name',
+                        prefixIcon: const Icon(Icons.store),
+                        filled: false,
+                        fillColor: Theme.of(context).cardColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 1,
+                          ),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 2,
+                          ),
+                        ),
                       ),
+                      validator: (value) {
+                        if (_isEditMode && (value == null || value.isEmpty)) {
+                          return localizations?.pleaseEnterShopName ??
+                              'Please enter shop name';
+                        }
+                        return null;
+                      },
                     ),
-                    child: _isSaving
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Owner Name Field
+                  Text(
+                    localizations?.ownerName ?? 'Owner Name',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  Card(
+                    child: TextFormField(
+                      controller: _ownerNameController,
+                      enabled: _isEditMode,
+                      decoration: InputDecoration(
+                        hintText:
+                            localizations?.enterOwnerName ?? 'Enter owner name',
+                        prefixIcon: const Icon(Icons.person),
+                        filled: false,
+                        fillColor: Theme.of(context).cardColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 1,
+                          ),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (_isEditMode && (value == null || value.isEmpty)) {
+                          return localizations?.pleaseEnterOwnerName ??
+                              'Please enter owner name';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Shop Address Field
+                  Text(
+                    localizations?.shopAddress ?? 'Shop Address',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  Card(
+                    child: TextFormField(
+                      controller: _shopAddressController,
+                      enabled: _isEditMode,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText:
+                            localizations?.enterCompleteShopAddress ??
+                            'Enter complete shop address',
+                        prefixIcon: const Icon(Icons.location_on),
+                        filled: false,
+                        fillColor: Theme.of(context).cardColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 1,
+                          ),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (_isEditMode && (value == null || value.isEmpty)) {
+                          return localizations?.pleaseEnterShopAddress ??
+                              'Please enter shop address';
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Shop Phone Field
+                  Text(
+                    localizations?.shopPhone ?? 'Shop Phone Number',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  Card(
+                    child: TextFormField(
+                      controller: _shopPhoneController,
+                      enabled: _isEditMode,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                        hintText:
+                            localizations?.enterPhoneNumber ??
+                            'Enter phone number',
+                        prefixIcon: const Icon(Icons.phone),
+                        filled: false,
+                        fillColor: Theme.of(context).cardColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 1,
+                          ),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (_isEditMode) {
+                          if (value == null || value.isEmpty) {
+                            return localizations?.pleaseEnterPhoneNumber ??
+                                'Please enter phone number';
+                          }
+                          if (value.length < 10) {
+                            return localizations?.pleaseEnterValidPhoneNumber ??
+                                'Please enter valid phone number';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Shop Email Field
+                  Text(
+                    localizations?.shopEmail ?? 'Shop Email',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  Card(
+                    child: TextFormField(
+                      controller: _shopEmailController,
+                      enabled: _isEditMode,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        hintText:
+                            localizations?.enterEmailAddress ??
+                            'Enter email address',
+                        prefixIcon: const Icon(Icons.email),
+                        filled: false,
+                        fillColor: Theme.of(context).cardColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 1,
+                          ),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: Colors.red,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (_isEditMode && value != null && value.isNotEmpty) {
+                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                            return localizations?.pleaseEnterValidEmail ??
+                                'Please enter valid email';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Owner Signature Field
+                  Text(
+                    localizations?.ownerSignature ?? 'Owner Signature',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey[300]!, width: 1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        if (_hasSignature && _ownerSignatureBase64 != null)
+                          Container(
+                            height: 120,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(8),
+                                topRight: Radius.circular(8),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Image.memory(
+                                base64Decode(_ownerSignatureBase64!),
+                                fit: BoxFit.contain,
                               ),
                             ),
                           )
-                        : Text(
-                            localizations?.saveChanges ?? 'Save Changes',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                        else
+                          Container(
+                            height: 120,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(8),
+                                topRight: Radius.circular(8),
+                              ),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.draw,
+                                    size: 32,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    localizations?.noSignatureAdded ??
+                                        'No signature added',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
+                        if (_isEditMode)
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _showSignatureDialog(context),
+                                icon: const Icon(Icons.edit),
+                                label: Text(
+                                  _hasSignature
+                                      ? (localizations?.updateSignature ??
+                                            'Update Signature')
+                                      : (localizations?.addSignature ??
+                                            'Add Signature'),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
+                  const SizedBox(height: 16),
+
+                  // License/Registration Number Field
+                  // const Text(
+                  //   'License/Registration Number',
+                  //   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  // ),
+                  // Card(
+                  //   child: TextFormField(
+                  //     controller: _licenseNumberController,
+                  //     enabled: _isEditMode,
+                  //     decoration: InputDecoration(
+                  //       hintText: 'GST Number or License ID',
+                  //       prefixIcon: const Icon(Icons.assignment),
+                  //       filled: false,
+                  //       fillColor: Theme.of(context).cardColor,
+                  //       border: OutlineInputBorder(
+                  //         borderRadius: BorderRadius.circular(8),
+                  //         borderSide: BorderSide.none,
+                  //       ),
+                  //       errorBorder: OutlineInputBorder(
+                  //         borderRadius: BorderRadius.circular(8),
+                  //         borderSide: const BorderSide(color: Colors.red, width: 1),
+                  //       ),
+                  //       focusedErrorBorder: OutlineInputBorder(
+                  //         borderRadius: BorderRadius.circular(8),
+                  //         borderSide: const BorderSide(color: Colors.red, width: 2),
+                  //       ),
+                  //     ),
+                  //     validator: (value) {
+                  //       if (_isEditMode && (value == null || value.isEmpty)) {
+                  //         return 'Please enter license/registration number';
+                  //       }
+                  //       return null;
+                  //     },
+                  //   ),
+                  // ),
+
+                  // Subscription Expiry Date Field (Non-editable)
+                  Text(
+                    localizations?.subscriptionExpiry ?? 'Subscription Expiry',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  Card(
+                    child: TextFormField(
+                      controller: _subscriptionExpiryController,
+                      enabled: false, // Always disabled - not editable
+                      decoration: InputDecoration(
+                        hintText: localizations?.notSet ?? 'Not set',
+                        prefixIcon: const Icon(Icons.calendar_today),
+                        filled: false,
+                        fillColor: Theme.of(context).cardColor,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        disabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      style: TextStyle(
+                        color: Colors.grey[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  const SizedBox(height: 32),
+
+                  // Save Button - Only show in edit mode
+                  if (_isEditMode)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _isSaving ? null : _saveShopDetails,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2196F3),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: _isSaving
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Text(
+                                localizations?.saveChanges ?? 'Save Changes',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

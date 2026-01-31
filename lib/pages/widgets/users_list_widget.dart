@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/profile_service.dart';
 
-class UsersListWidget extends StatelessWidget {
+class UsersListWidget extends StatefulWidget {
   const UsersListWidget({super.key});
+
+  @override
+  State<UsersListWidget> createState() => _UsersListWidgetState();
+}
+
+class _UsersListWidgetState extends State<UsersListWidget> {
+  final ProfileService _profileService = ProfileService();
+
+  @override
+  void dispose() {
+    _profileService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,9 +25,7 @@ class UsersListWidget extends StatelessWidget {
     final cardColor = Theme.of(context).cardTheme.color;
 
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('shop-profile')
-          .snapshots(),
+      stream: FirebaseFirestore.instance.collection('shop-profile').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
@@ -26,11 +38,7 @@ class UsersListWidget extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.error_outline,
-                  size: 48,
-                  color: Colors.red[600],
-                ),
+                Icon(Icons.error_outline, size: 48, color: Colors.red[600]),
                 const SizedBox(height: 12),
                 Text(
                   'Error: ${snapshot.error}',
@@ -48,18 +56,11 @@ class UsersListWidget extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.people_outline,
-                  size: 64,
-                  color: Colors.grey[400],
-                ),
+                Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
                 const SizedBox(height: 16),
                 Text(
                   'No users added yet',
-                  style: TextStyle(
-                    color: secondaryTextColor,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: secondaryTextColor, fontSize: 16),
                 ),
               ],
             ),
@@ -72,7 +73,7 @@ class UsersListWidget extends StatelessWidget {
           itemBuilder: (context, index) {
             final userDoc = userDocs[index];
             final userData = userDoc.data() as Map<String, dynamic>;
-            
+
             return _buildUserCard(
               context,
               userData,
@@ -150,9 +151,7 @@ class UsersListWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
-                      color: isActive
-                          ? Colors.green[600]
-                          : Colors.orange[600],
+                      color: isActive ? Colors.green[600] : Colors.orange[600],
                     ),
                   ),
                 ),
@@ -179,12 +178,19 @@ class UsersListWidget extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    Icon(Icons.location_on, size: 14, color: secondaryTextColor),
+                    Icon(
+                      Icons.location_on,
+                      size: 14,
+                      color: secondaryTextColor,
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         userData['shopAddress'] ?? '',
-                        style: TextStyle(color: secondaryTextColor, fontSize: 12),
+                        style: TextStyle(
+                          color: secondaryTextColor,
+                          fontSize: 12,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -312,20 +318,13 @@ class UsersListWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 14),
-          ),
+          Text(value, style: const TextStyle(fontSize: 14)),
         ],
       ),
     );
   }
 
-  void _deactivateUser(
-    BuildContext context,
-    String userId,
-    String shopName,
-  ) {
+  void _deactivateUser(BuildContext context, String userId, String shopName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -343,7 +342,7 @@ class UsersListWidget extends StatelessWidget {
                     .collection('shop-profile')
                     .doc(userId)
                     .update({'isActive': false});
-                
+
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -364,9 +363,7 @@ class UsersListWidget extends StatelessWidget {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.orange,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
             child: const Text('Deactivate'),
           ),
         ],
@@ -374,11 +371,7 @@ class UsersListWidget extends StatelessWidget {
     );
   }
 
-  void _activateUser(
-    BuildContext context,
-    String userId,
-    String shopName,
-  ) {
+  void _activateUser(BuildContext context, String userId, String shopName) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -396,7 +389,7 @@ class UsersListWidget extends StatelessWidget {
                     .collection('shop-profile')
                     .doc(userId)
                     .update({'isActive': true});
-                
+
                 if (context.mounted) {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -417,9 +410,7 @@ class UsersListWidget extends StatelessWidget {
                 }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Activate'),
           ),
         ],
