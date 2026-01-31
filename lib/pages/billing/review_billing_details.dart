@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
+import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 
@@ -54,11 +56,25 @@ class ReviewBillingDetails extends StatefulWidget {
 class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
   int _currentBillNumber = 0;
   AppLocalizations? localizations;
+  late BillsDataService _billsDataService;
+  StreamSubscription? _billsDataServiceSubscription;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     localizations ??= AppLocalizations.of(context)!;
+    _initializeBillsDataService();
+  }
+
+  void _initializeBillsDataService() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _billsDataService = BillsDataService();
+      _billsDataService.initialize(user.uid);
+      _billsDataServiceSubscription = _billsDataService.billsStream.listen((_) {
+        // Bills data updated, no specific action needed here
+      });
+    }
   }
 
   @override
@@ -823,22 +839,17 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     // Generate bill number if not in edit mode
     int billNumber = 1;
     if (!widget.isEditMode) {
-      // Get the count of existing bills to generate the next bill number
-      final billsSnapshot = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .get();
-      billNumber = billsSnapshot.docs.length + 1;
+      // Use cached bills to generate the next bill number
+      final cachedBills = _billsDataService.getCachedBills();
+      billNumber = cachedBills.length + 1;
     } else if (widget.billId != null) {
-      // If editing, retrieve the existing bill number
-      final existingBill = await firestore
-          .collection('bills')
-          .doc(userId)
-          .collection('items')
-          .doc(widget.billId)
-          .get();
-      billNumber = existingBill.data()?['billNumber'] ?? 1;
+      // If editing, retrieve the existing bill number from cached bills
+      final cachedBills = _billsDataService.getCachedBills();
+      final existingBill = cachedBills.firstWhere(
+        (bill) => bill['id'] == widget.billId,
+        orElse: () => {},
+      );
+      billNumber = existingBill['billNumber'] ?? 1;
     }
 
     // Store billNumber in instance variable to pass to success page
@@ -951,17 +962,15 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     String userId,
     String billId,
   ) async {
-    // Get the old bill to restore product quantities
-    final billDoc = await firestore
-        .collection('bills')
-        .doc(userId)
-        .collection('items')
-        .doc(billId)
-        .get();
+    // Get the old bill data from cached bills to restore product quantities
+    final cachedBills = _billsDataService.getCachedBills();
+    final billData = cachedBills.firstWhere(
+      (bill) => bill['id'] == billId,
+      orElse: () => <String, dynamic>{},
+    );
 
-    if (billDoc.exists) {
-      final billData = billDoc.data();
-      final products = billData?['products'] as Map<String, dynamic>?;
+    if (billData.isNotEmpty) {
+      final products = billData['products'] as Map<String, dynamic>?;
 
       if (products != null) {
         // Restore product quantities from the old bill
@@ -1010,5 +1019,11 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           .doc(billId)
           .delete();
     }
+  }
+
+  @override
+  void dispose() {
+    _billsDataServiceSubscription?.cancel();
+    super.dispose();
   }
 }

@@ -1,7 +1,6 @@
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:share_plus/share_plus.dart';
@@ -14,6 +13,7 @@ import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/services/bills_data_service.dart';
 
 class Bills extends StatefulWidget {
   const Bills({super.key});
@@ -25,8 +25,6 @@ class Bills extends StatefulWidget {
 class _BillsState extends State<Bills> {
   PaymentFilter _selectedFilter = PaymentFilter.all;
   SortOption _selectedSort = SortOption.dateNewest;
-  late StreamSubscription<QuerySnapshot<Map<String, dynamic>>>
-  _billsSubscription;
   late String _userId;
   List<Bill> _allBills = [];
   List<Bill> _filteredBills = [];
@@ -41,6 +39,7 @@ class _BillsState extends State<Bills> {
   int _currentlyLoadedItems = 100;
   bool _isLoadingMore = false;
   final ProfileService _profileService = ProfileService();
+  final BillsDataService _billsDataService = BillsDataService();
 
   @override
   void initState() {
@@ -55,7 +54,7 @@ class _BillsState extends State<Bills> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
-    _billsSubscription.cancel();
+    _billsDataService.dispose();
     _profileService.dispose();
     super.dispose();
   }
@@ -102,95 +101,91 @@ class _BillsState extends State<Bills> {
     _userId = user.uid;
 
     _loadShopName();
-    _billsSubscription = FirebaseFirestore.instance
-        .collection('bills')
-        .doc(_userId)
-        .collection('items')
-        .snapshots()
-        .listen(
-          (QuerySnapshot<Map<String, dynamic>> snapshot) {
-            try {
-              final bills = <Bill>[];
 
-              for (var billDoc in snapshot.docs) {
-                final billData = billDoc.data();
-                final totalAmount =
-                    (billData['totalAmount'] as num?)?.toInt() ?? 0;
-                final totalAmountPaid =
-                    billData['totalAmountPaid'] as bool? ?? true;
-                final amountRemaining =
-                    (billData['amountRemaining'] as num?)?.toInt() ?? 0;
-                final amountPaid =
-                    (billData['amountPaid'] as num?)?.toInt() ?? 0;
+    // Initialize BillsDataService
+    _billsDataService.initialize(_userId);
 
-                // Determine payment status
-                PaymentFilter status;
-                if (amountPaid == 0 && amountRemaining != 0) {
-                  status = PaymentFilter.unpaid;
-                } else if (totalAmountPaid) {
-                  status = PaymentFilter.paid;
-                } else if (amountRemaining == 0) {
-                  status = PaymentFilter.paid;
-                } else {
-                  status = PaymentFilter.partial;
-                }
+    // Listen to bills stream
+    _billsDataService.billsStream.listen(
+      (billsData) {
+        try {
+          final bills = <Bill>[];
 
-                final productsMap =
-                    billData['products'] as Map<String, dynamic>?;
-                final productsList = <Map<String, dynamic>>[];
-                if (productsMap != null) {
-                  productsList.addAll(
-                    productsMap.values.cast<Map<String, dynamic>>(),
-                  );
-                }
+          for (var billData in billsData) {
+            bills.add(_convertBillDataToBill(billData));
+          }
 
-                bills.add(
-                  Bill(
-                    billDoc.id,
-                    billData['billDate'] ?? '',
-                    billData['customerName'] ?? 'Unknown',
-                    billData['customerMobile'] ?? '',
-                    billData['customerVehicle'],
-                    '₹${totalAmount}',
-                    status,
-                    billData['timestamp'] ?? '',
-                    totalAmount,
-                    totalAmountPaid,
-                    amountPaid,
-                    amountRemaining,
-                    productsList,
-                    billData['nextPaymentDate'],
-                    (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0,
-                    (billData['previousPaidAmount'] as num?)?.toDouble() ?? 0.0,
-                    billData['previousDueDescription'] ?? '',
-                  ),
-                );
-              }
+          // Sort bills by timestamp (newest first)
+          bills.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
-              // Sort bills by timestamp (newest first)
-              bills.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          if (mounted) {
+            setState(() {
+              _allBills = bills;
+              _filterBills();
+              _isLoading = false;
+            });
+          }
+        } catch (e) {
+          print('Error processing bills data: $e');
+          if (mounted) {
+            setState(() => _isLoading = false);
+          }
+        }
+      },
+      onError: (error) {
+        print('Bills stream error: $error');
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
+      },
+    );
+  }
 
-              if (mounted) {
-                setState(() {
-                  _allBills = bills;
-                  _filterBills();
-                  _isLoading = false;
-                });
-              }
-            } catch (e) {
-              print('Error loading bills: $e');
-              if (mounted) {
-                setState(() => _isLoading = false);
-              }
-            }
-          },
-          onError: (error) {
-            print('Firebase error: $error');
-            if (mounted) {
-              setState(() => _isLoading = false);
-            }
-          },
-        );
+  // Helper method to convert raw bill data to Bill object
+  Bill _convertBillDataToBill(Map<String, dynamic> billData) {
+    final billId = billData['id'] as String;
+    final totalAmount = (billData['totalAmount'] as num?)?.toInt() ?? 0;
+    final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? true;
+    final amountRemaining = (billData['amountRemaining'] as num?)?.toInt() ?? 0;
+    final amountPaid = (billData['amountPaid'] as num?)?.toInt() ?? 0;
+
+    // Determine payment status
+    PaymentFilter status;
+    if (amountPaid == 0 && amountRemaining != 0) {
+      status = PaymentFilter.unpaid;
+    } else if (totalAmountPaid) {
+      status = PaymentFilter.paid;
+    } else if (amountRemaining == 0) {
+      status = PaymentFilter.paid;
+    } else {
+      status = PaymentFilter.partial;
+    }
+
+    final productsMap = billData['products'] as Map<String, dynamic>?;
+    final productsList = <Map<String, dynamic>>[];
+    if (productsMap != null) {
+      productsList.addAll(productsMap.values.cast<Map<String, dynamic>>());
+    }
+
+    return Bill(
+      billId,
+      billData['billDate'] ?? '',
+      billData['customerName'] ?? 'Unknown',
+      billData['customerMobile'] ?? '',
+      billData['customerVehicle'],
+      '₹${totalAmount}',
+      status,
+      billData['timestamp'] ?? '',
+      totalAmount,
+      totalAmountPaid,
+      amountPaid,
+      amountRemaining,
+      productsList,
+      billData['nextPaymentDate'],
+      (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0,
+      (billData['previousPaidAmount'] as num?)?.toDouble() ?? 0.0,
+      billData['previousDueDescription'] ?? '',
+    );
   }
 
   // Filter bills based on search query and payment status

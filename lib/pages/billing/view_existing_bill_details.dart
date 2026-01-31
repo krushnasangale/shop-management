@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'dart:async';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/services/bills_data_service.dart';
 import 'dart:convert' as convert;
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -111,6 +112,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   bool _deliveryChargesEnabled =
       false; // App setting for delivery charges field
   final ProfileService _profileService = ProfileService();
+  final BillsDataService _billsDataService = BillsDataService();
   StreamSubscription<Map<String, dynamic>>? _appSettingsSubscription;
 
   @override
@@ -189,6 +191,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     _nextPaymentDateController.dispose();
     _appSettingsSubscription?.cancel();
     _profileService.dispose();
+    _billsDataService.dispose();
     super.dispose();
   }
 
@@ -197,16 +200,15 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('bills')
-          .doc(user.uid)
-          .collection('items')
-          .doc(billId)
-          .get();
+      // Get bill data from cached bills
+      final billsData = _billsDataService.getCachedBills();
+      final billData = billsData.firstWhere(
+        (bill) => bill['id'] == billId,
+        orElse: () => <String, dynamic>{},
+      );
 
-      if (snapshot.exists) {
-        final data = snapshot.data();
-        final payments = data?['payments'] as List<dynamic>? ?? [];
+      if (billData.isNotEmpty) {
+        final payments = billData['payments'] as List<dynamic>? ?? [];
         if (payments.isNotEmpty) {
           setState(() {
             paymentRecords = payments
@@ -220,7 +222,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         }
       }
     } catch (e) {
-      print('Error loading payment records: $e');
+      print('Error loading payment records from cache: $e');
     }
   }
 
@@ -229,19 +231,18 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('bills')
-          .doc(user.uid)
-          .collection('items')
-          .doc(billId)
-          .get();
+      // Get bill data from cached bills
+      final billsData = _billsDataService.getCachedBills();
+      final billData = billsData.firstWhere(
+        (bill) => bill['id'] == billId,
+        orElse: () => <String, dynamic>{},
+      );
 
-      if (snapshot.exists) {
-        final data = snapshot.data();
-        final loadedDiscount = (data?['discount'] as num?)?.toInt() ?? 0;
+      if (billData.isNotEmpty) {
+        final loadedDiscount = (billData['discount'] as num?)?.toInt() ?? 0;
         final loadedDeliveryCharges =
-            (data?['deliveryCharges'] as num?)?.toInt() ?? 0;
-        int loadedBillNumber = (data?['billNumber'] as num?)?.toInt() ?? 0;
+            (billData['deliveryCharges'] as num?)?.toInt() ?? 0;
+        int loadedBillNumber = (billData['billNumber'] as num?)?.toInt() ?? 0;
 
         setState(() {
           discount = loadedDiscount;
@@ -255,7 +256,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         });
       }
     } catch (e) {
-      print('Error loading discount: $e');
+      print('Error loading discount from cache: $e');
     }
   }
 
@@ -266,6 +267,23 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
       // Initialize ProfileService if not already initialized
       _profileService.initialize(user.uid);
+
+      // Initialize BillsDataService for bill data
+      _billsDataService.initialize(user.uid);
+
+      // Listen to bills data stream for real-time updates
+      _billsDataService.billsStream.listen((billsData) {
+        if (mounted) {
+          // Update payment records and discount data when bills data changes
+          _updateBillDataFromCache(billsData);
+        }
+      });
+
+      // Load initial bill data from cache
+      final initialBillsData = _billsDataService.getCachedBills();
+      if (initialBillsData.isNotEmpty) {
+        _updateBillDataFromCache(initialBillsData);
+      }
 
       // Listen to app settings stream for real-time updates
       _appSettingsSubscription = _profileService.appSettingsStream.listen((
@@ -301,6 +319,48 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           _deliveryChargesEnabled = true;
         });
       }
+    }
+  }
+
+  // Update bill data from cached bills data
+  void _updateBillDataFromCache(List<Map<String, dynamic>> billsData) {
+    try {
+      final billData = billsData.firstWhere(
+        (bill) => bill['id'] == billId,
+        orElse: () => <String, dynamic>{},
+      );
+
+      if (billData.isNotEmpty && mounted) {
+        // Update payment records
+        final payments = billData['payments'] as List<dynamic>? ?? [];
+        final updatedPaymentRecords = payments.isNotEmpty
+            ? payments
+                  .map(
+                    (p) => PaymentRecord.fromMap(
+                      Map<dynamic, dynamic>.from(p as Map),
+                    ),
+                  )
+                  .toList()
+            : <PaymentRecord>[];
+
+        // Update discount and delivery data
+        final loadedDiscount = (billData['discount'] as num?)?.toInt() ?? 0;
+        final loadedDeliveryCharges =
+            (billData['deliveryCharges'] as num?)?.toInt() ?? 0;
+        int loadedBillNumber = (billData['billNumber'] as num?)?.toInt() ?? 0;
+
+        setState(() {
+          paymentRecords = updatedPaymentRecords;
+          discount = loadedDiscount;
+          deliveryCharges = loadedDeliveryCharges;
+          billNumber = loadedBillNumber;
+          // Recalculate profit with new discount
+          final validDiscount = loadedDiscount > 0 ? loadedDiscount : 0;
+          totalProfit = _calculateBaseProfit() - validDiscount;
+        });
+      }
+    } catch (e) {
+      print('Error updating bill data from cache: $e');
     }
   }
 
