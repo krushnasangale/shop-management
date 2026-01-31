@@ -2928,7 +2928,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ),
             ),
             // delivery charges row
-            if (_deliveryChargesEnabled) ...[
+            if (_deliveryChargesEnabled || deliveryCharges > 0) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4.0),
                 child: Row(
