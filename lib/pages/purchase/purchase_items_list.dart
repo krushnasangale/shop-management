@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
+import 'package:flashbill/pages/purchase/customer_bills_page.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
@@ -22,11 +23,14 @@ class PurchaseItemsList extends StatefulWidget {
   State<PurchaseItemsList> createState() => _PurchaseItemsListState();
 }
 
-class _PurchaseItemsListState extends State<PurchaseItemsList> {
+class _PurchaseItemsListState extends State<PurchaseItemsList>
+    with SingleTickerProviderStateMixin {
   late CollectionReference _boughtRef;
   List<Map<String, dynamic>> _boughtEntries = [];
   List<Map<String, dynamic>> _filteredEntries = [];
   List<Map<String, dynamic>> _displayedEntries = [];
+  Map<String, List<Map<String, dynamic>>> _customerBills = {};
+  List<Map<String, dynamic>> _customerSummaries = [];
   bool _isLoading = true;
   StreamSubscription<QuerySnapshot>? _streamSubscription;
   late TextEditingController _searchController;
@@ -34,10 +38,12 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
   final ScrollController _scrollController = ScrollController();
   int _displayedItemCount = 50;
   bool _isLoadingMore = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _searchController = TextEditingController();
     _searchController.addListener(_filterEntries);
     _scrollController.addListener(_onScroll);
@@ -96,8 +102,50 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                 return data;
               }).toList();
 
+              // Group entries by customer/supplier
+              final customerBills = <String, List<Map<String, dynamic>>>{};
+              for (final entry in entries) {
+                final supplierName = entry['supplierName'] ?? 'Unknown';
+                if (!customerBills.containsKey(supplierName)) {
+                  customerBills[supplierName] = [];
+                }
+                customerBills[supplierName]!.add(entry);
+              }
+
+              // Create customer summaries
+              final customerSummaries = customerBills.entries.map((entry) {
+                final supplierName = entry.key;
+                final bills = entry.value;
+                final totalAmount = bills.fold<double>(
+                  0,
+                  (sum, bill) =>
+                      sum + ((bill['totalAmount'] ?? 0) as num).toDouble(),
+                );
+                final totalBills = bills.length;
+                final lastPurchaseDate = bills.isNotEmpty
+                    ? bills[0]['date'] ?? ''
+                    : '';
+
+                return {
+                  'supplierName': supplierName,
+                  'totalAmount': totalAmount,
+                  'totalBills': totalBills,
+                  'lastPurchaseDate': lastPurchaseDate,
+                  'bills': bills,
+                };
+              }).toList();
+
+              // Sort customer summaries by total amount descending
+              customerSummaries.sort(
+                (a, b) => (b['totalAmount'] as double).compareTo(
+                  a['totalAmount'] as double,
+                ),
+              );
+
               setState(() {
                 _boughtEntries = entries;
+                _customerBills = customerBills;
+                _customerSummaries = customerSummaries;
                 _filteredEntries = entries;
                 _displayedItemCount = 50;
                 _displayedEntries = entries.take(_displayedItemCount).toList();
@@ -142,6 +190,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
     _streamSubscription?.cancel();
     _searchController.dispose();
     _scrollController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -170,6 +219,428 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         ],
       ),
     );
+  }
+
+  Widget _buildRecentBillsTab() {
+    return Column(
+      children: [
+        // Search Bar
+        if (_showSearchBar)
+          Padding(
+            padding: const EdgeInsets.only(
+              left: 12.0,
+              right: 12.0,
+              top: 5,
+              bottom: 0,
+            ),
+            child: Card(
+              elevation: 2,
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText:
+                      AppLocalizations.of(context)?.searchBySupplierOrAmount ??
+                      'Search by supplier or amount',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                          },
+                        )
+                      : null,
+                  filled: false,
+                  fillColor: Theme.of(context).inputDecorationTheme.fillColor,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+              ),
+            ),
+          ),
+        // List
+        Expanded(
+          child: _filteredEntries.isEmpty
+              ? Center(
+                  child: Text(
+                    AppLocalizations.of(context)?.noMatchingEntriesFound ??
+                        'No matching entries found',
+                  ),
+                )
+              : ListView.builder(
+                  controller: _scrollController,
+                  itemCount:
+                      _displayedEntries.length + (_isLoadingMore ? 1 : 0),
+                  padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+                  itemBuilder: (context, index) {
+                    if (index == _displayedEntries.length) {
+                      return const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    final entry = _displayedEntries[index];
+                    final date = entry['date'] ?? 'N/A';
+                    final supplierName = entry['supplierName'] ?? 'Unknown';
+                    final totalAmount = entry['totalAmount'] ?? 0;
+                    final totalProducts = entry['totalProducts'] ?? 0;
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 5),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Card(
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      PurchaseEntryDetails(entry: entry),
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Header Row
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              supplierName,
+                                              style: context.bodyLargeText
+                                                  ?.copyWith(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.calendar_today,
+                                                  size: 12,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  date,
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          '₹$totalAmount',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Divider
+                                  Divider(
+                                    height: 1,
+                                    color: Colors.grey.withOpacity(0.3),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  // Bottom Section with Details
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.center,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '$totalProducts ${AppLocalizations.of(context)?.products ?? 'Products'}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            AppLocalizations.of(
+                                                  context,
+                                                )?.purchased ??
+                                                'Purchased',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.blue[400],
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      // display total quantity bought
+                                      _buildTotalQuantityBadge(entry),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 6,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.check_circle,
+                                              size: 14,
+                                              color: Colors.green,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              AppLocalizations.of(
+                                                    context,
+                                                  )?.received ??
+                                                  'Received',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.green,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCustomerBillsTab() {
+    return _customerSummaries.isEmpty
+        ? Center(
+            child: Text(
+              AppLocalizations.of(context)?.noPurchasedEntriesYet ??
+                  'No purchased entries yet',
+            ),
+          )
+        : ListView.builder(
+            itemCount: _customerSummaries.length,
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+            itemBuilder: (context, index) {
+              final summary = _customerSummaries[index];
+              final supplierName = summary['supplierName'] ?? 'Unknown';
+              final totalAmount = summary['totalAmount'] ?? 0.0;
+              final totalBills = summary['totalBills'] ?? 0;
+              final lastPurchaseDate = summary['lastPurchaseDate'] ?? '';
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 5),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Card(
+                    child: InkWell(
+                      onTap: () {
+                        // Navigate to customer-specific bill list
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CustomerBillsPage(
+                              supplierName: supplierName,
+                              bills: summary['bills'] ?? [],
+                            ),
+                          ),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        supplierName,
+                                        style: context.bodyLargeText?.copyWith(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_today,
+                                            size: 12,
+                                            color: Colors.grey[600],
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Last: $lastPurchaseDate',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '₹${totalAmount.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Colors.green,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Stats Row
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.receipt,
+                                        size: 14,
+                                        color: Colors.blue,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '$totalBills Bills',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.business,
+                                        size: 14,
+                                        color: Colors.purple,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Supplier',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.purple,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          );
   }
 
   @override
@@ -230,259 +701,60 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             )
           : Column(
               children: [
-                // Search Bar
-                if (_showSearchBar)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 12.0,
-                      right: 12.0,
-                      top: 5,
-                      bottom: 0,
+                // Modern toggle buttons for tabs
+                Padding(
+                  padding: const EdgeInsets.all(6.0),
+                  child: ToggleButtons(
+                    isSelected: [
+                      _tabController.index == 0,
+                      _tabController.index == 1,
+                    ],
+                    onPressed: (index) {
+                      setState(() {
+                        _tabController.animateTo(index);
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(10.0),
+                    selectedColor: Colors.white,
+                    fillColor: Theme.of(context).primaryColor,
+                    color: Colors.grey[600],
+                    textStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
                     ),
-                    child: Card(
-                      elevation: 2,
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText:
-                              localizations?.searchBySupplierOrAmount ??
-                              'Search by supplier or amount',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                  },
-                                )
-                              : null,
-                          filled: false,
-                          fillColor: Theme.of(
-                            context,
-                          ).inputDecorationTheme.fillColor,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                          ),
-                        ),
+                    constraints: const BoxConstraints(
+                      minHeight: 40.0,
+                      minWidth: 140.0,
+                    ),
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.access_time, size: 20),
+                          const SizedBox(width: 8),
+                          Text('Recent'),
+                        ],
                       ),
-                    ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.business, size: 20),
+                          const SizedBox(width: 8),
+                          Text('By Supplier'),
+                        ],
+                      ),
+                    ],
                   ),
-                // List
+                ),
+                // Tab Bar View
                 Expanded(
-                  child: _filteredEntries.isEmpty
-                      ? Center(
-                          child: Text(
-                            localizations?.noMatchingEntriesFound ??
-                                'No matching entries found',
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          itemCount:
-                              _displayedEntries.length +
-                              (_isLoadingMore ? 1 : 0),
-                          padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
-                          itemBuilder: (context, index) {
-                            if (index == _displayedEntries.length) {
-                              return const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.all(16.0),
-                                  child: CircularProgressIndicator(),
-                                ),
-                              );
-                            }
-                            final entry = _displayedEntries[index];
-                            final date = entry['date'] ?? 'N/A';
-                            final supplierName =
-                                entry['supplierName'] ?? 'Unknown';
-                            final totalAmount = entry['totalAmount'] ?? 0;
-                            final totalProducts = entry['totalProducts'] ?? 0;
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 5),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Card(
-                                  child: InkWell(
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              PurchaseEntryDetails(
-                                                entry: entry,
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 8,
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          // Header Row
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      supplierName,
-                                                      style: context
-                                                          .bodyLargeText
-                                                          ?.copyWith(
-                                                            fontSize: 14,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                    const SizedBox(height: 2),
-                                                    Row(
-                                                      children: [
-                                                        Icon(
-                                                          Icons.calendar_today,
-                                                          size: 12,
-                                                          color:
-                                                              Colors.grey[600],
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 4,
-                                                        ),
-                                                        Text(
-                                                          date,
-                                                          style: TextStyle(
-                                                            fontSize: 11,
-                                                            color: Colors
-                                                                .grey[600],
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 4,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.green
-                                                      .withOpacity(0.15),
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Text(
-                                                  '₹$totalAmount',
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 12,
-                                                    color: Colors.green,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 8),
-                                          // Divider
-                                          Divider(
-                                            height: 1,
-                                            color: Colors.grey.withOpacity(0.3),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          // Bottom Section with Details
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.center,
-                                            children: [
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    '$totalProducts ${localizations?.products ?? 'Products'}',
-                                                    style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    localizations?.purchased ??
-                                                        'Purchased',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: Colors.blue[400],
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              // display total quantity bought
-                                              _buildTotalQuantityBadge(entry),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 10,
-                                                      vertical: 6,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.blue
-                                                      .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(6),
-                                                ),
-                                                child: Row(
-                                                  children: [
-                                                    Icon(
-                                                      Icons.check_circle,
-                                                      size: 14,
-                                                      color: Colors.green,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      localizations?.received ??
-                                                          'Received',
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: Colors.green,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildRecentBillsTab(),
+                      _buildCustomerBillsTab(),
+                    ],
+                  ),
                 ),
               ],
             ),
