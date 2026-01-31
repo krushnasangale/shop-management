@@ -445,7 +445,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Delete Bill'),
+          title: Text('Delete Bill', style: TextStyle(color: Colors.red)),
           content: Text(
             'Are you sure you want to delete this bill? This action cannot be undone.',
           ),
@@ -1275,11 +1275,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         title: Text(localizations.billDetails),
         centerTitle: true,
         actions: [
-          // IconButton(
-          //   icon: const Icon(Icons.delete),
-          //   onPressed: _deleteBill,
-          //   tooltip: 'Delete Bill',
-          // ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: _deleteBill,
+            tooltip: 'Delete Bill',
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: _editBill,
