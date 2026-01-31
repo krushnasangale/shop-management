@@ -222,7 +222,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                 supplierName: product['supplierName'] ?? 'Unknown',
                 unit: product['unit'] ?? '',
                 minLimit: 0,
-                quantity: (product['quantity'] ?? 0) as int,
+                quantity: ((product['quantity'] ?? 0) as num).toInt(),
                 buyingPrice: (product['boughtPrice'] ?? 0).toDouble(),
                 sellingPrice: (product['price'] ?? 0).toDouble(),
                 batchId: batchId,
@@ -240,7 +240,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
               sellingPrice: matchingProduct.sellingPrice,
               maxQuantity: matchingProduct.quantity,
               billQuantity: (product['quantity'] ?? 0).toDouble(),
-              billPrice: (product['price'] ?? 0) as int,
+              billPrice: ((product['price'] ?? 0) as num).toInt(),
               batchId: matchingProduct.batchId,
               profitMargin: matchingProduct.profitMargin,
             );
@@ -2429,8 +2429,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             final product =
                                 productData['product'] as BoughtProduct;
                             final totalQuantity =
-                                productData['totalQuantity'] as int;
-                            final batchCount = productData['batchCount'] as int;
+                                (productData['totalQuantity'] as num).toInt();
+                            final batchCount =
+                                (productData['batchCount'] as num).toInt();
                             final isAlreadyAdded = _isProductAlreadyAdded(
                               product.productName,
                             );

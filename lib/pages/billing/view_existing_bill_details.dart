@@ -107,7 +107,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   late double previousPaidAmount;
   late String previousDueDescription;
   late TextEditingController _nextPaymentDateController;
-  late final AppLocalizations localizations;
+  late AppLocalizations localizations;
   bool _vehicleNumberEnabled = false; // App setting for vehicle number field
   bool _deliveryChargesEnabled =
       false; // App setting for delivery charges field
@@ -174,7 +174,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    localizations = AppLocalizations.of(context)!;
+    final newLocalizations = AppLocalizations.of(context);
+    if (newLocalizations != null) {
+      localizations = newLocalizations;
+    }
 
     // Set payment status (moved here because context is available)
     if (isTotalAmountPaid) {
