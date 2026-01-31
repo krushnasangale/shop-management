@@ -8,6 +8,9 @@ class DashboardService {
 
   StreamSubscription<List<Map<String, dynamic>>>? _billsSubscription;
 
+  /// Get access to bills service for checking cached data
+  BillsDataService get billsService => _billsService;
+
   /// Initialize dashboard data loading
   void initialize(String userId) {
     _billsService.initialize(userId);
@@ -25,6 +28,30 @@ class DashboardService {
 
     // Cancel any existing subscription before creating a new one
     _billsSubscription?.cancel();
+
+    // Immediately calculate and emit data using cached bills
+    final cachedBills = _billsService.getCachedBills();
+    if (cachedBills.isNotEmpty) {
+      _calculateAllDashboardData(
+            cachedBills,
+            userId,
+            filterType: filterType,
+            selectedDate: selectedDate,
+            rangeStartDate: rangeStartDate,
+            rangeEndDate: rangeEndDate,
+          )
+          .then((dashboardData) {
+            if (!controller.isClosed) {
+              controller.add(dashboardData);
+            }
+          })
+          .catchError((error) {
+            print('Error calculating initial dashboard data: $error');
+            if (!controller.isClosed) {
+              controller.addError(error);
+            }
+          });
+    }
 
     _billsSubscription = _billsService.billsStream.listen(
       (bills) async {

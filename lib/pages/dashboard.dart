@@ -105,8 +105,13 @@ class _DashboardState extends State<Dashboard> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
-    // Set loading state
-    setState(() => _isLoading = true);
+    // Only set loading state if no cached data is available
+    final hasCachedData = _dashboardService.billsService
+        .getCachedBills()
+        .isNotEmpty;
+    if (!hasCachedData) {
+      setState(() => _isLoading = true);
+    }
 
     // Cancel existing subscription
     _dashboardSubscription?.cancel();
@@ -1521,20 +1526,33 @@ class _DashboardState extends State<Dashboard> {
                                     child: IconButton(
                                       icon: Icon(
                                         Icons.calendar_today,
-                                        color: Colors.blue[600],
+                                        color: filterType == 'all'
+                                            ? Colors.grey[400]
+                                            : Colors.blue[600],
                                         size: 22,
                                       ),
-                                      onPressed: () =>
-                                          _showMonthPicker(context, loc),
+                                      onPressed: filterType == 'all'
+                                          ? null
+                                          : () =>
+                                                _showMonthPicker(context, loc),
                                       style: IconButton.styleFrom(
                                         backgroundColor: isDark
-                                            ? Colors.grey[750]
-                                            : Colors.white,
+                                            ? (filterType == 'all'
+                                                  ? Colors.grey[800]
+                                                  : Colors.grey[750])
+                                            : (filterType == 'all'
+                                                  ? Colors.grey[100]
+                                                  : Colors.white),
                                         side: isDark
-                                            ? BorderSide(
-                                                color: Colors.grey[600]!,
-                                                width: 1,
-                                              )
+                                            ? (filterType == 'all'
+                                                  ? BorderSide(
+                                                      color: Colors.grey[700]!,
+                                                      width: 1,
+                                                    )
+                                                  : BorderSide(
+                                                      color: Colors.grey[600]!,
+                                                      width: 1,
+                                                    ))
                                             : null,
                                       ),
                                     ),
