@@ -82,47 +82,45 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final cardColor = Theme.of(context).cardTheme.color;
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-          title: Text(localizations!.reviewBill),
-          centerTitle: true,
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.of(context).pop();
+          },
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Customer Info Card
-              _buildCustomerInfoCard(context, cardColor),
-              const SizedBox(height: 12),
+        title: Text(localizations!.reviewBill),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Customer Info Card
+            _buildCustomerInfoCard(context, cardColor),
+            const SizedBox(height: 12),
 
-              // Products Card
-              _buildProductsCard(context, cardColor),
-              const SizedBox(height: 12),
+            // Products Card
+            _buildProductsCard(context, cardColor),
+            const SizedBox(height: 12),
 
-              // Previous Due Card (only show if there's a previous due amount)
-              if (widget.previousDueAmount > 0) ...[
-                _buildPreviousDueCard(context, cardColor),
-                const SizedBox(height: 12),
-              ],
-
-              // Financial Summary Card
-              _buildSummaryCard(context, cardColor),
-
-              const SizedBox(height: 12),
-
-              // Bottom Buttons
-              _buildBottomButtons(context, isDarkMode),
+            // Previous Due Card (only show if there's a previous due amount)
+            if (widget.previousDueAmount > 0) ...[
+              _buildPreviousDueCard(context, cardColor),
               const SizedBox(height: 12),
             ],
-          ),
+
+            // Financial Summary Card
+            _buildSummaryCard(context, cardColor),
+
+            const SizedBox(height: 12),
+
+            // Bottom Buttons
+            _buildBottomButtons(context, isDarkMode),
+            const SizedBox(height: 12),
+          ],
         ),
       ),
     );
@@ -935,10 +933,20 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
 
       for (final productDoc in productsSnapshot.docs) {
         final productData = productDoc.data();
-        final batchId = productData['batchId'] as String?;
+        final productName = productData['productName'] as String?;
+        final supplierName = productData['supplierName'] as String?;
+        final buyingPrice =
+            (productData['buyingPrice'] as num?)?.toDouble() ?? 0.0;
+        final sellingPrice =
+            (productData['sellingPrice'] as num?)?.toDouble() ?? 0.0;
+        final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
 
         // Match by batchId to ensure we update the correct batch
-        if (batchId == product.batchId) {
+        if (productName == product.productName &&
+            supplierName == product.supplierName &&
+            buyingPrice == product.boughtPrice &&
+            sellingPrice == product.price &&
+            quantity >= product.initialQuantity) {
           final currentQty = (productData['quantity'] as num?)?.toInt() ?? 0;
           final newQty = (currentQty - product.quantity.toInt()).toInt();
 

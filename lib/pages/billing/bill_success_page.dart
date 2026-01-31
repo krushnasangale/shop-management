@@ -20,6 +20,7 @@ class BillProductItem {
   final double total;
   final String batchId;
   final double profitMargin;
+  final int initialQuantity;
 
   BillProductItem({
     required this.productName,
@@ -31,6 +32,7 @@ class BillProductItem {
     required this.total,
     required this.batchId,
     required this.profitMargin,
+    required this.initialQuantity,
   });
 
   double get profitTotal => quantity * profitMargin;

@@ -1452,6 +1452,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 total: item.total,
                                 batchId: item.batchId,
                                 profitMargin: item.profitMargin,
+                                initialQuantity: item.maxQuantity,
                               );
                             }).toList();
 
@@ -1634,8 +1635,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
     List<BoughtProduct> batches,
   ) {
     final localizations = AppLocalizations.of(context)!;
-    // Filter batches to show only those with quantity > 0
-    final availableBatches = batches.where((b) => b.quantity > 0).toList();
+    // Batches are already filtered to show only those with remaining quantity
+    final availableBatches = batches;
 
     // If no batches available, show message
     if (availableBatches.isEmpty) {
@@ -2516,12 +2517,13 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               ),
                               child: InkWell(
                                 onTap: () {
-                                  // Get all batches for this product from original list
+                                  // Get all batches for this product from original list (excluding batches with 0 quantity)
                                   final productBatches = _availableProducts
                                       .where(
                                         (p) =>
                                             p.productName ==
-                                            product.productName,
+                                                product.productName &&
+                                            p.quantity > 0,
                                       )
                                       .toList();
 
@@ -2536,7 +2538,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                       final totalQuantityAlreadyAdded =
                                           existingBillItems.fold(
                                             0,
-                                            (sum, item) =>
+                                            (int sum, item) =>
                                                 sum + item.billQuantity.toInt(),
                                           );
                                       return b.quantity >
@@ -2554,7 +2556,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     _showBatchSelectionDialog(
                                       context,
                                       product.productName,
-                                      productBatches,
+                                      availableBatches, // Pass only available batches
                                     );
                                   } else {
                                     // No available batches
