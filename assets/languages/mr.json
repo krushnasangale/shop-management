@@ -503,7 +503,7 @@
     "description": "विवरण",
     "rate": "दर",
     "total_amount_label": "एकूण रक्कम",
-    "payment_instruction": "कृपया Rs. {amount} चा भुगतान {date} पर्यंत किंवा त्यापूर्वी व्यवस्थित करा.",
+    "payment_instruction": "कृपया {currency}{amount} चा भुगतान {date} पर्यंत किंवा त्यापूर्वी व्यवस्थित करा.",
     "terms_conditions": "अटी आणि शर्ती",
     "customer_signature": "ग्राहक स्वाक्षरी",
     "signature": "स्वाक्षरी",
@@ -681,5 +681,9 @@
     "previous_due": "मागील थकबाकी",
     "customer_information": "ग्राहक माहिती",
     "payment_details": "देयक तपशील",
-    "view_bill_details": "बिल तपशील पहा"
+    "view_bill_details": "बिल तपशील पहा",
+    "due_against": "च्या विरोधात थकबाकी",
+    "terms_and_conditions": "नियम आणि अटी",
+    "bill_from_shop": "दुकानातील बिल",
+    "currency_symbol": "रु. "
 }

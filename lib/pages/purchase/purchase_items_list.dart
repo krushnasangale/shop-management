@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
-import 'package:flashbill/pages/purchase/customer_bills_page.dart';
+import 'package:flashbill/pages/purchase/purchase_supplier_wise_list.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';

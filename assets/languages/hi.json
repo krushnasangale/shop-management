@@ -681,5 +681,9 @@
     "previous_due": "पिछली बकाया",
     "customer_information": "ग्राहक जानकारी",
     "payment_details": "भुगतान विवरण",
-    "view_bill_details": "बिल विवरण देखें"
+    "view_bill_details": "बिल विवरण देखें",
+    "due_against": "के खिलाफ बकाया",
+    "terms_and_conditions": "नियम और शर्तें",
+    "bill_from_shop": "दुकान से बिल",
+    "currency_symbol": "₹ "
 }

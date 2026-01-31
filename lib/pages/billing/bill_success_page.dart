@@ -118,7 +118,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text(localizations.translate('bill_created')),
+        title: Text(localizations.billCreated),
         centerTitle: true,
       ),
       body: SafeArea(
@@ -148,13 +148,13 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
                 // Success Message
                 Text(
-                  localizations.translate('bill_created_successfully'),
+                  localizations.billCreatedSuccessfully,
                   textAlign: TextAlign.center,
                   style: context.headingLarge,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  localizations.translate('bill_saved_to_system'),
+                  localizations.billSavedToSystem,
                   textAlign: TextAlign.center,
                   style: context.subtitleMedium,
                 ),
@@ -179,22 +179,22 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          localizations.translate('bill_status'),
+                          localizations.billStatus,
                           style: context.titleLarge,
                         ),
                         const SizedBox(height: 16),
                         _buildStatusRow(
-                          localizations.translate('status'),
-                          localizations.translate('completed'),
+                          localizations.status,
+                          localizations.completed,
                           Colors.green,
                           context,
                         ),
                         const SizedBox(height: 12),
                         _buildStatusRow(
-                          localizations.translate('payment'),
+                          localizations.payment,
                           amountRemaining > 0
-                              ? localizations.translate('partial')
-                              : localizations.translate('full'),
+                              ? localizations.partial
+                              : localizations.full,
                           Colors.blue,
                           context,
                         ),
@@ -223,9 +223,9 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                               context,
                             ).popUntil((route) => route.isFirst);
                           },
-                          child: const Text(
-                            'Go to Dashboard',
-                            style: TextStyle(
+                          child: Text(
+                            localizations.goToDashboard,
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                               color: Colors.white,
@@ -253,9 +253,9 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                             _shareBill(context, localizations);
                           },
                           icon: const Icon(Icons.share, color: Colors.blue),
-                          label: const Text(
-                            'Share Bill',
-                            style: TextStyle(
+                          label: Text(
+                            localizations.shareBill,
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                               color: Colors.blue,
@@ -297,7 +297,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      localizations.translate('generating_pdf'),
+                      localizations.generatingPdf,
                       style: context.bodyLargeText,
                     ),
                   ],
@@ -317,16 +317,14 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         // Open share dialog
         await Share.shareXFiles([
           XFile(pdfFile.path),
-        ], text: 'Bill from NKT Shop');
+        ], text: localizations.billFromShop);
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '${localizations.translate('error_generating_bill')}: $e',
-            ),
+            content: Text('${localizations.errorGeneratingBill}: $e'),
             backgroundColor: Colors.red,
           ),
         );

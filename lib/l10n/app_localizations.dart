@@ -204,6 +204,25 @@ class AppLocalizations {
   String get customerInformation => translate('customer_information');
   String get paymentDetails => translate('payment_details');
   String get viewBillDetails => translate('view_bill_details');
+  String get dueAgainst => translate('due_against');
+  String get termsAndConditions => translate('terms_and_conditions');
+  String get billFromShop => translate('bill_from_shop');
+  String get currencySymbol => translate('currency_symbol');
+
+  // Bill Success Page
+  String get billCreated => translate('bill_created');
+  String get billCreatedSuccessfully => translate('bill_created_successfully');
+  String get billSavedToSystem => translate('bill_saved_to_system');
+  String get billStatus => translate('bill_status');
+  String get status => translate('status');
+  String get completed => translate('completed');
+  String get payment => translate('payment');
+  String get partial => translate('partial');
+  String get full => translate('full');
+  String get goToDashboard => translate('go_to_dashboard');
+  String get shareBill => translate('share_bill');
+  String get generatingPdf => translate('generating_pdf');
+  String get errorGeneratingBill => translate('error_generating_bill');
 
   // Full month names
   String get monthJanuary => translate('month_january');
@@ -564,8 +583,6 @@ class AppLocalizations {
   String get customerName => translate('customer_name');
 
   // View Existing Bill Details Page
-  String get generatingPdf => translate('generating_pdf');
-  String get errorGeneratingBill => translate('error_generating_bill');
   String get paymentAmountMustBeGreaterThan0 =>
       translate('payment_amount_must_be_greater_than_0');
   String get totalPaymentCannotExceed =>

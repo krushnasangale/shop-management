@@ -501,7 +501,7 @@
     "description": "Description",
     "rate": "Rate",
     "total_amount_label": "Total Amount",
-    "payment_instruction": "Please arrange payment of Rs. {amount} on or before {date} to complete this transaction.",
+    "payment_instruction": "Please arrange payment of {currency}{amount} on or before {date} to complete this transaction.",
     "terms_conditions": "Terms & Conditions",
     "customer_signature": "Customer Signature",
     "signature": "Signature",
@@ -680,5 +680,9 @@
     "previous_due": "Previous Due",
     "customer_information": "Customer Information",
     "payment_details": "Payment Details",
-    "view_bill_details": "View Bill Details"
+    "view_bill_details": "View Bill Details",
+    "due_against": "Due against",
+    "terms_and_conditions": "Terms & Conditions",
+    "bill_from_shop": "Bill from Shop",
+    "currency_symbol": "Rs. "
 }
