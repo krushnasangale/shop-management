@@ -6,6 +6,7 @@ import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/pending_payments_page.dart';
 import 'package:flashbill/pages/previous_due_payments_page.dart';
+import 'package:flashbill/pages/order_now_page.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flashbill/services/dashboard_service.dart';
@@ -1142,76 +1143,149 @@ class _DashboardState extends State<Dashboard> {
                         style: TextStyle(color: Colors.grey[500]),
                       ),
                     )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount:
-                          _dashboardData
-                              ?.productsData
-                              .orderNowProducts
-                              .length ??
-                          0,
-                      separatorBuilder: (_, __) => Divider(
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                        height: 12,
-                      ),
-                      itemBuilder: (context, index) {
-                        final product = _dashboardData!
-                            .productsData
-                            .orderNowProducts[index];
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                  : Column(
+                      children: [
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount:
+                              (_dashboardData!
+                                      .productsData
+                                      .orderNowProducts
+                                      .length >
+                                  5
+                              ? 5
+                              : _dashboardData!
+                                    .productsData
+                                    .orderNowProducts
+                                    .length),
+                          separatorBuilder: (_, __) => Divider(
+                            color: isDark ? Colors.grey[700] : Colors.grey[300],
+                            height: 12,
+                          ),
+                          itemBuilder: (context, index) {
+                            final product = _dashboardData!
+                                .productsData
+                                .orderNowProducts[index];
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        product['productName'],
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark
+                                              ? Colors.grey[100]
+                                              : Colors.grey[800],
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${product['supplierName']} • ${product['unit']}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark
+                                              ? Colors.grey[400]
+                                              : Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    loc?.stock0 ?? 'Stock: 0',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.red[600],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                        if (_dashboardData!
+                                .productsData
+                                .orderNowProducts
+                                .length >
+                            5) ...[
+                          const SizedBox(height: 12),
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OrderNowPage(
+                                    orderNowProducts: _dashboardData!
+                                        .productsData
+                                        .orderNowProducts,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.red.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    product['productName'],
+                                    loc?.viewAll ?? 'View All',
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? Colors.grey[100]
-                                          : Colors.grey[800],
+                                      color: Colors.red[600],
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    '${product['supplierName']} • ${product['unit']}',
+                                    '(${_dashboardData!.productsData.orderNowProducts.length - 5} more)',
                                     style: TextStyle(
-                                      fontSize: 11,
-                                      color: isDark
-                                          ? Colors.grey[400]
-                                          : Colors.grey[600],
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.red[400],
                                     ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 14,
+                                    color: Colors.red[600],
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                loc?.stock0 ?? 'Stock: 0',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.red[600],
-                                ),
-                              ),
-                            ),
-                          ],
-                        );
-                      },
+                          ),
+                        ],
+                      ],
                     ),
             ),
           ],

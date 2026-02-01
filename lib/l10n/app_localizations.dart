@@ -183,6 +183,7 @@ class AppLocalizations {
   String get noProductsToOrder => translate('no_products_to_order');
   String get stock0 => translate('stock_0');
   String get viewAllPendingPayments => translate('view_all_pending_payments');
+  String get viewAll => translate('view_all');
   String get bill => translate('bill');
   String get remaining => translate('remaining');
   String get select => translate('select');

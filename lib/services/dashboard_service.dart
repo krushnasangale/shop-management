@@ -465,20 +465,37 @@ class DashboardService {
       double totalAmount = 0.0;
       final availableProductNames = <String>{};
 
+      // Group batches by product name to track total quantity per product
+      final Map<String, Map<String, dynamic>> productSummary = {};
+
       for (final productDoc in productsSnapshot.docs) {
         final productData = productDoc.data();
-        final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
+        // Parse quantity - handle both number and string types
+        int quantity = 0;
+        final qtyValue = productData['quantity'];
+        if (qtyValue is num) {
+          quantity = qtyValue.toInt();
+        } else if (qtyValue is String) {
+          quantity = int.tryParse(qtyValue) ?? 0;
+        }
+
         final buyingPrice =
             (productData['buyingPrice'] as num?)?.toDouble() ?? 0.0;
         final productName = productData['productName'] as String? ?? '';
+        final supplierName =
+            productData['supplierName'] as String? ?? 'Unknown Supplier';
+        final unit = productData['unit'] as String? ?? 'N/A';
 
-        if (quantity == 0) {
-          orderNowList.add({
-            'productName': productData['productName'] ?? 'Unknown',
-            'supplierName': productData['supplierName'] ?? 'Unknown Supplier',
-            'unit': productData['unit'] ?? 'N/A',
-            'quantity': 0,
-          });
+        // Track total quantity across all batches for this product
+        if (productSummary.containsKey(productName)) {
+          productSummary[productName]!['totalQuantity'] += quantity;
+        } else {
+          productSummary[productName] = {
+            'productName': productName.isEmpty ? 'Unknown' : productName,
+            'supplierName': supplierName,
+            'unit': unit,
+            'totalQuantity': quantity,
+          };
         }
 
         if (quantity > 0) {
@@ -489,6 +506,25 @@ class DashboardService {
           }
         }
       }
+
+      // Add products to orderNow list only if total quantity across all batches is 0
+      for (final productData in productSummary.values) {
+        if (productData['totalQuantity'] == 0) {
+          orderNowList.add({
+            'productName': productData['productName'],
+            'supplierName': productData['supplierName'],
+            'unit': productData['unit'],
+            'quantity': 0,
+          });
+        }
+      }
+
+      // Sort the orderNowList alphabetically by product name (A to Z)
+      orderNowList.sort((a, b) {
+        final nameA = (a['productName'] as String).toLowerCase();
+        final nameB = (b['productName'] as String).toLowerCase();
+        return nameA.compareTo(nameB);
+      });
 
       return ProductsData(
         orderNowProducts: orderNowList,
