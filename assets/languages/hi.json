@@ -686,5 +686,12 @@
     "due_against": "के खिलाफ बकाया",
     "terms_and_conditions": "नियम और शर्तें",
     "bill_from_shop": "दुकान से बिल",
-    "currency_symbol": "₹ "
+    "currency_symbol": "₹ ",
+    "other_due": "अन्य बकाया",
+    "paid_label": "भुगतान किया",
+    "all_dates": "सभी तिथियां",
+    "from_date": "से",
+    "up_to_date": "तक",
+    "bills_report_csv": "बिल रिपोर्ट (CSV)",
+    "bills_report": "बिल रिपोर्ट"
 }

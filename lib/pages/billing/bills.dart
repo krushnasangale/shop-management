@@ -385,7 +385,7 @@ class _BillsState extends State<Bills> {
       case PaymentFilter.unpaid:
         return localizations.translate('unpaid');
       case PaymentFilter.previousDue:
-        return 'Previous Due';
+        return localizations.translate('previous_due');
     }
   }
 
@@ -463,7 +463,7 @@ class _BillsState extends State<Bills> {
                       label: Text(
                         _reportStartDate == null
                             ? localizations.translate('start_date_optional')
-                            : 'From: ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}',
+                            : '${localizations.translate('from_date')}: ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}',
                       ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 40),
@@ -490,7 +490,7 @@ class _BillsState extends State<Bills> {
                       label: Text(
                         _reportEndDate == null
                             ? localizations.translate('end_date_optional')
-                            : 'To: ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}',
+                            : '${localizations.translate('to')}: ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}',
                       ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 40),
@@ -540,7 +540,7 @@ class _BillsState extends State<Bills> {
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          _generateAndShareCSV();
+                          _generateAndShareCSV(localizations);
                         },
                       ),
                     ),
@@ -593,15 +593,15 @@ class _BillsState extends State<Bills> {
     }).toList();
   }
 
-  String _getDateRangeText() {
+  String _getDateRangeText(AppLocalizations localizations) {
     if (_reportStartDate == null && _reportEndDate == null) {
-      return 'All Dates';
+      return localizations.translate('all_dates');
     } else if (_reportStartDate != null && _reportEndDate != null) {
       return '${DateFormat('dd MMM yyyy').format(_reportStartDate!)} - ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
     } else if (_reportStartDate != null) {
-      return 'From ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
+      return '${localizations.translate('from_date')} ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
     } else {
-      return 'Up to ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
+      return '${localizations.translate('up_to_date')} ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
     }
   }
 
@@ -639,7 +639,7 @@ class _BillsState extends State<Bills> {
         },
       );
 
-      final pdfFile = await _generateBillsPDF();
+      final pdfFile = await _generateBillsPDF(localizations);
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -663,20 +663,24 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  void _generateAndShareCSV() async {
+  void _generateAndShareCSV(AppLocalizations localizations) async {
     try {
-      final csvFile = await _generateBillsCSV();
+      final csvFile = await _generateBillsCSV(localizations);
 
       if (mounted) {
-        await Share.shareXFiles([
-          XFile(csvFile.path),
-        ], text: 'Bills Report (CSV) from $_shopName');
+        await Share.shareXFiles(
+          [XFile(csvFile.path)],
+          text:
+              '${localizations.translate('bills_report_csv')} ${localizations.translate('from')} $_shopName',
+        );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating CSV: $e'),
+            content: Text(
+              '${localizations.translate('error_generating_csv')}: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -684,7 +688,7 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  Future<File> _generateBillsPDF() async {
+  Future<File> _generateBillsPDF(AppLocalizations localizations) async {
     final pdf = pw.Document();
     final dir = await getTemporaryDirectory();
     final now = DateTime.now();
@@ -703,7 +707,7 @@ class _BillsState extends State<Bills> {
             children: [
               // Header
               pw.Text(
-                '$_shopName - Bills Report',
+                '$_shopName - ${localizations.translate('bills_report')}',
                 style: pw.TextStyle(
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,
@@ -711,11 +715,11 @@ class _BillsState extends State<Bills> {
               ),
               pw.SizedBox(height: 10),
               pw.Text(
-                'Generated on: ${now.toString().split('.')[0]}',
+                '${localizations.translate('generated_on')}: ${now.toString().split('.')[0]}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                'Filter: ${_getPDFStatusText(_selectedFilter)} | Date Range: ${_getDateRangeText()}',
+                '${localizations.translate('filter_applied')}: ${_getPDFStatusText(_selectedFilter)} | ${localizations.translate('date_range')}: ${_getDateRangeText(localizations)}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.SizedBox(height: 20),
@@ -737,12 +741,12 @@ class _BillsState extends State<Bills> {
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
                     children:
                         [
-                              'S.No.',
-                              'Customer',
-                              'Mobile',
-                              'Date',
-                              'Amount',
-                              'Status',
+                              localizations.translate('s_no'),
+                              localizations.translate('customer_name'),
+                              localizations.translate('mobile_number'),
+                              localizations.translate('bill_date'),
+                              localizations.translate('total_amount'),
+                              localizations.translate('status'),
                             ]
                             .map(
                               (header) => pw.Padding(
@@ -799,7 +803,7 @@ class _BillsState extends State<Bills> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            'Rs.${bill.totalAmount}',
+                            '${localizations.translate('currency_symbol')}${bill.totalAmount}',
                             style: const pw.TextStyle(fontSize: 8),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -819,7 +823,7 @@ class _BillsState extends State<Bills> {
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                'Total Bills: ${reportBills.length}',
+                '${localizations.translate('total_bills')}: ${reportBills.length}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -835,7 +839,7 @@ class _BillsState extends State<Bills> {
     return file;
   }
 
-  Future<File> _generateBillsCSV() async {
+  Future<File> _generateBillsCSV(AppLocalizations localizations) async {
     final dir = await getTemporaryDirectory();
     final now = DateTime.now();
     final dateTimeString =
@@ -846,7 +850,7 @@ class _BillsState extends State<Bills> {
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      'S.No.,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getPDFStatusText(_selectedFilter)},Date Range: ${_getDateRangeText()}',
+      '${localizations.translate('s_no')},${localizations.translate('customer_name')},${localizations.translate('mobile_number')},${localizations.translate('bill_date')},${localizations.translate('total_amount')},${localizations.translate('amount_paid')},${localizations.translate('amount_remaining')},${localizations.translate('status')},${localizations.translate('filter_applied')}: ${_getPDFStatusText(_selectedFilter)},${localizations.translate('date_range')}: ${_getDateRangeText(localizations)}',
     );
 
     // Add bill rows
@@ -1092,7 +1096,7 @@ class _BillsState extends State<Bills> {
         break;
       case PaymentFilter.previousDue:
         color = Colors.blue;
-        text = 'Previous Due';
+        text = localizations.translate('previous_due');
         break;
       default:
         return const SizedBox.shrink(); // Hide 'All' filter on card
@@ -1281,11 +1285,6 @@ class _BillsState extends State<Bills> {
                         bill.previousPaidAmount,
                       ),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: bill.status == PaymentFilter.paid
-                            ? Colors.green.withOpacity(0.2)
-                            : Colors.orange.withOpacity(0.2),
-                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1296,7 +1295,7 @@ class _BillsState extends State<Bills> {
                             Row(
                               children: [
                                 Text(
-                                  'Other Due: ',
+                                  '${localizations.translate('other_due')}: ',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: isDark
@@ -1318,7 +1317,7 @@ class _BillsState extends State<Bills> {
                             Row(
                               children: [
                                 Text(
-                                  'Paid: ',
+                                  '${localizations.translate('paid_label')}: ',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: isDark

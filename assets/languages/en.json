@@ -685,5 +685,12 @@
     "due_against": "Due against",
     "terms_and_conditions": "Terms & Conditions",
     "bill_from_shop": "Bill from Shop",
-    "currency_symbol": "Rs. "
+    "currency_symbol": "Rs. ",
+    "other_due": "Other Due",
+    "paid_label": "Paid",
+    "all_dates": "All Dates",
+    "from_date": "From",
+    "up_to_date": "Up to",
+    "bills_report_csv": "Bills Report (CSV)",
+    "bills_report": "Bills Report"
 }

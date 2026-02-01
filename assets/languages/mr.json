@@ -686,5 +686,12 @@
     "due_against": "च्या विरोधात थकबाकी",
     "terms_and_conditions": "नियम आणि अटी",
     "bill_from_shop": "दुकानातील बिल",
-    "currency_symbol": "रु. "
+    "currency_symbol": "रु. ",
+    "other_due": "इतर थकबाकी",
+    "paid_label": "देय केले",
+    "all_dates": "सर्व तारखा",
+    "from_date": "पासून",
+    "up_to_date": "पर्यंत",
+    "bills_report_csv": "बिल अहवाल (CSV)",
+    "bills_report": "बिल अहवाल"
 }
