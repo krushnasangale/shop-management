@@ -792,12 +792,12 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           ],
                                         ),
                                         Text(
-                                          '₹${billItem.billPrice.toStringAsFixed(2)}',
+                                          '${localizations.translate('currency_symbol')}${billItem.billPrice.toStringAsFixed(2)}',
                                           style: const TextStyle(fontSize: 14),
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          '${localizations.translate('total_colon')} ₹${billItem.total.toStringAsFixed(2)}',
+                                          '${localizations.translate('total_colon')} ${localizations.translate('currency_symbol')}${billItem.total.toStringAsFixed(2)}',
                                           style: const TextStyle(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
@@ -847,7 +847,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       ),
                     ),
                     Text(
-                      '₹${_getTotalAmount().toStringAsFixed(2)}',
+                      '${localizations.translate('currency_symbol')}${_getTotalAmount().toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -1082,7 +1082,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               borderRadius: BorderRadius.circular(12.0),
                               borderSide: BorderSide.none,
                             ),
-                            prefix: const Text('₹ '),
+                            prefix: Text(
+                              localizations.translate('currency_symbol'),
+                            ),
                           ),
                         ),
                       ),
@@ -1707,7 +1709,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             ),
                           const SizedBox(height: 4),
                           Text(
-                            '${dialogLocalizations.translate('buy')}: ₹${batch.buyingPrice.toStringAsFixed(2)} | ${dialogLocalizations.translate('sell')}: ₹${batch.sellingPrice.toStringAsFixed(2)}',
+                            '${dialogLocalizations.translate('buy')}: ${dialogLocalizations.translate('currency_symbol')}${batch.buyingPrice.toStringAsFixed(2)} | ${dialogLocalizations.translate('sell')}: ${dialogLocalizations.translate('currency_symbol')}${batch.sellingPrice.toStringAsFixed(2)}',
                             style: context.bodyLargeText?.copyWith(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
@@ -1722,7 +1724,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             Padding(
                               padding: const EdgeInsets.only(top: 4.0),
                               child: Text(
-                                '${dialogLocalizations.translate('profit_per_unit')}: ₹${batch.profitMargin.toStringAsFixed(2)}',
+                                '${dialogLocalizations.translate('profit_per_unit')}: ${dialogLocalizations.translate('currency_symbol')}${batch.profitMargin.toStringAsFixed(2)}',
                                 style: TextStyle(
                                   color: Colors.purple[400],
                                   fontSize: 11,
@@ -1836,7 +1838,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             ),
                           ),
                           Text(
-                            '₹ ${billItem.buyingPrice.toStringAsFixed(2)}',
+                            '${dialogLocalizations.translate('currency_symbol')} ${billItem.buyingPrice.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -1978,7 +1980,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             labelText: dialogLocalizations.translate(
                               'selling_price_label',
                             ),
-                            prefixText: '₹ ',
+                            prefixText: dialogLocalizations.translate(
+                              'currency_symbol',
+                            ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -2711,7 +2715,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            '${modalLocalizations.translate('buying_label')} ₹${product.buyingPrice.toStringAsFixed(2)}',
+                                            '${modalLocalizations.translate('buying_label')} ${modalLocalizations.translate('currency_symbol')}${product.buyingPrice.toStringAsFixed(2)}',
                                             style: TextStyle(
                                               color: isAlreadyAdded
                                                   ? Colors.grey
@@ -2720,7 +2724,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                             ),
                                           ),
                                           Text(
-                                            '${modalLocalizations.translate('selling_label')} ₹${product.sellingPrice.toStringAsFixed(2)}',
+                                            '${modalLocalizations.translate('selling_label')} ${modalLocalizations.translate('currency_symbol')}${product.sellingPrice.toStringAsFixed(2)}',
                                             style: TextStyle(
                                               color: isAlreadyAdded
                                                   ? Colors.grey

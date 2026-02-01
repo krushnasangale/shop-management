@@ -127,8 +127,8 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
         actions: [
           if (previousPaidAmount < previousDueAmount)
             TextButton(
-              child: const Text(
-                'Add Payment',
+              child: Text(
+                loc?.addPayment ?? 'Add Payment',
                 style: TextStyle(color: Colors.white),
               ),
               onPressed: () => _showAddPaymentDialog(context),
@@ -166,7 +166,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '₹${previousDueAmount.toStringAsFixed(2)}',
+                    '${loc?.currencySymbol ?? '₹'}${previousDueAmount.toStringAsFixed(2)}',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
@@ -176,7 +176,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                   if (previousPaidAmount > 0) ...[
                     const SizedBox(height: 6),
                     Text(
-                      'Paid: ₹${previousPaidAmount.toStringAsFixed(2)}',
+                      '${loc?.paid ?? 'Paid'}: ${loc?.currencySymbol ?? '₹'}${previousPaidAmount.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -187,7 +187,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                   if (previousPaidAmount < previousDueAmount) ...[
                     const SizedBox(height: 4),
                     Text(
-                      'Remaining: ₹${(previousDueAmount - previousPaidAmount).toStringAsFixed(2)}',
+                      '${loc?.pending ?? 'Remaining'}: ${loc?.currencySymbol ?? '₹'}${(previousDueAmount - previousPaidAmount).toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -264,7 +264,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                         child: _buildInfoRow(
                           Icons.history,
                           loc?.previousDue ?? 'Previous Due Amount',
-                          '₹${previousDueAmount.toStringAsFixed(2)}',
+                          '${loc?.currencySymbol ?? '₹'}${previousDueAmount.toStringAsFixed(2)}',
                           isDark,
                         ),
                       ),
@@ -273,7 +273,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                         child: _buildInfoRow(
                           Icons.payment,
                           loc?.paid ?? 'Amount Paid',
-                          '₹${previousPaidAmount.toStringAsFixed(2)}',
+                          '${loc?.currencySymbol ?? '₹'}${previousPaidAmount.toStringAsFixed(2)}',
                           isDark,
                         ),
                       ),
@@ -287,7 +287,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                           child: _buildInfoRow(
                             Icons.pending,
                             loc?.pending ?? 'Amount Pending',
-                            '₹${(previousDueAmount - previousPaidAmount).toStringAsFixed(2)}',
+                            '${loc?.currencySymbol ?? '₹'}${(previousDueAmount - previousPaidAmount).toStringAsFixed(2)}',
                             isDark,
                           ),
                         ),
@@ -374,7 +374,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                             ),
                           ),
                           title: Text(
-                            '₹${paymentRecord['amount']}',
+                            '${loc?.currencySymbol ?? '₹'}${paymentRecord['amount']}',
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: isDark
@@ -564,7 +564,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                             ),
                           ),
                           Text(
-                            '₹${remainingAmount.toStringAsFixed(2)}',
+                            '${loc?.currencySymbol ?? '₹'}${remainingAmount.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -581,9 +581,9 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                       decoration: InputDecoration(
                         labelText: loc?.paymentAmount ?? 'Payment Amount',
                         hintText: '1000',
-                        prefixText: '₹',
+                        prefixText: loc?.currencySymbol ?? '₹',
                         helperText:
-                            '${loc?.max ?? 'Max'}: ₹${remainingAmount.toStringAsFixed(2)}',
+                            '${loc?.max ?? 'Max'}: ${loc?.currencySymbol ?? '₹'}${remainingAmount.toStringAsFixed(2)}',
                       ),
                       onChanged: (value) {
                         if (value.isNotEmpty) {
@@ -602,7 +602,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  'Amount cannot exceed ₹${remainingAmount.toStringAsFixed(2)}',
+                                  '${loc?.amountCannotExceed ?? 'Amount cannot exceed'} ${loc?.currencySymbol ?? '₹'}${remainingAmount.toStringAsFixed(2)}',
                                 ),
                                 duration: const Duration(seconds: 2),
                               ),
@@ -693,7 +693,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Payment amount cannot exceed pending amount of ₹${remainingAmount.toStringAsFixed(2)}',
+                            '${loc?.amountCannotExceed ?? 'Amount cannot exceed'} ${(loc?.pending ?? 'pending amount').toLowerCase()} ${loc?.currencySymbol ?? '₹'}${remainingAmount.toStringAsFixed(2)}',
                           ),
                           duration: const Duration(seconds: 3),
                         ),
@@ -715,6 +715,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
   }
 
   Future<void> _addPayment(double amount, String paymentMethod) async {
+    final loc = AppLocalizations.of(context);
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
@@ -752,7 +753,9 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Payment added successfully'),
+            content: Text(
+              loc?.paymentAddedSuccessfully ?? 'Payment added successfully',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -762,7 +765,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to add payment'),
+            content: Text(loc?.failedToAddPayment ?? 'Failed to add payment'),
             backgroundColor: Colors.red,
           ),
         );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'dart:async';
 
 class AppSettings extends StatefulWidget {
@@ -71,6 +72,7 @@ class _AppSettingsState extends State<AppSettings> {
   }
 
   Future<void> _saveSetting(String key, bool value) async {
+    final loc = AppLocalizations.of(context);
     try {
       await _profileService.updateAppSetting(key, value);
     } catch (e) {
@@ -79,28 +81,30 @@ class _AppSettingsState extends State<AppSettings> {
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Failed to save setting: $e')));
+        ).showSnackBar(SnackBar(content: Text('${loc?.error ?? 'Error'}: $e')));
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('App Settings')),
+        appBar: AppBar(title: Text(loc?.settings ?? 'App Settings')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('App Settings')),
+      appBar: AppBar(title: Text(loc?.settings ?? 'App Settings')),
       body: ListView(
         padding: const EdgeInsets.all(12.0),
         children: [
           _buildSettingCard(
-            title: 'Vehicle Number in Bills',
+            title: loc?.vehicleNumberInBills ?? 'Vehicle Number in Bills',
             subtitle:
+                loc?.enableVehicleNumberOption ??
                 'Enable option to enter vehicle number when creating bills',
             value: _vehicleNumberEnabled,
             onChanged: (value) {
@@ -111,8 +115,10 @@ class _AppSettingsState extends State<AppSettings> {
           ),
           const SizedBox(height: 4),
           _buildSettingCard(
-            title: 'Delivery Charges',
-            subtitle: 'Enable delivery charges field in bill creation',
+            title: loc?.deliveryCharges ?? 'Delivery Charges',
+            subtitle:
+                loc?.enableDeliveryChargesField ??
+                'Enable delivery charges field in bill creation',
             value: _deliveryChargesEnabled,
             onChanged: (value) {
               setState(() => _deliveryChargesEnabled = value);
@@ -122,8 +128,10 @@ class _AppSettingsState extends State<AppSettings> {
           ),
           const SizedBox(height: 4),
           _buildSettingCard(
-            title: 'Previous Due Amount',
-            subtitle: 'Enable previous due amount field in bill creation',
+            title: loc?.previousDueAmount ?? 'Previous Due Amount',
+            subtitle:
+                loc?.enablePreviousDueField ??
+                'Enable previous due amount field in bill creation',
             value: _previousDueEnabled,
             onChanged: (value) {
               setState(() => _previousDueEnabled = value);
@@ -133,8 +141,10 @@ class _AppSettingsState extends State<AppSettings> {
           ),
           const SizedBox(height: 4),
           _buildSettingCard(
-            title: 'Expiry Date in Purchases',
-            subtitle: 'Enable expiry date field when adding purchase entries',
+            title: loc?.expiryDateInPurchases ?? 'Expiry Date in Purchases',
+            subtitle:
+                loc?.enableExpiryDateField ??
+                'Enable expiry date field when adding purchase entries',
             value: _expiryDateEnabled,
             onChanged: (value) {
               setState(() => _expiryDateEnabled = value);

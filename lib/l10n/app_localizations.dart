@@ -644,6 +644,7 @@ class AppLocalizations {
   String get amountUpdatedSuccessfully =>
       translate('amount_updated_successfully');
   String get amountCannotBeNegative => translate('amount_cannot_be_negative');
+  String get pleaseEnterValidAmount => translate('please_enter_valid_amount');
   String get amountCannotExceedTotalAmount =>
       translate('amount_cannot_exceed_total_amount');
 
@@ -743,6 +744,22 @@ class AppLocalizations {
   String get searchByCustomerName => translate('search_by_customer_name');
   String get filterSort => translate('filter_sort');
   String get noBillsFound => translate('no_bills_found');
+
+  // Additional getters for previous due details page
+  String get amountCannotExceed => translate('amount_cannot_exceed');
+  String get paymentAddedSuccessfully =>
+      translate('payment_added_successfully');
+  String get failedToAddPayment => translate('failed_to_add_payment');
+
+  // App settings page getters
+  String get vehicleNumberInBills => translate('vehicle_number_in_bills');
+  String get enableVehicleNumberOption =>
+      translate('enable_vehicle_number_option');
+  String get enableDeliveryChargesField =>
+      translate('enable_delivery_charges_field');
+  String get enablePreviousDueField => translate('enable_previous_due_field');
+  String get expiryDateInPurchases => translate('expiry_date_in_purchases');
+  String get enableExpiryDateField => translate('enable_expiry_date_field');
 
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
