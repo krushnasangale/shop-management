@@ -96,6 +96,7 @@
     "privacy": "गोपनीयता",
     "change_password": "पासवर्ड बदला",
     "privacy_policy": "गोपनीयता धोरण",
+    "app_settings": "ऍप सेटिंग्ज",
     "general": "सामान्य",
     "log_out": "लॉग आउट",
     "logging_out": "लॉग आउट होत आहे...",
@@ -712,5 +713,8 @@
     "previous_due_amount": "मागील थकबाकी रक्कम",
     "enable_previous_due_field": "बिल निर्मितीमध्ये मागील थकबाकी रक्कम फील्ड सक्षम करा",
     "expiry_date_in_purchases": "खरेदीमध्ये समाप्ती तारीख",
-    "enable_expiry_date_field": "खरेदी नोंदी जोडताना समाप्ती तारीख फील्ड सक्षम करा"
+    "enable_expiry_date_field": "खरेदी नोंदी जोडताना समाप्ती तारीख फील्ड सक्षम करा",
+    "recent": "अलीकडील",
+    "by_supplier": "पुरवठादारानुसार",
+    "error_processing_pdf": "PDF प्रक्रिया करण्यात त्रुटी"
 }

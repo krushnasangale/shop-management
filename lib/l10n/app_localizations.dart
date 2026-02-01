@@ -761,6 +761,12 @@ class AppLocalizations {
   String get expiryDateInPurchases => translate('expiry_date_in_purchases');
   String get enableExpiryDateField => translate('enable_expiry_date_field');
 
+  // Purchase items list page getters
+  String get recent => translate('recent');
+  String get bySupplier => translate('by_supplier');
+  String get errorProcessingPDF => translate('error_processing_pdf');
+  String get appSettings => translate('app_settings');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {

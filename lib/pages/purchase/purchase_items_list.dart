@@ -724,7 +724,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                     ),
                     constraints: const BoxConstraints(
                       minHeight: 40.0,
-                      minWidth: 140.0,
+                      minWidth: 180.0,
                     ),
                     children: [
                       Row(
@@ -732,7 +732,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                         children: [
                           Icon(Icons.access_time, size: 20),
                           const SizedBox(width: 8),
-                          Text('Recent'),
+                          Text(localizations?.recent ?? 'Recent'),
                         ],
                       ),
                       Row(
@@ -740,7 +740,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                         children: [
                           Icon(Icons.business, size: 20),
                           const SizedBox(width: 8),
-                          Text('By Supplier'),
+                          Text(localizations?.bySupplier ?? 'By Supplier'),
                         ],
                       ),
                     ],
@@ -1052,7 +1052,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
   }
 
   Future<void> _scanFromPDF() async {
-    final localizations = AppLocalizations.of(context);
+    final loc = AppLocalizations.of(context);
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -1068,8 +1068,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  localizations?.couldNotAccessPDFFile ??
-                      'Could not access PDF file',
+                  loc?.couldNotAccessPDFFile ?? 'Could not access PDF file',
                 ),
                 backgroundColor: Colors.red,
               ),
@@ -1082,7 +1081,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${localizations?.errorSelectingPDF ?? 'Error selecting PDF'}: $e',
+              '${loc?.errorSelectingPDF ?? 'Error selecting PDF'}: $e',
             ),
             backgroundColor: Colors.red,
           ),
@@ -1192,13 +1191,16 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
         }
       }
     } catch (e) {
+      final loc = AppLocalizations.of(context);
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error processing PDF: $e'),
+            content: Text(
+              '${loc?.errorProcessingPDF ?? 'Error processing PDF'}: $e',
+            ),
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 5),
           ),

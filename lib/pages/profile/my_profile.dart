@@ -623,7 +623,7 @@ class _MyProfileState extends State<MyProfile> {
                   ),
                   _buildMenuItem(
                     Icons.settings,
-                    'App Settings',
+                    localizations?.appSettings ?? 'App Settings',
                     context,
                     onTap: () {
                       AppNavigator.push(context, const AppSettings());
