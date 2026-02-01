@@ -2082,7 +2082,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
               children: [
                 // Title and close button
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -2102,9 +2102,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                 ),
                 // Search field
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: SizedBox(
-                    height: 50,
+                    height: 45,
                     child: TextField(
                       controller: searchController,
                       onChanged: (query) {
@@ -2136,7 +2136,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 // Customers list
                 Expanded(
                   child: _customersLoading
@@ -2156,7 +2156,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             return Card(
                               margin: const EdgeInsets.symmetric(
                                 horizontal: 16.0,
-                                vertical: 6.0,
+                                vertical: 4.0,
                               ),
                               elevation: 0,
                               shape: RoundedRectangleBorder(
@@ -2186,7 +2186,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 },
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
-                                    vertical: 12.0,
+                                    vertical: 8.0,
                                     horizontal: 16.0,
                                   ),
                                   child: Column(
@@ -2203,7 +2203,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           fontSize: 16,
                                         ),
                                       ),
-                                      const SizedBox(height: 8),
+                                      const SizedBox(height: 4),
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
