@@ -40,16 +40,17 @@ class _LanguageSelectorState extends State<LanguageSelector>
 
   // Language emoji icons
   String _getLanguageEmoji(String code) {
-    switch (code) {
-      case 'en':
-        return '🇬🇧';
-      case 'hi':
-        return '🇮🇳';
-      case 'mr':
-        return '🇮🇳';
-      default:
-        return '🌍';
-    }
+    // switch (code) {
+    //   case 'en':
+    //     return '🇮🇳';
+    //   case 'hi':
+    //     return '🇮🇳';
+    //   case 'mr':
+    //     return '🇮🇳';
+    //   default:
+    //     return '🌍';
+    // }
+    return '🇮🇳';
   }
 
   @override
