@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 String getMonthName(int month) {
   switch (month) {
     case 1:
@@ -26,5 +28,15 @@ String getMonthName(int month) {
       return 'December';
     default:
       return '';
+  }
+}
+
+Color getOtherDueAmountColor(double dueAmount, double paidAmount) {
+  if (dueAmount == paidAmount) {
+    return const Color(0x1981C784); // Light Green 10% opacity
+  } else if (paidAmount > 0 && dueAmount > 0) {
+    return const Color(0x19FFB74D); // Light Orange 10% opacity
+  } else {
+    return const Color(0x19EF5350); // Light Red 10% opacity
   }
 }

@@ -567,9 +567,9 @@ class _DashboardState extends State<Dashboard> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              '₹${_formatCurrency(((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt() == 0 ? 1500 : ((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt(), loc: AppLocalizations.of(context))}',
+                              '₹${_formatCurrency(((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt(), loc: AppLocalizations.of(context))}',
                               style: TextStyle(
-                                fontSize: 12,
+                                fontSize: 16,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.purple[600],
                               ),

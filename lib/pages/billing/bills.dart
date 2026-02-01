@@ -1,3 +1,4 @@
+import 'package:flashbill/pages/helpers/utils.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
@@ -1275,9 +1276,10 @@ class _BillsState extends State<Bills> {
                       vertical: 2,
                     ),
                     decoration: BoxDecoration(
-                      color: bill.status == PaymentFilter.paid
-                          ? Colors.green.withOpacity(0.08)
-                          : Colors.orange.withOpacity(0.08),
+                      color: getOtherDueAmountColor(
+                        bill.previousDueAmount,
+                        bill.previousPaidAmount,
+                      ),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: bill.status == PaymentFilter.paid
@@ -1288,7 +1290,6 @@ class _BillsState extends State<Bills> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 4),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
