@@ -715,6 +715,35 @@ class AppLocalizations {
   String get descriptionRequiredWhenAmountEntered =>
       translate('description_required_when_amount_entered');
 
+  // Bills page specific getters
+  String get filterSortOptions => translate('filter_sort_options');
+  String get reset => translate('reset');
+  String get dateNewestFirst => translate('date_newest_first');
+  String get dateOldestFirst => translate('date_oldest_first');
+  String get amountHighestFirst => translate('amount_highest_first');
+  String get amountLowestFirst => translate('amount_lowest_first');
+  String get customerAz => translate('customer_az');
+  String get customerZa => translate('customer_za');
+  String get to => translate('to');
+  String get billsReportFrom => translate('bills_report_from');
+  String get billsReportCsv => translate('bills_report_csv');
+  String get otherDue => translate('other_due');
+  String get paidLabel => translate('paid_label');
+  String get selectDateRange => translate('select_date_range');
+  String get startDateOptional => translate('start_date_optional');
+  String get fromDate => translate('from_date');
+  String get endDateOptional => translate('end_date_optional');
+  String get clearDates => translate('clear_dates');
+  String get allDates => translate('all_dates');
+  String get upToDate => translate('up_to_date');
+  String get from => translate('from');
+  String get billsReport => translate('bills_report');
+  String get generatedOn => translate('generated_on');
+  String get recentBills => translate('recent_bills');
+  String get searchByCustomerName => translate('search_by_customer_name');
+  String get filterSort => translate('filter_sort');
+  String get noBillsFound => translate('no_bills_found');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {

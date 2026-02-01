@@ -45,7 +45,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
   bool _isGeneratingReport = false;
   double _generationProgress = 0.0;
 
-  late final AppLocalizations localizations;
+  AppLocalizations? localizations;
   final ProfileService _profileService = ProfileService();
 
   @override
@@ -60,7 +60,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    localizations = AppLocalizations.of(context)!;
+    localizations = AppLocalizations.of(context);
   }
 
   @override
@@ -83,12 +83,12 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
   // Get filter options with keys and localized labels
   List<Map<String, String>> get _filterOptions => [
-    {'key': 'all', 'label': localizations.all},
-    {'key': 'reorder_now', 'label': localizations.reorderNow},
-    {'key': 'order_soon', 'label': localizations.orderSoon},
-    {'key': 'well_stocked', 'label': localizations.wellStocked},
-    {'key': 'expiring_soon', 'label': localizations.expiringSoon},
-    {'key': 'expired', 'label': localizations.expired},
+    {'key': 'all', 'label': localizations!.all},
+    {'key': 'reorder_now', 'label': localizations!.reorderNow},
+    {'key': 'order_soon', 'label': localizations!.orderSoon},
+    {'key': 'well_stocked', 'label': localizations!.wellStocked},
+    {'key': 'expiring_soon', 'label': localizations!.expiringSoon},
+    {'key': 'expired', 'label': localizations!.expired},
   ];
 
   // Handle scroll events for infinite loading
@@ -312,13 +312,13 @@ class _AvailableProductsState extends State<AvailableProducts> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
-            localizations.generateReport,
+            localizations!.generateReport,
             style: context.bodyLargeText,
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(localizations.selectFormatToExport),
+              Text(localizations!.selectFormatToExport),
               const SizedBox(height: 16),
               // Share Products Catalogue - First option
               SizedBox(
@@ -341,7 +341,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                 width: double.maxFinite,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.picture_as_pdf),
-                  label: Text(localizations.exportAsPdf),
+                  label: Text(localizations!.exportAsPdf),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     foregroundColor: Colors.white,
@@ -357,7 +357,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                 width: double.maxFinite,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.table_chart),
-                  label: Text(localizations.exportAsCsvExcel),
+                  label: Text(localizations!.exportAsCsvExcel),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,
@@ -373,7 +373,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text(localizations.cancel),
+              child: Text(localizations!.cancel),
             ),
           ],
         );
@@ -706,7 +706,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(localizations.errorGeneratingPdf),
+          content: Text(localizations!.errorGeneratingPdf),
           backgroundColor: Colors.red,
         ),
       );
@@ -752,7 +752,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
       if (mounted) {
         await Share.shareXFiles(
           [XFile(csvFile.path)],
-          text: localizations.availableProductsReportCsv.replaceAll(
+          text: localizations!.availableProductsReportCsv.replaceAll(
             '{shopName}',
             _shopName,
           ),
@@ -763,7 +763,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              localizations.errorGeneratingCsv.replaceAll(
+              localizations!.errorGeneratingCsv.replaceAll(
                 '{error}',
                 e.toString(),
               ),
@@ -824,13 +824,13 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
                     children:
                         [
-                              localizations.sNo,
-                              localizations.productName,
-                              localizations.supplier,
-                              localizations.unit,
-                              localizations.qty,
-                              localizations.buying,
-                              localizations.selling,
+                              localizations!.sNo,
+                              localizations!.productName,
+                              localizations!.supplier,
+                              localizations!.unit,
+                              localizations!.qty,
+                              localizations!.buying,
+                              localizations!.selling,
                             ]
                             .map(
                               (header) => pw.Padding(
@@ -914,7 +914,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                '${localizations.totalProducts}: ${_filteredProducts.length}',
+                '${localizations!.totalProducts}: ${_filteredProducts.length}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -940,7 +940,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      '${localizations.sNo},${localizations.productName},${localizations.supplier},${localizations.unit},${localizations.quantity},${localizations.buyingPrice},${localizations.sellingPrice},${localizations.stockStatus},${localizations.minLimit},${localizations.filterApplied}: ${_getFilterLabel(_selectedFilter)}',
+      '${localizations!.sNo},${localizations!.productName},${localizations!.supplier},${localizations!.unit},${localizations!.quantity},${localizations!.buyingPrice},${localizations!.sellingPrice},${localizations!.stockStatus},${localizations!.minLimit},${localizations!.filterApplied}: ${_getFilterLabel(_selectedFilter)}',
     );
 
     // Add product rows - use filtered products
@@ -971,7 +971,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations.availableProducts),
+        title: Text(localizations!.availableProducts),
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
@@ -1003,7 +1003,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               onPressed: () async {
                 AppNavigator.push(context, const MyProfile());
               },
-              tooltip: localizations.myProfile,
+              tooltip: localizations!.myProfile,
             ),
           ),
           const SizedBox(width: 14),
@@ -1027,7 +1027,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                       controller: _searchController,
                       style: context.bodyLargeText,
                       decoration: InputDecoration(
-                        hintText: localizations.searchProductOrSupplier,
+                        hintText: localizations!.searchProductOrSupplier,
                         prefixIcon: const Icon(Icons.search),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
@@ -1079,7 +1079,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                 child: _filteredProducts.isEmpty
                     ? Center(
                         child: Text(
-                          localizations.noProductsFound,
+                          localizations!.noProductsFound,
                           style: context.subtitleMedium,
                         ),
                       )
@@ -1234,11 +1234,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
   // Helper function to determine stock status with descriptive text
   String _getStockStatus(int quantity, int minLimit) {
     if (quantity == 0) {
-      return localizations.reorderNow;
+      return localizations!.reorderNow;
     } else if (quantity <= minLimit) {
-      return localizations.orderSoon;
+      return localizations!.orderSoon;
     } else {
-      return localizations.wellStocked;
+      return localizations!.wellStocked;
     }
   }
 
@@ -1676,7 +1676,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                                       Expanded(
                                         child: Text(
                                           hasExpired
-                                              ? localizations.expiredText
+                                              ? localizations!.expiredText
                                                     .replaceAll(
                                                       '{quantity}',
                                                       expiringQuantity
@@ -1684,7 +1684,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                                                     )
                                                     .replaceAll('{unit}', unit)
                                               : daysUntilNearestExpiry == 0
-                                              ? localizations.expiringToday
+                                              ? localizations!.expiringToday
                                                     .replaceAll(
                                                       '{quantity}',
                                                       expiringQuantity
@@ -1692,14 +1692,14 @@ class _AvailableProductsState extends State<AvailableProducts> {
                                                     )
                                                     .replaceAll('{unit}', unit)
                                               : daysUntilNearestExpiry == 1
-                                              ? localizations.expiringTomorrow
+                                              ? localizations!.expiringTomorrow
                                                     .replaceAll(
                                                       '{quantity}',
                                                       expiringQuantity
                                                           .toString(),
                                                     )
                                                     .replaceAll('{unit}', unit)
-                                              : localizations.expiringInDays
+                                              : localizations!.expiringInDays
                                                     .replaceAll(
                                                       '{quantity}',
                                                       expiringQuantity

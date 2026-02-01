@@ -174,7 +174,7 @@ class _BillsState extends State<Bills> {
       billData['customerName'] ?? 'Unknown',
       billData['customerMobile'] ?? '',
       billData['customerVehicle'],
-      '₹${totalAmount}',
+      '${totalAmount}',
       status,
       billData['timestamp'] ?? '',
       totalAmount,
@@ -272,7 +272,7 @@ class _BillsState extends State<Bills> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          localizations.translate('filter_sort_options'),
+                          localizations.filterSortOptions,
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
@@ -289,7 +289,7 @@ class _BillsState extends State<Bills> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          localizations.translate('sort_by'),
+                          localizations.sortBy,
                           style: Theme.of(context).textTheme.titleMedium
                               ?.copyWith(fontWeight: FontWeight.w600),
                         ),
@@ -304,7 +304,7 @@ class _BillsState extends State<Bills> {
                               });
                             },
                             icon: const Icon(Icons.clear, size: 16),
-                            label: Text(localizations.translate('reset')),
+                            label: Text(localizations.reset),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
@@ -359,17 +359,17 @@ class _BillsState extends State<Bills> {
   String _getSortText(SortOption option, AppLocalizations localizations) {
     switch (option) {
       case SortOption.dateNewest:
-        return localizations.translate('date_newest_first');
+        return localizations.dateNewestFirst;
       case SortOption.dateOldest:
-        return localizations.translate('date_oldest_first');
+        return localizations.dateOldestFirst;
       case SortOption.amountHighest:
-        return localizations.translate('amount_highest_first');
+        return localizations.amountHighestFirst;
       case SortOption.amountLowest:
-        return localizations.translate('amount_lowest_first');
+        return localizations.amountLowestFirst;
       case SortOption.customerAZ:
-        return localizations.translate('customer_az');
+        return localizations.customerAz;
       case SortOption.customerZA:
-        return localizations.translate('customer_za');
+        return localizations.customerZa;
     }
   }
 
@@ -377,31 +377,34 @@ class _BillsState extends State<Bills> {
   String _getStatusText(PaymentFilter filter, AppLocalizations localizations) {
     switch (filter) {
       case PaymentFilter.all:
-        return localizations.translate('all');
+        return localizations.all;
       case PaymentFilter.paid:
-        return localizations.translate('paid');
+        return localizations.paid;
       case PaymentFilter.partial:
-        return localizations.translate('partial_payment');
+        return localizations.partiallyPaid;
       case PaymentFilter.unpaid:
-        return localizations.translate('unpaid');
+        return localizations.unpaid;
       case PaymentFilter.previousDue:
-        return localizations.translate('previous_due');
+        return localizations.previousDue;
     }
   }
 
-  // Static status text for PDF (always English)
-  String _getPDFStatusText(PaymentFilter filter) {
+  // Static status text for PDF
+  String _getPDFStatusText(
+    PaymentFilter filter,
+    AppLocalizations localizations,
+  ) {
     switch (filter) {
       case PaymentFilter.all:
-        return 'All';
+        return localizations.all;
       case PaymentFilter.paid:
-        return 'Paid';
+        return localizations.paid;
       case PaymentFilter.partial:
-        return 'Partial Payment';
+        return localizations.partiallyPaid;
       case PaymentFilter.unpaid:
-        return 'Unpaid';
+        return localizations.unpaid;
       case PaymentFilter.previousDue:
-        return 'Previous Due';
+        return localizations.previousDue;
     }
   }
 
@@ -429,7 +432,7 @@ class _BillsState extends State<Bills> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                localizations.translate('generate_report'),
+                localizations.generateReport,
                 style: context.bodyLargeText,
               ),
               content: SingleChildScrollView(
@@ -437,7 +440,7 @@ class _BillsState extends State<Bills> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(localizations.translate('select_date_range')),
+                    Text(localizations.selectDateRange),
                     const SizedBox(height: 12),
                     // Start Date
                     OutlinedButton.icon(
@@ -462,8 +465,8 @@ class _BillsState extends State<Bills> {
                       icon: const Icon(Icons.calendar_today),
                       label: Text(
                         _reportStartDate == null
-                            ? localizations.translate('start_date_optional')
-                            : '${localizations.translate('from_date')}: ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}',
+                            ? localizations.startDateOptional
+                            : '${localizations.fromDate}: ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}',
                       ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 40),
@@ -489,8 +492,8 @@ class _BillsState extends State<Bills> {
                       icon: const Icon(Icons.calendar_today),
                       label: Text(
                         _reportEndDate == null
-                            ? localizations.translate('end_date_optional')
-                            : '${localizations.translate('to')}: ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}',
+                            ? localizations.endDateOptional
+                            : '${localizations.to}: ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}',
                       ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 40),
@@ -507,17 +510,17 @@ class _BillsState extends State<Bills> {
                           this.setState(() {});
                         },
                         icon: const Icon(Icons.clear),
-                        label: Text(localizations.translate('clear_dates')),
+                        label: Text(localizations.clearDates),
                       ),
                     ],
                     const SizedBox(height: 20),
-                    Text(localizations.translate('select_format_to_export')),
+                    Text(localizations.selectFormatToExport),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.maxFinite,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.picture_as_pdf),
-                        label: Text(localizations.translate('export_as_pdf')),
+                        label: Text(localizations.exportAsPdf),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           foregroundColor: Colors.white,
@@ -533,7 +536,7 @@ class _BillsState extends State<Bills> {
                       width: double.maxFinite,
                       child: ElevatedButton.icon(
                         icon: const Icon(Icons.table_chart),
-                        label: Text(localizations.translate('export_as_csv')),
+                        label: Text(localizations.exportAsCsvExcel),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
@@ -550,7 +553,7 @@ class _BillsState extends State<Bills> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text(localizations.translate('cancel')),
+                  child: Text(localizations.cancel),
                 ),
               ],
             );
@@ -595,13 +598,13 @@ class _BillsState extends State<Bills> {
 
   String _getDateRangeText(AppLocalizations localizations) {
     if (_reportStartDate == null && _reportEndDate == null) {
-      return localizations.translate('all_dates');
+      return localizations.allDates;
     } else if (_reportStartDate != null && _reportEndDate != null) {
       return '${DateFormat('dd MMM yyyy').format(_reportStartDate!)} - ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
     } else if (_reportStartDate != null) {
-      return '${localizations.translate('from_date')} ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
+      return '${localizations.fromDate} ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
     } else {
-      return '${localizations.translate('up_to_date')} ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
+      return '${localizations.upToDate} ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
     }
   }
 
@@ -628,7 +631,7 @@ class _BillsState extends State<Bills> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      localizations.translate('generating_pdf'),
+                      localizations.generatingPdf,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -646,16 +649,14 @@ class _BillsState extends State<Bills> {
 
         await Share.shareXFiles([
           XFile(pdfFile.path),
-        ], text: '${localizations.translate('bills_report_from')} $_shopName');
+        ], text: '${localizations.billsReportFrom} $_shopName');
       }
     } catch (e) {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '${localizations.translate('error_generating_pdf')}: $e',
-            ),
+            content: Text('${localizations.errorGeneratingPdf}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -671,16 +672,14 @@ class _BillsState extends State<Bills> {
         await Share.shareXFiles(
           [XFile(csvFile.path)],
           text:
-              '${localizations.translate('bills_report_csv')} ${localizations.translate('from')} $_shopName',
+              '${localizations.billsReportCsv} ${localizations.from} $_shopName',
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              '${localizations.translate('error_generating_csv')}: $e',
-            ),
+            content: Text('${localizations.errorGeneratingCsv}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -707,7 +706,7 @@ class _BillsState extends State<Bills> {
             children: [
               // Header
               pw.Text(
-                '$_shopName - ${localizations.translate('bills_report')}',
+                '$_shopName - ${localizations.billsReport}',
                 style: pw.TextStyle(
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,
@@ -715,11 +714,11 @@ class _BillsState extends State<Bills> {
               ),
               pw.SizedBox(height: 10),
               pw.Text(
-                '${localizations.translate('generated_on')}: ${now.toString().split('.')[0]}',
+                '${localizations.generatedOn}: ${now.toString().split('.')[0]}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                '${localizations.translate('filter_applied')}: ${_getPDFStatusText(_selectedFilter)} | ${localizations.translate('date_range')}: ${_getDateRangeText(localizations)}',
+                '${localizations.filterApplied}: ${_getPDFStatusText(_selectedFilter, localizations)} | ${localizations.dateRange}: ${_getDateRangeText(localizations)}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.SizedBox(height: 20),
@@ -741,12 +740,12 @@ class _BillsState extends State<Bills> {
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
                     children:
                         [
-                              localizations.translate('s_no'),
-                              localizations.translate('customer_name'),
-                              localizations.translate('mobile_number'),
-                              localizations.translate('bill_date'),
-                              localizations.translate('total_amount'),
-                              localizations.translate('status'),
+                              localizations.sNo,
+                              localizations.customerName,
+                              localizations.mobileNumber,
+                              localizations.billDate,
+                              localizations.totalAmount,
+                              localizations.status,
                             ]
                             .map(
                               (header) => pw.Padding(
@@ -803,7 +802,7 @@ class _BillsState extends State<Bills> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            '${localizations.translate('currency_symbol')}${bill.totalAmount}',
+                            '${localizations.currencySymbol}${bill.totalAmount}',
                             style: const pw.TextStyle(fontSize: 8),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -811,7 +810,7 @@ class _BillsState extends State<Bills> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            _getPDFStatusText(bill.status),
+                            _getPDFStatusText(bill.status, localizations),
                             style: const pw.TextStyle(fontSize: 8),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -823,7 +822,7 @@ class _BillsState extends State<Bills> {
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                '${localizations.translate('total_bills')}: ${reportBills.length}',
+                '${localizations.totalBills}: ${reportBills.length}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -850,14 +849,14 @@ class _BillsState extends State<Bills> {
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      '${localizations.translate('s_no')},${localizations.translate('customer_name')},${localizations.translate('mobile_number')},${localizations.translate('bill_date')},${localizations.translate('total_amount')},${localizations.translate('amount_paid')},${localizations.translate('amount_remaining')},${localizations.translate('status')},${localizations.translate('filter_applied')}: ${_getPDFStatusText(_selectedFilter)},${localizations.translate('date_range')}: ${_getDateRangeText(localizations)}',
+      '${localizations.sNo},${localizations.customerName},${localizations.mobileNumber},${localizations.billDate},${localizations.totalAmount},${localizations.amountPaid},${localizations.amountRemaining},${localizations.status},${localizations.filterApplied}: ${_getPDFStatusText(_selectedFilter, localizations)},${localizations.dateRange}: ${_getDateRangeText(localizations)}',
     );
 
     // Add bill rows
     for (var i = 0; i < reportBills.length; i++) {
       final bill = reportBills[i];
       csv.writeln(
-        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getPDFStatusText(bill.status)}"',
+        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",${localizations.currencySymbol}${bill.totalAmount},${localizations.currencySymbol}${bill.amountPaid},${localizations.currencySymbol}${bill.amountRemaining},"${_getPDFStatusText(bill.status, localizations)}"',
       );
     }
 
@@ -870,7 +869,7 @@ class _BillsState extends State<Bills> {
     final localizations = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations.translate('recent_bills')),
+        title: Text(localizations.recentBills),
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
@@ -902,7 +901,7 @@ class _BillsState extends State<Bills> {
               onPressed: () async {
                 AppNavigator.push(context, const MyProfile());
               },
-              tooltip: localizations.translate('my_profile'),
+              tooltip: localizations.myProfile,
             ),
           ),
           const SizedBox(width: 14),
@@ -927,9 +926,7 @@ class _BillsState extends State<Bills> {
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
-                          hintText: localizations.translate(
-                            'search_by_customer_name',
-                          ),
+                          hintText: localizations.searchByCustomerName,
                           prefixIcon: const Icon(Icons.search),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
@@ -977,7 +974,7 @@ class _BillsState extends State<Bills> {
                                     : Colors.grey[600],
                               ),
                               const SizedBox(width: 4),
-                              Text(localizations.translate('filter_sort')),
+                              Text(localizations.filterSort),
                             ],
                           ),
                           selected: _selectedSort != SortOption.dateNewest,
@@ -1042,7 +1039,7 @@ class _BillsState extends State<Bills> {
                   child: _filteredBills.isEmpty
                       ? Center(
                           child: Text(
-                            localizations.translate('no_bills_found'),
+                            localizations.noBillsFound,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         )
@@ -1084,19 +1081,19 @@ class _BillsState extends State<Bills> {
     switch (status) {
       case PaymentFilter.paid:
         color = Colors.green;
-        text = localizations.translate('paid');
+        text = localizations.paid;
         break;
       case PaymentFilter.partial:
         color = Colors.orange;
-        text = localizations.translate('partial_payment');
+        text = localizations.partiallyPaid;
         break;
       case PaymentFilter.unpaid:
         color = Colors.red;
-        text = localizations.translate('unpaid');
+        text = localizations.unpaid;
         break;
       case PaymentFilter.previousDue:
         color = Colors.blue;
-        text = localizations.translate('previous_due');
+        text = localizations.previousDue;
         break;
       default:
         return const SizedBox.shrink(); // Hide 'All' filter on card
@@ -1262,7 +1259,7 @@ class _BillsState extends State<Bills> {
 
                     // Amount Section
                     Text(
-                      bill.amount,
+                      '${localizations.currencySymbol}${bill.totalAmount}',
                       style: context.titleLarge?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -1295,7 +1292,7 @@ class _BillsState extends State<Bills> {
                             Row(
                               children: [
                                 Text(
-                                  '${localizations.translate('other_due')}: ',
+                                  '${localizations.otherDue}: ',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: isDark
@@ -1304,7 +1301,7 @@ class _BillsState extends State<Bills> {
                                   ),
                                 ),
                                 Text(
-                                  '₹${bill.previousDueAmount}',
+                                  '${localizations.currencySymbol}${bill.previousDueAmount}',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -1317,7 +1314,7 @@ class _BillsState extends State<Bills> {
                             Row(
                               children: [
                                 Text(
-                                  '${localizations.translate('paid_label')}: ',
+                                  '${localizations.paidLabel}: ',
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: isDark
@@ -1326,7 +1323,7 @@ class _BillsState extends State<Bills> {
                                   ),
                                 ),
                                 Text(
-                                  '₹${bill.previousPaidAmount}',
+                                  '${localizations.currencySymbol}${bill.previousPaidAmount}',
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
