@@ -559,7 +559,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    '₹${totalAmount.toStringAsFixed(2)}',
+                                    '₹ ${totalAmount == totalAmount.toInt() ? totalAmount.toInt() : totalAmount.toStringAsFixed(2)}',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,

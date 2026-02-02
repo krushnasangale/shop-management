@@ -50,7 +50,8 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
     final localizations = AppLocalizations.of(context);
     final totalAmount = _bills.fold<double>(
       0,
-      (sum, bill) => sum + ((bill['totalAmount'] ?? 0) as num).toDouble(),
+      (double sum, bill) =>
+          sum + ((bill['totalAmount'] ?? 0) as num).toDouble(),
     );
     final totalBills = _bills.length;
 
@@ -198,7 +199,8 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
             child: _buildSummaryCard(
               icon: Icons.currency_rupee,
               title: localizations?.total ?? 'Total',
-              value: '₹${totalAmount.toStringAsFixed(2)}',
+              value:
+                  '₹${totalAmount == totalAmount.toInt() ? totalAmount.toInt() : totalAmount.toStringAsFixed(2)}',
               color: Colors.green,
               gradient: const LinearGradient(
                 colors: [Colors.green, Colors.greenAccent],
@@ -361,7 +363,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
                               ],
                             ),
                             child: Text(
-                              '₹$totalAmount',
+                              '₹${totalAmount == totalAmount.toInt() ? totalAmount.toInt() : totalAmount.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 14,
