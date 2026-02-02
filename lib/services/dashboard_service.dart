@@ -270,7 +270,7 @@ class DashboardService {
         ),
       );
 
-    return topProducts.take(3).toList();
+    return topProducts;
   }
 
   Future<PendingPaymentsData> _calculatePendingPayments(

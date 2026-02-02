@@ -720,11 +720,11 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                     color: Colors.grey[600],
                     textStyle: const TextStyle(
                       fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                      fontSize: 14,
                     ),
                     constraints: const BoxConstraints(
                       minHeight: 40.0,
-                      minWidth: 180.0,
+                      minWidth: 160.0,
                     ),
                     children: [
                       Row(
