@@ -238,7 +238,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
               unit: matchingProduct.unit,
               buyingPrice: matchingProduct.buyingPrice,
               sellingPrice: matchingProduct.sellingPrice,
-              maxQuantity: matchingProduct.quantity,
+              maxQuantity:
+                  matchingProduct.quantity +
+                  ((product['quantity'] ?? 0) as num).toInt(),
               billQuantity: (product['quantity'] ?? 0).toDouble(),
               billPrice: ((product['price'] ?? 0) as num).toInt(),
               batchId: matchingProduct.batchId,
@@ -1614,20 +1616,44 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
   void _addProductToBill(BoughtProduct product) {
     setState(() {
-      _billItems.add(
-        BillItem(
-          productName: product.productName,
-          supplierName: product.supplierName,
-          unit: product.unit,
-          buyingPrice: product.buyingPrice,
-          sellingPrice: product.sellingPrice,
-          maxQuantity: product.quantity,
-          billQuantity: 1,
-          billPrice: product.sellingPrice.toInt(),
-          batchId: product.batchId,
-          profitMargin: product.profitMargin,
-        ),
+      // Check if there's already a bill item for this batch
+      final existingIndex = _billItems.indexWhere(
+        (item) => item.batchId == product.batchId,
       );
+      if (existingIndex != -1) {
+        // Increase quantity of existing item if not exceeding max
+        final existingItem = _billItems[existingIndex];
+        if (existingItem.billQuantity < existingItem.maxQuantity) {
+          _billItems[existingIndex] = BillItem(
+            productName: existingItem.productName,
+            supplierName: existingItem.supplierName,
+            unit: existingItem.unit,
+            buyingPrice: existingItem.buyingPrice,
+            sellingPrice: existingItem.sellingPrice,
+            maxQuantity: existingItem.maxQuantity,
+            billQuantity: existingItem.billQuantity + 1,
+            billPrice: existingItem.billPrice,
+            batchId: existingItem.batchId,
+            profitMargin: existingItem.profitMargin,
+          );
+        }
+      } else {
+        // Add new item
+        _billItems.add(
+          BillItem(
+            productName: product.productName,
+            supplierName: product.supplierName,
+            unit: product.unit,
+            buyingPrice: product.buyingPrice,
+            sellingPrice: product.sellingPrice,
+            maxQuantity: product.quantity,
+            billQuantity: 1,
+            billPrice: product.sellingPrice.toInt(),
+            batchId: product.batchId,
+            profitMargin: product.profitMargin,
+          ),
+        );
+      }
     });
   }
 
@@ -2261,7 +2287,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
           .toList();
       final totalQuantityAlreadyAdded = existingBillItems.fold(
         0,
-        (sum, item) => sum + item.billQuantity.toInt(),
+        (int sum, item) => sum + item.billQuantity.toInt(),
       );
 
       // Only include products with remaining quantity > 0
@@ -2269,13 +2295,18 @@ class _CreateNewBillState extends State<CreateNewBill> {
         if (!uniqueProducts.containsKey(product.productName)) {
           uniqueProducts[product.productName] = {
             'product': product,
-            'totalQuantity': product.quantity - totalQuantityAlreadyAdded,
+            'totalQuantity': _isProductAlreadyAdded(product.productName)
+                ? product.quantity
+                : product.quantity - totalQuantityAlreadyAdded,
             'batchCount': 1,
           };
         } else {
           // Add quantity from additional batches
+          final isAlreadyAdded = _isProductAlreadyAdded(product.productName);
           uniqueProducts[product.productName]!['totalQuantity'] +=
-              (product.quantity - totalQuantityAlreadyAdded);
+              isAlreadyAdded
+              ? product.quantity
+              : (product.quantity - totalQuantityAlreadyAdded);
           uniqueProducts[product.productName]!['batchCount'] += 1;
         }
       }
@@ -2355,16 +2386,25 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                       {
                                         'product': product,
                                         'totalQuantity':
-                                            product.quantity -
-                                            totalQuantityAlreadyAdded,
+                                            _isProductAlreadyAdded(
+                                              product.productName,
+                                            )
+                                            ? product.quantity
+                                            : product.quantity -
+                                                  totalQuantityAlreadyAdded,
                                         'batchCount': 1,
                                       };
                                 } else {
                                   // Add quantity from additional batches
+                                  final isAlreadyAdded = _isProductAlreadyAdded(
+                                    product.productName,
+                                  );
                                   uniqueFilteredProducts[product
                                           .productName]!['totalQuantity'] +=
-                                      (product.quantity -
-                                      totalQuantityAlreadyAdded);
+                                      isAlreadyAdded
+                                      ? product.quantity
+                                      : (product.quantity -
+                                            totalQuantityAlreadyAdded);
                                   uniqueFilteredProducts[product
                                           .productName]!['batchCount'] +=
                                       1;
@@ -2407,15 +2447,26 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                         .productName] = {
                                       'product': product,
                                       'totalQuantity':
-                                          product.quantity -
-                                          totalQuantityAlreadyAdded,
+                                          _isProductAlreadyAdded(
+                                            product.productName,
+                                          )
+                                          ? product.quantity
+                                          : product.quantity -
+                                                totalQuantityAlreadyAdded,
                                       'batchCount': 1,
                                     };
                                   } else {
+                                    // Add quantity from additional batches
+                                    final isAlreadyAdded =
+                                        _isProductAlreadyAdded(
+                                          product.productName,
+                                        );
                                     uniqueFilteredProducts[product
                                             .productName]!['totalQuantity'] +=
-                                        (product.quantity -
-                                        totalQuantityAlreadyAdded);
+                                        isAlreadyAdded
+                                        ? product.quantity
+                                        : (product.quantity -
+                                              totalQuantityAlreadyAdded);
                                     uniqueFilteredProducts[product
                                             .productName]!['batchCount'] +=
                                         1;
