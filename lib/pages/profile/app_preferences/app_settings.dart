@@ -16,6 +16,7 @@ class _AppSettingsState extends State<AppSettings> {
   bool _deliveryChargesEnabled = false;
   bool _previousDueEnabled = false;
   bool _expiryDateEnabled = false;
+  bool _expensesEnabled = false; // Default to disabled
   bool _isLoading = true;
 
   StreamSubscription<Map<String, dynamic>>? _settingsSubscription;
@@ -54,6 +55,7 @@ class _AppSettingsState extends State<AppSettings> {
                   appSettings['deliveryChargesEnabled'] ?? false;
               _previousDueEnabled = appSettings['previousDueEnabled'] ?? false;
               _expiryDateEnabled = appSettings['expiryDateEnabled'] ?? false;
+              _expensesEnabled = appSettings['expensesEnabled'] ?? false;
               _isLoading = false;
             });
           }
@@ -151,6 +153,18 @@ class _AppSettingsState extends State<AppSettings> {
               _saveSetting('expiryDateEnabled', value);
             },
             icon: Icons.date_range,
+          ),
+          const SizedBox(height: 4),
+          _buildSettingCard(
+            title: 'Expenses Feature',
+            subtitle:
+                'Enable or disable the expenses tracking feature in the app',
+            value: _expensesEnabled,
+            onChanged: (value) {
+              setState(() => _expensesEnabled = value);
+              _saveSetting('expensesEnabled', value);
+            },
+            icon: Icons.account_balance,
           ),
         ],
       ),

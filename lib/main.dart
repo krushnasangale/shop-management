@@ -1,3 +1,4 @@
+import 'package:flashbill/pages/expenses/add_expense_entry.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
@@ -7,6 +8,7 @@ import 'package:flashbill/pages/billing/bills.dart';
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/pages/purchase/purchase_items_list.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
+import 'package:flashbill/pages/expenses/expenses_list.dart';
 import 'package:flashbill/pages/dashboard.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/providers/theme_provider.dart';
@@ -254,7 +256,9 @@ class _MyHomePageState extends State<MyHomePage> {
   StreamSubscription<Map<String, dynamic>>? _shopNameSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _productsSubscription;
+  StreamSubscription<Map<String, dynamic>>? _appSettingsSubscription;
   int _productsCount = 0;
+  bool _expensesEnabled = false; // Default to disabled
 
   @override
   void initState() {
@@ -266,6 +270,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
     _listenToShopName();
     _listenToProductsCount();
+    _listenToAppSettings();
   }
 
   void _listenToShopName() {
@@ -285,6 +290,24 @@ class _MyHomePageState extends State<MyHomePage> {
       );
     } catch (e) {
       print('Error setting up shop name listener: $e');
+    }
+  }
+
+  void _listenToAppSettings() {
+    try {
+      _appSettingsSubscription = _profileService.appSettingsStream.listen(
+        (appSettings) {
+          if (mounted) {
+            final expensesEnabled = appSettings['expensesEnabled'] ?? false;
+            setState(() => _expensesEnabled = expensesEnabled);
+          }
+        },
+        onError: (error) {
+          print('Error listening to app settings: $error');
+        },
+      );
+    } catch (e) {
+      print('Error setting up app settings listener: $e');
     }
   }
 
@@ -321,23 +344,145 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
     _shopNameSubscription?.cancel();
     _productsSubscription?.cancel();
+    _appSettingsSubscription?.cancel();
     _profileService.dispose();
     super.dispose();
   }
 
-  // List of screens for the IndexedStack
-  final List<Widget> _screens = const [
-    Dashboard(),
-    AvailableProducts(),
-    Bills(),
-    PurchaseItemsList(),
-    //AdminDashboard(),
+  // Dynamic list of screens based on settings
+  List<Widget> get _screens => [
+    const Dashboard(),
+    const AvailableProducts(),
+    const Bills(),
+    const PurchaseItemsList(),
+    if (_expensesEnabled) const ExpensesList(),
   ];
 
+  // Dynamic list of navigation items based on settings
+  List<BottomNavigationBarItem> get _navigationItems {
+    final localizations = AppLocalizations.of(context);
+    return [
+      BottomNavigationBarItem(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _selectedIndex == 0
+                ? Theme.of(context).primaryColor.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.dashboard, size: 24),
+        ),
+        label: localizations?.dashboard ?? 'Dashboard',
+      ),
+      BottomNavigationBarItem(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _selectedIndex == 1
+                ? Theme.of(context).primaryColor.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              const Icon(Icons.inventory_2, size: 24),
+              if (_productsCount > 0)
+                Positioned(
+                  right: -8,
+                  top: -8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade500,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.shade500.withOpacity(0.3),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      _productsCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        label: localizations?.availability ?? 'Availability',
+      ),
+      BottomNavigationBarItem(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _selectedIndex == 2
+                ? Theme.of(context).primaryColor.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.receipt_long, size: 24),
+        ),
+        label: localizations?.bills ?? 'Bills',
+      ),
+      BottomNavigationBarItem(
+        icon: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: _selectedIndex == 3
+                ? Theme.of(context).primaryColor.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(Icons.shopping_bag, size: 24),
+        ),
+        label: localizations?.purchases ?? 'Purchases',
+      ),
+      if (_expensesEnabled)
+        BottomNavigationBarItem(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: _selectedIndex == (_expensesEnabled ? 4 : -1)
+                  ? Theme.of(context).primaryColor.withOpacity(0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.account_balance_wallet, size: 24),
+          ),
+          label: localizations?.expenses ?? 'Expenses',
+        ),
+    ];
+  }
+
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    // Ensure the selected index is valid for the current screens
+    if (index >= 0 && index < _screens.length) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
@@ -371,7 +516,10 @@ class _MyHomePageState extends State<MyHomePage> {
           : null,
       body: IndexedStack(index: _selectedIndex, children: _screens),
 
-      floatingActionButton: _selectedIndex == 2 || _selectedIndex == 3
+      floatingActionButton:
+          (_selectedIndex == 2 ||
+              _selectedIndex == 3 ||
+              (_expensesEnabled && _selectedIndex == 4))
           ? Container(
               height: 60,
               width: 60,
@@ -421,11 +569,14 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
                 child: FloatingActionButton(
+                  heroTag: 'fab_$_selectedIndex',
                   onPressed: () {
                     if (_selectedIndex == 2) {
                       AppNavigator.push(context, const CreateNewBill());
                     } else if (_selectedIndex == 3) {
                       AppNavigator.push(context, const AddPurchaseEntry());
+                    } else if (_expensesEnabled && _selectedIndex == 4) {
+                      AppNavigator.push(context, const AddExpenseEntry());
                     }
                   },
                   backgroundColor: Colors.transparent,
@@ -477,105 +628,7 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           elevation: 0,
           showUnselectedLabels: true,
-          items: [
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _selectedIndex == 0
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.dashboard, size: 24),
-              ),
-              label: localizations?.dashboard ?? 'Dashboard',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _selectedIndex == 1
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  alignment: Alignment.center,
-                  children: [
-                    const Icon(Icons.inventory_2, size: 24),
-                    if (_productsCount > 0)
-                      Positioned(
-                        right: -8,
-                        top: -8,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade500,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: Theme.of(context).scaffoldBackgroundColor,
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.red.shade500.withOpacity(0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 18,
-                            minHeight: 18,
-                          ),
-                          child: Text(
-                            _productsCount.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              label: localizations?.availability ?? 'Availability',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _selectedIndex == 2
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.receipt_long, size: 24),
-              ),
-              label: localizations?.bills ?? 'Bills',
-            ),
-            BottomNavigationBarItem(
-              icon: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _selectedIndex == 3
-                      ? Theme.of(context).primaryColor.withOpacity(0.1)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(Icons.shopping_bag, size: 24),
-              ),
-              label: localizations?.purchases ?? 'Purchases',
-            ),
-          ],
+          items: _navigationItems,
         ),
       ),
     );

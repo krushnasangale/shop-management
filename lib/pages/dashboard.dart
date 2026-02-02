@@ -18,7 +18,8 @@ class Dashboard extends StatefulWidget {
   State<Dashboard> createState() => _DashboardState();
 }
 
-class _DashboardState extends State<Dashboard> {
+class _DashboardState extends State<Dashboard>
+    with SingleTickerProviderStateMixin {
   DateTime selectedDate = DateTime.now();
   String filterType = 'month'; // 'month', 'year', 'day', 'range', or 'all'
   DateTime? _rangeStartDate;
@@ -39,9 +40,13 @@ class _DashboardState extends State<Dashboard> {
   bool _expandOrderNow = false;
   bool _expandPreviousDue = false;
 
+  // Tab Controller
+  late TabController _tabController;
+
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 3, vsync: this);
     _dashboardService = DashboardService();
     _loadFilterPreference();
   }
@@ -49,6 +54,7 @@ class _DashboardState extends State<Dashboard> {
   @override
   void dispose() {
     _dashboardSubscription?.cancel();
+    _tabController.dispose();
     _dashboardService.dispose();
     super.dispose();
   }

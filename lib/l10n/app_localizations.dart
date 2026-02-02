@@ -45,6 +45,41 @@ class AppLocalizations {
   String get bills => translate('bills');
   String get products => translate('products');
   String get purchases => translate('purchases');
+  String get myExpenses => translate('my_expenses');
+  String get expenses => translate('expenses');
+  String get addExpense => translate('add_expense');
+  String get expenseDetails => translate('expense_details');
+  String get category => translate('category');
+  String get description => translate('description');
+  String get paymentMethod => translate('payment_method');
+  String get expenseAddedSuccessfully =>
+      translate('expense_added_successfully');
+  String get expenseDeleted => translate('expense_deleted');
+  String get deleteExpense => translate('delete_expense');
+  String get deleteExpenseConfirmation =>
+      translate('delete_expense_confirmation');
+  String get noExpensesYet => translate('no_expenses_yet');
+  String get totalExpenses => translate('total_expenses');
+  String get thisMonth => translate('this_month');
+  String get topCategories => translate('top_categories');
+  String get monthlyTrendLast6Months =>
+      translate('monthly_trend_last_6_months');
+  String get paymentMethods => translate('payment_methods');
+  String get recentActivity => translate('recent_activity');
+  String get vsLastMonth => translate('vs_last_month');
+  String get vsLast => translate('vs_last');
+  String get sameAsLast => translate('same_as_last');
+  String get byCategory => translate('by_category');
+  String get recent => translate('recent');
+  String get pleaseSelectCategory => translate('please_select_category');
+  String get pleaseEnterDescription => translate('please_enter_description');
+  String get pleaseSelectDate => translate('please_select_date');
+  String get pleaseEnterAmount => translate('please_enter_amount');
+  String get pleaseEnterValidAmount => translate('please_enter_valid_amount');
+  String get searchByCategoryOrAmount =>
+      translate('search_by_category_or_amount');
+  String get details => translate('details');
+  String get createdAt => translate('created_at');
   String get profile => translate('profile');
   String get settings => translate('settings');
   String get logout => translate('logout');
@@ -579,7 +614,6 @@ class AppLocalizations {
   String get billUpdatedSuccessfully => translate('bill_updated_successfully');
   String get errorUpdatingBill => translate('error_updating_bill');
   String get errorCreatingBill => translate('error_creating_bill');
-  String get paymentMethod => translate('payment_method');
   String get cash => translate('cash');
   String get online => translate('online');
   String get customerName => translate('customer_name');
@@ -645,7 +679,6 @@ class AppLocalizations {
   String get amountUpdatedSuccessfully =>
       translate('amount_updated_successfully');
   String get amountCannotBeNegative => translate('amount_cannot_be_negative');
-  String get pleaseEnterValidAmount => translate('please_enter_valid_amount');
   String get amountCannotExceedTotalAmount =>
       translate('amount_cannot_exceed_total_amount');
 
@@ -710,8 +743,6 @@ class AppLocalizations {
   String get previousDueAmount => translate('previous_due_amount');
   String get previousPaidAmount => translate('previous_paid_amount');
   String get previousDueDescription => translate('previous_due_description');
-
-  String get description => translate('description');
   String get enterDescriptionOptional =>
       translate('enter_description_optional');
   String get descriptionRequiredWhenAmountEntered =>
@@ -763,7 +794,6 @@ class AppLocalizations {
   String get enableExpiryDateField => translate('enable_expiry_date_field');
 
   // Purchase items list page getters
-  String get recent => translate('recent');
   String get bySupplier => translate('by_supplier');
   String get errorProcessingPDF => translate('error_processing_pdf');
   String get appSettings => translate('app_settings');
