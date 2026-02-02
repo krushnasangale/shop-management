@@ -39,6 +39,7 @@ class AppLocalizations {
   // Common translations getters for easy access
   String get appName => translate('app_name');
   String get topSellingProducts => translate('top_selling_products');
+  String get leastSellingProducts => translate('least_selling_products');
   String get noSalesDataYet => translate('no_sales_data_yet');
   String get dashboard => translate('dashboard');
   String get bills => translate('bills');

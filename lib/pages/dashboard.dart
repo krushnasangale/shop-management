@@ -33,6 +33,7 @@ class _DashboardState extends State<Dashboard> {
 
   // UI Expansion states
   bool _expandTopProducts = false;
+  bool _expandLeastProducts = false;
   bool _expandPendingPayments = false;
   bool _expandUpcomingPayments = false;
   bool _expandOrderNow = false;
@@ -147,6 +148,16 @@ class _DashboardState extends State<Dashboard> {
   Widget _buildTopSellingProductsCard(AppLocalizations? loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Sort products by quantity sold descending and take top 5
+    final topProducts =
+        (_dashboardData?.topSellingProducts ?? [])
+            .map((product) => Map<String, dynamic>.from(product))
+            .toList()
+          ..sort(
+            (a, b) => (b['quantity'] as num).compareTo(a['quantity'] as num),
+          );
+    final displayProducts = topProducts.take(5).toList();
+
     return Container(
       decoration: BoxDecoration(
         color: isDark ? Colors.grey[850] : Colors.purple.withOpacity(0.05),
@@ -189,7 +200,7 @@ class _DashboardState extends State<Dashboard> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '${_dashboardData?.topSellingProducts.length ?? 0}',
+                          '${displayProducts.length}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -218,7 +229,7 @@ class _DashboardState extends State<Dashboard> {
             ),
             Padding(
               padding: const EdgeInsets.all(16),
-              child: (_dashboardData?.topSellingProducts.isEmpty ?? true)
+              child: displayProducts.isEmpty
                   ? Center(
                       child: Text(
                         loc?.noSalesDataYet ?? 'No sales data yet',
@@ -228,14 +239,176 @@ class _DashboardState extends State<Dashboard> {
                   : ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _dashboardData?.topSellingProducts.length ?? 0,
+                      itemCount: displayProducts.length,
                       separatorBuilder: (_, __) => Divider(
                         color: isDark ? Colors.grey[700] : Colors.grey[300],
                         height: 12,
                       ),
                       itemBuilder: (context, index) {
-                        final product =
-                            _dashboardData!.topSellingProducts[index];
+                        final product = displayProducts[index];
+                        final profit =
+                            (product['totalProfit'] as num?)?.toInt() ?? 0;
+                        return Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${index + 1}. ${product['name']}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark
+                                          ? Colors.grey[100]
+                                          : Colors.grey[800],
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        '${loc?.qty ?? 'Qty'}: ${product['quantity']} • ${loc?.revenue ?? 'Revenue'}: ₹${product['revenue']}',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark
+                                              ? Colors.grey[400]
+                                              : Colors.grey[600],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${loc?.profit ?? 'Profit'}: ₹$profit',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: profit >= 0
+                                              ? Colors.green[600]
+                                              : Colors.red[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLeastSellingProductsCard(AppLocalizations? loc) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Sort products by quantity sold ascending and take top 5
+    final leastProducts =
+        (_dashboardData?.topSellingProducts ?? [])
+            .map((product) => Map<String, dynamic>.from(product))
+            .toList()
+          ..sort(
+            (a, b) => (a['quantity'] as num).compareTo(b['quantity'] as num),
+          );
+    final displayProducts = leastProducts.take(5).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey[850] : Colors.red.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark
+              ? Colors.red.withOpacity(0.3)
+              : Colors.red.withOpacity(0.15),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () =>
+                setState(() => _expandLeastProducts = !_expandLeastProducts),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    loc?.leastSellingProducts ?? 'Least Selling Products',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: isDark ? Colors.grey[100] : Colors.grey[800],
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '${displayProducts.length}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red[600],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _expandLeastProducts
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        color: Colors.red[600],
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_expandLeastProducts) ...[
+            Divider(
+              color: isDark ? Colors.grey[700] : Colors.grey[300],
+              height: 1,
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: displayProducts.isEmpty
+                  ? Center(
+                      child: Text(
+                        loc?.noSalesDataYet ?? 'No sales data yet',
+                        style: TextStyle(color: Colors.grey[500]),
+                      ),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: displayProducts.length,
+                      separatorBuilder: (_, __) => Divider(
+                        color: isDark ? Colors.grey[700] : Colors.grey[300],
+                        height: 12,
+                      ),
+                      itemBuilder: (context, index) {
+                        final product = displayProducts[index];
                         final profit =
                             (product['totalProfit'] as num?)?.toInt() ?? 0;
                         return Row(
@@ -1728,6 +1901,10 @@ class _DashboardState extends State<Dashboard> {
 
                           // Top Selling Products
                           _buildTopSellingProductsCard(loc),
+                          const SizedBox(height: 12),
+
+                          // Least Selling Products
+                          _buildLeastSellingProductsCard(loc),
                           const SizedBox(height: 12),
 
                           // Pending Payments
