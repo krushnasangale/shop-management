@@ -1639,9 +1639,17 @@ class _CreateNewBillState extends State<CreateNewBill> {
         }
       } else {
         // Add new item
+        // Generate display name with suffix if multiple batches of same product
+        final baseName = product.productName;
+        final existingCount = _billItems
+            .where((item) => item.productName.startsWith(baseName))
+            .length;
+        final displayName = existingCount > 0
+            ? '$baseName (${existingCount + 1})'
+            : baseName;
         _billItems.add(
           BillItem(
-            productName: product.productName,
+            productName: displayName,
             supplierName: product.supplierName,
             unit: product.unit,
             buyingPrice: product.buyingPrice,

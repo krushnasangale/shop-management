@@ -564,10 +564,17 @@ class _AvailableProductDetailScreenState
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Colors.blue.shade100,
-                      child: Text('${index + 1}', style: TextStyle(color: Colors.blue.shade800)),
+                      child: Text(
+                        '${index + 1}',
+                        style: TextStyle(color: Colors.blue.shade800),
+                      ),
                     ),
-                    title: Text('${batch.supplierName} - ${batch.purchaseDate}'),
-                    subtitle: Text('${batch.quantity} ${batch.unit} @ ₹${batch.sellingPrice.toStringAsFixed(2)}'),
+                    title: Text(
+                      '${batch.supplierName} - ${batch.purchaseDate}',
+                    ),
+                    subtitle: Text(
+                      '${batch.quantity} ${batch.unit} @ ₹${batch.sellingPrice.toStringAsFixed(2)}',
+                    ),
                     onTap: () => Navigator.of(context).pop(batch),
                   );
                 },
@@ -606,7 +613,8 @@ class _AvailableProductDetailScreenState
   Future<void> _shareBatch(BoughtProduct batch, String? imageUrl) async {
     try {
       // Create share text with essential product details
-      final shareText = '📦 ${batch.productName}\n'
+      final shareText =
+          '📦 ${batch.productName}\n'
           '💰 Price: ₹${batch.sellingPrice.toStringAsFixed(2)}\n'
           '📊 Available Stock: ${batch.quantity} ${batch.unit}';
 
@@ -687,7 +695,8 @@ class _AvailableProductDetailScreenState
       // Fallback to text-only sharing on any error
       try {
         // Create fallback share text with essential product details
-        final fallbackText = '📦 ${batch.productName}\n'
+        final fallbackText =
+            '📦 ${batch.productName}\n'
             '💰 Price: ₹${batch.sellingPrice.toStringAsFixed(2)}\n'
             '📊 Available: ${batch.quantity} ${batch.unit}';
 
@@ -2257,16 +2266,18 @@ class _AvailableProductDetailScreenState
                                                                   MainAxisSize
                                                                       .min,
                                                               children: [
-                                                                Text(
-                                                                  '${batch.quantity} ${batch.unit}',
-                                                                  style: TextStyle(
-                                                                    color: Colors
-                                                                        .blue[400],
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .w600,
-                                                                    fontSize:
-                                                                        16,
+                                                                Expanded(
+                                                                  child: Text(
+                                                                    '${batch.quantity} ${batch.unit}',
+                                                                    style: TextStyle(
+                                                                      color: Colors
+                                                                          .blue[400],
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w600,
+                                                                      fontSize:
+                                                                          16,
+                                                                    ),
                                                                   ),
                                                                 ),
                                                                 const SizedBox(
