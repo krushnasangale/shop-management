@@ -1391,20 +1391,55 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         title: Text(localizations.billDetails),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.preview),
-            onPressed: _previewBill,
-            tooltip: 'Preview Bill',
-          ),
-          IconButton(
-            icon: const Icon(Icons.delete),
-            onPressed: _deleteBill,
-            tooltip: 'Delete Bill',
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: _editBill,
-            tooltip: localizations.editBill,
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'preview':
+                  _previewBill();
+                  break;
+                case 'delete':
+                  _deleteBill();
+                  break;
+                case 'edit':
+                  _editBill();
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem<String>(
+                value: 'preview',
+                child: Row(
+                  children: [
+                    const Icon(Icons.visibility, size: 20, color: Colors.green),
+                    const SizedBox(width: 8),
+                    Text('Preview Bill'),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    const Icon(Icons.edit, size: 20, color: Colors.blue),
+                    const SizedBox(width: 8),
+                    Text(localizations.editBill),
+                  ],
+                ),
+              ),
+              PopupMenuItem<String>(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete, color: Colors.red, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Delete Bill',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           IconButton(
             icon: const Icon(Icons.share),
