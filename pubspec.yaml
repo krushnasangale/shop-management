@@ -58,6 +58,7 @@ dependencies:
   cached_network_image: ^3.4.1
   crypto: ^3.0.7
   http: ^1.2.2
+  pdfx: ^2.9.2
 
 dev_dependencies:
   flutter_test:

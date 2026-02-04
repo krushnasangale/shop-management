@@ -16,6 +16,7 @@ import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:pdfx/pdfx.dart' as pdfx;
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -39,6 +40,57 @@ class PaymentRecord {
 
   Map<String, dynamic> toMap() {
     return {'amount': amount, 'date': date, 'paymentMethod': paymentMethod};
+  }
+}
+
+// PDF Preview Page
+class BillPdfPreviewPage extends StatefulWidget {
+  final File pdfFile;
+  final String customerName;
+
+  const BillPdfPreviewPage({
+    super.key,
+    required this.pdfFile,
+    required this.customerName,
+  });
+
+  @override
+  State<BillPdfPreviewPage> createState() => _BillPdfPreviewPageState();
+}
+
+class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
+  late pdfx.PdfControllerPinch _pdfController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pdfController = pdfx.PdfControllerPinch(
+      document: pdfx.PdfDocument.openFile(widget.pdfFile.path),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pdfController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Bill Preview - ${widget.customerName}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: () => Share.shareXFiles([
+              XFile(widget.pdfFile.path),
+            ], text: 'Bill from Shop'),
+          ),
+        ],
+      ),
+      body: pdfx.PdfViewPinch(controller: _pdfController),
+    );
   }
 }
 
@@ -382,6 +434,70 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       }
     }
     return baseProfit;
+  }
+
+  void _previewBill() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Dialog(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      localizations.generatingPdf,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+
+      // Generate PDF
+      final pdfFile = await _generateBillPDF();
+
+      if (mounted) {
+        Navigator.pop(context); // Close loading dialog
+
+        // Navigate to PDF preview page
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => BillPdfPreviewPage(
+              pdfFile: pdfFile,
+              customerName: widget.customerName,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${localizations.errorGeneratingBill}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _shareBill(BuildContext context) async {
@@ -1275,6 +1391,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         title: Text(localizations.billDetails),
         centerTitle: true,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.preview),
+            onPressed: _previewBill,
+            tooltip: 'Preview Bill',
+          ),
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: _deleteBill,
