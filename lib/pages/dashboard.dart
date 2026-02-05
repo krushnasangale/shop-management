@@ -10,6 +10,7 @@ import 'package:flashbill/pages/order_now_page.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flashbill/services/dashboard_service.dart';
+import 'package:flashbill/widgets/dashboard_widgets.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -21,7 +22,7 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard>
     with SingleTickerProviderStateMixin {
   DateTime selectedDate = DateTime.now();
-  String filterType = 'month'; // 'month', 'year', 'day', 'range', or 'all'
+  String filterType = 'month';
   DateTime? _rangeStartDate;
   DateTime? _rangeEndDate;
 
@@ -152,8 +153,6 @@ class _DashboardState extends State<Dashboard>
   }
 
   Widget _buildTopSellingProductsCard(AppLocalizations? loc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     // Sort products by quantity sold descending and take top 5
     final topProducts =
         (_dashboardData?.topSellingProducts ?? [])
@@ -164,160 +163,52 @@ class _DashboardState extends State<Dashboard>
           );
     final displayProducts = topProducts.take(5).toList();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.purple.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.purple.withOpacity(0.3)
-              : Colors.purple.withOpacity(0.15),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () =>
-                setState(() => _expandTopProducts = !_expandTopProducts),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    loc?.topSellingProducts ?? 'Top Selling Products',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.grey[100] : Colors.grey[800],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${displayProducts.length}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.purple[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _expandTopProducts
-                            ? Icons.expand_less
-                            : Icons.expand_more,
-                        color: Colors.purple[600],
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ],
+    return ExpandableCard(
+      title: loc?.topSellingProducts ?? 'Top Selling Products',
+      themeColor: Colors.purple,
+      badgeText: '${displayProducts.length}',
+      initiallyExpanded: _expandTopProducts,
+      onExpansionChanged: () =>
+          setState(() => _expandTopProducts = !_expandTopProducts),
+      loc: loc,
+      expandedContent: Padding(
+        padding: const EdgeInsets.all(16),
+        child: displayProducts.isEmpty
+            ? Center(
+                child: Text(
+                  loc?.noSalesDataYet ?? 'No sales data yet',
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              )
+            : ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: displayProducts.length,
+                separatorBuilder: (_, __) => Divider(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[700]!
+                      : Colors.grey[300]!,
+                  height: 12,
+                ),
+                itemBuilder: (context, index) {
+                  final product = displayProducts[index];
+                  final profit = (product['totalProfit'] as num?)?.toInt() ?? 0;
+                  return ProductListItem(
+                    index: index,
+                    name: product['name'],
+                    quantity: product['quantity'] as int,
+                    revenue: product['revenue'] as int,
+                    profit: profit,
+                    loc: loc,
+                  );
+                },
               ),
-            ),
-          ),
-          if (_expandTopProducts) ...[
-            Divider(
-              color: isDark ? Colors.grey[700] : Colors.grey[300],
-              height: 1,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: displayProducts.isEmpty
-                  ? Center(
-                      child: Text(
-                        loc?.noSalesDataYet ?? 'No sales data yet',
-                        style: TextStyle(color: Colors.grey[500]),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: displayProducts.length,
-                      separatorBuilder: (_, __) => Divider(
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                        height: 12,
-                      ),
-                      itemBuilder: (context, index) {
-                        final product = displayProducts[index];
-                        final profit =
-                            (product['totalProfit'] as num?)?.toInt() ?? 0;
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${index + 1}. ${product['name']}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? Colors.grey[100]
-                                          : Colors.grey[800],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '${loc?.qty ?? 'Qty'}: ${product['quantity']} • ${loc?.revenue ?? 'Revenue'}: ₹${product['revenue']}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: isDark
-                                              ? Colors.grey[400]
-                                              : Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${loc?.profit ?? 'Profit'}: ₹$profit',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: profit >= 0
-                                              ? Colors.green[600]
-                                              : Colors.red[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ],
       ),
     );
   }
 
   Widget _buildLeastSellingProductsCard(AppLocalizations? loc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Sort products by quantity sold ascending and take top 5
+    // Get least selling products by sorting in ascending order (lowest quantities first)
     final leastProducts =
         (_dashboardData?.topSellingProducts ?? [])
             .map((product) => Map<String, dynamic>.from(product))
@@ -327,319 +218,119 @@ class _DashboardState extends State<Dashboard>
           );
     final displayProducts = leastProducts.take(5).toList();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.red.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.red.withOpacity(0.3)
-              : Colors.red.withOpacity(0.15),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () =>
-                setState(() => _expandLeastProducts = !_expandLeastProducts),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    loc?.leastSellingProducts ?? 'Least Selling Products',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.grey[100] : Colors.grey[800],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${displayProducts.length}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.red[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _expandLeastProducts
-                            ? Icons.expand_less
-                            : Icons.expand_more,
-                        color: Colors.red[600],
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ],
+    return ExpandableCard(
+      title: loc?.leastSellingProducts ?? 'Least Selling Products',
+      themeColor: Colors.red,
+      badgeText: '${displayProducts.length}',
+      initiallyExpanded: _expandLeastProducts,
+      onExpansionChanged: () =>
+          setState(() => _expandLeastProducts = !_expandLeastProducts),
+      loc: loc,
+      expandedContent: Padding(
+        padding: const EdgeInsets.all(16),
+        child: displayProducts.isEmpty
+            ? Center(
+                child: Text(
+                  loc?.noSalesDataYet ?? 'No sales data yet',
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              )
+            : ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: displayProducts.length,
+                separatorBuilder: (_, __) => Divider(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey[700]!
+                      : Colors.grey[300]!,
+                  height: 12,
+                ),
+                itemBuilder: (context, index) {
+                  final product = displayProducts[index];
+                  final profit = (product['totalProfit'] as num?)?.toInt() ?? 0;
+                  return ProductListItem(
+                    index: index,
+                    name: product['name'],
+                    quantity: product['quantity'] as int,
+                    revenue: product['revenue'] as int,
+                    profit: profit,
+                    loc: loc,
+                  );
+                },
               ),
-            ),
-          ),
-          if (_expandLeastProducts) ...[
-            Divider(
-              color: isDark ? Colors.grey[700] : Colors.grey[300],
-              height: 1,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: displayProducts.isEmpty
-                  ? Center(
-                      child: Text(
-                        loc?.noSalesDataYet ?? 'No sales data yet',
-                        style: TextStyle(color: Colors.grey[500]),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: displayProducts.length,
-                      separatorBuilder: (_, __) => Divider(
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                        height: 12,
-                      ),
-                      itemBuilder: (context, index) {
-                        final product = displayProducts[index];
-                        final profit =
-                            (product['totalProfit'] as num?)?.toInt() ?? 0;
-                        return Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '${index + 1}. ${product['name']}',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark
-                                          ? Colors.grey[100]
-                                          : Colors.grey[800],
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        '${loc?.qty ?? 'Qty'}: ${product['quantity']} • ${loc?.revenue ?? 'Revenue'}: ₹${product['revenue']}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: isDark
-                                              ? Colors.grey[400]
-                                              : Colors.grey[600],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        '${loc?.profit ?? 'Profit'}: ₹$profit',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: profit >= 0
-                                              ? Colors.green[600]
-                                              : Colors.red[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ],
       ),
     );
   }
 
   Widget _buildPendingPaymentsCard(AppLocalizations? loc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.orange.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.orange.withOpacity(0.3)
-              : Colors.orange.withOpacity(0.15),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return ExpandableCard(
+      title: loc?.pendingPayments ?? 'Pending Payments',
+      themeColor: Colors.orange,
+      badgeText:
+          '₹${_formatCurrency(_dashboardData?.pendingPayments.totalAmount ?? 0, loc: AppLocalizations.of(context))}',
+      initiallyExpanded: _expandPendingPayments,
+      onExpansionChanged: () =>
+          setState(() => _expandPendingPayments = !_expandPendingPayments),
+      loc: loc,
+      expandedContent: Column(
         children: [
-          InkWell(
-            onTap: () => setState(
-              () => _expandPendingPayments = !_expandPendingPayments,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    loc?.pendingPayments ?? 'Pending Payments',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.grey[100] : Colors.grey[800],
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: (_dashboardData?.pendingPayments.payments.isEmpty ?? true)
+                ? Center(
+                    child: Text(
+                      loc?.noPendingPayments ?? 'No pending payments',
+                      style: TextStyle(color: Colors.grey[500]),
                     ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '₹${_formatCurrency(_dashboardData?.pendingPayments.totalAmount ?? 0, loc: AppLocalizations.of(context))}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.orange[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _expandPendingPayments
-                            ? Icons.expand_less
-                            : Icons.expand_more,
-                        color: Colors.orange[600],
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_expandPendingPayments) ...[
-            Divider(
-              color: isDark ? Colors.grey[700] : Colors.grey[300],
-              height: 1,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: (_dashboardData?.pendingPayments.payments.isEmpty ?? true)
-                  ? Center(
-                      child: Text(
-                        loc?.noPendingPayments ?? 'No pending payments',
-                        style: TextStyle(color: Colors.grey[500]),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount:
-                          _dashboardData?.pendingPayments.payments.length ?? 0,
-                      separatorBuilder: (_, __) => Divider(
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                        height: 12,
-                      ),
-                      itemBuilder: (context, index) {
-                        final payment =
-                            _dashboardData!.pendingPayments.payments[index];
-                        return InkWell(
-                          onTap: () => _navigateToBillDetails(payment),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      payment['customerName'],
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark
-                                            ? Colors.grey[100]
-                                            : Colors.grey[800],
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${loc?.bill ?? 'Bill'}: ₹${payment['totalAmount']} • ${loc?.remaining ?? 'Remaining'}: ₹${payment['amountRemaining']}',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        color: isDark
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                  )
+                : ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount:
+                        _dashboardData?.pendingPayments.payments.length ?? 0,
+                    separatorBuilder: (_, __) => Divider(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey[700]!
+                          : Colors.grey[300]!,
+                      height: 12,
                     ),
-            ),
-            if (_expandPendingPayments &&
-                (_dashboardData?.pendingPayments.payments.isNotEmpty ??
-                    false)) ...[
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      AppNavigator.push(context, const PendingPaymentsPage());
+                    itemBuilder: (context, index) {
+                      final payment =
+                          _dashboardData!.pendingPayments.payments[index];
+                      return PaymentListItem(
+                        customerName: payment['customerName'],
+                        totalAmount: payment['totalAmount'] as int,
+                        remainingAmount: payment['amountRemaining'] as int,
+                        onTap: () => _navigateToBillDetails(payment),
+                        loc: loc,
+                      );
                     },
-                    icon: const Icon(Icons.visibility, size: 18),
-                    label: Text(
-                      loc?.viewAllPendingPayments ??
-                          'View All Pending Payments',
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.orange[600],
-                      side: BorderSide(color: Colors.orange.withOpacity(0.5)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+                  ),
+          ),
+          if (_expandPendingPayments &&
+              (_dashboardData?.pendingPayments.payments.isNotEmpty ??
+                  false)) ...[
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    AppNavigator.push(context, const PendingPaymentsPage());
+                  },
+                  icon: const Icon(Icons.visibility, size: 18),
+                  label: Text(
+                    loc?.viewAllPendingPayments ?? 'View All Pending Payments',
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange[600],
+                    side: BorderSide(color: Colors.orange.withOpacity(0.5)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
-            ],
+            ),
           ],
         ],
       ),
@@ -648,12 +339,6 @@ class _DashboardState extends State<Dashboard>
 
   Widget _buildPreviousDueCard(AppLocalizations? loc) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    // Only show if there are records
-    // Temporarily commented out for testing
-    // if (_totalPreviousDueCollected == 0 && _totalPreviousDuePending == 0) {
-    //   return const SizedBox.shrink();
-    // }
 
     return Container(
       decoration: BoxDecoration(
@@ -1942,73 +1627,13 @@ class _DashboardState extends State<Dashboard>
     required Color textColor,
     required IconData icon,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? textColor.withOpacity(0.4)
-              : textColor.withOpacity(0.2),
-          width: isDark ? 1.5 : 1,
-        ),
-      ),
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.grey[300] : Colors.grey[700],
-                    letterSpacing: 0.5,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? textColor.withOpacity(0.15)
-                      : textColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: textColor),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: textColor,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
-              fontWeight: FontWeight.w500,
-              height: 1.4,
-            ),
-          ),
-        ],
-      ),
+    return MetricCard(
+      title: title,
+      value: value,
+      subtitle: subtitle,
+      backgroundColor: backgroundColor,
+      textColor: textColor,
+      icon: icon,
     );
   }
 
