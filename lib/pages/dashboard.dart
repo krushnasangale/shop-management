@@ -350,6 +350,20 @@ class _DashboardState extends State<Dashboard>
               : Colors.purple.withOpacity(0.15),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.purple.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.purple.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,6 +569,20 @@ class _DashboardState extends State<Dashboard>
               : Colors.green.withOpacity(0.15),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.green.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.green.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -766,6 +794,20 @@ class _DashboardState extends State<Dashboard>
               : Colors.blue.withOpacity(0.15),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -940,6 +982,20 @@ class _DashboardState extends State<Dashboard>
               : Colors.red.withOpacity(0.15),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.red.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.red.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1178,7 +1234,7 @@ class _DashboardState extends State<Dashboard>
                         children: [
                           // Section 1 Title: Sales & Profit Analysis
                           Padding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 12),
+                            padding: const EdgeInsets.only(top: 8, bottom: 2),
                             child: Row(
                               children: [
                                 Icon(
@@ -1652,6 +1708,20 @@ class _DashboardState extends State<Dashboard>
           color: isDark ? bgColor.withOpacity(0.4) : bgColor.withOpacity(0.2),
           width: isDark ? 1.5 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: bgColor.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(10),
       child: Row(

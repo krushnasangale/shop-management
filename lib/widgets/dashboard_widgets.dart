@@ -49,6 +49,20 @@ class _ExpandableCardState extends State<ExpandableCard> {
               : widget.themeColor.withOpacity(0.15),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: widget.themeColor.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: widget.themeColor.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,6 +235,20 @@ class MetricCard extends StatelessWidget {
               : textColor.withOpacity(0.2),
           width: isDark ? 1.5 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: textColor.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: textColor.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+            spreadRadius: 0,
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(10),
       child: Column(

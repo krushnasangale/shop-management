@@ -1022,7 +1022,29 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     top: 5,
                     bottom: 5.0,
                   ),
-                  child: Card(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                          spreadRadius: 1,
+                        ),
+                        BoxShadow(
+                          color: Colors.grey.withOpacity(0.1),
+                          blurRadius: 0,
+                          offset: const Offset(0, 0),
+                          spreadRadius: 1,
+                        ),
+                      ],
+                      gradient: LinearGradient(
+                        colors: [Colors.white, Colors.white.withOpacity(0.95)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
                     child: TextField(
                       controller: _searchController,
                       style: context.bodyLargeText,
@@ -1192,31 +1214,55 @@ class _AvailableProductsState extends State<AvailableProducts> {
   Widget _buildFilterChip(String key, String label) {
     final isSelected = _selectedFilter == key;
     final cardColor = Theme.of(context).cardTheme.color;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _selectedFilter = key;
-        });
-        _filterProducts();
-      },
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      backgroundColor: cardColor,
-      selectedColor: Colors.blue.withOpacity(0.2),
-      side: BorderSide(
-        color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
-        width: 0.8,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 0,
+            offset: const Offset(0, 0),
+            spreadRadius: 1,
+          ),
+        ],
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.white.withOpacity(0.95)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.blue : null,
-        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        fontSize: 12,
+      child: FilterChip(
+        label: Text(label),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            _selectedFilter = key;
+          });
+          _filterProducts();
+        },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: cardColor,
+        selectedColor: Colors.blue.withOpacity(0.2),
+        side: BorderSide(
+          color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
+          width: 0.8,
+        ),
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.blue : null,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          fontSize: 12,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: -1),
+        visualDensity: const VisualDensity(horizontal: -2, vertical: -4),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-      labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: -1),
-      visualDensity: const VisualDensity(horizontal: -2, vertical: -4),
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 
@@ -1341,7 +1387,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         // Calculate min limit from available batches (use SUM of all min limits)
         final minLimitForStatus = availableBatches.fold(
           0,
-          (sum, p) => sum + p.minLimit,
+          (int sum, p) => sum + p.minLimit,
         );
 
         final unit = batches.first.unit;
@@ -1409,7 +1455,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         }
 
         return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 6.0),
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16.0),
             boxShadow: [

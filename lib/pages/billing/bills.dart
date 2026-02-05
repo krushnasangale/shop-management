@@ -921,8 +921,32 @@ class _BillsState extends State<Bills> {
                       top: 5,
                       bottom: 8.0,
                     ),
-                    child: Card(
-                      elevation: 2,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                            spreadRadius: 1,
+                          ),
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 0,
+                            offset: const Offset(0, 0),
+                            spreadRadius: 1,
+                          ),
+                        ],
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white,
+                            Colors.white.withOpacity(0.95),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
                       child: TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
@@ -962,61 +986,89 @@ class _BillsState extends State<Bills> {
                     child: Row(
                       children: [
                         // Combined Filter & Sort Button
-                        FilterChip(
-                          label: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.tune,
-                                size: 14,
-                                color: (_selectedSort != SortOption.dateNewest)
-                                    ? Colors.blue[700]
-                                    : Colors.grey[600],
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                                spreadRadius: 1,
                               ),
-                              const SizedBox(width: 4),
-                              Text(localizations.filterSort),
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.1),
+                                blurRadius: 0,
+                                offset: const Offset(0, 0),
+                                spreadRadius: 1,
+                              ),
                             ],
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.white,
+                                Colors.white.withOpacity(0.95),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                           ),
-                          selected: _selectedSort != SortOption.dateNewest,
-                          onSelected: (selected) async {
-                            await _showFilterSortBottomSheet(localizations);
-                          },
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          child: FilterChip(
+                            label: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.tune,
+                                  size: 14,
+                                  color:
+                                      (_selectedSort != SortOption.dateNewest)
+                                      ? Colors.blue[700]
+                                      : Colors.grey[600],
+                                ),
+                                const SizedBox(width: 4),
+                                Text(localizations.filterSort),
+                              ],
+                            ),
+                            selected: _selectedSort != SortOption.dateNewest,
+                            onSelected: (selected) async {
+                              await _showFilterSortBottomSheet(localizations);
+                            },
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            backgroundColor: Theme.of(context).cardTheme.color,
+                            selectedColor: Colors.blue.withOpacity(0.2),
+                            side: BorderSide(
+                              color: (_selectedSort != SortOption.dateNewest)
+                                  ? Colors.blue
+                                  : Colors.grey.withOpacity(0.5),
+                              width: 0.8,
+                            ),
+                            labelStyle: TextStyle(
+                              color: (_selectedSort != SortOption.dateNewest)
+                                  ? Colors.blue
+                                  : null,
+                              fontWeight:
+                                  (_selectedFilter != PaymentFilter.all ||
+                                      _selectedSort != SortOption.dateNewest)
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                              fontSize: 12,
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            labelPadding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: -1,
+                            ),
+                            visualDensity: const VisualDensity(
+                              horizontal: -2,
+                              vertical: -4,
+                            ),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           ),
-                          backgroundColor: Theme.of(context).cardTheme.color,
-                          selectedColor: Colors.blue.withOpacity(0.2),
-                          side: BorderSide(
-                            color: (_selectedSort != SortOption.dateNewest)
-                                ? Colors.blue
-                                : Colors.grey.withOpacity(0.5),
-                            width: 0.8,
-                          ),
-                          labelStyle: TextStyle(
-                            color: (_selectedSort != SortOption.dateNewest)
-                                ? Colors.blue
-                                : null,
-                            fontWeight:
-                                (_selectedFilter != PaymentFilter.all ||
-                                    _selectedSort != SortOption.dateNewest)
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                            fontSize: 12,
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 1,
-                          ),
-                          labelPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: -1,
-                          ),
-                          visualDensity: const VisualDensity(
-                            horizontal: -2,
-                            vertical: -4,
-                          ),
-                          materialTapTargetSize:
-                              MaterialTapTargetSize.shrinkWrap,
                         ),
                         const SizedBox(width: 8),
                         _buildFilterChip(PaymentFilter.all, localizations),
@@ -1166,23 +1218,26 @@ class _BillsState extends State<Bills> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? Colors.grey.withOpacity(0.2)
-              : Colors.grey.withOpacity(0.15),
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(16.0),
         boxShadow: [
           BoxShadow(
-            color: isDark
-                ? Colors.black.withOpacity(0.2)
-                : Colors.grey.withOpacity(0.08),
-            blurRadius: 6,
-            offset: const Offset(0, 1),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: 1,
+          ),
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 0,
+            offset: const Offset(0, 0),
+            spreadRadius: 1,
           ),
         ],
+        gradient: LinearGradient(
+          colors: [Colors.white, Colors.white.withOpacity(0.95)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1210,7 +1265,10 @@ class _BillsState extends State<Bills> {
           },
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12.0,
+              vertical: 8.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
