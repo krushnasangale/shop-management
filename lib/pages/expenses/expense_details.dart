@@ -153,14 +153,14 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
           ),
         ),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Amount Card
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [Colors.red, Colors.redAccent],
@@ -210,11 +210,11 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // Details Section
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -256,7 +256,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
 
                     // Detail Rows
                     _buildModernDetailRow(
@@ -265,7 +265,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                       label: localizations?.date ?? 'Date',
                       value: date,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
                     _buildModernDetailRow(
                       icon: Icons.category,
@@ -273,7 +273,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                       label: localizations?.category ?? 'Category',
                       value: category,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
                     _buildModernDetailRow(
                       icon: Icons.payment,
@@ -281,7 +281,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                       label: localizations?.paymentMethod ?? 'Payment Method',
                       value: paymentMethod.toUpperCase(),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
 
                     if (description.isNotEmpty) ...[
                       _buildModernDetailRow(
@@ -290,7 +290,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                         label: localizations?.description ?? 'Description',
                         value: description,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                     ],
 
                     // Created At

@@ -162,10 +162,31 @@ class _ExpensesListState extends State<ExpensesList>
               left: 12.0,
               right: 12.0,
               top: 5,
-              bottom: 0,
+              bottom: 2,
             ),
-            child: Card(
-              elevation: 2,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                    spreadRadius: 1,
+                  ),
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 0,
+                    offset: const Offset(0, 0),
+                    spreadRadius: 1,
+                  ),
+                ],
+                gradient: LinearGradient(
+                  colors: [Colors.white, Colors.white.withOpacity(0.95)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
@@ -205,7 +226,7 @@ class _ExpensesListState extends State<ExpensesList>
                   controller: _scrollController,
                   itemCount:
                       _displayedExpenses.length + (_isLoadingMore ? 1 : 0),
-                  padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+                  padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
                   itemBuilder: (context, index) {
                     if (index == _displayedExpenses.length) {
                       return const Center(
@@ -222,107 +243,126 @@ class _ExpensesListState extends State<ExpensesList>
                     final description = expense['description'] ?? '';
 
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.08),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                            spreadRadius: 1,
+                          ),
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            blurRadius: 0,
+                            offset: const Offset(0, 0),
+                            spreadRadius: 1,
+                          ),
+                        ],
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.white,
+                            Colors.white.withOpacity(0.95),
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(20),
-                        child: Card(
-                          child: InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      ExpenseDetails(expense: expense),
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    ExpenseDetails(expense: expense),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Header Row
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              category,
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.black87,
-                                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Header Row
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            category,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.black87,
                                             ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              date,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.grey[600],
-                                              ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            date,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
                                             ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Colors.red,
+                                            Colors.redAccent,
                                           ],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.red.withOpacity(0.3),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 3),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        '₹${amount == amount.toInt() ? amount.toInt() : amount.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: Colors.white,
                                         ),
                                       ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 6,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(
-                                            colors: [
-                                              Colors.red,
-                                              Colors.redAccent,
-                                            ],
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.red.withOpacity(
-                                                0.3,
-                                              ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 3),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Text(
-                                          '₹${amount == amount.toInt() ? amount.toInt() : amount.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  if (description.isNotEmpty) ...[
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      description,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[700],
-                                      ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ],
+                                ),
+                                if (description.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    description,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[700],
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ],
-                              ),
+                              ],
                             ),
                           ),
                         ),
@@ -382,7 +422,7 @@ class _ExpensesListState extends State<ExpensesList>
           )
         : ListView.builder(
             itemCount: categorySummaries.length,
-            padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
+            padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
             itemBuilder: (context, index) {
               final summary = categorySummaries[index];
               final category = summary['category'] ?? 'Other';
@@ -391,7 +431,7 @@ class _ExpensesListState extends State<ExpensesList>
               final lastExpenseDate = summary['lastExpenseDate'] ?? '';
 
               return Container(
-                margin: const EdgeInsets.only(bottom: 5),
+                margin: const EdgeInsets.only(bottom: 4),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Card(
@@ -600,7 +640,7 @@ class _ExpensesListState extends State<ExpensesList>
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -618,7 +658,7 @@ class _ExpensesListState extends State<ExpensesList>
                   subtitle: '$totalExpenses entries',
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: _buildSummaryCard(
                   title:
@@ -634,14 +674,14 @@ class _ExpensesListState extends State<ExpensesList>
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
           // Top Categories
           ...(topCategories.isNotEmpty
               ? [
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -683,14 +723,14 @@ class _ExpensesListState extends State<ExpensesList>
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
                         ...topCategories.map((entry) {
                           final percentage = totalAmount > 0
                               ? (entry.value / totalAmount * 100)
                               : 0;
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(14),
@@ -751,12 +791,12 @@ class _ExpensesListState extends State<ExpensesList>
                 ]
               : []),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Monthly Trend
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -797,12 +837,12 @@ class _ExpensesListState extends State<ExpensesList>
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 ...monthlyExpenses.entries.map((entry) {
                   final monthName = _getMonthName(entry.key);
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(12),
@@ -856,13 +896,13 @@ class _ExpensesListState extends State<ExpensesList>
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           // Payment Methods
           ...(_getPaymentMethodBreakdown().isNotEmpty
               ? [
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -904,14 +944,14 @@ class _ExpensesListState extends State<ExpensesList>
                             ),
                           ],
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 12),
                         ..._getPaymentMethodBreakdown().map((method) {
                           final percentage = totalAmount > 0
                               ? (method['amount'] / totalAmount * 100)
                               : 0;
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(12),
@@ -975,9 +1015,9 @@ class _ExpensesListState extends State<ExpensesList>
               : []),
 
           // Recent Activity
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -1018,7 +1058,7 @@ class _ExpensesListState extends State<ExpensesList>
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 12),
                 ..._expenses.take(5).map((expense) {
                   final date = expense['date'] ?? 'N/A';
                   final category = expense['category'] ?? 'Other';
@@ -1026,8 +1066,8 @@ class _ExpensesListState extends State<ExpensesList>
                   final description = expense['description'] ?? '';
 
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(14),
@@ -1120,7 +1160,7 @@ class _ExpensesListState extends State<ExpensesList>
     required String subtitle,
   }) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -1154,7 +1194,7 @@ class _ExpensesListState extends State<ExpensesList>
             ),
             child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
             value,
             style: const TextStyle(
@@ -1174,7 +1214,7 @@ class _ExpensesListState extends State<ExpensesList>
               letterSpacing: 0.2,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             subtitle,
             style: TextStyle(
@@ -1260,7 +1300,7 @@ class _ExpensesListState extends State<ExpensesList>
           localizations?.myExpenses ?? 'My Expenses',
           style: const TextStyle(
             fontWeight: FontWeight.w700,
-            fontSize: 24,
+            fontSize: 20,
             letterSpacing: -0.5,
           ),
         ),
@@ -1335,8 +1375,8 @@ class _ExpensesListState extends State<ExpensesList>
                 // Modern animated toggle buttons
                 Container(
                   margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
+                    horizontal: 6,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -1371,7 +1411,7 @@ class _ExpensesListState extends State<ExpensesList>
                     ),
                     constraints: const BoxConstraints(
                       minHeight: 44.0,
-                      minWidth: 95.0,
+                      minWidth: 115.0,
                     ),
                     borderWidth: 0,
                     selectedBorderColor: Colors.transparent,

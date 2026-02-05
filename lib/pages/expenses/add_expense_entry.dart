@@ -175,13 +175,13 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
         child: Form(
           key: _formKey,
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Form Card
                 Container(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -222,7 +222,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // Date Field
                       TextFormField(
@@ -273,7 +273,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Amount Field
                       TextFormField(
@@ -337,7 +337,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Category Dropdown
                       DropdownButtonFormField<String>(
@@ -404,7 +404,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
                       // Description Field
                       TextFormField(
@@ -455,7 +455,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // Payment Method Section
                       Text(
@@ -527,7 +527,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                           }).toList(),
                         ),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 20),
 
                       // Save Button
                       SizedBox(

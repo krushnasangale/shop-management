@@ -1175,7 +1175,7 @@ class _AvailableProductDetailScreenState
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.info_outline, size: 18),
-                        const SizedBox(width: 6),
+                        const SizedBox(width: 3),
                         Text(localizations.info),
                       ],
                     ),
@@ -1186,7 +1186,7 @@ class _AvailableProductDetailScreenState
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.history, size: 16),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 2),
                         Flexible(
                           child: Text(
                             localizations.purchases,
@@ -1202,7 +1202,7 @@ class _AvailableProductDetailScreenState
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.receipt_long, size: 16),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 2),
                         Flexible(
                           child: Text(
                             localizations.sales,
