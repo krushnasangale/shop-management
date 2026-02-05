@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:http/http.dart' as http;
@@ -12,6 +11,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/pages/products/tabs/sales_history_tab.dart';
 import 'package:flashbill/pages/products/tabs/purchase_history_tab.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/services/image_upload_service.dart';
 
 class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
@@ -383,34 +383,6 @@ class _AvailableProductDetailScreenState
     });
   }
 
-  Future<String?> _uploadImageToStorage(String productId, File? image) async {
-    if (image == null) return null;
-
-    try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('product-images')
-          .child(widget.userId)
-          .child('$productId.jpg');
-
-      // Delete the old image if it exists
-      try {
-        await storageRef.delete();
-      } catch (e) {
-        // Ignore if the file doesn't exist
-      }
-
-      final uploadTask = storageRef.putFile(image);
-      await uploadTask;
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      return downloadUrl;
-    } catch (e) {
-      // Error uploading image
-      return null;
-    }
-  }
-
   Future<void> _showImageSourceDialog(
     Function(ImageSource) onSourceSelected,
   ) async {
@@ -454,24 +426,64 @@ class _AvailableProductDetailScreenState
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: source);
       if (image != null) {
-        // Show loading dialog
+        // Show loading dialog with progress
+        double uploadProgress = 0.0;
+        StateSetter? dialogSetState;
+
         showDialog(
           context: context,
           barrierDismissible: false,
           builder: (BuildContext context) {
-            return const Dialog(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              child: Center(child: CircularProgressIndicator()),
+            return StatefulBuilder(
+              builder: (context, setState) {
+                dialogSetState = setState;
+                return Dialog(
+                  backgroundColor: Colors.white,
+                  elevation: 8,
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Uploading Image...',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        const CircularProgressIndicator(),
+                        const SizedBox(height: 8),
+                        Text(
+                          uploadProgress > 0
+                              ? '${(uploadProgress * 100).round()}%'
+                              : 'Preparing image...',
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
             );
           },
         );
 
         try {
           // Upload image to Firebase Storage
-          final imageUrl = await _uploadImageToStorage(
-            widget.product.id,
-            File(image.path),
+          final imageUrl = await ImageUploadService.uploadProductImage(
+            userId: widget.userId,
+            productId: widget.product.id,
+            image: File(image.path),
+            deleteOldImage: true,
+            onProgress: (progress) {
+              if (dialogSetState != null) {
+                dialogSetState!(() {
+                  uploadProgress = progress;
+                });
+              }
+            },
           );
 
           if (imageUrl != null) {

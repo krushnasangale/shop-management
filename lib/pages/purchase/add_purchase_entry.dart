@@ -9,10 +9,10 @@ import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/add_purchase_review.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/services/profile_service.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flashbill/services/image_upload_service.dart';
 
 class AddPurchaseEntry extends StatefulWidget {
   final String? purchaseId;
@@ -368,27 +368,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         onImageSelected(null);
       }
     });
-  }
-
-  Future<String?> _uploadImageToStorage(String productId, File? image) async {
-    if (image == null) return null;
-
-    try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('product-images')
-          .child(FirebaseAuth.instance.currentUser!.uid)
-          .child('$productId.jpg');
-
-      final uploadTask = storageRef.putFile(image);
-      await uploadTask;
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      return downloadUrl;
-    } catch (e) {
-      // Error uploading image
-      return null;
-    }
   }
 
   void _showEditBoughtItemDialog(BoughtItem item) {
@@ -997,6 +976,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     String productNameError = '';
     File? selectedImage;
     bool isUploading = false;
+    double uploadProgress = 0.0;
 
     showDialog(
       context: context,
@@ -1153,10 +1133,21 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               // Upload image if selected
                               String? imageUrl;
                               if (selectedImage != null) {
-                                imageUrl = await _uploadImageToStorage(
-                                  docRef.id,
-                                  selectedImage,
-                                );
+                                imageUrl =
+                                    await ImageUploadService.uploadProductImage(
+                                      userId: FirebaseAuth
+                                          .instance
+                                          .currentUser!
+                                          .uid,
+                                      productId: docRef.id,
+                                      image: selectedImage,
+                                      deleteOldImage: false,
+                                      onProgress: (progress) {
+                                        setDialogState(() {
+                                          uploadProgress = progress;
+                                        });
+                                      },
+                                    );
                                 if (imageUrl != null) {
                                   await docRef.update({'imageUrl': imageUrl});
                                 }
@@ -1189,10 +1180,22 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           }
                         },
                   child: isUploading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            if (uploadProgress > 0) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                '${(uploadProgress * 100).round()}%',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ],
                         )
                       : Text(appLocalizations.add),
                 ),

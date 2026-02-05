@@ -59,6 +59,7 @@ dependencies:
   crypto: ^3.0.7
   http: ^1.2.2
   pdfx: ^2.9.2
+  image: ^4.1.3
 
 dev_dependencies:
   flutter_test:

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flashbill/services/image_upload_service.dart';
 
 class Product {
   final String id;
@@ -157,45 +157,7 @@ class _ProductNameState extends State<ProductName> {
   }
 
   Future<void> _deleteImageFromStorage(String imageUrl) async {
-    try {
-      // Extract the path from the URL
-      // Firebase Storage URLs have format: https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media&token={token}
-      final uri = Uri.parse(imageUrl);
-      final pathSegments = uri.pathSegments;
-      // Find the path after '/o/' and before the query parameters
-      final oIndex = pathSegments.indexOf('o');
-      if (oIndex != -1 && oIndex + 1 < pathSegments.length) {
-        final encodedPath = pathSegments[oIndex + 1];
-        // URL decode the path
-        final imagePath = Uri.decodeComponent(encodedPath);
-
-        final storageRef = FirebaseStorage.instance.ref().child(imagePath);
-        await storageRef.delete();
-      }
-    } catch (e) {
-      // Silently fail if deletion fails - the old image will remain but won't cause issues
-    }
-  }
-
-  Future<String?> _uploadImageToStorage(String productId, File? image) async {
-    if (image == null) return null;
-
-    try {
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('product-images')
-          .child(_userId)
-          .child('$productId.jpg');
-
-      final uploadTask = storageRef.putFile(image);
-      await uploadTask;
-      final downloadUrl = await storageRef.getDownloadURL();
-
-      return downloadUrl;
-    } catch (e) {
-      // Error uploading image
-      return null;
-    }
+    await ImageUploadService.deleteImageByUrl(imageUrl);
   }
 
   void _getUserAndLoadProducts() {
@@ -412,6 +374,7 @@ class _ProductNameState extends State<ProductName> {
     _productNameController.clear();
     _selectedImage = null;
     bool isUploading = false;
+    double uploadProgress = 0.0;
 
     showDialog(
       context: context,
@@ -551,10 +514,18 @@ class _ProductNameState extends State<ProductName> {
                             // Upload image if selected
                             String? imageUrl;
                             if (_selectedImage != null) {
-                              imageUrl = await _uploadImageToStorage(
-                                docRef.id,
-                                _selectedImage,
-                              );
+                              imageUrl =
+                                  await ImageUploadService.uploadProductImage(
+                                    userId: _userId,
+                                    productId: docRef.id,
+                                    image: _selectedImage,
+                                    deleteOldImage: false,
+                                    onProgress: (progress) {
+                                      setState(() {
+                                        uploadProgress = progress;
+                                      });
+                                    },
+                                  );
                               if (imageUrl != null) {
                                 await docRef.update({'imageUrl': imageUrl});
                               }
@@ -581,10 +552,22 @@ class _ProductNameState extends State<ProductName> {
                         }
                       },
                 child: isUploading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          if (uploadProgress > 0) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '${(uploadProgress * 100).round()}%',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ],
                       )
                     : Text(localizations?.add ?? 'Add'),
               ),
@@ -601,6 +584,7 @@ class _ProductNameState extends State<ProductName> {
     File? editSelectedImage;
     bool isUploadingImage = false;
     bool removeImage = false;
+    double uploadProgress = 0.0;
 
     showDialog(
       context: context,
@@ -793,10 +777,18 @@ class _ProductNameState extends State<ProductName> {
                             // Handle image update
                             if (editSelectedImage != null) {
                               // Upload new image
-                              final imageUrl = await _uploadImageToStorage(
-                                product.id,
-                                editSelectedImage,
-                              );
+                              final imageUrl =
+                                  await ImageUploadService.uploadProductImage(
+                                    userId: _userId,
+                                    productId: product.id,
+                                    image: editSelectedImage,
+                                    deleteOldImage: false,
+                                    onProgress: (progress) {
+                                      setState(() {
+                                        uploadProgress = progress;
+                                      });
+                                    },
+                                  );
                               if (imageUrl != null) {
                                 updateData['imageUrl'] = imageUrl;
                               }
@@ -835,10 +827,22 @@ class _ProductNameState extends State<ProductName> {
                         }
                       },
                 child: isUploadingImage
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          if (uploadProgress > 0) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '${(uploadProgress * 100).round()}%',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ],
                       )
                     : Text(localizations?.save ?? 'Save'),
               ),
