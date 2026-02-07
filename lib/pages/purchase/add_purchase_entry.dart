@@ -2250,7 +2250,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -2297,6 +2297,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                             onTap: () => _showSupplierSelectionDrawer(context),
                             suffixIcon: Icons.arrow_drop_down,
                             readOnly: true,
+                            bottomPadding: false,
                           ),
                           if (_supplierNameError.isNotEmpty)
                             Container(
@@ -2332,7 +2333,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
                   // Info message with modern styling
                   Container(
@@ -2349,15 +2350,15 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         Icon(
                           Icons.info_outline,
                           color: Colors.blue.shade600,
-                          size: 24,
+                          size: 20,
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             appLocalizations.purchaseInfoMessage,
                             style: TextStyle(
                               color: Colors.blue.shade800,
-                              fontSize: 14,
+                              fontSize: 12,
                               height: 1.4,
                             ),
                           ),
@@ -2366,17 +2367,17 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
                   // Product Details Card
                   Card(
                     elevation: 4,
-                    shadowColor: Colors.green.withValues(alpha: 0.3),
+                    shadowColor: Colors.blue.withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(12),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -2384,7 +2385,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                             children: [
                               Icon(
                                 Icons.inventory_2,
-                                color: Colors.green.shade600,
+                                color: Colors.blue.shade600,
                                 size: 24,
                               ),
                               const SizedBox(width: 12),
@@ -2393,7 +2394,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.green.shade800,
+                                  color: Colors.blue.shade800,
                                 ),
                               ),
                             ],
@@ -2443,8 +2444,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 }
                               },
                             ),
+                            const SizedBox(height: 10),
                           ],
-                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(
@@ -2464,7 +2465,6 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(
@@ -2475,6 +2475,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
+                                  bottomPadding: false,
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -2486,6 +2487,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                       const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
+                                  bottomPadding: false,
                                 ),
                               ),
                             ],
@@ -2495,7 +2497,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
 
                   // Add Product Button
                   Container(
@@ -2503,12 +2505,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     height: 50,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.green.shade500, Colors.green.shade700],
+                        colors: [Colors.blue.shade500, Colors.blue.shade700],
                       ),
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withValues(alpha: 0.3),
+                          color: Colors.blue.withValues(alpha: 0.3),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -2535,6 +2537,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   ),
                   // Selected Products Section
                   if (_boughtItems.isNotEmpty) ...[
+                    const SizedBox(height: 12),
                     Text(
                       appLocalizations.selectedProducts,
                       style: TextStyle(
@@ -2851,7 +2854,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                                               ),
                                                           decoration: BoxDecoration(
                                                             color: Colors
-                                                                .green
+                                                                .blue
                                                                 .shade50,
                                                             borderRadius:
                                                                 BorderRadius.circular(
@@ -2859,7 +2862,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                                                 ),
                                                             border: Border.all(
                                                               color: Colors
-                                                                  .green
+                                                                  .blue
                                                                   .shade200,
                                                             ),
                                                           ),
@@ -2873,7 +2876,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                                                     .inventory_2_outlined,
                                                                 size: 14,
                                                                 color: Colors
-                                                                    .green
+                                                                    .blue
                                                                     .shade700,
                                                               ),
                                                               const SizedBox(
@@ -2890,7 +2893,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                                                       FontWeight
                                                                           .bold,
                                                                   color: Colors
-                                                                      .green
+                                                                      .blue
                                                                       .shade700,
                                                                 ),
                                                               ),
@@ -2997,19 +3000,19 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                             },
                           ),
                         ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
 
                   // Total Amount Card
                   Container(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.green.shade500, Colors.green.shade600],
+                        colors: [Colors.blue.shade500, Colors.blue.shade600],
                       ),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withValues(alpha: 0.3),
+                          color: Colors.blue.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 6),
                         ),
@@ -3037,7 +3040,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
 
                   // Action Buttons
                   Row(
@@ -3221,9 +3224,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     Function(String)? onChanged,
     bool enabled = true,
     bool readOnly = false,
+    bool bottomPadding = true,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: bottomPadding ? 12.0 : 0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
