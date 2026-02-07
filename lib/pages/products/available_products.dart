@@ -15,6 +15,8 @@ import 'dart:typed_data';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/products/available_product_item_detail.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 class AvailableProducts extends StatefulWidget {
   const AvailableProducts({super.key});
@@ -44,6 +46,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
   bool _isLoadingMore = false;
   bool _isGeneratingReport = false;
   double _generationProgress = 0.0;
+  bool _cancelGeneration = false;
 
   AppLocalizations? localizations;
   final ProfileService _profileService = ProfileService();
@@ -432,6 +435,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
   }
 
   Future<File> _generateProductsCatalogue(bool includePrices) async {
+    // Check for immediate cancellation
+    if (_cancelGeneration) {
+      throw Exception('Generation cancelled by user');
+    }
+
     // Initialize progress
     setState(() {
       _generationProgress = 0.1; // 10% - Starting
@@ -448,6 +456,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
     setState(() {
       _generationProgress = 0.2; // 20% - Grouping products
     });
+
+    // Check for cancellation after grouping
+    if (_cancelGeneration) {
+      throw Exception('Generation cancelled by user');
+    }
 
     Map<String, Map<String, dynamic>> groupedProducts = {};
     for (var product in _boughtProducts) {
@@ -474,20 +487,26 @@ class _AvailableProductsState extends State<AvailableProducts> {
     Map<String, Uint8List?> productImages = {};
     final totalProducts = productsList.length;
     for (int i = 0; i < productsList.length; i++) {
+      // Check for cancellation
+      if (_cancelGeneration) {
+        setState(() {
+          _isGeneratingReport = false;
+          _generationProgress = 0.0;
+          _cancelGeneration = false;
+        });
+        throw Exception('Generation cancelled by user');
+      }
+
       final product = productsList[i];
       final imageUrl = product['imageUrl'] as String?;
       final productName = product['name'] as String;
       if (imageUrl != null && imageUrl.isNotEmpty) {
         try {
-          final response = await http.get(Uri.parse(imageUrl));
-          if (response.statusCode == 200) {
-            productImages[productName] = response.bodyBytes;
-          } else {
-            productImages[productName] = null;
-          }
+          // Use cached image bytes instead of fresh download
+          productImages[productName] = await _getCachedImageBytes(imageUrl);
         } catch (e) {
-          debugPrint('Error downloading image for $productName: $e');
-          // If image download fails, we'll use placeholder
+          debugPrint('Error getting cached image for $productName: $e');
+          // If image retrieval fails, we'll use placeholder
           productImages[productName] = null;
         }
       } else {
@@ -495,10 +514,15 @@ class _AvailableProductsState extends State<AvailableProducts> {
         productImages[productName] = null;
       }
 
-      // Update progress during image downloads (30% to 70%)
+      // Update progress during image processing (30% to 70%)
       setState(() {
         _generationProgress = 0.3 + (0.4 * (i + 1) / totalProducts);
       });
+    }
+
+    // Check for cancellation before building PDF
+    if (_cancelGeneration) {
+      throw Exception('Generation cancelled by user');
     }
 
     // Build PDF content
@@ -694,25 +718,43 @@ class _AvailableProductsState extends State<AvailableProducts> {
     try {
       setState(() {
         _isGeneratingReport = true;
+        _cancelGeneration = false;
+        _generationProgress = 0.0;
       });
 
       final file = await _generateProductsPDF();
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: '$_shopName - Products Report',
-        subject: 'Products Report - $_shopName',
-      );
+      // Check if generation was cancelled after completion
+      if (_cancelGeneration) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: '$_shopName - Products Report',
+          subject: 'Products Report - $_shopName',
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(localizations!.errorGeneratingPdf),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (e.toString().contains('cancelled by user')) {
+        // Show cancellation message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PDF generation cancelled'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(localizations!.errorGeneratingPdf),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isGeneratingReport = false;
+        _generationProgress = 0.0;
+        _cancelGeneration = false;
       });
     }
   }
@@ -721,26 +763,43 @@ class _AvailableProductsState extends State<AvailableProducts> {
     try {
       setState(() {
         _isGeneratingReport = true;
+        _cancelGeneration = false;
+        _generationProgress = 0.0;
       });
 
       final file = await _generateProductsCatalogue(includePrices);
 
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: '$_shopName - Product Catalogue',
-        subject: 'Product Catalogue - $_shopName',
-      );
+      // Check if generation was cancelled after completion
+      if (!_cancelGeneration) {
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: '$_shopName - Product Catalogue',
+          subject: 'Product Catalogue - $_shopName',
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error generating catalogue'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (e.toString().contains('cancelled by user')) {
+        // Show cancellation message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Catalogue generation cancelled'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error generating catalogue: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       setState(() {
         _isGeneratingReport = false;
         _generationProgress = 0.0;
+        _cancelGeneration = false;
       });
     }
   }
@@ -776,6 +835,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
   }
 
   Future<File> _generateProductsPDF() async {
+    // Check for immediate cancellation
+    if (_cancelGeneration) {
+      throw Exception('Generation cancelled by user');
+    }
+
     final pdf = pw.Document();
     final dir = await getTemporaryDirectory();
     final now = DateTime.now();
@@ -954,6 +1018,35 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     await file.writeAsString(csv.toString());
     return file;
+  }
+
+  /// Get cached image bytes for a given URL, or download if not cached
+  Future<Uint8List?> _getCachedImageBytes(String imageUrl) async {
+    try {
+      // Try to get from cache first
+      final cacheManager = DefaultCacheManager();
+      final fileInfo = await cacheManager.getFileFromCache(imageUrl);
+
+      if (fileInfo != null && fileInfo.file.existsSync()) {
+        // Return cached image bytes
+        return await fileInfo.file.readAsBytes();
+      }
+
+      // If not cached, download and cache it
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        // Cache the downloaded image
+        await cacheManager.putFile(
+          imageUrl,
+          response.bodyBytes,
+          fileExtension: 'jpg', // or appropriate extension
+        );
+        return response.bodyBytes;
+      }
+    } catch (e) {
+      debugPrint('Error getting cached image for $imageUrl: $e');
+    }
+    return null;
   }
 
   @override
@@ -1200,6 +1293,39 @@ class _AvailableProductsState extends State<AvailableProducts> {
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
                           color: Colors.blue,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      // Cancel button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              _cancelGeneration = true;
+                              _isGeneratingReport = false;
+                              _generationProgress = 0.0;
+                            });
+                            // Show cancellation message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Catalogue generation cancelled'),
+                                backgroundColor: Colors.orange,
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.cancel, size: 18),
+                          label: const Text('Cancel'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade50,
+                            foregroundColor: Colors.red.shade700,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.red.shade200),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -1524,43 +1650,33 @@ class _AvailableProductsState extends State<AvailableProducts> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.network(
-                                firstBatch.imageUrl!,
+                              child: CachedNetworkImage(
+                                imageUrl: firstBatch.imageUrl!,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey.shade100,
-                                    child: Icon(
-                                      Icons.broken_image,
-                                      size: 24,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                  );
-                                },
-                                loadingBuilder: (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Container(
-                                    color: Colors.grey.shade50,
-                                    child: Center(
-                                      child: SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          value:
-                                              loadingProgress
-                                                      .expectedTotalBytes !=
-                                                  null
-                                              ? loadingProgress
-                                                        .cumulativeBytesLoaded /
-                                                    loadingProgress
-                                                        .expectedTotalBytes!
-                                              : null,
-                                        ),
+                                placeholder: (context, url) => Container(
+                                  color: Colors.grey.shade50,
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Theme.of(context).primaryColor,
+                                            ),
                                       ),
                                     ),
-                                  );
-                                },
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) => Container(
+                                  color: Colors.grey.shade100,
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    size: 24,
+                                    color: Colors.grey.shade400,
+                                  ),
+                                ),
                               ),
                             ),
                           )
