@@ -1097,6 +1097,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               ),
 
               // --- Product List (Grouped by Name with Batch Details) ---
+              const SizedBox(height: 5),
               Expanded(
                 child: _filteredProducts.isEmpty
                     ? Center(
@@ -1107,6 +1108,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                       )
                     : _buildGroupedProductList(context),
               ),
+              const SizedBox(height: 20),
             ],
           ),
           // Loading overlay for catalogue generation

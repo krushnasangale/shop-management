@@ -1087,6 +1087,7 @@ class _BillsState extends State<Bills> {
                     ),
                   ),
                 ), // --- 3. Filtered Bills List ---
+                const SizedBox(height: 5),
                 Expanded(
                   child: _filteredBills.isEmpty
                       ? Center(
@@ -1216,7 +1217,7 @@ class _BillsState extends State<Bills> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.0),
         border: Border.all(width: 1, color: Colors.black.withOpacity(0.1)),
