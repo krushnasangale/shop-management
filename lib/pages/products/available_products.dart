@@ -725,7 +725,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
       final file = await _generateProductsPDF();
 
       // Check if generation was cancelled after completion
-      if (_cancelGeneration) {
+      if (!_cancelGeneration) {
         await Share.shareXFiles(
           [XFile(file.path)],
           text: '$_shopName - Products Report',
