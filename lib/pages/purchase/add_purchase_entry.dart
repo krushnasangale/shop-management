@@ -402,7 +402,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               children: [
                 // Product Details (Read-only)
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(8),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
                     color: Colors.blue.withOpacity(0.1),
@@ -800,7 +800,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               children: [
                 // Title and close button
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -822,7 +822,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 ),
                 // Search bar and Add button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
                       Expanded(
@@ -847,7 +847,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       ),
                       if (title == 'Products' || title == 'Units')
                         Padding(
-                          padding: const EdgeInsets.only(left: 12),
+                          padding: const EdgeInsets.only(left: 8),
                           child: SizedBox(
                             height: 50,
                             child: ElevatedButton.icon(
@@ -876,7 +876,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 // Items list
                 Expanded(
                   child: filteredItems.isEmpty
@@ -1025,7 +1025,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     // Image Selection
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1408,7 +1408,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               children: [
                 // Title and close button
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1428,7 +1428,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 ),
                 // Search field and Add button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   child: Row(
                     children: [
                       Expanded(
@@ -1516,7 +1516,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 // Suppliers list with full details
                 Expanded(
                   child: displaySuppliers.isEmpty
@@ -1529,7 +1529,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       : ListView.builder(
                           controller: scrollController,
                           itemCount: displaySuppliers.length,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           itemBuilder: (context, index) {
                             final supplier = displaySuppliers[index];
                             final name = supplier['name'] ?? 'Unknown';
@@ -1570,7 +1570,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   Navigator.pop(context);
                                 },
                                 child: Padding(
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.all(8),
                                   child: Row(
                                     children: [
                                       CircleAvatar(
@@ -1682,7 +1682,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           },
                         ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
               ],
             ),
           );
@@ -2205,723 +2205,936 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     final isEditMode = widget.purchaseId != null;
     return Scaffold(
       appBar: AppBar(
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.blue.shade600, Colors.blue.shade800],
+            ),
+          ),
+        ),
         title: Text(
           isEditMode
               ? appLocalizations.editPurchaseEntry
               : appLocalizations.addBoughtEntry,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
         ),
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                buildFormField(
-                  appLocalizations.selectDate,
-                  _dateController,
-                  suffixIcon: Icons.calendar_today_outlined,
-                  onTap: () async {
-                    final DateTime? pickedDate = await showDatePicker(
-                      context: context,
-                      initialDate: DateTime.now(),
-                      firstDate: DateTime(2000),
-                      lastDate: DateTime(2101),
-                    );
-                    if (pickedDate != null) {
-                      _dateController.text = DateFormat(
-                        'dd/MM/yyyy',
-                      ).format(pickedDate);
-                    }
-                  },
-                ),
-                buildFormField(
-                  appLocalizations.selectSupplier,
-                  _supplierNameController,
-                  onTap: () => _showSupplierSelectionDrawer(context),
-                  suffixIcon: Icons.arrow_drop_down,
-                  enabled: false,
-                ),
-                if (_supplierNameError.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        _supplierNameError,
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
-                      ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.blue.shade50.withValues(alpha: 0.3), Colors.white],
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  // Purchase Details Card
+                  Card(
+                    elevation: 4,
+                    shadowColor: Colors.blue.withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
-                  ),
-                const SizedBox(height: 6),
-                // Info message
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    border: Border.all(color: Colors.blue, width: 1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                      SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          appLocalizations.purchaseInfoMessage,
-                          style: TextStyle(color: Colors.blue, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-                // Product Name Field
-                buildFormField(
-                  appLocalizations.selectProductName,
-                  _productController,
-                  suffixIcon: Icons.arrow_drop_down,
-                  onTap: () => _showSelectionSheet(
-                    'Products',
-                    _allProducts,
-                    _productController,
-                  ),
-                  enabled: false,
-                ),
-                // Unit Field
-                buildFormField(
-                  appLocalizations.selectProductUnit,
-                  _unitController,
-                  suffixIcon: Icons.arrow_drop_down,
-                  onTap: () =>
-                      _showSelectionSheet('Units', _allUnits, _unitController),
-                  enabled: false,
-                ),
-                // Expiry Date Field (conditionally shown based on settings)
-                if (_expiryDateEnabled) ...[
-                  buildFormField(
-                    appLocalizations.expiryDateOptional,
-                    _expiryDateController,
-                    suffixIcon: Icons.calendar_today_outlined,
-                    onTap: () async {
-                      final DateTime? pickedDate = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now().add(
-                          const Duration(days: 30),
-                        ),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2101),
-                      );
-                      if (pickedDate != null) {
-                        _expiryDateController.text = DateFormat(
-                          'dd/MM/yyyy',
-                        ).format(pickedDate);
-                      }
-                    },
-                  ),
-                ],
-                // Quantity Field
-                Row(
-                  children: [
-                    Expanded(
-                      child: buildFormField(
-                        appLocalizations.productQuantity,
-                        _quantityController,
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: buildFormField(
-                        appLocalizations.minQty,
-                        _minLimitController,
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                // Buying Price Field
-                Row(
-                  children: [
-                    Expanded(
-                      child: buildFormField(
-                        appLocalizations.buyingPricePerItem,
-                        _buyingPriceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      child: buildFormField(
-                        appLocalizations.sellingPricePerItem,
-                        _sellingPriceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      appLocalizations.selectedProducts,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    SizedBox(
-                      height: 25,
-                      child: ElevatedButton.icon(
-                        onPressed: _addProductToList,
-                        icon: const Icon(Icons.add, color: Colors.white),
-                        label: Text(
-                          appLocalizations.addProduct,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _boughtItems.isEmpty
-                    ? Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.grey.withOpacity(0.3),
-                              style: BorderStyle.solid,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
                               Icon(
-                                Icons.info_outline,
-                                color: Colors.grey[600],
-                                size: 20,
+                                Icons.receipt_long,
+                                color: Colors.blue.shade600,
+                                size: 24,
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 12),
                               Text(
-                                appLocalizations.noProductsAddedYet,
+                                appLocalizations.purchaseDetails,
                                 style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 14,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue.shade800,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      )
-                    : SizedBox(
-                        height:
-                            _boughtItems.any(
-                              (item) =>
-                                  item.sellingPrice <= 0 || item.minLimit <= 0,
-                            )
-                            ? 260
-                            : 210,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          shrinkWrap: false,
-                          padding: const EdgeInsets.symmetric(horizontal: 8),
-                          itemCount: _boughtItems.length,
-                          itemBuilder: (context, index) {
-                            final item = _boughtItems[index];
-                            final hasSellingPriceError = item.sellingPrice <= 0;
-                            final hasMinLimitError = item.minLimit <= 0;
+                          const SizedBox(height: 12),
+                          buildModernFormField(
+                            appLocalizations.selectDate,
+                            _dateController,
+                            suffixIcon: Icons.calendar_today_outlined,
+                            onTap: () async {
+                              final DateTime? pickedDate = await showDatePicker(
+                                context: context,
+                                initialDate: DateTime.now(),
+                                firstDate: DateTime(2000),
+                                lastDate: DateTime(2101),
+                              );
+                              if (pickedDate != null) {
+                                _dateController.text = DateFormat(
+                                  'dd/MM/yyyy',
+                                ).format(pickedDate);
+                              }
+                            },
+                          ),
+                          buildModernFormField(
+                            appLocalizations.selectSupplier,
+                            _supplierNameController,
+                            onTap: () => _showSupplierSelectionDrawer(context),
+                            suffixIcon: Icons.arrow_drop_down,
+                            readOnly: true,
+                          ),
+                          if (_supplierNameError.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.red.shade200),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.red.shade600,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _supplierNameError,
+                                      style: TextStyle(
+                                        color: Colors.red.shade700,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
 
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 12),
-                              child: SizedBox(
-                                height:
+                  const SizedBox(height: 12),
+
+                  // Info message with modern styling
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.blue.shade50, Colors.blue.shade100],
+                      ),
+                      border: Border.all(color: Colors.blue.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: Colors.blue.shade600,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            appLocalizations.purchaseInfoMessage,
+                            style: TextStyle(
+                              color: Colors.blue.shade800,
+                              fontSize: 14,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Product Details Card
+                  Card(
+                    elevation: 4,
+                    shadowColor: Colors.green.withValues(alpha: 0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.inventory_2,
+                                color: Colors.green.shade600,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                appLocalizations.productDetails,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          buildModernFormField(
+                            appLocalizations.selectProductName,
+                            _productController,
+                            suffixIcon: Icons.arrow_drop_down,
+                            onTap: () => _showSelectionSheet(
+                              'Products',
+                              _allProducts,
+                              _productController,
+                            ),
+                            readOnly: true,
+                          ),
+                          buildModernFormField(
+                            appLocalizations.selectProductUnit,
+                            _unitController,
+                            suffixIcon: Icons.arrow_drop_down,
+                            onTap: () => _showSelectionSheet(
+                              'Units',
+                              _allUnits,
+                              _unitController,
+                            ),
+                            readOnly: true,
+                          ),
+                          if (_expiryDateEnabled) ...[
+                            buildModernFormField(
+                              appLocalizations.expiryDateOptional,
+                              _expiryDateController,
+                              suffixIcon: Icons.calendar_today_outlined,
+                              onTap: () async {
+                                final DateTime? pickedDate =
+                                    await showDatePicker(
+                                      context: context,
+                                      initialDate: DateTime.now().add(
+                                        const Duration(days: 30),
+                                      ),
+                                      firstDate: DateTime.now(),
+                                      lastDate: DateTime(2101),
+                                    );
+                                if (pickedDate != null) {
+                                  _expiryDateController.text = DateFormat(
+                                    'dd/MM/yyyy',
+                                  ).format(pickedDate);
+                                }
+                              },
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: buildModernFormField(
+                                  appLocalizations.productQuantity,
+                                  _quantityController,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: buildModernFormField(
+                                  appLocalizations.minQty,
+                                  _minLimitController,
+                                  keyboardType: TextInputType.number,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: buildModernFormField(
+                                  appLocalizations.buyingPricePerItem,
+                                  _buyingPriceController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: buildModernFormField(
+                                  appLocalizations.sellingPricePerItem,
+                                  _sellingPriceController,
+                                  keyboardType:
+                                      const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Add Product Button
+                  Container(
+                    width: double.infinity,
+                    height: 50,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade500, Colors.green.shade700],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton.icon(
+                      onPressed: _addProductToList,
+                      icon: const Icon(Icons.add, color: Colors.white),
+                      label: Text(
+                        appLocalizations.addProduct,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Selected Products Section
+                  if (_boughtItems.isNotEmpty) ...[
+                    Text(
+                      appLocalizations.selectedProducts,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  _boughtItems.isEmpty
+                      ? Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 40,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.inventory_2_outlined,
+                                color: Colors.grey.shade400,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                appLocalizations.noProductsAddedYet,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : SizedBox(
+                          height:
+                              _boughtItems.any(
+                                (item) =>
+                                    item.sellingPrice <= 0 ||
+                                    item.minLimit <= 0,
+                              )
+                              ? 260
+                              : 210,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            shrinkWrap: false,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            itemCount: _boughtItems.length,
+                            itemBuilder: (context, index) {
+                              final item = _boughtItems[index];
+                              final hasSellingPriceError =
+                                  item.sellingPrice <= 0;
+                              final hasMinLimitError = item.minLimit <= 0;
+
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: SizedBox(
+                                  height:
+                                      _boughtItems.any(
+                                        (item) =>
+                                            item.sellingPrice <= 0 ||
+                                            item.minLimit <= 0,
+                                      )
+                                      ? 220
+                                      : 165,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Expanded(
+                                        child: Container(
+                                          width: 180,
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                Colors.blue.shade50,
+                                                Colors.white,
+                                              ],
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              16,
+                                            ),
+                                            border: Border.all(
+                                              color:
+                                                  hasSellingPriceError ||
+                                                      hasMinLimitError
+                                                  ? Colors.red.withOpacity(0.5)
+                                                  : Colors.blue.withOpacity(
+                                                      0.2,
+                                                    ),
+                                              width: 1.5,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color:
+                                                    hasSellingPriceError ||
+                                                        hasMinLimitError
+                                                    ? Colors.red.withOpacity(
+                                                        0.1,
+                                                      )
+                                                    : Colors.blue.withOpacity(
+                                                        0.1,
+                                                      ),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ],
+                                          ),
+                                          child: Stack(
+                                            children: [
+                                              // Index Badge
+                                              Positioned(
+                                                top: 8,
+                                                left: 8,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 5,
+                                                        vertical: 3,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    gradient: LinearGradient(
+                                                      colors: [
+                                                        Colors.blue.shade600,
+                                                        Colors.blue.shade400,
+                                                      ],
+                                                    ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.blue
+                                                            .withOpacity(0.3),
+                                                        blurRadius: 4,
+                                                        offset: const Offset(
+                                                          0,
+                                                          2,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Text(
+                                                    '#${index + 1}',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              // edit button
+                                              Positioned(
+                                                top: 8,
+                                                left: 50,
+                                                child: Material(
+                                                  color: Colors.transparent,
+                                                  child: InkWell(
+                                                    onTap: () =>
+                                                        _showEditBoughtItemDialog(
+                                                          item,
+                                                        ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                            4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors
+                                                            .orange
+                                                            .shade50,
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                      child: Icon(
+                                                        Icons.edit,
+                                                        color: Colors
+                                                            .orange
+                                                            .shade600,
+                                                        size: 18,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              // Delete Button
+                                              Positioned(
+                                                top: 8,
+                                                right: 8,
+                                                child: Material(
+                                                  color: Colors.transparent,
+                                                  child: InkWell(
+                                                    onTap: () =>
+                                                        _removeBoughtItem(
+                                                          index,
+                                                        ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          20,
+                                                        ),
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                            4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color:
+                                                            Colors.red.shade50,
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                      child: Icon(
+                                                        Icons.close,
+                                                        color:
+                                                            Colors.red.shade600,
+                                                        size: 18,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              // Content
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                      12,
+                                                      40,
+                                                      12,
+                                                      12,
+                                                    ),
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment
+                                                          .spaceBetween,
+                                                  children: [
+                                                    // Product Image
+                                                    if (item.imageUrl != null)
+                                                      Container(
+                                                        width: double.infinity,
+                                                        height: 60,
+                                                        child: CachedNetworkImage(
+                                                          imageUrl:
+                                                              item.imageUrl!,
+                                                          fit: BoxFit.cover,
+                                                          placeholder:
+                                                              (
+                                                                context,
+                                                                url,
+                                                              ) => Container(
+                                                                color: Colors
+                                                                    .grey[200],
+                                                                child: const Center(
+                                                                  child:
+                                                                      CircularProgressIndicator(),
+                                                                ),
+                                                              ),
+                                                          errorWidget:
+                                                              (
+                                                                context,
+                                                                url,
+                                                                error,
+                                                              ) => Container(
+                                                                color: Colors
+                                                                    .grey[200],
+                                                                child: const Icon(
+                                                                  Icons
+                                                                      .image_not_supported,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                      ),
+                                                    const SizedBox(height: 4),
+                                                    // Product Name
+                                                    Text(
+                                                      item.productName,
+                                                      style: const TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.black87,
+                                                      ),
+                                                      maxLines: 2,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    // Quantity and Price Row
+                                                    Row(
+                                                      children: [
+                                                        // Quantity Badge
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets.symmetric(
+                                                                horizontal: 8,
+                                                                vertical: 4,
+                                                              ),
+                                                          decoration: BoxDecoration(
+                                                            color: Colors
+                                                                .green
+                                                                .shade50,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  6,
+                                                                ),
+                                                            border: Border.all(
+                                                              color: Colors
+                                                                  .green
+                                                                  .shade200,
+                                                            ),
+                                                          ),
+                                                          child: Row(
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
+                                                            children: [
+                                                              Icon(
+                                                                Icons
+                                                                    .inventory_2_outlined,
+                                                                size: 14,
+                                                                color: Colors
+                                                                    .green
+                                                                    .shade700,
+                                                              ),
+                                                              const SizedBox(
+                                                                width: 4,
+                                                              ),
+                                                              Text(
+                                                                item.quantity
+                                                                    .toStringAsFixed(
+                                                                      0,
+                                                                    ),
+                                                                style: TextStyle(
+                                                                  fontSize: 14,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                  color: Colors
+                                                                      .green
+                                                                      .shade700,
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 8,
+                                                        ),
+                                                        // Price
+                                                        Expanded(
+                                                          child: Text(
+                                                            '₹${item.buyingPrice.toStringAsFixed(2)}',
+                                                            style: TextStyle(
+                                                              fontSize: 13,
+                                                              color: Colors
+                                                                  .grey
+                                                                  .shade700,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                            ),
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    // Total Amount
+                                                    Container(
+                                                      width: double.infinity,
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 10,
+                                                            vertical: 6,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        gradient:
+                                                            LinearGradient(
+                                                              colors: [
+                                                                Colors
+                                                                    .blue
+                                                                    .shade600,
+                                                                Colors
+                                                                    .blue
+                                                                    .shade500,
+                                                              ],
+                                                            ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        '₹${item.total.toStringAsFixed(2)}',
+                                                        style: const TextStyle(
+                                                          fontSize: 16,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.white,
+                                                        ),
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      // Individual validation messages below each tile
+                                      if (hasSellingPriceError ||
+                                          hasMinLimitError)
+                                        const SizedBox(height: 6),
+                                      if (hasSellingPriceError)
+                                        Text(
+                                          'Selling price is 0',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      if (hasSellingPriceError &&
+                                          hasMinLimitError)
+                                        const SizedBox(height: 4),
+                                      if (hasMinLimitError)
+                                        Text(
+                                          'Min limit is 0',
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                  const SizedBox(height: 24),
+
+                  // Total Amount Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade500, Colors.green.shade600],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          appLocalizations.totalAmount,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          '₹${_totalBoughtAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.blue.shade300,
+                              width: 2,
+                            ),
+                          ),
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(
+                              appLocalizations.cancel,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                Colors.blue.shade500,
+                                Colors.blue.shade700,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.blue.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed:
+                                _boughtItems.isEmpty ||
                                     _boughtItems.any(
                                       (item) =>
                                           item.sellingPrice <= 0 ||
                                           item.minLimit <= 0,
                                     )
-                                    ? 220
-                                    : 165,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        width: 180,
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: [
-                                              Colors.blue.shade50,
-                                              Colors.white,
-                                            ],
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          border: Border.all(
-                                            color:
-                                                hasSellingPriceError ||
-                                                    hasMinLimitError
-                                                ? Colors.red.withOpacity(0.5)
-                                                : Colors.blue.withOpacity(0.2),
-                                            width: 1.5,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  hasSellingPriceError ||
-                                                      hasMinLimitError
-                                                  ? Colors.red.withOpacity(0.1)
-                                                  : Colors.blue.withOpacity(
-                                                      0.1,
-                                                    ),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 4),
-                                            ),
-                                          ],
-                                        ),
-                                        child: Stack(
-                                          children: [
-                                            // Index Badge
-                                            Positioned(
-                                              top: 8,
-                                              left: 8,
-                                              child: Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 5,
-                                                      vertical: 3,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  gradient: LinearGradient(
-                                                    colors: [
-                                                      Colors.blue.shade600,
-                                                      Colors.blue.shade400,
-                                                    ],
-                                                  ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: Colors.blue
-                                                          .withOpacity(0.3),
-                                                      blurRadius: 4,
-                                                      offset: const Offset(
-                                                        0,
-                                                        2,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Text(
-                                                  '#${index + 1}',
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            // edit button
-                                            Positioned(
-                                              top: 8,
-                                              left: 50,
-                                              child: Material(
-                                                color: Colors.transparent,
-                                                child: InkWell(
-                                                  onTap: () =>
-                                                      _showEditBoughtItemDialog(
-                                                        item,
-                                                      ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(4),
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.orange.shade50,
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.edit,
-                                                      color: Colors
-                                                          .orange
-                                                          .shade600,
-                                                      size: 18,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            // Delete Button
-                                            Positioned(
-                                              top: 8,
-                                              right: 8,
-                                              child: Material(
-                                                color: Colors.transparent,
-                                                child: InkWell(
-                                                  onTap: () =>
-                                                      _removeBoughtItem(index),
-                                                  borderRadius:
-                                                      BorderRadius.circular(20),
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(4),
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.red.shade50,
-                                                      shape: BoxShape.circle,
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.close,
-                                                      color:
-                                                          Colors.red.shade600,
-                                                      size: 18,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            // Content
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.fromLTRB(
-                                                    12,
-                                                    40,
-                                                    12,
-                                                    12,
-                                                  ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  // Product Image
-                                                  if (item.imageUrl != null)
-                                                    Container(
-                                                      width: double.infinity,
-                                                      height: 60,
-                                                      child: CachedNetworkImage(
-                                                        imageUrl:
-                                                            item.imageUrl!,
-                                                        fit: BoxFit.cover,
-                                                        placeholder:
-                                                            (
-                                                              context,
-                                                              url,
-                                                            ) => Container(
-                                                              color: Colors
-                                                                  .grey[200],
-                                                              child: const Center(
-                                                                child:
-                                                                    CircularProgressIndicator(),
-                                                              ),
-                                                            ),
-                                                        errorWidget:
-                                                            (
-                                                              context,
-                                                              url,
-                                                              error,
-                                                            ) => Container(
-                                                              color: Colors
-                                                                  .grey[200],
-                                                              child: const Icon(
-                                                                Icons
-                                                                    .image_not_supported,
-                                                              ),
-                                                            ),
-                                                      ),
-                                                    ),
-                                                  const SizedBox(height: 4),
-                                                  // Product Name
-                                                  Text(
-                                                    item.productName,
-                                                    style: const TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.black87,
-                                                    ),
-                                                    maxLines: 2,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  // Quantity and Price Row
-                                                  Row(
-                                                    children: [
-                                                      // Quantity Badge
-                                                      Container(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 8,
-                                                              vertical: 4,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors
-                                                              .green
-                                                              .shade50,
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                6,
-                                                              ),
-                                                          border: Border.all(
-                                                            color: Colors
-                                                                .green
-                                                                .shade200,
-                                                          ),
-                                                        ),
-                                                        child: Row(
-                                                          mainAxisSize:
-                                                              MainAxisSize.min,
-                                                          children: [
-                                                            Icon(
-                                                              Icons
-                                                                  .inventory_2_outlined,
-                                                              size: 14,
-                                                              color: Colors
-                                                                  .green
-                                                                  .shade700,
-                                                            ),
-                                                            const SizedBox(
-                                                              width: 4,
-                                                            ),
-                                                            Text(
-                                                              item.quantity
-                                                                  .toStringAsFixed(
-                                                                    0,
-                                                                  ),
-                                                              style: TextStyle(
-                                                                fontSize: 14,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                                color: Colors
-                                                                    .green
-                                                                    .shade700,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ),
-                                                      const SizedBox(width: 8),
-                                                      // Price
-                                                      Expanded(
-                                                        child: Text(
-                                                          '₹${item.buyingPrice.toStringAsFixed(2)}',
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            color: Colors
-                                                                .grey
-                                                                .shade700,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                          ),
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  // Total Amount
-                                                  Container(
-                                                    width: double.infinity,
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 10,
-                                                          vertical: 6,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      gradient: LinearGradient(
-                                                        colors: [
-                                                          Colors.blue.shade600,
-                                                          Colors.blue.shade500,
-                                                        ],
-                                                      ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            8,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      '₹${item.total.toStringAsFixed(2)}',
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color: Colors.white,
-                                                      ),
-                                                      textAlign:
-                                                          TextAlign.center,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    // Individual validation messages below each tile
-                                    if (hasSellingPriceError ||
-                                        hasMinLimitError)
-                                      const SizedBox(height: 6),
-                                    if (hasSellingPriceError)
-                                      Text(
-                                        'Selling price is 0',
-                                        style: TextStyle(
-                                          color: Colors.red,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    if (hasSellingPriceError &&
-                                        hasMinLimitError)
-                                      const SizedBox(height: 4),
-                                    if (hasMinLimitError)
-                                      Text(
-                                        'Min limit is 0',
-                                        style: TextStyle(
-                                          color: Colors.red,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                  ],
-                                ),
+                                ? null
+                                : () {
+                                    if (_supplierNameController.text.isEmpty) {
+                                      setState(() {
+                                        _supplierNameError = appLocalizations
+                                            .supplierNameRequired;
+                                      });
+                                      return;
+                                    }
+                                    _showReviewScreen();
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                            );
-                          },
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              appLocalizations.saveReview,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            appLocalizations.totalAmount,
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            '₹ $_totalBoughtAmount',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 45,
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              color: Colors.blue,
-                              width: 2,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            appLocalizations.cancel,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: SizedBox(
-                        height: 45,
-                        child: ElevatedButton(
-                          onPressed:
-                              _boughtItems.isEmpty ||
-                                  _boughtItems.any(
-                                    (item) =>
-                                        item.sellingPrice <= 0 ||
-                                        item.minLimit <= 0,
-                                  )
-                              ? null
-                              : () {
-                                  if (_supplierNameController.text.isEmpty) {
-                                    setState(() {
-                                      _supplierNameError =
-                                          appLocalizations.supplierNameRequired;
-                                    });
-                                    return;
-                                  }
-                                  _showReviewScreen();
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            appLocalizations.saveReview,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-              ],
+
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
@@ -2994,6 +3207,96 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  Widget buildModernFormField(
+    String hint,
+    TextEditingController controller, {
+    IconData? suffixIcon,
+    TextInputType keyboardType = TextInputType.text,
+    int maxLines = 1,
+    Function()? onTap,
+    Function(String)? onChanged,
+    bool enabled = true,
+    bool readOnly = false,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withValues(alpha: 0.1),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: TextFormField(
+        enabled: enabled,
+        readOnly: readOnly,
+        onTap: onTap,
+        onChanged: onChanged,
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: maxLines,
+        style: TextStyle(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.white
+              : Colors.black87,
+          fontSize: 16,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white.withValues(alpha: 0.7)
+                : Colors.grey.shade600,
+            fontSize: 14,
+          ),
+          filled: true,
+          fillColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade800
+              : Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 16,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade600
+                  : Colors.grey.shade300,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade600
+                  : Colors.grey.shade300,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.blue.shade400, width: 2),
+          ),
+          suffixIcon: suffixIcon != null
+              ? Container(
+                  padding: const EdgeInsets.all(8),
+                  child: Icon(
+                    suffixIcon,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white.withValues(alpha: 0.7)
+                        : Colors.grey.shade600,
+                    size: 20,
+                  ),
+                )
+              : null,
+        ),
       ),
     );
   }

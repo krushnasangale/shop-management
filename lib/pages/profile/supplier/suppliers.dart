@@ -68,7 +68,8 @@ class _SuppliersState extends State<Suppliers> {
 
   // --- Helper to get initials ---
   String _getInitials(String name) {
-    List<String> parts = name.split(' ');
+    List<String> parts = name.trim().split(RegExp(r'\s+'));
+    parts = parts.where((part) => part.isNotEmpty).toList();
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
     } else if (parts.isNotEmpty) {
