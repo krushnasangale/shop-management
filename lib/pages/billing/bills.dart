@@ -1218,7 +1218,8 @@ class _BillsState extends State<Bills> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(width: 1, color: Colors.black.withOpacity(0.1)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),

@@ -1216,7 +1216,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final cardColor = Theme.of(context).cardTheme.color;
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
