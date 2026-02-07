@@ -35,6 +35,7 @@ class _ExpensesListState extends State<ExpensesList>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
     _searchController = TextEditingController();
     _searchController.addListener(_filterExpenses);
     _scrollController.addListener(_onScroll);
@@ -146,10 +147,21 @@ class _ExpensesListState extends State<ExpensesList>
   @override
   void dispose() {
     _streamSubscription?.cancel();
+    _tabController.removeListener(_onTabChanged);
     _searchController.dispose();
     _scrollController.dispose();
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onTabChanged() {
+    setState(() {
+      // Hide search bar when not on Recent tab (index 1)
+      if (_tabController.index != 1) {
+        _showSearchBar = false;
+        _searchController.clear();
+      }
+    });
   }
 
   Widget _buildRecentExpensesTab() {
@@ -243,9 +255,13 @@ class _ExpensesListState extends State<ExpensesList>
                     final description = expense['description'] ?? '';
 
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
+                      margin: const EdgeInsets.only(bottom: 6),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16.0),
+                        borderRadius: BorderRadius.circular(12.0),
+                        border: Border.all(
+                          width: 1,
+                          color: Colors.black.withOpacity(0.1),
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.08),
@@ -269,101 +285,131 @@ class _ExpensesListState extends State<ExpensesList>
                           end: Alignment.bottomRight,
                         ),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    ExpenseDetails(expense: expense),
-                              ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  ExpenseDetails(expense: expense),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Header Row
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            category,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            date,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Header Row
+                              Row(
+                                children: [
+                                  // Category Icon
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: _getCategoryColor(
+                                        category,
+                                      ).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [
-                                            Colors.red,
-                                            Colors.redAccent,
-                                          ],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
+                                    child: Icon(
+                                      _getCategoryIcon(category),
+                                      color: _getCategoryColor(category),
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          category,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.black87,
+                                          ),
                                         ),
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.red.withOpacity(0.3),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 3),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          date,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[600],
                                           ),
-                                        ],
-                                      ),
-                                      child: Text(
-                                        '₹${amount == amount.toInt() ? amount.toInt() : amount.toStringAsFixed(2)}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: Colors.white,
                                         ),
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.red.shade400,
+                                          Colors.red.shade600,
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.red.withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      '₹${amount == amount.toInt() ? amount.toInt() : amount.toStringAsFixed(2)}',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: Colors.white,
                                       ),
                                     ),
-                                  ],
-                                ),
-                                if (description.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    description,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[700],
-                                    ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
+                              ),
+                              if (description.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.description,
+                                        size: 16,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          description,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[700],
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
-                            ),
+                            ],
                           ),
                         ),
                       ),
@@ -431,156 +477,181 @@ class _ExpensesListState extends State<ExpensesList>
               final lastExpenseDate = summary['lastExpenseDate'] ?? '';
 
               return Container(
-                margin: const EdgeInsets.only(bottom: 4),
-                child: ClipRRect(
+                margin: const EdgeInsets.only(bottom: 6),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12.0),
+                  border: Border.all(
+                    width: 1,
+                    color: Colors.black.withOpacity(0.1),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                      spreadRadius: 1,
+                    ),
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 0,
+                      offset: const Offset(0, 0),
+                      spreadRadius: 1,
+                    ),
+                  ],
+                  gradient: LinearGradient(
+                    colors: [Colors.white, Colors.white.withOpacity(0.95)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: InkWell(
                   borderRadius: BorderRadius.circular(16),
-                  child: Card(
-                    child: InkWell(
-                      onTap: () {
-                        // Navigate to category-specific expense list
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CategoryExpensesPage(
-                              category: category,
-                              expenses: summary['expenses'] ?? [],
-                            ),
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
+                  onTap: () {
+                    // Navigate to category-specific expense list
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CategoryExpensesPage(
+                          category: category,
+                          expenses: summary['expenses'] ?? [],
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                      ),
+                    );
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            // Header Row
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        category,
-                                        style: context.bodyLargeText?.copyWith(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today,
-                                            size: 12,
-                                            color: Colors.grey[600],
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'Last: $lastExpenseDate',
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: _getCategoryColor(
+                                      category,
+                                    ).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(
+                                    _getCategoryIcon(category),
+                                    color: _getCategoryColor(category),
+                                    size: 18,
                                   ),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    '₹${totalAmount == totalAmount.toInt() ? totalAmount.toInt() : totalAmount.toStringAsFixed(2)}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                      color: Colors.red,
+                                const SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      category,
+                                      style: context.bodyLargeText?.copyWith(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
-                                  ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Last: $lastExpenseDate',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            // Stats Row
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.receipt,
-                                        size: 14,
-                                        color: Colors.blue,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '$totalExpenses Expenses',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.blue,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '₹${totalAmount == totalAmount.toInt() ? totalAmount.toInt() : totalAmount.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.red,
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.purple.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.category,
-                                        size: 14,
-                                        color: Colors.purple,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Category',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.purple,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 10),
+                        // Stats Row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.receipt,
+                                    size: 12,
+                                    color: Colors.blue,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '$totalExpenses Expenses',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.category,
+                                    size: 12,
+                                    color: Colors.purple,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'Category',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.purple,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -640,7 +711,7 @@ class _ExpensesListState extends State<ExpensesList>
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -681,7 +752,7 @@ class _ExpensesListState extends State<ExpensesList>
               ? [
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -699,7 +770,7 @@ class _ExpensesListState extends State<ExpensesList>
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: Colors.purple.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(10),
@@ -707,30 +778,30 @@ class _ExpensesListState extends State<ExpensesList>
                               child: const Icon(
                                 Icons.pie_chart,
                                 color: Colors.purple,
-                                size: 20,
+                                size: 18,
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: 10),
                             Text(
                               AppLocalizations.of(context)?.topCategories ??
                                   'Top Categories',
                               style: Theme.of(context).textTheme.titleLarge
                                   ?.copyWith(
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     letterSpacing: -0.3,
                                   ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         ...topCategories.map((entry) {
                           final percentage = totalAmount > 0
                               ? (entry.value / totalAmount * 100)
                               : 0;
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 6),
-                            padding: const EdgeInsets.all(8),
+                            margin: const EdgeInsets.only(bottom: 4),
+                            padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(14),
@@ -742,20 +813,20 @@ class _ExpensesListState extends State<ExpensesList>
                             child: Row(
                               children: [
                                 Container(
-                                  width: 12,
-                                  height: 12,
+                                  width: 10,
+                                  height: 10,
                                   decoration: BoxDecoration(
                                     color: _getCategoryColor(entry.key),
                                     shape: BoxShape.circle,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 10),
                                 Expanded(
                                   child: Text(
                                     entry.key,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 15,
+                                      fontSize: 14,
                                       color: Colors.black87,
                                     ),
                                   ),
@@ -767,7 +838,7 @@ class _ExpensesListState extends State<ExpensesList>
                                       '₹${entry.value.toStringAsFixed(2)}',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w800,
-                                        fontSize: 16,
+                                        fontSize: 15,
                                         color: Colors.black87,
                                       ),
                                     ),
@@ -775,7 +846,7 @@ class _ExpensesListState extends State<ExpensesList>
                                       '${percentage.toStringAsFixed(1)}%',
                                       style: TextStyle(
                                         color: Colors.grey.shade600,
-                                        fontSize: 12,
+                                        fontSize: 11,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -796,7 +867,7 @@ class _ExpensesListState extends State<ExpensesList>
           // Monthly Trend
           const SizedBox(height: 2),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -814,7 +885,7 @@ class _ExpensesListState extends State<ExpensesList>
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
                         color: Colors.blue.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
@@ -822,26 +893,26 @@ class _ExpensesListState extends State<ExpensesList>
                       child: const Icon(
                         Icons.trending_up,
                         color: Colors.blue,
-                        size: 20,
+                        size: 18,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Text(
                       AppLocalizations.of(context)?.monthlyTrendLast6Months ??
                           'Monthly Trend (Last 6 Months)',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
-                        fontSize: 18,
+                        fontSize: 16,
                         letterSpacing: -0.3,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 ...monthlyExpenses.entries.map((entry) {
                   final monthName = _getMonthName(entry.key);
                   return Container(
-                    margin: const EdgeInsets.only(bottom: 6),
+                    margin: const EdgeInsets.only(bottom: 4),
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
@@ -1242,6 +1313,37 @@ class _ExpensesListState extends State<ExpensesList>
     return colors[category.hashCode % colors.length];
   }
 
+  IconData _getCategoryIcon(String category) {
+    final categoryLower = category.toLowerCase();
+    if (categoryLower.contains('food') ||
+        categoryLower.contains('restaurant')) {
+      return Icons.restaurant;
+    } else if (categoryLower.contains('transport') ||
+        categoryLower.contains('travel')) {
+      return Icons.directions_car;
+    } else if (categoryLower.contains('shopping') ||
+        categoryLower.contains('clothes')) {
+      return Icons.shopping_bag;
+    } else if (categoryLower.contains('entertainment') ||
+        categoryLower.contains('movie')) {
+      return Icons.movie;
+    } else if (categoryLower.contains('health') ||
+        categoryLower.contains('medical')) {
+      return Icons.local_hospital;
+    } else if (categoryLower.contains('education') ||
+        categoryLower.contains('book')) {
+      return Icons.school;
+    } else if (categoryLower.contains('utility') ||
+        categoryLower.contains('electricity')) {
+      return Icons.electrical_services;
+    } else if (categoryLower.contains('rent') ||
+        categoryLower.contains('home')) {
+      return Icons.home;
+    } else {
+      return Icons.category;
+    }
+  }
+
   String _getMonthName(String monthKey) {
     final parts = monthKey.split('-');
     final year = int.parse(parts[0]);
@@ -1275,10 +1377,10 @@ class _ExpensesListState extends State<ExpensesList>
         children: [
           Icon(
             icon,
-            size: 18,
+            size: 16,
             color: isSelected ? Colors.white : Colors.grey.shade600,
           ),
-          const SizedBox(width: 6),
+          const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
@@ -1294,6 +1396,7 @@ class _ExpensesListState extends State<ExpensesList>
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    double screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -1329,22 +1432,24 @@ class _ExpensesListState extends State<ExpensesList>
           ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(
-              _showSearchBar ? Icons.close : Icons.search,
-              color: Colors.white,
-              size: 22,
+          // Only show search icon when on Recent tab (index 1)
+          if (_tabController.index == 1)
+            IconButton(
+              icon: Icon(
+                _showSearchBar ? Icons.close : Icons.search,
+                color: Colors.white,
+                size: 22,
+              ),
+              onPressed: () {
+                setState(() {
+                  _showSearchBar = !_showSearchBar;
+                  if (!_showSearchBar) {
+                    _searchController.clear();
+                  }
+                });
+              },
+              tooltip: _showSearchBar ? 'Close Search' : 'Search',
             ),
-            onPressed: () {
-              setState(() {
-                _showSearchBar = !_showSearchBar;
-                if (!_showSearchBar) {
-                  _searchController.clear();
-                }
-              });
-            },
-            tooltip: _showSearchBar ? 'Close Search' : 'Search',
-          ),
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -1378,6 +1483,7 @@ class _ExpensesListState extends State<ExpensesList>
                     horizontal: 6,
                     vertical: 6,
                   ),
+                  width: screenWidth - 20,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -1409,9 +1515,9 @@ class _ExpensesListState extends State<ExpensesList>
                       fontSize: 13,
                       letterSpacing: 0.3,
                     ),
-                    constraints: const BoxConstraints(
+                    constraints: BoxConstraints(
                       minHeight: 44.0,
-                      minWidth: 115.0,
+                      minWidth: (screenWidth - 20) / 3,
                     ),
                     borderWidth: 0,
                     selectedBorderColor: Colors.transparent,
