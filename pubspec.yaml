@@ -119,5 +119,7 @@ flutter:
 flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
+  windows:
+    generate: true
   image_path: "assets/images/flashbill_appicon.png"
   min_sdk_android: 21
