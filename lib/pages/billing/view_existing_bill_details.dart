@@ -17,6 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:pdfx/pdfx.dart' as pdfx;
+import 'package:printing/printing.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -471,7 +472,19 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       );
 
       // Generate PDF
-      final pdfFile = await _generateBillPDF();
+      final pdfBytes = await _generateBillPDF();
+
+      // Create file from bytes
+      final dir = await getTemporaryDirectory();
+      final now = DateTime.now();
+      final dateTimeString =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+      final sanitizedCustomerName = customerName
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(' ', '_');
+      final fileName = '${sanitizedCustomerName}_$dateTimeString.pdf';
+      final pdfFile = File('${dir.path}/$fileName');
+      await pdfFile.writeAsBytes(pdfBytes);
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -535,7 +548,19 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       );
 
       // Generate PDF
-      final pdfFile = await _generateBillPDF();
+      final pdfBytes = await _generateBillPDF();
+
+      // Create file from bytes
+      final dir = await getTemporaryDirectory();
+      final now = DateTime.now();
+      final dateTimeString =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+      final sanitizedCustomerName = customerName
+          .replaceAll(RegExp(r'[^\w\s-]'), '')
+          .replaceAll(' ', '_');
+      final fileName = '${sanitizedCustomerName}_$dateTimeString.pdf';
+      final pdfFile = File('${dir.path}/$fileName');
+      await pdfFile.writeAsBytes(pdfBytes);
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -650,7 +675,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     });
   }
 
-  Future<File> _generateBillPDF() async {
+  Future<Uint8List> _generateBillPDF() async {
     // Ensure billNumber is loaded before generating PDF
     if (billNumber == 0) {
       await _loadDiscount(); // This will load or generate billNumber
@@ -658,18 +683,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
     final pdf = pw.Document();
 
-    // Get temporary directory
-    final dir = await getTemporaryDirectory();
-
     // Create filename with customer name and datetime
     final now = DateTime.now();
-    final dateTimeString =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
-    final sanitizedCustomerName = customerName
-        .replaceAll(RegExp(r'[^\w\s-]'), '')
-        .replaceAll(' ', '_');
-    final fileName = '${sanitizedCustomerName}_$dateTimeString.pdf';
-    final file = File('${dir.path}/$fileName');
 
     final billDate = now.toString().split('.')[0];
 
@@ -959,8 +974,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       ),
     );
 
-    await file.writeAsBytes(await pdf.save());
-    return file;
+    return await pdf.save();
   }
 
   pw.Widget _buildProductTable() {
@@ -1391,6 +1405,26 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         title: Text(localizations.billDetails),
         centerTitle: true,
         actions: [
+          if (Platform.isWindows)
+            IconButton(
+              onPressed: () {
+                _generateBillPDF()
+                    .then((pdfBytes) {
+                      Printing.layoutPdf(onLayout: (format) async => pdfBytes);
+                    })
+                    .catchError((e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '${localizations.errorGeneratingBill}: $e',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    });
+              },
+              icon: const Icon(Icons.print),
+            ),
           PopupMenuButton<String>(
             onSelected: (value) {
               switch (value) {
