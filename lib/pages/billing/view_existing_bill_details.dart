@@ -60,12 +60,12 @@ class BillPdfPreviewPage extends StatefulWidget {
 }
 
 class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
-  late pdfx.PdfControllerPinch _pdfController;
+  late pdfx.PdfController _pdfController;
 
   @override
   void initState() {
     super.initState();
-    _pdfController = pdfx.PdfControllerPinch(
+    _pdfController = pdfx.PdfController(
       document: pdfx.PdfDocument.openFile(widget.pdfFile.path),
     );
   }
@@ -90,7 +90,7 @@ class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
           ),
         ],
       ),
-      body: pdfx.PdfViewPinch(controller: _pdfController),
+      body: pdfx.PdfView(controller: _pdfController),
     );
   }
 }
