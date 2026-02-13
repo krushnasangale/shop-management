@@ -639,7 +639,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                   ),
                 ),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 12),
             Container(
               width: double.infinity,

@@ -1594,8 +1594,9 @@ class _AvailableProductDetailScreenState
                                                       loadingProgress,
                                                     ) {
                                                       if (loadingProgress ==
-                                                          null)
+                                                          null) {
                                                         return child;
+                                                      }
                                                       return Container(
                                                         height: 300,
                                                         width: 300,

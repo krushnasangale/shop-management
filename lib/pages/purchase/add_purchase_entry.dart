@@ -2793,7 +2793,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                                   children: [
                                                     // Product Image
                                                     if (item.imageUrl != null)
-                                                      Container(
+                                                      SizedBox(
                                                         width: double.infinity,
                                                         height: 60,
                                                         child: CachedNetworkImage(

@@ -151,7 +151,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
               // Access Level Dropdown
               DropdownButtonFormField<String>(
-                value: _selectedAccessLevel,
+                initialValue: _selectedAccessLevel,
                 decoration: InputDecoration(
                   labelText: 'Access Level',
                   prefixIcon: const Icon(Icons.security),
@@ -191,7 +191,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
 
               // Subscription Plan Dropdown
               DropdownButtonFormField<String>(
-                value: _selectedPlanType,
+                initialValue: _selectedPlanType,
                 decoration: InputDecoration(
                   labelText: 'Subscription Plan',
                   prefixIcon: const Icon(Icons.card_membership),
@@ -295,7 +295,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
                       ],
                     ),
                   ))
-              .toList(),
+              ,
         ],
       ),
     );

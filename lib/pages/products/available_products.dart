@@ -215,7 +215,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
           }
         });
       } else {
-        groupedByName.values.forEach((batches) => filtered.addAll(batches));
+        for (var batches in groupedByName.values) {
+          filtered.addAll(batches);
+        }
       }
 
       // Apply status filter - check consolidated quantity
@@ -973,7 +975,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                         ),
                       ],
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
               pw.SizedBox(height: 20),

@@ -174,7 +174,7 @@ class _BillsState extends State<Bills> {
       billData['customerName'] ?? 'Unknown',
       billData['customerMobile'] ?? '',
       billData['customerVehicle'],
-      '${totalAmount}',
+      '$totalAmount',
       status,
       billData['timestamp'] ?? '',
       totalAmount,

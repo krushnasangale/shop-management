@@ -693,7 +693,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   );
                 }).toList(),
               );
-            }).toList(),
+            }),
             // White space below last product item
             pw.TableRow(
               decoration: pw.BoxDecoration(color: PdfColors.white),

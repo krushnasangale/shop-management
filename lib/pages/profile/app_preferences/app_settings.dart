@@ -255,7 +255,7 @@ class _AppSettingsState extends State<AppSettings> {
                   child: Switch(
                     value: value,
                     onChanged: onChanged,
-                    activeColor: Theme.of(context).primaryColor,
+                    activeThumbColor: Theme.of(context).primaryColor,
                     activeTrackColor: Theme.of(
                       context,
                     ).primaryColor.withOpacity(0.4),

@@ -164,6 +164,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   bool _vehicleNumberEnabled = false; // App setting for vehicle number field
   bool _deliveryChargesEnabled =
       false; // App setting for delivery charges field
+  bool _isDeleting = false; // Loading state for bill deletion
   final ProfileService _profileService = ProfileService();
   final BillsDataService _billsDataService = BillsDataService();
   StreamSubscription<Map<String, dynamic>>? _appSettingsSubscription;
@@ -606,19 +607,107 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
 
     if (confirmed == true) {
+      setState(() {
+        _isDeleting = true;
+      });
+
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('Deleting bill...'),
+              ],
+            ),
+          );
+        },
+      );
+
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user == null) throw Exception('User not authenticated');
 
-        // Delete the bill from Firestore
-        await FirebaseFirestore.instance
+        final firestore = FirebaseFirestore.instance;
+        final userId = user.uid;
+
+        // Get the bill data before deleting to restore stock quantities
+        final billDoc = await firestore
             .collection('bills')
-            .doc(user.uid)
+            .doc(userId)
+            .collection('items')
+            .doc(billId)
+            .get();
+
+        if (billDoc.exists) {
+          final billData = billDoc.data()!;
+          final products = billData['products'] as Map<String, dynamic>?;
+
+          if (products != null) {
+            // Restore product quantities
+            for (final productEntry in products.entries) {
+              final product = productEntry.value as Map<String, dynamic>;
+              final productName = product['productName'] as String?;
+              final supplierName = product['supplierName'] as String?;
+              final quantity = (product['quantity'] as num?)?.toInt() ?? 0;
+              final batchId = product['batchId'] as String?;
+
+              if (productName != null &&
+                  supplierName != null &&
+                  batchId != null) {
+                // Find the matching product by batchId and restore quantity
+                final productsSnapshot = await firestore
+                    .collection('purchased-products')
+                    .doc(userId)
+                    .collection('items')
+                    .get();
+
+                for (final productDoc in productsSnapshot.docs) {
+                  final productData = productDoc.data();
+                  final docBatchId = productData['batchId'] as String?;
+
+                  if (docBatchId == batchId) {
+                    final currentQty =
+                        (productData['quantity'] as num?)?.toInt() ?? 0;
+                    final newQty = currentQty + quantity;
+
+                    // Update quantity
+                    await firestore
+                        .collection('purchased-products')
+                        .doc(userId)
+                        .collection('items')
+                        .doc(productDoc.id)
+                        .update({'quantity': newQty});
+                    break; // Found and updated, move to next product
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // Delete the bill from Firestore
+        await firestore
+            .collection('bills')
+            .doc(userId)
             .collection('items')
             .doc(billId)
             .delete();
 
+        // Dismiss loading dialog
         if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+        }
+
+        if (mounted) {
+          setState(() {
+            _isDeleting = false;
+          });
+
           ScaffoldMessenger.of(
             context,
           ).showSnackBar(SnackBar(content: Text('Bill deleted successfully')));
@@ -628,7 +717,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           ).pop(true); // Return true to indicate bill was deleted
         }
       } catch (e) {
+        // Dismiss loading dialog
         if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+        }
+
+        if (mounted) {
+          setState(() {
+            _isDeleting = false;
+          });
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error deleting bill: $e'),
@@ -1387,7 +1485,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       });
     } catch (e) {
       print('Error adding payment record: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -1427,6 +1525,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
           PopupMenuButton<String>(
             onSelected: (value) {
+              if (_isDeleting) return; // Prevent actions while deleting
+
               switch (value) {
                 case 'preview':
                   _previewBill();
@@ -1462,13 +1562,20 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ),
               PopupMenuItem<String>(
                 value: 'delete',
+                enabled: !_isDeleting,
                 child: Row(
                   children: [
-                    const Icon(Icons.delete, color: Colors.red, size: 20),
+                    Icon(
+                      Icons.delete,
+                      color: _isDeleting ? Colors.grey : Colors.red,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
-                      'Delete Bill',
-                      style: const TextStyle(color: Colors.red),
+                      _isDeleting ? 'Deleting...' : 'Delete Bill',
+                      style: TextStyle(
+                        color: _isDeleting ? Colors.grey : Colors.red,
+                      ),
                     ),
                   ],
                 ),
@@ -3013,7 +3120,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   ),
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),

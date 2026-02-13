@@ -341,7 +341,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
 
                       // Category Dropdown
                       DropdownButtonFormField<String>(
-                        value: _selectedCategory,
+                        initialValue: _selectedCategory,
                         decoration: InputDecoration(
                           labelText: localizations?.category ?? 'Category',
                           labelStyle: TextStyle(

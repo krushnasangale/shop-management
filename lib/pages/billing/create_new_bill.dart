@@ -115,7 +115,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
   String paymentMethod = 'cash'; // 'cash' or 'online'
   late String _userId;
   List<BoughtProduct> _availableProducts = [];
-  List<BillItem> _billItems = [];
+  final List<BillItem> _billItems = [];
   bool _productsLoading = true;
   List<Map<String, dynamic>> _customers = [];
   bool _customersLoading = true;
