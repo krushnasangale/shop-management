@@ -1792,7 +1792,13 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           : () {
                               _addProductToBill(batch);
                               Navigator.pop(dialogContext);
-                              Navigator.pop(context);
+                              // Open edit dialog for the newly added product
+                              Navigator.pop(dialogContext);
+                              _editBillProduct(
+                                context,
+                                _billItems.length - 1,
+                                _billItems.last,
+                              );
                             },
                     ),
                   );
@@ -2579,61 +2585,42 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 ),
                               ),
                               child: InkWell(
-                                onTap: () {
-                                  // Get all batches for this product from original list (excluding batches with 0 quantity)
-                                  final productBatches = _availableProducts
-                                      .where(
-                                        (p) =>
-                                            p.productName ==
-                                                product.productName &&
-                                            p.quantity > 0,
-                                      )
-                                      .toList();
+                                onTap: isAlreadyAdded
+                                    ? null
+                                    : () {
+                                        // Get all available batches for this product
+                                        final productBatches =
+                                            _availableProducts
+                                                .where(
+                                                  (p) =>
+                                                      p.productName ==
+                                                      product.productName,
+                                                )
+                                                .toList();
 
-                                  // Filter batches to only include those with remaining quantity after bill items
-                                  final availableBatches = productBatches.where(
-                                    (b) {
-                                      final existingBillItems = _billItems
-                                          .where(
-                                            (item) => item.batchId == b.batchId,
-                                          )
-                                          .toList();
-                                      final totalQuantityAlreadyAdded =
-                                          existingBillItems.fold(
-                                            0,
-                                            (int sum, item) =>
-                                                sum + item.billQuantity.toInt(),
+                                        if (productBatches.length == 1) {
+                                          Navigator.pop(
+                                            context,
+                                          ); // Close product selection drawer
+                                          // Only one batch available, add directly and show edit dialog
+                                          _addProductToBill(
+                                            productBatches.first,
                                           );
-                                      return b.quantity >
-                                          totalQuantityAlreadyAdded;
-                                    },
-                                  ).toList();
 
-                                  if (availableBatches.length == 1) {
-                                    // Only one available batch, add directly
-                                    final batch = availableBatches.first;
-                                    _addProductToBill(batch);
-                                    Navigator.pop(context);
-                                  } else if (availableBatches.length > 1) {
-                                    // Multiple available batches, show selection dialog
-                                    _showBatchSelectionDialog(
-                                      context,
-                                      product.productName,
-                                      availableBatches, // Pass only available batches
-                                    );
-                                  } else {
-                                    // No available batches
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          modalLocalizations.translate(
-                                            'no_batches_available',
-                                          ),
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                },
+                                          _editBillProduct(
+                                            context,
+                                            _billItems.length - 1,
+                                            _billItems.last,
+                                          );
+                                        } else {
+                                          // Multiple batches available, show batch selection dialog
+                                          _showBatchSelectionDialog(
+                                            context,
+                                            product.productName,
+                                            productBatches,
+                                          );
+                                        }
+                                      },
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 8.0,
