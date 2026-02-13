@@ -27,6 +27,7 @@ class _EditProfileState extends State<EditProfile> {
   // Text controllers
   late TextEditingController _shopNameController;
   late TextEditingController _ownerNameController;
+  late TextEditingController _ownerPhoneController;
   late TextEditingController _shopAddressController;
   late TextEditingController _shopPhoneController;
   late TextEditingController _shopEmailController;
@@ -43,6 +44,7 @@ class _EditProfileState extends State<EditProfile> {
     _profileService = ProfileService();
     _shopNameController = TextEditingController();
     _ownerNameController = TextEditingController();
+    _ownerPhoneController = TextEditingController();
     _shopAddressController = TextEditingController();
     _shopPhoneController = TextEditingController();
     _shopEmailController = TextEditingController();
@@ -62,6 +64,7 @@ class _EditProfileState extends State<EditProfile> {
     if (_shopNameController.text.isEmpty) {
       _shopNameController.text = profileData['shopName'] ?? '';
       _ownerNameController.text = profileData['ownerName'] ?? '';
+      _ownerPhoneController.text = profileData['ownerPhone'] ?? '';
       _shopAddressController.text = profileData['shopAddress'] ?? '';
       _shopPhoneController.text = profileData['shopPhone'] ?? '';
       _shopEmailController.text = profileData['shopEmail'] ?? '';
@@ -108,6 +111,7 @@ class _EditProfileState extends State<EditProfile> {
       final shopData = {
         'shopName': _shopNameController.text,
         'ownerName': _ownerNameController.text,
+        'ownerPhone': _ownerPhoneController.text,
         'shopAddress': _shopAddressController.text,
         'shopPhone': _shopPhoneController.text,
         'shopEmail': _shopEmailController.text,
@@ -156,6 +160,7 @@ class _EditProfileState extends State<EditProfile> {
     _profileService.dispose();
     _shopNameController.dispose();
     _ownerNameController.dispose();
+    _ownerPhoneController.dispose();
     _shopAddressController.dispose();
     _shopPhoneController.dispose();
     _shopEmailController.dispose();
@@ -552,7 +557,7 @@ class _EditProfileState extends State<EditProfile> {
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(12.0),
             child: Form(
               key: _formKey,
               child: Column(
@@ -560,448 +565,757 @@ class _EditProfileState extends State<EditProfile> {
                 children: [
                   // Profile Picture Section
                   Center(
-                    child: Stack(
-                      children: [
-                        CircleAvatar(
-                          radius: 60,
-                          backgroundColor: const Color(
-                            0xFF2196F3,
-                          ).withOpacity(0.2),
-                          child: const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: Color(0xFF2196F3),
-                          ),
-                        ),
-                        Positioned(
-                          bottom: 0,
-                          right: 0,
-                          child: GestureDetector(
-                            onTap: () {
-                              // TODO: Add image picker functionality
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF2196F3),
-                                borderRadius: BorderRadius.circular(50),
-                                border: Border.all(
-                                  color: Colors.white,
-                                  width: 3,
-                                ),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Stack(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: [
+                                  const Color(0xFF2196F3).withOpacity(0.1),
+                                  const Color(0xFF2196F3).withOpacity(0.3),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              padding: const EdgeInsets.all(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.transparent,
                               child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.white,
-                                size: 20,
+                                Icons.person,
+                                size: 50,
+                                color: Color(0xFF2196F3),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Shop Name Field
-                  Text(
-                    localizations?.shopName ?? 'Shop Name',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  Card(
-                    child: TextFormField(
-                      controller: _shopNameController,
-                      enabled: _isEditMode,
-                      decoration: InputDecoration(
-                        hintText:
-                            localizations?.enterShopName ??
-                            'Enter your shop name',
-                        prefixIcon: const Icon(Icons.store),
-                        filled: false,
-                        fillColor: Theme.of(context).cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 1,
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: GestureDetector(
+                              onTap: () {
+                                // TODO: Add image picker functionality
+                              },
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF2196F3),
+                                  borderRadius: BorderRadius.circular(50),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 3,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                padding: const EdgeInsets.all(6),
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
-                        ),
+                        ],
                       ),
-                      validator: (value) {
-                        if (_isEditMode && (value == null || value.isEmpty)) {
-                          return localizations?.pleaseEnterShopName ??
-                              'Please enter shop name';
-                        }
-                        return null;
-                      },
                     ),
                   ),
-                  const SizedBox(height: 6),
 
-                  // Owner Name Field
-                  Text(
-                    localizations?.ownerName ?? 'Owner Name',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
+                  // Basic Information Section
                   Card(
-                    child: TextFormField(
-                      controller: _ownerNameController,
-                      enabled: _isEditMode,
-                      decoration: InputDecoration(
-                        hintText:
-                            localizations?.enterOwnerName ?? 'Enter owner name',
-                        prefixIcon: const Icon(Icons.person),
-                        filled: false,
-                        fillColor: Theme.of(context).cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 1,
-                          ),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (_isEditMode && (value == null || value.isEmpty)) {
-                          return localizations?.pleaseEnterOwnerName ??
-                              'Please enter owner name';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Shop Address Field
-                  Text(
-                    localizations?.shopAddress ?? 'Shop Address',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  Card(
-                    child: TextFormField(
-                      controller: _shopAddressController,
-                      enabled: _isEditMode,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText:
-                            localizations?.enterCompleteShopAddress ??
-                            'Enter complete shop address',
-                        prefixIcon: const Icon(Icons.location_on),
-                        filled: false,
-                        fillColor: Theme.of(context).cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 1,
-                          ),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (_isEditMode && (value == null || value.isEmpty)) {
-                          return localizations?.pleaseEnterShopAddress ??
-                              'Please enter shop address';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Shop Phone Field
-                  Text(
-                    localizations?.shopPhone ?? 'Shop Phone Number',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  Card(
-                    child: TextFormField(
-                      controller: _shopPhoneController,
-                      enabled: _isEditMode,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                        hintText:
-                            localizations?.enterPhoneNumber ??
-                            'Enter phone number',
-                        prefixIcon: const Icon(Icons.phone),
-                        filled: false,
-                        fillColor: Theme.of(context).cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 1,
-                          ),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (_isEditMode) {
-                          if (value == null || value.isEmpty) {
-                            return localizations?.pleaseEnterPhoneNumber ??
-                                'Please enter phone number';
-                          }
-                          if (value.length < 10) {
-                            return localizations?.pleaseEnterValidPhoneNumber ??
-                                'Please enter valid phone number';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Shop Email Field
-                  Text(
-                    localizations?.shopEmail ?? 'Shop Email',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  Card(
-                    child: TextFormField(
-                      controller: _shopEmailController,
-                      enabled: _isEditMode,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText:
-                            localizations?.enterEmailAddress ??
-                            'Enter email address',
-                        prefixIcon: const Icon(Icons.email),
-                        filled: false,
-                        fillColor: Theme.of(context).cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 1,
-                          ),
-                        ),
-                        focusedErrorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: Colors.red,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (_isEditMode && value != null && value.isNotEmpty) {
-                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                            return localizations?.pleaseEnterValidEmail ??
-                                'Please enter valid email';
-                          }
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Owner Signature Field
-                  Text(
-                    localizations?.ownerSignature ?? 'Owner Signature',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey[300]!, width: 1),
+                    elevation: 3,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Column(
-                      children: [
-                        if (_hasSignature && _ownerSignatureBase64 != null)
-                          Container(
-                            height: 120,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(8),
-                                topRight: Radius.circular(8),
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Image.memory(
-                                base64Decode(_ownerSignatureBase64!),
-                                fit: BoxFit.contain,
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            height: 120,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.grey[100],
-                              borderRadius: const BorderRadius.only(
-                                topLeft: Radius.circular(8),
-                                topRight: Radius.circular(8),
-                              ),
-                            ),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.draw,
-                                    size: 32,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    localizations?.noSignatureAdded ??
-                                        'No signature added',
-                                    style: TextStyle(color: Colors.grey[600]),
-                                  ),
-                                ],
-                              ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Basic Information',
+                            style: Theme.of(context).textTheme.titleMedium
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF2196F3),
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Shop Name Field
+                          Text(
+                            localizations?.shopName ?? 'Shop Name',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
                             ),
                           ),
-                        if (_isEditMode)
-                          Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: () => _showSignatureDialog(context),
-                                icon: const Icon(Icons.edit),
-                                label: Text(
-                                  _hasSignature
-                                      ? (localizations?.updateSignature ??
-                                            'Update Signature')
-                                      : (localizations?.addSignature ??
-                                            'Add Signature'),
-                                ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 10,
-                                  ),
+                          const SizedBox(height: 6),
+                          TextFormField(
+                            controller: _shopNameController,
+                            enabled: _isEditMode,
+                            decoration: InputDecoration(
+                              hintText:
+                                  localizations?.enterShopName ??
+                                  'Enter your shop name',
+                              prefixIcon: const Icon(
+                                Icons.store,
+                                color: Color(0xFF2196F3),
+                              ),
+                              filled: true,
+                              fillColor: _isEditMode
+                                  ? Colors.grey[50]
+                                  : Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
                                 ),
                               ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2196F3),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (_isEditMode &&
+                                  (value == null || value.isEmpty)) {
+                                return localizations?.pleaseEnterShopName ??
+                                    'Please enter shop name';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Owner Name Field
+                          Text(
+                            localizations?.ownerName ?? 'Owner Name',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
                             ),
                           ),
-                      ],
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _ownerNameController,
+                            enabled: _isEditMode,
+                            decoration: InputDecoration(
+                              hintText:
+                                  localizations?.enterOwnerName ??
+                                  'Enter owner name',
+                              prefixIcon: const Icon(
+                                Icons.person,
+                                color: Color(0xFF2196F3),
+                              ),
+                              filled: true,
+                              fillColor: _isEditMode
+                                  ? Colors.grey[50]
+                                  : Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2196F3),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (_isEditMode &&
+                                  (value == null || value.isEmpty)) {
+                                return localizations?.pleaseEnterOwnerName ??
+                                    'Please enter owner name';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 16),
 
-                  // License/Registration Number Field
-                  // const Text(
-                  //   'License/Registration Number',
-                  //   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  // ),
-                  // Card(
-                  //   child: TextFormField(
-                  //     controller: _licenseNumberController,
-                  //     enabled: _isEditMode,
-                  //     decoration: InputDecoration(
-                  //       hintText: 'GST Number or License ID',
-                  //       prefixIcon: const Icon(Icons.assignment),
-                  //       filled: false,
-                  //       fillColor: Theme.of(context).cardColor,
-                  //       border: OutlineInputBorder(
-                  //         borderRadius: BorderRadius.circular(8),
-                  //         borderSide: BorderSide.none,
-                  //       ),
-                  //       errorBorder: OutlineInputBorder(
-                  //         borderRadius: BorderRadius.circular(8),
-                  //         borderSide: const BorderSide(color: Colors.red, width: 1),
-                  //       ),
-                  //       focusedErrorBorder: OutlineInputBorder(
-                  //         borderRadius: BorderRadius.circular(8),
-                  //         borderSide: const BorderSide(color: Colors.red, width: 2),
-                  //       ),
-                  //     ),
-                  //     validator: (value) {
-                  //       if (_isEditMode && (value == null || value.isEmpty)) {
-                  //         return 'Please enter license/registration number';
-                  //       }
-                  //       return null;
-                  //     },
-                  //   ),
-                  // ),
-
-                  // Subscription Expiry Date Field (Non-editable)
-                  Text(
-                    localizations?.subscriptionExpiry ?? 'Subscription Expiry',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                  ),
+                  // Contact Information Section
                   Card(
-                    child: TextFormField(
-                      controller: _subscriptionExpiryController,
-                      enabled: false, // Always disabled - not editable
-                      decoration: InputDecoration(
-                        hintText: localizations?.notSet ?? 'Not set',
-                        prefixIcon: const Icon(Icons.calendar_today),
-                        filled: false,
-                        fillColor: Theme.of(context).cardColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                        disabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.w500,
+                    elevation: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Contact Information',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF2196F3),
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Shop Address Field
+                          Text(
+                            localizations?.shopAddress ?? 'Shop Address',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _shopAddressController,
+                            enabled: _isEditMode,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText:
+                                  localizations?.enterCompleteShopAddress ??
+                                  'Enter complete shop address',
+                              prefixIcon: const Icon(
+                                Icons.location_on,
+                                color: Color(0xFF2196F3),
+                              ),
+                              filled: true,
+                              fillColor: _isEditMode
+                                  ? Colors.grey[50]
+                                  : Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2196F3),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (_isEditMode &&
+                                  (value == null || value.isEmpty)) {
+                                return localizations?.pleaseEnterShopAddress ??
+                                    'Please enter shop address';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Mobile Number Field (Required)
+                          Text(
+                            'Mobile Number',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _shopPhoneController,
+                            enabled: _isEditMode,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: 'Enter mobile number',
+                              prefixIcon: const Icon(
+                                Icons.phone,
+                                color: Color(0xFF2196F3),
+                              ),
+                              filled: true,
+                              fillColor: _isEditMode
+                                  ? Colors.grey[50]
+                                  : Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2196F3),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (_isEditMode) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter mobile number';
+                                }
+                                if (value.length < 10) {
+                                  return 'Please enter valid mobile number';
+                                }
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Additional Mobile Number Field (Optional)
+                          Text(
+                            'Additional Mobile Number',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _ownerPhoneController,
+                            enabled: _isEditMode,
+                            keyboardType: TextInputType.phone,
+                            decoration: InputDecoration(
+                              hintText: 'Enter mobile number (optional)',
+                              prefixIcon: const Icon(
+                                Icons.phone,
+                                color: Color(0xFF2196F3),
+                              ),
+                              filled: true,
+                              fillColor: _isEditMode
+                                  ? Colors.grey[50]
+                                  : Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2196F3),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (_isEditMode &&
+                                  value != null &&
+                                  value.isNotEmpty) {
+                                if (value.length < 10) {
+                                  return 'Please enter valid mobile number';
+                                }
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Shop Email Field
+                          Text(
+                            localizations?.shopEmail ?? 'Shop Email',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _shopEmailController,
+                            enabled: _isEditMode,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: InputDecoration(
+                              hintText:
+                                  localizations?.enterEmailAddress ??
+                                  'Enter email address',
+                              prefixIcon: const Icon(
+                                Icons.email,
+                                color: Color(0xFF2196F3),
+                              ),
+                              filled: true,
+                              fillColor: _isEditMode
+                                  ? Colors.grey[50]
+                                  : Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF2196F3),
+                                  width: 2,
+                                ),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1,
+                                ),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            validator: (value) {
+                              if (_isEditMode &&
+                                  value != null &&
+                                  value.isNotEmpty) {
+                                if (!RegExp(
+                                  r'^[^@]+@[^@]+\.[^@]+',
+                                ).hasMatch(value)) {
+                                  return localizations?.pleaseEnterValidEmail ??
+                                      'Please enter valid email';
+                                }
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  const SizedBox(height: 32),
+
+                  // Additional Information Section
+                  Card(
+                    elevation: 4,
+                    margin: const EdgeInsets.only(bottom: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Additional Information',
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF2196F3),
+                                ),
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Owner Signature Field
+                          Text(
+                            localizations?.ownerSignature ?? 'Owner Signature',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.grey[300]!,
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              color: Colors.grey[50],
+                            ),
+                            child: Column(
+                              children: [
+                                if (_hasSignature &&
+                                    _ownerSignatureBase64 != null)
+                                  Container(
+                                    height: 120,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(12),
+                                        topRight: Radius.circular(12),
+                                      ),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Image.memory(
+                                        base64Decode(_ownerSignatureBase64!),
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Container(
+                                    height: 120,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: const BorderRadius.only(
+                                        topLeft: Radius.circular(12),
+                                        topRight: Radius.circular(12),
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.draw,
+                                            size: 32,
+                                            color: Colors.grey,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            localizations?.noSignatureAdded ??
+                                                'No signature added',
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                if (_isEditMode)
+                                  Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        onPressed: () =>
+                                            _showSignatureDialog(context),
+                                        icon: const Icon(Icons.edit),
+                                        label: Text(
+                                          _hasSignature
+                                              ? (localizations
+                                                        ?.updateSignature ??
+                                                    'Update Signature')
+                                              : (localizations?.addSignature ??
+                                                    'Add Signature'),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFF2196F3,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 12,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Subscription Expiry Date Field (Non-editable)
+                          Text(
+                            localizations?.subscriptionExpiry ??
+                                'Subscription Expiry',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _subscriptionExpiryController,
+                            enabled: false,
+                            decoration: InputDecoration(
+                              hintText: localizations?.notSet ?? 'Not set',
+                              prefixIcon: const Icon(
+                                Icons.calendar_today,
+                                color: Colors.grey,
+                              ),
+                              filled: true,
+                              fillColor: Colors.grey[100],
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide.none,
+                              ),
+                              disabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                  width: 1,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                            ),
+                            style: TextStyle(
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
                   // Save Button - Only show in edit mode
                   if (_isEditMode)
@@ -1037,7 +1351,7 @@ class _EditProfileState extends State<EditProfile> {
                               ),
                       ),
                     ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
