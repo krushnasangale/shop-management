@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:convert' as convert;
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/services/file_service.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 
 class BillProductItem {
@@ -308,16 +303,86 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         },
       );
 
-      // Generate PDF
-      final pdfFile = await _generateBillPDF();
+      // Fetch profile data for PDF generation
+      String? ownerSignatureBase64;
+      String shopName = '--';
+      String ownerName = '--';
+      String shopAddress = '--';
+      String shopPhone = '--';
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final profileData = await _profileService.getCurrentUserProfile();
+        if (profileData != null) {
+          ownerSignatureBase64 = profileData['ownerSignature'];
+          shopName = profileData['shopName'] ?? '--';
+          ownerName = profileData['ownerName'] ?? '--';
+          shopAddress = profileData['shopAddress'] ?? '--';
+          shopPhone = profileData['shopPhone'] ?? '--';
+        }
+      }
+
+      // Convert products to format expected by FileService
+      final productsList = products
+          .map(
+            (product) => {
+              'name': product.productName,
+              'qty': '${product.quantity} ${product.unit}',
+              'price': 'Rs. ${product.price}',
+              'total': 'Rs. ${product.total.toStringAsFixed(0)}',
+            },
+          )
+          .toList();
+
+      // Generate PDF using FileService
+      final pdfBytes = await FileService.generateBillPDF(
+        billNumber: billNumber,
+        billId: 'BILL-$billNumber',
+        customerName: customerName,
+        customerMobile: customerMobile,
+        customerVehicle: customerVehicle.isNotEmpty ? customerVehicle : null,
+        products: productsList,
+        totalAmount: totalAmount.toString(),
+        amountPaid: amountPaid.toString(),
+        amountRemaining: amountRemaining.toString(),
+        discount: 0,
+        deliveryCharges: deliveryCharges,
+        nextPaymentDate: nextPaymentDate.isNotEmpty ? nextPaymentDate : null,
+        previousDueAmount: previousDueAmount,
+        previousPaidAmount: widget.previousPaidAmount,
+        previousDueDescription: previousDueDescription,
+        ownerSignatureBase64: ownerSignatureBase64,
+        shopName: shopName,
+        ownerName: ownerName,
+        shopAddress: shopAddress,
+        shopPhone: shopPhone,
+      );
+
+      // Generate filename and share using FileService
+      final fileName = FileService.generateTimestampedFileName(
+        customerName,
+        'pdf',
+      );
+      final result = await FileService.shareFile(
+        fileBytes: pdfBytes,
+        fileName: fileName,
+        shareText: localizations.billFromShop,
+        subFolder: 'Bills',
+      );
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
-        // Open share dialog
-        await Share.shareXFiles([
-          XFile(pdfFile.path),
-        ], text: localizations.billFromShop);
+        if (!result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '${localizations.errorGeneratingBill}: ${result.errorMessage}',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -330,548 +395,6 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         );
       }
     }
-  }
-
-  Future<File> _generateBillPDF() async {
-    final pdf = pw.Document();
-
-    // Get temporary directory
-    final dir = await getTemporaryDirectory();
-
-    // Create filename with customer name and datetime
-    final now = DateTime.now();
-    final dateTimeString =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
-    final sanitizedCustomerName = customerName
-        .replaceAll(RegExp(r'[^\w\s-]'), '')
-        .replaceAll(' ', '_');
-    final fileName = '${sanitizedCustomerName}_$dateTimeString.pdf';
-    final file = File('${dir.path}/$fileName');
-
-    final billDate = now.toString().split('.')[0];
-
-    // Fetch owner signature and company details from Firebase
-    String? ownerSignatureBase64;
-    String shopName = '--';
-    String ownerName = '--';
-    String shopAddress = '--';
-    String shopPhone = '--';
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final profileData = await _profileService.getCurrentUserProfile();
-        if (profileData != null) {
-          final data = profileData;
-          ownerSignatureBase64 = data['ownerSignature'];
-          shopName = data['shopName'] ?? '--';
-          ownerName = data['ownerName'] ?? '--';
-          shopAddress = data['shopAddress'] ?? '--';
-          shopPhone = data['shopPhone'] ?? '--';
-        }
-      }
-    } catch (e) {
-      print('Error fetching owner signature: $e');
-    }
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(20),
-        header: (pw.Context context) {
-          // Only show header on first page
-          if (context.pageNumber > 1) {
-            return pw.Container(); // Empty container for subsequent pages
-          }
-
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Header with Company Name and Invoice Title
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    shopName,
-                    style: pw.TextStyle(
-                      fontSize: 28,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                  pw.Text(
-                    'INVOICE',
-                    style: pw.TextStyle(
-                      fontSize: 24,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 15),
-
-              // Company Details Section
-              pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  if (shopAddress != '--')
-                    pw.Text(
-                      'Address: $shopAddress',
-                      style: const pw.TextStyle(fontSize: 9),
-                    ),
-                  if (shopPhone != '--')
-                    pw.Text(
-                      'Phone: $shopPhone',
-                      style: const pw.TextStyle(fontSize: 9),
-                    ),
-                ],
-              ),
-              pw.SizedBox(height: 15),
-
-              // Bill ID and Date
-              pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Invoice No.',
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                      pw.Text(
-                        '# $billNumber',
-                        style: const pw.TextStyle(fontSize: 10),
-                      ),
-                    ],
-                  ),
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.end,
-                    children: [
-                      pw.Text(
-                        'Invoice Date:',
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                      pw.Text(
-                        billDate,
-                        style: const pw.TextStyle(fontSize: 10),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              pw.SizedBox(height: 15),
-
-              // Customer Details Section
-              pw.Text(
-                'BILL TO',
-                style: pw.TextStyle(
-                  fontSize: 11,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 5),
-              pw.Text(
-                'Name: $customerName',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              pw.Text(
-                'Mobile: $customerMobile',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              if (customerVehicle.isNotEmpty)
-                pw.Text(
-                  'Vehicle: $customerVehicle',
-                  style: const pw.TextStyle(fontSize: 10),
-                ),
-              pw.SizedBox(height: 15),
-            ],
-          );
-        },
-        build: (pw.Context context) {
-          return [
-            // Products Table
-            _buildProductTable(),
-            pw.SizedBox(height: 40),
-
-            // Footer content (only appears at the end)
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                // Remaining Amount Instruction (if applicable)
-                if (amountRemaining > 0) ...[
-                  pw.Text(
-                    'Please arrange payment of Rs. $amountRemaining on or before $nextPaymentDate to complete this transaction.',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                  pw.SizedBox(height: 15),
-                ],
-
-                // Previous Due Information (if applicable)
-                if (previousDueAmount > 0) ...[
-                  pw.Text(
-                    'Previous Due: Rs. ${previousDueAmount.toStringAsFixed(2)}}',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.left,
-                  ),
-                  pw.Text(
-                    'Due against: ${widget.previousDueDescription.isNotEmpty ? '(${widget.previousDueDescription})' : ''}',
-                    style: pw.TextStyle(
-                      fontSize: 10,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.left,
-                  ),
-                  pw.SizedBox(height: 15),
-                ],
-
-                // Terms & Conditions
-                pw.Text(
-                  'Terms & Conditions',
-                  style: pw.TextStyle(
-                    fontSize: 10,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                ),
-                pw.SizedBox(height: 20),
-
-                // Signature Section
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'Customer Signature',
-                          style: const pw.TextStyle(fontSize: 9),
-                        ),
-                        pw.SizedBox(height: 30),
-                        pw.Text(
-                          '_' * 20,
-                          style: const pw.TextStyle(fontSize: 8),
-                        ),
-                      ],
-                    ),
-                    if (ownerSignatureBase64 != null &&
-                        ownerSignatureBase64.isNotEmpty)
-                      pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.center,
-                        children: [
-                          pw.SizedBox(
-                            width: 80,
-                            height: 60,
-                            child: pw.Image(
-                              pw.MemoryImage(
-                                convert.base64Decode(ownerSignatureBase64),
-                              ),
-                              fit: pw.BoxFit.contain,
-                            ),
-                          ),
-                          pw.SizedBox(height: 5),
-                          pw.Text(
-                            'Signature',
-                            style: const pw.TextStyle(fontSize: 9),
-                          ),
-                          pw.Text(
-                            ownerName,
-                            style: const pw.TextStyle(fontSize: 8),
-                          ),
-                        ],
-                      )
-                    else
-                      pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.center,
-                        children: [
-                          pw.SizedBox(height: 30),
-                          pw.Text(
-                            '_' * 20,
-                            style: const pw.TextStyle(fontSize: 8),
-                          ),
-                          pw.SizedBox(height: 5),
-                          pw.Text(
-                            'Signature',
-                            style: const pw.TextStyle(fontSize: 9),
-                          ),
-                          pw.Text(
-                            ownerName,
-                            style: const pw.TextStyle(fontSize: 8),
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ];
-        },
-      ),
-    );
-
-    await file.writeAsBytes(await pdf.save());
-    return file;
-  }
-
-  pw.Widget _buildProductTable() {
-    // Table headers WITHOUT profit column (customer-facing)
-    final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
-
-    // Table rows - format prices with 'Rs.' prefix
-    final rows = <List<String>>[
-      ...products.asMap().entries.map(
-        (entry) => [
-          '${entry.key + 1}',
-          entry.value.productName,
-          '${entry.value.quantity} ${entry.value.unit}',
-          'Rs. ${entry.value.price}',
-          'Rs. ${entry.value.total.toStringAsFixed(0)}',
-        ],
-      ),
-    ];
-
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Table(
-          border: pw.TableBorder(
-            top: const pw.BorderSide(width: 1),
-            bottom: const pw.BorderSide(width: 1),
-            left: const pw.BorderSide(width: 1),
-            right: const pw.BorderSide(width: 1),
-            horizontalInside: pw.BorderSide(width: 1),
-            verticalInside: const pw.BorderSide(width: 1),
-          ),
-          columnWidths: {
-            0: const pw.FixedColumnWidth(30),
-            1: const pw.FlexColumnWidth(2.5),
-            2: const pw.FlexColumnWidth(1.2),
-            3: const pw.FlexColumnWidth(1.2),
-            4: const pw.FlexColumnWidth(1.2),
-          },
-          children: [
-            // Header row
-            pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.grey300),
-              children: headers.map((header) {
-                return pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text(
-                    header,
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                );
-              }).toList(),
-            ),
-            // Data rows
-            ...rows.map((row) {
-              return pw.TableRow(
-                children: row.asMap().entries.map((entry) {
-                  return pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text(
-                      entry.value,
-                      style: const pw.TextStyle(fontSize: 8),
-                      textAlign: entry.key == 0
-                          ? pw.TextAlign.center
-                          : pw.TextAlign.left,
-                    ),
-                  );
-                }).toList(),
-              );
-            }),
-            // White space below last product item
-            pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.white),
-              children: [
-                pw.SizedBox(height: 50),
-                pw.SizedBox(height: 50),
-                pw.SizedBox(height: 50),
-                pw.SizedBox(height: 50),
-                pw.SizedBox(height: 50),
-              ],
-            ),
-            // Delivery Charges row (if applicable)
-            if (deliveryCharges > 0) ...[
-              pw.TableRow(
-                decoration: pw.BoxDecoration(color: PdfColors.grey200),
-                children: [
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text(
-                      'Delivery Charges:',
-                      style: pw.TextStyle(
-                        fontSize: 9,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                      textAlign: pw.TextAlign.right,
-                    ),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text(
-                      'Rs. $deliveryCharges',
-                      style: pw.TextStyle(
-                        fontSize: 9,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                      textAlign: pw.TextAlign.right,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            // Total row
-            pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.grey300),
-              children: [
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                ),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                ),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                ),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text(
-                    'Total Amount:',
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.right,
-                  ),
-                ),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text(
-                    'Rs. $totalAmount',
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
-            // Total Amount Paid row
-            pw.TableRow(
-              decoration: pw.BoxDecoration(color: PdfColors.grey300),
-              children: [
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                ),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                ),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                ),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text(
-                    'Total Paid:',
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.right,
-                  ),
-                ),
-                pw.Padding(
-                  padding: const pw.EdgeInsets.all(5),
-                  child: pw.Text(
-                    'Rs. $amountPaid',
-                    style: pw.TextStyle(
-                      fontSize: 9,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
-            // Remaining Amount row (if amounts don't match)
-            if (amountRemaining > 0)
-              pw.TableRow(
-                decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                children: [
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text('', style: const pw.TextStyle(fontSize: 9)),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text(
-                      'Remaining:',
-                      style: pw.TextStyle(
-                        fontSize: 9,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                      textAlign: pw.TextAlign.right,
-                    ),
-                  ),
-                  pw.Padding(
-                    padding: const pw.EdgeInsets.all(5),
-                    child: pw.Text(
-                      'Rs. $amountRemaining',
-                      style: pw.TextStyle(
-                        fontSize: 9,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                      textAlign: pw.TextAlign.right,
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ],
-    );
   }
 
   Widget _buildStatusRow(
