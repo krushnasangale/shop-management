@@ -1221,130 +1221,171 @@ class _AvailableProductDetailScreenState
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
+              bool isDeleting = false;
               // Confirm deletion
               showDialog(
                 context: context,
-                builder: (context) => AlertDialog(
-                  title: Text(
-                    localizations.deleteProduct,
-                    style: context.bodyLargeText,
-                  ),
-                  content: Text(localizations.deleteProductConfirmation),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: Text(localizations.cancel),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
+                builder: (context) => StatefulBuilder(
+                  builder: (context, setState) {
+                    return AlertDialog(
+                      title: Text(
+                        localizations.deleteProduct,
+                        style: context.bodyLargeText,
                       ),
-                      onPressed: () async {
-                        try {
-                          // Delete all batches of this product from purchased-products collection
-                          final batchesSnapshot = await FirebaseFirestore
-                              .instance
-                              .collection('purchased-products')
-                              .doc(widget.userId)
-                              .collection('items')
-                              .where(
-                                'productName',
-                                isEqualTo: widget.product.productName,
-                              )
-                              .get();
+                      content: Text(localizations.deleteProductConfirmation),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: Text(localizations.cancel),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: isDeleting
+                              ? null
+                              : () async {
+                                  setState(() => isDeleting = true);
+                                  try {
+                                    // Delete all batches of this product from purchased-products collection
+                                    final batchesSnapshot =
+                                        await FirebaseFirestore.instance
+                                            .collection('purchased-products')
+                                            .doc(widget.userId)
+                                            .collection('items')
+                                            .where(
+                                              'productName',
+                                              isEqualTo:
+                                                  widget.product.productName,
+                                            )
+                                            .get();
 
-                          // Collect unique purchase IDs from all batches
-                          Set<String> affectedPurchaseIds = {};
-                          for (var doc in batchesSnapshot.docs) {
-                            final purchaseId =
-                                doc.data()['purchaseId'] as String?;
-                            if (purchaseId != null && purchaseId.isNotEmpty) {
-                              affectedPurchaseIds.add(purchaseId);
-                            }
-                          }
+                                    // Collect unique purchase IDs from all batches
+                                    Set<String> affectedPurchaseIds = {};
+                                    for (var doc in batchesSnapshot.docs) {
+                                      final purchaseId =
+                                          doc.data()['purchaseId'] as String?;
+                                      if (purchaseId != null &&
+                                          purchaseId.isNotEmpty) {
+                                        affectedPurchaseIds.add(purchaseId);
+                                      }
+                                    }
 
-                          // Delete each batch
-                          for (var doc in batchesSnapshot.docs) {
-                            await doc.reference.delete();
-                          }
+                                    // Delete each batch
+                                    for (var doc in batchesSnapshot.docs) {
+                                      await doc.reference.delete();
+                                    }
 
-                          // Update or delete affected purchase entries
-                          for (String purchaseId in affectedPurchaseIds) {
-                            // Get remaining items for this purchase
-                            final remainingItems = await FirebaseFirestore
-                                .instance
-                                .collection('purchased-products')
-                                .doc(widget.userId)
-                                .collection('items')
-                                .where('purchaseId', isEqualTo: purchaseId)
-                                .get();
+                                    // Update or delete affected purchase entries
+                                    for (String purchaseId
+                                        in affectedPurchaseIds) {
+                                      // Get remaining items for this purchase
+                                      final remainingItems =
+                                          await FirebaseFirestore.instance
+                                              .collection('purchased-products')
+                                              .doc(widget.userId)
+                                              .collection('items')
+                                              .where(
+                                                'purchaseId',
+                                                isEqualTo: purchaseId,
+                                              )
+                                              .get();
 
-                            if (remainingItems.docs.isEmpty) {
-                              // No items left, delete the purchase entry
-                              await FirebaseFirestore.instance
-                                  .collection('purchases')
-                                  .doc(widget.userId)
-                                  .collection('items')
-                                  .doc(purchaseId)
-                                  .delete();
-                            } else {
-                              // Recalculate purchase totals
-                              double newTotalAmount = 0;
-                              int newTotalUnits = 0;
-                              int newTotalProducts = remainingItems.docs.length;
+                                      if (remainingItems.docs.isEmpty) {
+                                        // No items left, delete the purchase entry
+                                        await FirebaseFirestore.instance
+                                            .collection('purchases')
+                                            .doc(widget.userId)
+                                            .collection('items')
+                                            .doc(purchaseId)
+                                            .delete();
+                                      } else {
+                                        // Recalculate purchase totals
+                                        double newTotalAmount = 0;
+                                        int newTotalUnits = 0;
+                                        int newTotalProducts =
+                                            remainingItems.docs.length;
 
-                              for (var doc in remainingItems.docs) {
-                                final total = (doc['total'] ?? 0) as num;
-                                final quantity =
-                                    (doc['initialQuantity'] ?? 0) as num;
-                                newTotalAmount += total.toDouble();
-                                newTotalUnits += quantity.toInt();
-                              }
+                                        for (var doc in remainingItems.docs) {
+                                          final total =
+                                              (doc['total'] ?? 0) as num;
+                                          final quantity =
+                                              (doc['initialQuantity'] ?? 0)
+                                                  as num;
+                                          newTotalAmount += total.toDouble();
+                                          newTotalUnits += quantity.toInt();
+                                        }
 
-                              // Update the purchase entry
-                              await FirebaseFirestore.instance
-                                  .collection('purchases')
-                                  .doc(widget.userId)
-                                  .collection('items')
-                                  .doc(purchaseId)
-                                  .update({
-                                    'totalAmount': newTotalAmount,
-                                    'totalUnits': newTotalUnits,
-                                    'totalProducts': newTotalProducts,
-                                  });
-                            }
-                          }
+                                        // Update the purchase entry
+                                        await FirebaseFirestore.instance
+                                            .collection('purchases')
+                                            .doc(widget.userId)
+                                            .collection('items')
+                                            .doc(purchaseId)
+                                            .update({
+                                              'totalAmount': newTotalAmount,
+                                              'totalUnits': newTotalUnits,
+                                              'totalProducts': newTotalProducts,
+                                            });
+                                      }
+                                    }
 
-                          if (mounted) {
-                            Navigator.of(context).pop(); // Close dialog
-                            Navigator.of(
-                              context,
-                            ).pop(); // Go back after deletion
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '${widget.product.productName} deleted successfully (${batchesSnapshot.docs.length} batches removed)',
-                                ),
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            Navigator.of(context).pop(); // Close dialog
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '${localizations.errorDeletingProduct}: $e',
-                                ),
-                              ),
-                            );
-                          }
-                        }
-                      },
-                      child: Text(localizations.delete),
-                    ),
-                  ],
+                                    setState(() => isDeleting = false);
+                                    if (mounted) {
+                                      Navigator.of(
+                                        context,
+                                      ).pop(); // Close dialog
+                                      Navigator.of(
+                                        context,
+                                      ).pop(); // Go back after deletion
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            '${widget.product.productName} deleted successfully (${batchesSnapshot.docs.length} batches removed)',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    setState(() => isDeleting = false);
+                                    if (mounted) {
+                                      Navigator.of(
+                                        context,
+                                      ).pop(); // Close dialog
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            '${localizations.errorDeletingProduct}: $e',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          child: isDeleting
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : Text(localizations.delete),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               );
             },
