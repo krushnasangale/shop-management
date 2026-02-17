@@ -198,14 +198,12 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
   }
 
   String _formatCurrency(int amount) {
-    if (amount >= 10000000) {
-      return '${(amount / 10000000).toStringAsFixed(2)}Cr';
-    } else if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(2)}L';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(2)}K';
-    }
-    return amount.toString();
+    // Format with commas for thousands separator
+    final formatted = amount.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    return formatted;
   }
 
   @override

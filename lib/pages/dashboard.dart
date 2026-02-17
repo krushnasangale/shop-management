@@ -1773,12 +1773,12 @@ class _DashboardState extends State<Dashboard>
   }
 
   String _formatCurrency(int amount, {AppLocalizations? loc}) {
-    if (amount >= 100000) {
-      return '${(amount / 100000).toStringAsFixed(1)}${loc?.currencyLakh ?? ' L'}';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}${loc?.currencyThousand ?? ' K'}';
-    }
-    return amount.toString();
+    // Format with commas for thousands separator
+    final formatted = amount.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+    return formatted;
   }
 
   void _showMonthPicker(BuildContext context, AppLocalizations? loc) {

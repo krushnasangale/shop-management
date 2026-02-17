@@ -7,6 +7,7 @@ class DashboardService {
   final BillsDataService _billsService = BillsDataService();
 
   StreamSubscription<List<Map<String, dynamic>>>? _billsSubscription;
+  StreamSubscription<QuerySnapshot>? _productsSubscription;
 
   /// Get access to bills service for checking cached data
   BillsDataService get billsService => _billsService;
@@ -28,6 +29,7 @@ class DashboardService {
 
     // Cancel any existing subscription before creating a new one
     _billsSubscription?.cancel();
+    _productsSubscription?.cancel();
 
     // Immediately calculate and emit data using cached bills
     final cachedBills = _billsService.getCachedBills();
@@ -86,10 +88,48 @@ class DashboardService {
       },
     );
 
+    // Listen to products changes
+    _productsSubscription = FirebaseFirestore.instance
+        .collection('purchased-products')
+        .doc(userId)
+        .collection('items')
+        .snapshots()
+        .listen(
+          (_) async {
+            // When products change, recalculate with current bills
+            final currentBills = _billsService.getCachedBills();
+            try {
+              final dashboardData = await _calculateAllDashboardData(
+                currentBills,
+                userId,
+                filterType: filterType,
+                selectedDate: selectedDate,
+                rangeStartDate: rangeStartDate,
+                rangeEndDate: rangeEndDate,
+              );
+              if (!controller.isClosed) {
+                controller.add(dashboardData);
+              }
+            } catch (e) {
+              print('Error calculating dashboard data on products change: $e');
+              if (!controller.isClosed) {
+                controller.addError(e);
+              }
+            }
+          },
+          onError: (error) {
+            if (!controller.isClosed) {
+              controller.addError(error);
+            }
+          },
+        );
+
     // Listen for controller being cancelled to clean up subscription
     controller.onCancel = () {
       _billsSubscription?.cancel();
       _billsSubscription = null;
+      _productsSubscription?.cancel();
+      _productsSubscription = null;
     };
 
     return controller.stream;
@@ -578,6 +618,7 @@ class DashboardService {
 
   void dispose() {
     _billsSubscription?.cancel();
+    _productsSubscription?.cancel();
     _billsService.dispose();
   }
 }
