@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class PurchaseHistoryTab extends StatefulWidget {
   final List<Map<String, dynamic>> purchaseHistory;
@@ -50,12 +51,11 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   void _filterAndSortPurchaseHistory() {
     setState(() {
       _filteredPurchaseHistory = widget.purchaseHistory.where((purchase) {
-        final searchQuery = _searchController.text.toLowerCase();
-        final supplierName = (purchase['supplierName'] ?? '')
-            .toString()
-            .toLowerCase();
+        final searchQuery = _searchController.text;
+        final supplierName = (purchase['supplierName'] ?? '').toString();
 
-        if (searchQuery.isNotEmpty && !supplierName.contains(searchQuery)) {
+        if (searchQuery.isNotEmpty &&
+            !SearchUtils.matchesSubsequence(supplierName, searchQuery)) {
           return false;
         }
 

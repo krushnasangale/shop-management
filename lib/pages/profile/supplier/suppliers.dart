@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/profile/supplier/supplier_history.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 // --- Supplier Data Model ---
 class Supplier {
@@ -94,7 +95,7 @@ class _SuppliersState extends State<Suppliers> {
   }
 
   void _filterSuppliers() {
-    _searchQuery = _searchController.text.toLowerCase();
+    _searchQuery = _searchController.text;
     setState(() {
       if (_searchQuery.isEmpty) {
         _filteredSuppliers = _suppliers;
@@ -102,9 +103,15 @@ class _SuppliersState extends State<Suppliers> {
         _filteredSuppliers = _suppliers
             .where(
               (supplier) =>
-                  supplier.name.toLowerCase().contains(_searchQuery) ||
-                  supplier.contact.toLowerCase().contains(_searchQuery) ||
-                  supplier.location.toLowerCase().contains(_searchQuery),
+                  SearchUtils.matchesSubsequence(supplier.name, _searchQuery) ||
+                  SearchUtils.matchesSubsequence(
+                    supplier.contact,
+                    _searchQuery,
+                  ) ||
+                  SearchUtils.matchesSubsequence(
+                    supplier.location,
+                    _searchQuery,
+                  ),
             )
             .toList();
       }

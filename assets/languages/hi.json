@@ -660,7 +660,7 @@
     "available_products_report_csv": "उपलब्ध उत्पाद रिपोर्ट (CSV) {shopName} से",
     "export_as_csv_excel": "CSV (Excel) के रूप में निर्यात करें",
     "error_generating_csv": "CSV जनरेट करने में त्रुटि: {error}",
-    "search_product_or_supplier": "उत्पाद या आपूर्तिकर्ता खोजें",
+    "search_product_or_supplier": "उत्पाद खोजें (कोई भी अक्षर क्रम में टाइप करें)",
     "reorder_now": "अभी पुनः ऑर्डर करें",
     "order_soon": "जल्दी ऑर्डर करें",
     "well_stocked": "अच्छी तरह से स्टॉक",

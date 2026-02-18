@@ -12,6 +12,7 @@ import 'package:flashbill/pages/products/tabs/sales_history_tab.dart';
 import 'package:flashbill/pages/products/tabs/purchase_history_tab.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/image_upload_service.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
@@ -198,15 +199,13 @@ class _AvailableProductDetailScreenState
       // First filter
       _filteredPurchaseHistory = _purchaseHistory.where((purchase) {
         // Filter by search query
-        final searchQuery = _searchController.text.toLowerCase();
-        final supplierName = (purchase['supplierName'] ?? '')
-            .toString()
-            .toLowerCase();
-        final date = (purchase['date'] ?? '').toString().toLowerCase();
+        final searchQuery = _searchController.text;
+        final supplierName = (purchase['supplierName'] ?? '').toString();
+        final date = (purchase['date'] ?? '').toString();
 
         if (searchQuery.isNotEmpty &&
-            !supplierName.contains(searchQuery) &&
-            !date.contains(searchQuery)) {
+            !SearchUtils.matchesSubsequence(supplierName, searchQuery) &&
+            !SearchUtils.matchesSubsequence(date, searchQuery)) {
           return false;
         }
 
@@ -326,15 +325,13 @@ class _AvailableProductDetailScreenState
       // First filter
       _filteredSoldHistory = _soldHistory.where((sale) {
         // Filter by search query
-        final searchQuery = _searchSalesController.text.toLowerCase();
-        final customerName = (sale['customerName'] ?? '')
-            .toString()
-            .toLowerCase();
-        final date = (sale['date'] ?? '').toString().toLowerCase();
+        final searchQuery = _searchSalesController.text;
+        final customerName = (sale['customerName'] ?? '').toString();
+        final date = (sale['date'] ?? '').toString();
 
         if (searchQuery.isNotEmpty &&
-            !customerName.contains(searchQuery) &&
-            !date.contains(searchQuery)) {
+            !SearchUtils.matchesSubsequence(customerName, searchQuery) &&
+            !SearchUtils.matchesSubsequence(date, searchQuery)) {
           return false;
         }
 

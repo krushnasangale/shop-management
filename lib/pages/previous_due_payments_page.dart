@@ -5,6 +5,7 @@ import 'package:flashbill/services/bills_data_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class PreviousDuePaymentsPage extends StatefulWidget {
   const PreviousDuePaymentsPage({super.key});
@@ -119,11 +120,14 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
   }
 
   void _filterPayments() {
-    final query = _searchController.text.toLowerCase();
+    final query = _searchController.text;
     setState(() {
       _filteredPayments = _previousDuePayments.where((payment) {
-        final customerName = payment['customerName'].toString().toLowerCase();
-        final matchesSearch = customerName.contains(query);
+        final customerName = payment['customerName'].toString();
+        final matchesSearch = SearchUtils.matchesSubsequence(
+          customerName,
+          query,
+        );
 
         // Apply status filter
         final status = _getPreviousDueStatus(payment);

@@ -1,4 +1,5 @@
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/search_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -778,8 +779,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           List<Map<String, dynamic>> filteredItems =
               liveItems.where((item) {
                 final itemName = item['productName'] ?? item['name'] ?? '';
-                return itemName.toString().toLowerCase().contains(
-                  searchController.text.toLowerCase(),
+                return SearchUtils.matchesSubsequence(
+                  itemName.toString(),
+                  searchController.text,
                 );
               }).toList()..sort((a, b) {
                 final aName = (a['productName'] ?? a['name'] ?? '')
@@ -1465,16 +1467,14 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   displaySuppliers = _supplierDetails
                                       .where(
                                         (supplier) =>
-                                            supplier['name']
-                                                .toString()
-                                                .toLowerCase()
-                                                .contains(
-                                                  query.toLowerCase(),
-                                                ) ||
-                                            supplier['contact']
-                                                .toString()
-                                                .toLowerCase()
-                                                .contains(query.toLowerCase()),
+                                            SearchUtils.matchesSubsequence(
+                                              supplier['name'].toString(),
+                                              query,
+                                            ) ||
+                                            SearchUtils.matchesSubsequence(
+                                              supplier['contact'].toString(),
+                                              query,
+                                            ),
                                       )
                                       .toList();
                                 }

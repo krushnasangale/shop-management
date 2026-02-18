@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 // --- Data Model ---
 class UnitOfMeasure {
@@ -101,14 +102,16 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   }
 
   void _filterUnits() {
-    _searchQuery = _searchController.text.toLowerCase();
+    _searchQuery = _searchController.text;
     if (!mounted) return;
     setState(() {
       if (_searchQuery.isEmpty) {
         _filteredUnits = _units;
       } else {
         _filteredUnits = _units
-            .where((unit) => unit.name.toLowerCase().contains(_searchQuery))
+            .where(
+              (unit) => SearchUtils.matchesSubsequence(unit.name, _searchQuery),
+            )
             .toList();
       }
     });

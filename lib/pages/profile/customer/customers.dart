@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flashbill/pages/profile/customer/customer_history.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class Customers extends StatefulWidget {
   const Customers({super.key});
@@ -35,7 +36,7 @@ class _CustomersState extends State<Customers> {
     _loadCustomers();
     _searchController.addListener(() {
       setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
+        _searchQuery = _searchController.text;
         _currentlyLoadedItems = _itemsPerPage.clamp(
           0,
           _filteredCustomers.length,
@@ -164,8 +165,8 @@ class _CustomersState extends State<Customers> {
       return _customers;
     }
     return _customers.where((customer) {
-      final name = customer['name'].toString().toLowerCase();
-      return name.contains(_searchQuery);
+      final name = customer['name'].toString();
+      return SearchUtils.matchesSubsequence(name, _searchQuery);
     }).toList();
   }
 

@@ -6,6 +6,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class PendingPaymentsPage extends StatefulWidget {
   const PendingPaymentsPage({super.key});
@@ -106,19 +107,17 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
 
   void _filterPayments() {
     setState(() {
-      _searchQuery = _searchController.text.toLowerCase();
+      _searchQuery = _searchController.text;
       if (_searchQuery.isEmpty) {
         _filteredPayments = _pendingPayments;
       } else {
         _filteredPayments = _pendingPayments.where((payment) {
-          final name = payment['customerName'].toString().toLowerCase();
-          final mobile = payment['customerMobile'].toString().toLowerCase();
-          final vehicle = (payment['customerVehicle'] ?? '')
-              .toString()
-              .toLowerCase();
-          return name.contains(_searchQuery) ||
-              mobile.contains(_searchQuery) ||
-              vehicle.contains(_searchQuery);
+          final name = payment['customerName'].toString();
+          final mobile = payment['customerMobile'].toString();
+          final vehicle = (payment['customerVehicle'] ?? '').toString();
+          return SearchUtils.matchesSubsequence(name, _searchQuery) ||
+              SearchUtils.matchesSubsequence(mobile, _searchQuery) ||
+              SearchUtils.matchesSubsequence(vehicle, _searchQuery);
         }).toList();
       }
       _sortPayments();

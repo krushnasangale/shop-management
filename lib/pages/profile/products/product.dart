@@ -8,6 +8,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flashbill/services/image_upload_service.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class Product {
   final String id;
@@ -207,7 +208,7 @@ class _ProductNameState extends State<ProductName> {
   }
 
   void _filterProducts() {
-    _searchQuery = _searchController.text.toLowerCase();
+    _searchQuery = _searchController.text;
     if (!mounted) return;
     setState(() {
       if (_searchQuery.isEmpty) {
@@ -215,7 +216,8 @@ class _ProductNameState extends State<ProductName> {
       } else {
         _filteredProducts = _products
             .where(
-              (product) => product.name.toLowerCase().contains(_searchQuery),
+              (product) =>
+                  SearchUtils.matchesSubsequence(product.name, _searchQuery),
             )
             .toList();
       }

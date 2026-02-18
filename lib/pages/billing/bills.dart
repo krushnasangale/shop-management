@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/bills_data_service.dart';
 
@@ -191,7 +192,7 @@ class _BillsState extends State<Bills> {
 
   // Filter bills based on search query and payment status
   void _filterBills() {
-    final query = _searchController.text.toLowerCase();
+    final query = _searchController.text;
 
     List<Bill> filtered = _allBills;
 
@@ -211,8 +212,8 @@ class _BillsState extends State<Bills> {
     // Apply search filter
     if (query.isNotEmpty) {
       filtered = filtered.where((bill) {
-        return bill.customerName.toLowerCase().contains(query) ||
-            bill.customerMobile.toLowerCase().contains(query);
+        return SearchUtils.matchesSubsequence(bill.customerName, query) ||
+            SearchUtils.matchesSubsequence(bill.customerMobile, query);
       }).toList();
     }
 

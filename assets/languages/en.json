@@ -659,7 +659,7 @@
     "available_products_report_csv": "Available Products Report (CSV) from {shopName}",
     "export_as_csv_excel": "Export as CSV (Excel)",
     "error_generating_csv": "Error generating CSV: {error}",
-    "search_product_or_supplier": "Search product or supplier",
+    "search_product_or_supplier": "Search products (type any letters in order)",
     "reorder_now": "Reorder Now",
     "order_soon": "Order Soon",
     "well_stocked": "Well Stocked",

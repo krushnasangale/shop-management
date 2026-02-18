@@ -8,6 +8,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class ExpensesList extends StatefulWidget {
   const ExpensesList({super.key});
@@ -115,7 +116,7 @@ class _ExpensesListState extends State<ExpensesList>
   }
 
   void _filterExpenses() {
-    final query = _searchController.text.toLowerCase();
+    final query = _searchController.text;
     if (query.isEmpty) {
       setState(() {
         _filteredExpenses = _expenses;
@@ -127,14 +128,12 @@ class _ExpensesListState extends State<ExpensesList>
     } else {
       setState(() {
         _filteredExpenses = _expenses.where((expense) {
-          final category = (expense['category'] ?? '').toString().toLowerCase();
-          final description = (expense['description'] ?? '')
-              .toString()
-              .toLowerCase();
+          final category = (expense['category'] ?? '').toString();
+          final description = (expense['description'] ?? '').toString();
           final amount = (expense['amount'] ?? '').toString();
-          return category.contains(query) ||
-              description.contains(query) ||
-              amount.contains(query);
+          return SearchUtils.matchesSubsequence(category, query) ||
+              SearchUtils.matchesSubsequence(description, query) ||
+              SearchUtils.matchesSubsequence(amount, query);
         }).toList();
         _displayedItemCount = 50;
         _displayedExpenses = _filteredExpenses

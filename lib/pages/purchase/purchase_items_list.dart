@@ -13,6 +13,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:flashbill/utils/search_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
@@ -163,7 +164,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
   }
 
   void _filterEntries() {
-    final query = _searchController.text.toLowerCase();
+    final query = _searchController.text;
     if (query.isEmpty) {
       setState(() {
         _filteredEntries = _boughtEntries;
@@ -173,11 +174,10 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
     } else {
       setState(() {
         _filteredEntries = _boughtEntries.where((entry) {
-          final supplierName = (entry['supplierName'] ?? '')
-              .toString()
-              .toLowerCase();
+          final supplierName = (entry['supplierName'] ?? '').toString();
           final totalAmount = (entry['totalAmount'] ?? '').toString();
-          return supplierName.contains(query) || totalAmount.contains(query);
+          return SearchUtils.matchesSubsequence(supplierName, query) ||
+              SearchUtils.matchesSubsequence(totalAmount, query);
         }).toList();
         _displayedItemCount = 50;
         _displayedEntries = _filteredEntries.take(_displayedItemCount).toList();

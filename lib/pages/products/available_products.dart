@@ -17,6 +17,7 @@ import 'package:flashbill/pages/products/available_product_item_detail.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class AvailableProducts extends StatefulWidget {
   const AvailableProducts({super.key});
@@ -210,7 +211,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
       var filtered = <BoughtProduct>[];
       if (_searchQuery.isNotEmpty) {
         groupedByName.forEach((productName, batches) {
-          if (productName.toLowerCase().contains(_searchQuery)) {
+          // Check if product name contains search query as subsequence (characters in order, not necessarily consecutive)
+          if (SearchUtils.matchesSubsequence(productName, _searchQuery)) {
             filtered.addAll(batches);
           }
         });

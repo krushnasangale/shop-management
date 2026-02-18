@@ -13,6 +13,7 @@ import 'package:fast_contacts/fast_contacts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/search_utils.dart';
 
 class CreateNewBill extends StatefulWidget {
   final bool isEditMode;
@@ -2159,10 +2160,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             displayCustomers = _customers
                                 .where(
                                   (customer) =>
-                                      customer['name'].toLowerCase().contains(
-                                        query.toLowerCase(),
+                                      SearchUtils.matchesSubsequence(
+                                        customer['name'].toString(),
+                                        query,
                                       ) ||
-                                      customer['mobileNumber'].contains(query),
+                                      SearchUtils.matchesSubsequence(
+                                        customer['mobileNumber'].toString(),
+                                        query,
+                                      ),
                                 )
                                 .toList();
                           }
@@ -2432,12 +2437,14 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             Map<String, Map<String, dynamic>>
                             uniqueFilteredProducts = {};
                             for (var product in _availableProducts) {
-                              if ((product.productName.toLowerCase().contains(
-                                    query.toLowerCase(),
+                              if (SearchUtils.matchesSubsequence(
+                                    product.productName,
+                                    query,
                                   ) ||
-                                  product.supplierName.toLowerCase().contains(
-                                    query.toLowerCase(),
-                                  ))) {
+                                  SearchUtils.matchesSubsequence(
+                                    product.supplierName,
+                                    query,
+                                  )) {
                                 // Calculate how much quantity is already used for this batch
                                 final existingBillItems = _billItems
                                     .where(
@@ -2891,11 +2898,16 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             displayContacts = contacts
                                 .where(
                                   (contact) =>
-                                      contact.displayName
-                                          .toLowerCase()
-                                          .contains(query.toLowerCase()) ||
+                                      SearchUtils.matchesSubsequence(
+                                        contact.displayName,
+                                        query,
+                                      ) ||
                                       contact.phones.any(
-                                        (phone) => phone.number.contains(query),
+                                        (phone) =>
+                                            SearchUtils.matchesSubsequence(
+                                              phone.number,
+                                              query,
+                                            ),
                                       ),
                                 )
                                 .toList();
