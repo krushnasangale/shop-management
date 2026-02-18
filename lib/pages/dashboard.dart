@@ -350,20 +350,6 @@ class _DashboardState extends State<Dashboard>
               : Colors.purple.withOpacity(0.15),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.purple.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: Colors.purple.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -569,20 +555,6 @@ class _DashboardState extends State<Dashboard>
               : Colors.green.withOpacity(0.15),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.green.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: Colors.green.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -794,20 +766,6 @@ class _DashboardState extends State<Dashboard>
               : Colors.blue.withOpacity(0.15),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: Colors.blue.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -982,20 +940,6 @@ class _DashboardState extends State<Dashboard>
               : Colors.red.withOpacity(0.15),
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: Colors.red.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1232,7 +1176,54 @@ class _DashboardState extends State<Dashboard>
                       ),
                       child: Column(
                         children: [
-                          // Section 1 Title: Sales & Profit Analysis
+                          // Section 1 Title: Inventory & Payments
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.store_outlined,
+                                  color: isDark
+                                      ? Colors.green[300]
+                                      : Colors.green[700],
+                                  size: 22,
+                                ),
+                                const SizedBox(width: 8),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      loc?.inventoryPayments ??
+                                          'Inventory & Payments',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark
+                                            ? Colors.grey[100]
+                                            : Colors.grey[800],
+                                      ),
+                                    ),
+                                    Text(
+                                      loc?.liveStatus ?? 'Live status',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: isDark
+                                            ? Colors.grey[400]
+                                            : Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // Availability Section
+                          _buildAvailabilityCard(loc),
+                          const SizedBox(height: 12),
+
+                          // Section 2 Title: Sales & Profit / Loss Analysis
                           Padding(
                             padding: const EdgeInsets.only(top: 8, bottom: 2),
                             child: Row(
@@ -1247,7 +1238,7 @@ class _DashboardState extends State<Dashboard>
                                 const SizedBox(width: 8),
                                 Text(
                                   loc?.salesProfitAnalysis ??
-                                      'Sales & Profit Analysis',
+                                      'Sales & Profit / Loss Analysis',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
@@ -1557,89 +1548,36 @@ class _DashboardState extends State<Dashboard>
                           ),
                           const SizedBox(height: 4),
 
-                          // Two Column Layout
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildModernCard(
-                                  title: loc?.totalSales ?? 'Total Sales',
-                                  value:
-                                      '₹${_formatCurrency(_dashboardData?.salesMetrics.totalSales ?? 0, loc: loc)}',
-                                  subtitle:
-                                      '${loc?.bills ?? "Bills"}: ${_dashboardData?.salesMetrics.salesCount ?? 0} • ${loc?.items ?? "Items"}: ${_dashboardData?.salesMetrics.itemsSold ?? 0}',
-                                  backgroundColor: Colors.blue.withOpacity(0.1),
-                                  textColor: Colors.blue[700]!,
-                                  icon: Icons.trending_up,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildModernCard(
-                                  title: loc?.totalPurchase ?? 'Total Purchase',
-                                  value:
-                                      '₹${_formatCurrency(_dashboardData?.purchasesData.totalBuying ?? 0, loc: loc)}',
-                                  subtitle:
-                                      '${loc?.orders ?? "Orders"}: ${_dashboardData?.purchasesData.buyingCount ?? 0} • ${loc?.qtyLabel ?? "Qty"}: ${_dashboardData?.purchasesData.totalQuantityBought ?? 0}',
-                                  backgroundColor: Colors.orange.withOpacity(
-                                    0.1,
-                                  ),
-                                  textColor: Colors.orange[700]!,
-                                  icon: Icons.shopping_bag,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-
                           // Profit/Loss Card
                           _buildProfitLossCard(),
                           const SizedBox(height: 12),
 
-                          // Section 2 Title: Inventory & Payments
+                          // Section 3 Title: Business Insights
                           Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.only(top: 8, bottom: 2),
                             child: Row(
                               children: [
                                 Icon(
-                                  Icons.store_outlined,
+                                  Icons.insights_outlined,
                                   color: isDark
-                                      ? Colors.green[300]
-                                      : Colors.green[700],
+                                      ? Colors.purple[300]
+                                      : Colors.purple[700],
                                   size: 22,
                                 ),
                                 const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      loc?.inventoryPayments ??
-                                          'Inventory & Payments',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
-                                        color: isDark
-                                            ? Colors.grey[100]
-                                            : Colors.grey[800],
-                                      ),
-                                    ),
-                                    Text(
-                                      loc?.liveStatus ?? 'Live status',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                        color: isDark
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
+                                Text(
+                                  'Business Insights',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark
+                                        ? Colors.grey[100]
+                                        : Colors.grey[800],
+                                  ),
                                 ),
                               ],
                             ),
                           ),
-
-                          // Availability Section
-                          _buildAvailabilityCard(loc),
                           const SizedBox(height: 12),
 
                           // Upcoming Payments
@@ -1675,100 +1613,148 @@ class _DashboardState extends State<Dashboard>
     );
   }
 
-  Widget _buildModernCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required Color backgroundColor,
-    required Color textColor,
-    required IconData icon,
-  }) {
-    return MetricCard(
-      title: title,
-      value: value,
-      subtitle: subtitle,
-      backgroundColor: backgroundColor,
-      textColor: textColor,
-      icon: icon,
-    );
-  }
-
   Widget _buildProfitLossCard() {
+    final totalSales = _dashboardData?.salesMetrics.totalSales ?? 0;
     final profit = _dashboardData?.salesMetrics.totalProfit ?? 0;
     final isProfitable = profit >= 0;
-    final bgColor = isProfitable ? Colors.green : Colors.red;
+    final profitBgColor = isProfitable ? Colors.green : Colors.red;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final loc = AppLocalizations.of(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : bgColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? bgColor.withOpacity(0.4) : bgColor.withOpacity(0.2),
-          width: isDark ? 1.5 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: bgColor.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: bgColor.withOpacity(0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isProfitable
-                    ? loc?.profitLabel ?? 'Profit'
-                    : loc?.loss ?? 'Loss',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.grey[300] : Colors.grey[700],
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '₹${_formatCurrency(profit.abs(), loc: loc)}',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: bgColor,
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
-          ),
-          Container(
-            padding: const EdgeInsets.all(12),
+    return Row(
+      children: [
+        // Total Sales Card
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: isDark
-                  ? bgColor.withOpacity(0.15)
-                  : bgColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(12),
+              color: isDark ? Colors.grey[850] : Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? Colors.blue.withOpacity(0.4)
+                    : Colors.blue.withOpacity(0.2),
+                width: isDark ? 1.5 : 1,
+              ),
             ),
-            child: Icon(
-              isProfitable ? Icons.trending_up : Icons.trending_down,
-              size: 28,
-              color: bgColor,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // First row: Icon and Label
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.blue.withOpacity(0.15)
+                            : Colors.blue.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.attach_money,
+                        size: 20,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      loc?.totalSales ?? 'Total Sales',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[300] : Colors.grey[700],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Second row: Amount
+                Text(
+                  '₹${_formatCurrency(totalSales, loc: loc)}',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.blue,
+                    letterSpacing: -0.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+
+        // Profit/Loss Card
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.only(left: 8),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.grey[850] : profitBgColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? profitBgColor.withOpacity(0.4)
+                    : profitBgColor.withOpacity(0.2),
+                width: isDark ? 1.5 : 1,
+              ),
+            ),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // First row: Icon and Label
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? profitBgColor.withOpacity(0.15)
+                            : profitBgColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        isProfitable ? Icons.trending_up : Icons.trending_down,
+                        size: 20,
+                        color: profitBgColor,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isProfitable
+                          ? loc?.profitLabel ?? 'Profit'
+                          : loc?.loss ?? 'Loss',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[300] : Colors.grey[700],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // Second row: Amount
+                Text(
+                  '₹${_formatCurrency(profit.abs(), loc: loc)}',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: profitBgColor,
+                    letterSpacing: -0.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

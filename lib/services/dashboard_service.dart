@@ -157,13 +157,6 @@ class DashboardService {
       _calculatePendingPayments(bills),
       _calculateUpcomingPayments(bills),
       _calculatePreviousDueTracking(bills),
-      _loadPurchasesData(
-        userId,
-        filterType: filterType,
-        selectedDate: selectedDate,
-        rangeStartDate: rangeStartDate,
-        rangeEndDate: rangeEndDate,
-      ),
       _loadProductsData(userId),
     ]);
 
@@ -173,8 +166,7 @@ class DashboardService {
       pendingPayments: results[2] as PendingPaymentsData,
       upcomingPayments: results[3] as List<Map<String, dynamic>>,
       previousDueTracking: results[4] as PreviousDueData,
-      purchasesData: results[5] as PurchasesData,
-      productsData: results[6] as ProductsData,
+      productsData: results[5] as ProductsData,
     );
   }
 
@@ -187,8 +179,6 @@ class DashboardService {
   }) async {
     int totalSales = 0;
     int totalProfit = 0;
-    int salesCount = 0;
-    int itemsSold = 0;
 
     for (final billData in bills) {
       final billDate = billData['billDate'] as String? ?? '';
@@ -207,7 +197,6 @@ class DashboardService {
         rangeEndDate,
       )) {
         totalSales += totalAmount - deliveryCharges;
-        salesCount++;
 
         int billProfit = 0;
         if (products != null) {
@@ -216,7 +205,6 @@ class DashboardService {
               final quantity = (pValue['quantity'] as num?)?.toInt() ?? 0;
               final sellingPrice = (pValue['price'] as num?)?.toInt() ?? 0;
               final boughtPrice = (pValue['boughtPrice'] as num?)?.toInt() ?? 0;
-              itemsSold += quantity;
 
               final profitPerUnit = sellingPrice - boughtPrice;
               final productProfit = profitPerUnit * quantity;
@@ -231,12 +219,7 @@ class DashboardService {
       }
     }
 
-    return SalesMetrics(
-      totalSales: totalSales,
-      totalProfit: totalProfit,
-      salesCount: salesCount,
-      itemsSold: itemsSold,
-    );
+    return SalesMetrics(totalSales: totalSales, totalProfit: totalProfit);
   }
 
   Future<List<Map<String, dynamic>>> _calculateTopSellingProducts(
@@ -440,58 +423,6 @@ class DashboardService {
     );
   }
 
-  Future<PurchasesData> _loadPurchasesData(
-    String userId, {
-    required String filterType,
-    required DateTime selectedDate,
-    DateTime? rangeStartDate,
-    DateTime? rangeEndDate,
-  }) async {
-    try {
-      final purchasesSnapshot = await FirebaseFirestore.instance
-          .collection('purchases')
-          .doc(userId)
-          .collection('items')
-          .get();
-
-      int totalBuying = 0;
-      int buyingCount = 0;
-      int totalQuantityBought = 0;
-
-      if (purchasesSnapshot.docs.isNotEmpty) {
-        for (final purchaseDoc in purchasesSnapshot.docs) {
-          final purchaseData = purchaseDoc.data();
-          final purchaseDate = purchaseData['date'] as String? ?? '';
-
-          if (_isFromSelectedMonth(
-            purchaseDate,
-            filterType,
-            selectedDate,
-            rangeStartDate,
-            rangeEndDate,
-          )) {
-            final amount = (purchaseData['totalAmount'] as num?)?.toInt() ?? 0;
-            totalBuying += amount;
-            buyingCount++;
-
-            final totalUnits =
-                (purchaseData['totalUnits'] as num?)?.toInt() ?? 0;
-            totalQuantityBought += totalUnits;
-          }
-        }
-      }
-
-      return PurchasesData(
-        totalBuying: totalBuying,
-        buyingCount: buyingCount,
-        totalQuantityBought: totalQuantityBought,
-      );
-    } catch (e) {
-      print('Error loading purchases data: $e');
-      return PurchasesData.empty();
-    }
-  }
-
   Future<ProductsData> _loadProductsData(String userId) async {
     try {
       final productsSnapshot = await FirebaseFirestore.instance
@@ -630,7 +561,6 @@ class DashboardData {
   final PendingPaymentsData pendingPayments;
   final List<Map<String, dynamic>> upcomingPayments;
   final PreviousDueData previousDueTracking;
-  final PurchasesData purchasesData;
   final ProductsData productsData;
 
   const DashboardData({
@@ -639,7 +569,6 @@ class DashboardData {
     required this.pendingPayments,
     required this.upcomingPayments,
     required this.previousDueTracking,
-    required this.purchasesData,
     required this.productsData,
   });
 }
@@ -647,15 +576,8 @@ class DashboardData {
 class SalesMetrics {
   final int totalSales;
   final int totalProfit;
-  final int salesCount;
-  final int itemsSold;
 
-  const SalesMetrics({
-    required this.totalSales,
-    required this.totalProfit,
-    required this.salesCount,
-    required this.itemsSold,
-  });
+  const SalesMetrics({required this.totalSales, required this.totalProfit});
 }
 
 class PendingPaymentsData {
@@ -678,24 +600,6 @@ class PreviousDueData {
     required this.totalCollected,
     required this.totalPending,
   });
-}
-
-class PurchasesData {
-  final int totalBuying;
-  final int buyingCount;
-  final int totalQuantityBought;
-
-  const PurchasesData({
-    required this.totalBuying,
-    required this.buyingCount,
-    required this.totalQuantityBought,
-  });
-
-  factory PurchasesData.empty() => const PurchasesData(
-    totalBuying: 0,
-    buyingCount: 0,
-    totalQuantityBought: 0,
-  );
 }
 
 class ProductsData {
