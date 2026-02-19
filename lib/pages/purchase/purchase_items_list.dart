@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io' show File;
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,7 +29,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
   List<Map<String, dynamic>> _boughtEntries = [];
   List<Map<String, dynamic>> _filteredEntries = [];
   List<Map<String, dynamic>> _displayedEntries = [];
-  Map<String, List<Map<String, dynamic>>> _customerBills = {};
   List<Map<String, dynamic>> _customerSummaries = [];
   bool _isLoading = true;
   StreamSubscription<QuerySnapshot>? _streamSubscription;
@@ -144,7 +143,6 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
 
               setState(() {
                 _boughtEntries = entries;
-                _customerBills = customerBills;
                 _customerSummaries = customerSummaries;
                 _filteredEntries = entries;
                 _displayedItemCount = 50;
@@ -829,26 +827,29 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                 ],
               ),
               const SizedBox(height: 20),
-              ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
+              // Only show camera option on mobile devices
+              if (Platform.isAndroid || Platform.isIOS) ...[
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.camera_alt, color: Colors.blue),
                   ),
-                  child: const Icon(Icons.camera_alt, color: Colors.blue),
+                  title: Text(localizations?.takePhoto ?? 'Take Photo'),
+                  subtitle: Text(
+                    localizations?.captureInvoiceWithCamera ??
+                        'Capture invoice with camera',
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _scanFromCamera();
+                  },
                 ),
-                title: Text(localizations?.takePhoto ?? 'Take Photo'),
-                subtitle: Text(
-                  localizations?.captureInvoiceWithCamera ??
-                      'Capture invoice with camera',
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _scanFromCamera();
-                },
-              ),
-              const Divider(),
+                const Divider(),
+              ],
               ListTile(
                 leading: Container(
                   padding: const EdgeInsets.all(10),
