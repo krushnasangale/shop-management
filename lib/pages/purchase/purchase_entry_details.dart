@@ -61,9 +61,6 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
             if (mounted && snapshot.exists) {
               setState(() {
                 _purchaseData = {'id': snapshot.id, ...snapshot.data()!};
-                print(
-                  'Purchase data updated: totalUnits=${_purchaseData['totalUnits']}, totalAmount=${_purchaseData['totalAmount']}',
-                );
               });
             }
           });
@@ -78,6 +75,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
       if (user == null) return;
 
       final purchaseId = widget.entry['id'] as String?;
+
       if (purchaseId == null || purchaseId.isEmpty) {
         setState(() {
           _isLoading = false;
@@ -85,7 +83,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
         return;
       }
 
-      // Load all items for this purchase in real-time using Firestore query
+      // Load without orderBy and sort in memory (index may still be building)
       final subscription = FirebaseFirestore.instance
           .collection('purchased-products')
           .doc(user.uid)
@@ -98,10 +96,39 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                   .map((doc) => {'id': doc.id, ...doc.data()})
                   .toList();
 
+              // Check if any items are missing order field
+              bool needsMigration = false;
+              for (var item in loadedItems) {
+                if (item['order'] == null) {
+                  needsMigration = true;
+                  break;
+                }
+              }
+
+              // Sort items: by order field if present, otherwise by timestamp
+              loadedItems.sort((a, b) {
+                final orderA = (a['order'] as num?)?.toInt();
+                final orderB = (b['order'] as num?)?.toInt();
+
+                if (orderA != null && orderB != null) {
+                  return orderA.compareTo(orderB);
+                }
+
+                // Fallback to timestamp sorting for items without order
+                final timestampA = a['timestamp'] as String? ?? '';
+                final timestampB = b['timestamp'] as String? ?? '';
+                return timestampA.compareTo(timestampB);
+              });
+
               setState(() {
                 _items = loadedItems;
                 _isLoading = false;
               });
+
+              // Migrate in background if needed (don't block UI)
+              if (needsMigration) {
+                _migrateItemsOrder(user.uid, loadedItems);
+              }
             }
           });
 
@@ -111,6 +138,34 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  // Migrate items without order field in background
+  Future<void> _migrateItemsOrder(
+    String userId,
+    List<Map<String, dynamic>> items,
+  ) async {
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+
+      for (var i = 0; i < items.length; i++) {
+        final item = items[i];
+        if (item['order'] == null) {
+          final docId = item['id'] as String;
+          final docRef = FirebaseFirestore.instance
+              .collection('purchased-products')
+              .doc(userId)
+              .collection('items')
+              .doc(docId);
+
+          batch.update(docRef, {'order': i});
+        }
+      }
+
+      await batch.commit();
+    } catch (e) {
+      print('Error during migration: $e');
     }
   }
 

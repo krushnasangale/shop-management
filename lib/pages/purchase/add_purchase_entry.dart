@@ -37,6 +37,7 @@ class BoughtItem {
   double buyingPrice;
   double sellingPrice;
   String? imageUrl;
+  int? order; // Order field to maintain sequence
 
   BoughtItem({
     required this.productName,
@@ -50,6 +51,7 @@ class BoughtItem {
     required this.buyingPrice,
     this.sellingPrice = 0,
     this.imageUrl,
+    this.order,
   });
 
   double get total => quantity * buyingPrice;
@@ -133,7 +135,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         // Scanned invoice data - convert products to BoughtItem
         final products = widget.existingEntry!['products'] as List<dynamic>;
 
-        for (var product in products) {
+        for (var i = 0; i < products.length; i++) {
+          final product = products[i];
           final productMap = product as Map<String, dynamic>;
           loadedItems.add(
             BoughtItem(
@@ -147,6 +150,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               quantity: (productMap['quantity'] ?? 1) as int,
               buyingPrice: (productMap['price'] ?? 0).toDouble(),
               sellingPrice: 0.0, // User will set this
+              order: i,
             ),
           );
         }
@@ -174,10 +178,18 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
               buyingPrice: (data['buyingPrice'] ?? 0) as double,
               sellingPrice: (data['sellingPrice'] ?? 0) as double,
               imageUrl: data['imageUrl'],
+              order: (data['order'] as num?)?.toInt(),
             ),
           );
           _selectedSupplierId = data['supplierId'] ?? '';
         }
+
+        // Sort by order field in memory
+        loadedItems.sort((a, b) {
+          final orderA = a.order ?? 999999;
+          final orderB = b.order ?? 999999;
+          return orderA.compareTo(orderB);
+        });
       }
 
       setState(() {
@@ -682,6 +694,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       buyingPrice: buyingPrice,
       sellingPrice: sellingPrice,
       imageUrl: _selectedProductImageUrl,
+      order: _boughtItems.length,
     );
 
     setState(() {
@@ -2048,7 +2061,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       }
 
       // Save all items (same for both create and edit)
-      for (var item in _boughtItems) {
+      for (var i = 0; i < _boughtItems.length; i++) {
+        final item = _boughtItems[i];
         final batchHash = md5
             .convert(
               utf8.encode(
@@ -2108,6 +2122,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'purchaseDate': _dateController.text,
           'profitMargin': (item.sellingPrice - item.buyingPrice).toDouble(),
           'imageUrl': item.imageUrl,
+          'order': i,
         };
 
         final productDoc = await productsCol.add(productEntry);
@@ -2128,6 +2143,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           'timestamp': DateTime.now().toIso8601String(),
           'batchId': batchId,
           'imageUrl': item.imageUrl,
+          'order': i,
         };
         await historyCol.add(historyEntry);
       }
