@@ -127,6 +127,7 @@ Future<void> _shareWithLoadingDialog({
 
 class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
   late pdfx.PdfController _pdfController;
+  final ProfileService _profileService = ProfileService();
 
   @override
   void initState() {
@@ -134,11 +135,18 @@ class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
     _pdfController = pdfx.PdfController(
       document: pdfx.PdfDocument.openFile(widget.pdfFile.path),
     );
+
+    // Initialize ProfileService
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _profileService.initialize(user.uid);
+    }
   }
 
   @override
   void dispose() {
     _pdfController.dispose();
+    _profileService.dispose();
     super.dispose();
   }
 
@@ -146,11 +154,24 @@ class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
     await _shareWithLoadingDialog(
       context: context,
       loadingMessage: 'Sharing PDF...',
-      shareFunction: () => FileService.shareExistingFile(
-        file: widget.pdfFile,
-        shareText: 'Bill from ${widget.customerName}',
-        subFolder: 'Bills',
-      ),
+      shareFunction: () async {
+        // Fetch shop name from profile
+        String shopName = 'Shop';
+        try {
+          final profileData = await _profileService.getCurrentUserProfile();
+          if (profileData != null) {
+            shopName = profileData['shopName'] ?? 'Shop';
+          }
+        } catch (e) {
+          print('Error fetching shop name: $e');
+        }
+
+        return await FileService.shareExistingFile(
+          file: widget.pdfFile,
+          shareText: 'Bill from $shopName',
+          subFolder: 'Bills',
+        );
+      },
     );
   }
 
@@ -596,8 +617,37 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       loadingMessage: localizations.generatingPdf,
       errorPrefix: localizations.errorGeneratingBill,
       shareFunction: () async {
-        // Generate PDF
-        final pdfBytes = await _generateBillPDF();
+        // Fetch profile data once for both share text and PDF generation
+        String? ownerSignatureBase64;
+        String shopName = 'Shop';
+        String ownerName = '--';
+        String shopAddress = '--';
+        String shopPhone = '--';
+
+        try {
+          final user = FirebaseAuth.instance.currentUser;
+          if (user != null) {
+            final profileData = await _profileService.getCurrentUserProfile();
+            if (profileData != null) {
+              ownerSignatureBase64 = profileData['ownerSignature'];
+              shopName = profileData['shopName'] ?? 'Shop';
+              ownerName = profileData['ownerName'] ?? '--';
+              shopAddress = profileData['shopAddress'] ?? '--';
+              shopPhone = profileData['shopPhone'] ?? '--';
+            }
+          }
+        } catch (e) {
+          print('Error fetching profile data: $e');
+        }
+
+        // Generate PDF with already-fetched profile data
+        final pdfBytes = await _generateBillPDF(
+          ownerSignatureBase64: ownerSignatureBase64,
+          shopName: shopName,
+          ownerName: ownerName,
+          shopAddress: shopAddress,
+          shopPhone: shopPhone,
+        );
 
         // Generate file name using FileService
         final fileName = FileService.generateTimestampedFileName(
@@ -609,7 +659,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         return await FileService.shareFile(
           fileBytes: pdfBytes,
           fileName: fileName,
-          shareText: 'Bill from $customerName',
+          shareText: 'Bill from $shopName',
           subFolder: 'Bills',
         );
       },
@@ -807,33 +857,47 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     });
   }
 
-  Future<Uint8List> _generateBillPDF() async {
+  Future<Uint8List> _generateBillPDF({
+    String? ownerSignatureBase64,
+    String? shopName,
+    String? ownerName,
+    String? shopAddress,
+    String? shopPhone,
+  }) async {
     // Ensure billNumber is loaded before generating PDF
     if (billNumber == 0) {
       await _loadDiscount(); // This will load or generate billNumber
     }
 
-    // Fetch owner signature and company details from Firebase
-    String? ownerSignatureBase64;
-    String shopName = '--';
-    String ownerName = '--';
-    String shopAddress = '--';
-    String shopPhone = '--';
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final profileData = await _profileService.getCurrentUserProfile();
-        if (profileData != null) {
-          final data = profileData;
-          ownerSignatureBase64 = data['ownerSignature'];
-          shopName = data['shopName'] ?? '--';
-          ownerName = data['ownerName'] ?? '--';
-          shopAddress = data['shopAddress'] ?? '--';
-          shopPhone = data['shopPhone'] ?? '--';
+    // Use provided profile data or fetch if not provided
+    String? finalOwnerSignature = ownerSignatureBase64;
+    String finalShopName = shopName ?? '--';
+    String finalOwnerName = ownerName ?? '--';
+    String finalShopAddress = shopAddress ?? '--';
+    String finalShopPhone = shopPhone ?? '--';
+
+    // Only fetch if profile data not provided
+    if (ownerSignatureBase64 == null ||
+        shopName == null ||
+        ownerName == null ||
+        shopAddress == null ||
+        shopPhone == null) {
+      try {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final profileData = await _profileService.getCurrentUserProfile();
+          if (profileData != null) {
+            final data = profileData;
+            finalOwnerSignature = data['ownerSignature'];
+            finalShopName = data['shopName'] ?? '--';
+            finalOwnerName = data['ownerName'] ?? '--';
+            finalShopAddress = data['shopAddress'] ?? '--';
+            finalShopPhone = data['shopPhone'] ?? '--';
+          }
         }
+      } catch (e) {
+        print('Error fetching owner signature: $e');
       }
-    } catch (e) {
-      print('Error fetching owner signature: $e');
     }
 
     // Use FileService to generate the PDF
@@ -853,11 +917,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       previousDueAmount: previousDueAmount,
       previousPaidAmount: previousPaidAmount,
       previousDueDescription: previousDueDescription,
-      ownerSignatureBase64: ownerSignatureBase64,
-      shopName: shopName,
-      ownerName: ownerName,
-      shopAddress: shopAddress,
-      shopPhone: shopPhone,
+      ownerSignatureBase64: finalOwnerSignature,
+      shopName: finalShopName,
+      ownerName: finalOwnerName,
+      shopAddress: finalShopAddress,
+      shopPhone: finalShopPhone,
     );
   }
 

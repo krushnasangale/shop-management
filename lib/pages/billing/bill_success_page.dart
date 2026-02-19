@@ -366,7 +366,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
       final result = await FileService.shareFile(
         fileBytes: pdfBytes,
         fileName: fileName,
-        shareText: localizations.billFromShop,
+        shareText: 'Bill from $shopName',
         subFolder: 'Bills',
       );
 
