@@ -1236,6 +1236,7 @@ class _BillsState extends State<Bills> {
             spreadRadius: 1,
           ),
         ],
+
         gradient: LinearGradient(
           colors: [Colors.white, Colors.white.withOpacity(0.95)],
           begin: Alignment.topLeft,
@@ -1318,13 +1319,36 @@ class _BillsState extends State<Bills> {
                       ],
                     ),
 
+                    // Pending Amount Section (Center)
+                    if (bill.amountRemaining > 0)
+                      Row(
+                        children: [
+                          Text(
+                            '${localizations.pending}: ',
+                            style: context.titleMedium?.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                          Text(
+                            '${localizations.currencySymbol}${bill.amountRemaining}',
+                            style: context.titleMedium?.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.orange[700],
+                            ),
+                          ),
+                        ],
+                      ),
+
                     // Amount Section
                     Text(
                       '${localizations.currencySymbol}${bill.totalAmount}',
                       style: context.titleLarge?.copyWith(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Colors.green[600],
+                        color: getStatusColor(bill.status),
                       ),
                     ),
                   ],
