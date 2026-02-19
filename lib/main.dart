@@ -16,6 +16,7 @@ import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:flashbill/providers/language_provider.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/services/gemini_service.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -27,7 +28,18 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Gemini service (uses Firebase Vertex AI)
+  try {
+    await GeminiService().initialize();
+  } catch (e) {
+    print('⚠️ Warning: Could not initialize Gemini service: $e');
+    print('   Make sure Firebase is properly configured for this project.');
+  }
+
   runApp(
     MultiProvider(
       providers: [

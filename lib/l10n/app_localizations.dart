@@ -467,6 +467,11 @@ class AppLocalizations {
   // Purchase Items List Page
   String get purchasedEntries => translate('purchased_entries');
   String get scanInvoice => translate('scan_invoice');
+  String get takePhoto => translate('take_photo');
+  String get captureInvoiceWithCamera =>
+      translate('capture_invoice_with_camera');
+  String get chooseFromGallery => translate('choose_from_gallery');
+  String get selectInvoiceFromPhotos => translate('select_invoice_from_photos');
   String get noPurchasedEntriesYet => translate('no_purchased_entries_yet');
   String get searchBySupplierOrAmount =>
       translate('search_by_supplier_or_amount');
@@ -498,6 +503,8 @@ class AppLocalizations {
   String get scanningInvoice => translate('scanning_invoice');
   String get analyzingImageWithOCR => translate('analyzing_image_with_ocr');
   String get errorProcessingInvoice => translate('error_processing_invoice');
+  String get tooManyRequests => translate('too_many_requests');
+  String get quotaExceeded => translate('quota_exceeded');
   String get invoiceScanningOnlyAvailableOnMobile =>
       translate('invoice_scanning_only_available_on_mobile');
 
