@@ -403,6 +403,7 @@
     "too_many_requests": "Too many requests. Please wait a moment and try again.",
     "quota_exceeded": "Daily quota exceeded. Please try again tomorrow.",
     "invoice_scanning_only_available_on_mobile": "Invoice scanning with OCR is only available on Android and iOS devices. Please run this app on a mobile device to use the invoice scanning feature.",
+    "pdf_scan_limit_info": "Supports up to 5 pages • Best for table-based invoices",
     "purchase_entry_removed_last_product_deleted": "Purchase entry removed (last product deleted)",
     "product_removed_successfully": "Product removed successfully",
     "error_removing_product": "Error removing product: ",

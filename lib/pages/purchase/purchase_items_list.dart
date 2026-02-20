@@ -882,8 +882,23 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                   child: const Icon(Icons.picture_as_pdf, color: Colors.orange),
                 ),
                 title: Text(localizations?.selectPDF ?? 'Select PDF'),
-                subtitle: Text(
-                  localizations?.choosePDFInvoice ?? 'Choose PDF invoice',
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      localizations?.choosePDFInvoice ?? 'Choose PDF invoice',
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      localizations?.pdfScanLimitInfo ??
+                          'Supports up to 5 pages • Best for table-based invoices',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                 ),
                 onTap: () {
                   Navigator.pop(context);

@@ -507,6 +507,7 @@ class AppLocalizations {
   String get quotaExceeded => translate('quota_exceeded');
   String get invoiceScanningOnlyAvailableOnMobile =>
       translate('invoice_scanning_only_available_on_mobile');
+  String get pdfScanLimitInfo => translate('pdf_scan_limit_info');
 
   // Purchase Entry Details
   String get purchaseEntryRemovedLastProductDeleted =>
