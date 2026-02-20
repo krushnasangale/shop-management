@@ -549,7 +549,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       text: item.buyingPrice.toString(),
     );
     final sellingPriceController = TextEditingController(
-      text: item.sellingPrice.toString(),
+      text: item.sellingPrice.toInt().toString(),
     );
     final minLimitController = TextEditingController(
       text: item.minLimit.toString(),
@@ -679,9 +679,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                     Expanded(
                       child: TextField(
                         controller: sellingPriceController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
+                        keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           labelText: appLocalizations.sellingPriceRupees,
                           border: const OutlineInputBorder(),
@@ -731,7 +729,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                 final quantity = int.tryParse(quantityController.text) ?? 0;
                 final price = double.tryParse(priceController.text) ?? 0.0;
                 final sellingPrice =
-                    double.tryParse(sellingPriceController.text) ?? 0.0;
+                    (int.tryParse(sellingPriceController.text) ?? 0).toDouble();
                 final minLimit = int.tryParse(minLimitController.text) ?? 0;
 
                 if (quantity > 0 && price > 0 && sellingPrice > 0) {
@@ -813,7 +811,8 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     // Parse values
     final quantity = int.tryParse(_quantityController.text) ?? 0;
     final buyingPrice = double.tryParse(_buyingPriceController.text) ?? 0.0;
-    final sellingPrice = double.tryParse(_sellingPriceController.text) ?? 0.0;
+    final sellingPrice = (int.tryParse(_sellingPriceController.text) ?? 0)
+        .toDouble();
 
     if (quantity <= 0 || buyingPrice <= 0 || sellingPrice <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2746,10 +2745,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 child: buildModernFormField(
                                   appLocalizations.sellingPricePerItem,
                                   _sellingPriceController,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
+                                  keyboardType: TextInputType.number,
                                   bottomPadding: false,
                                 ),
                               ),
