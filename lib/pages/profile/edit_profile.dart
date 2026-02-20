@@ -977,9 +977,9 @@ class _EditProfileState extends State<EditProfile> {
                           ),
                           const SizedBox(height: 10),
 
-                          // Additional Mobile Number Field (Optional)
+                          // Optional Mobile Number Field
                           Text(
-                            'Additional Mobile Number',
+                            'Optional Mobile Number',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,

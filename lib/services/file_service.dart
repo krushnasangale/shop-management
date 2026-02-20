@@ -150,6 +150,7 @@ class FileService {
   /// - [ownerName]: Owner name
   /// - [shopAddress]: Shop address
   /// - [shopPhone]: Shop phone number
+  /// - [ownerPhone]: Owner/second phone number (optional)
   ///
   /// Returns:
   /// - PDF file as Uint8List
@@ -174,6 +175,7 @@ class FileService {
     String ownerName = '--',
     String shopAddress = '--',
     String shopPhone = '--',
+    String ownerPhone = '',
   }) async {
     final pdf = pw.Document();
 
@@ -224,7 +226,12 @@ class FileService {
                       'Address: $shopAddress',
                       style: const pw.TextStyle(fontSize: 9),
                     ),
-                  if (shopPhone != '--')
+                  if (shopPhone != '--' && ownerPhone.isNotEmpty)
+                    pw.Text(
+                      'Phone : $shopPhone / $ownerPhone',
+                      style: const pw.TextStyle(fontSize: 9),
+                    )
+                  else if (shopPhone != '--')
                     pw.Text(
                       'Phone: $shopPhone',
                       style: const pw.TextStyle(fontSize: 9),

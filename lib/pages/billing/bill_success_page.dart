@@ -309,6 +309,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
       String ownerName = '--';
       String shopAddress = '--';
       String shopPhone = '--';
+      String ownerPhone = '';
 
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
@@ -319,6 +320,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
           ownerName = profileData['ownerName'] ?? '--';
           shopAddress = profileData['shopAddress'] ?? '--';
           shopPhone = profileData['shopPhone'] ?? '--';
+          ownerPhone = profileData['ownerPhone'] ?? '';
         }
       }
 
@@ -356,6 +358,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         ownerName: ownerName,
         shopAddress: shopAddress,
         shopPhone: shopPhone,
+        ownerPhone: ownerPhone,
       );
 
       // Generate filename and share using FileService

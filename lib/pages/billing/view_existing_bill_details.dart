@@ -623,6 +623,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         String ownerName = '--';
         String shopAddress = '--';
         String shopPhone = '--';
+        String ownerPhone = '';
 
         try {
           final user = FirebaseAuth.instance.currentUser;
@@ -634,6 +635,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ownerName = profileData['ownerName'] ?? '--';
               shopAddress = profileData['shopAddress'] ?? '--';
               shopPhone = profileData['shopPhone'] ?? '--';
+              ownerPhone = profileData['ownerPhone'] ?? '';
             }
           }
         } catch (e) {
@@ -647,6 +649,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           ownerName: ownerName,
           shopAddress: shopAddress,
           shopPhone: shopPhone,
+          ownerPhone: ownerPhone,
         );
 
         // Generate file name using FileService
@@ -863,6 +866,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     String? ownerName,
     String? shopAddress,
     String? shopPhone,
+    String? ownerPhone,
   }) async {
     // Ensure billNumber is loaded before generating PDF
     if (billNumber == 0) {
@@ -875,13 +879,15 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     String finalOwnerName = ownerName ?? '--';
     String finalShopAddress = shopAddress ?? '--';
     String finalShopPhone = shopPhone ?? '--';
+    String finalOwnerPhone = ownerPhone ?? '';
 
     // Only fetch if profile data not provided
     if (ownerSignatureBase64 == null ||
         shopName == null ||
         ownerName == null ||
         shopAddress == null ||
-        shopPhone == null) {
+        shopPhone == null ||
+        ownerPhone == null) {
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
@@ -893,6 +899,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             finalOwnerName = data['ownerName'] ?? '--';
             finalShopAddress = data['shopAddress'] ?? '--';
             finalShopPhone = data['shopPhone'] ?? '--';
+            finalOwnerPhone = data['ownerPhone'] ?? '';
           }
         }
       } catch (e) {
@@ -922,6 +929,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       ownerName: finalOwnerName,
       shopAddress: finalShopAddress,
       shopPhone: finalShopPhone,
+      ownerPhone: finalOwnerPhone,
     );
   }
 
