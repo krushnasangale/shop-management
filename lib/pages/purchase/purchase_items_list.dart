@@ -1155,59 +1155,115 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
 
   Future<void> _processPDF(String pdfPath) async {
     final loc = AppLocalizations.of(context);
+    bool isCancelled = false;
+    String statusMessage = loc?.processingInvoice ?? 'Processing Invoice';
+    int currentAttempt = 0;
+    void Function(void Function())? dialogSetState;
 
-    // Show loading dialog
+    // Show loading dialog with stateful builder
     if (mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const CircularProgressIndicator(strokeWidth: 3),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      loc?.processingInvoice ?? 'Processing Invoice',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              dialogSetState = setDialogState; // Capture setState
+              return WillPopScope(
+                onWillPop: () async => false,
+                child: Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, size: 16, color: Colors.blue),
-                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 3,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         Text(
-                          'Powered by Gemini AI',
-                          style: TextStyle(fontSize: 12, color: Colors.blue),
+                          statusMessage,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.auto_awesome,
+                              size: 16,
+                              color: Colors.blue,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Powered by Gemini AI',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (currentAttempt > 0) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Text(
+                              'Retry attempt $currentAttempt/5',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade900,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        TextButton.icon(
+                          onPressed: () {
+                            isCancelled = true;
+                            Navigator.of(dialogContext).pop();
+                          },
+                          icon: const Icon(Icons.close),
+                          label: Text(loc?.cancel ?? 'Cancel'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                          ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
-      );
+      ).then((_) {
+        // If dialog is dismissed, mark as cancelled
+        isCancelled = true;
+      });
     }
 
     try {
@@ -1238,10 +1294,17 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
       }
       document.dispose();
 
-      // Use Gemini to extract invoice data
+      // Use Gemini to extract invoice data with retry callback
       final geminiService = GeminiService();
       final invoiceData = await geminiService.extractInvoiceData(
         pdfText: extractedText,
+        onRetry: (attempt, delay) {
+          // Update dialog state to show retry attempt
+          currentAttempt = attempt;
+          statusMessage = 'Retrying in $delay seconds...';
+          dialogSetState?.call(() {});
+        },
+        isCancelled: () => isCancelled,
       );
 
       // Close loading dialog
@@ -1268,6 +1331,11 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
       if (mounted) {
         Navigator.of(context).pop();
 
+        // Don't show error if user cancelled
+        if (e.toString().contains('Operation cancelled by user')) {
+          return;
+        }
+
         String errorMessage =
             '${loc?.errorProcessingPDF ?? 'Error processing PDF'}: $e';
         if (e.toString().contains('Too many requests')) {
@@ -1293,62 +1361,116 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
 
   Future<void> _processImage(String imagePath) async {
     final loc = AppLocalizations.of(context);
+    bool isCancelled = false;
+    String statusMessage = loc?.scanningInvoice ?? 'Scanning Invoice';
+    int currentAttempt = 0;
+    void Function(void Function())? dialogSetState;
 
-    // Show loading dialog
+    // Show loading dialog with stateful builder
     if (mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (dialogContext) {
-          return WillPopScope(
-            onWillPop: () async => false,
-            child: Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const CircularProgressIndicator(
-                        strokeWidth: 3,
-                        color: Colors.green,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      loc?.scanningInvoice ?? 'Scanning Invoice',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              dialogSetState = setDialogState; // Capture setState
+              return WillPopScope(
+                onWillPop: () async => false,
+                child: Dialog(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.auto_awesome, size: 16, color: Colors.green),
-                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: Colors.green,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
                         Text(
-                          'Powered by Gemini AI',
-                          style: TextStyle(fontSize: 12, color: Colors.green),
+                          statusMessage,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.auto_awesome,
+                              size: 16,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Powered by Gemini AI',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (currentAttempt > 0) ...[
+                          const SizedBox(height: 16),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Text(
+                              'Retry attempt $currentAttempt/5',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.orange.shade900,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 20),
+                        TextButton.icon(
+                          onPressed: () {
+                            isCancelled = true;
+                            Navigator.of(dialogContext).pop();
+                          },
+                          icon: const Icon(Icons.close),
+                          label: Text(loc?.cancel ?? 'Cancel'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                          ),
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
-      );
+      ).then((_) {
+        // If dialog is dismissed, mark as cancelled
+        isCancelled = true;
+      });
     }
 
     try {
@@ -1356,6 +1478,13 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
       final geminiService = GeminiService();
       final invoiceData = await geminiService.extractInvoiceData(
         imagePath: imagePath,
+        onRetry: (attempt, delay) {
+          // Update dialog state to show retry attempt
+          currentAttempt = attempt;
+          statusMessage = 'Retrying in $delay seconds...';
+          dialogSetState?.call(() {});
+        },
+        isCancelled: () => isCancelled,
       );
 
       // Close loading dialog
@@ -1381,6 +1510,11 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
+
+        // Don't show error if user cancelled
+        if (e.toString().contains('Operation cancelled by user')) {
+          return;
+        }
 
         String errorMessage =
             '${loc?.errorProcessingInvoice ?? 'Error processing invoice'}: $e';

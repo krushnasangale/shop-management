@@ -22,7 +22,7 @@ class GeminiService {
       // It uses Firebase authentication automatically
       final vertexInstance = FirebaseAI.vertexAI(auth: FirebaseAuth.instance);
       _model = vertexInstance.generativeModel(
-        model: 'gemini-2.0-flash-exp',
+        model: 'Gemini 2.0 Flash-Lite',
         generationConfig: GenerationConfig(
           temperature: 0.1, // Low temperature for consistent, factual output
           topK: 32,
@@ -47,19 +47,30 @@ class GeminiService {
 
   /// Extract invoice data from an image or PDF
   /// Returns structured JSON with supplier, date, products, and total
+  ///
+  /// Optional callbacks:
+  /// - [onRetry]: Called when retrying (attempt number, delay seconds)
+  /// - [isCancelled]: Function to check if operation should be cancelled
   Future<Map<String, dynamic>> extractInvoiceData({
     String? imagePath,
     String? pdfText,
+    Function(int attempt, int delay)? onRetry,
+    bool Function()? isCancelled,
   }) async {
     if (!_isInitialized) {
       await initialize();
     }
 
     // Retry logic with exponential backoff for rate limiting
-    int maxRetries = 3;
-    int retryDelay = 2; // Start with 2 seconds
+    int maxRetries = 5; // Increased from 3 to 5 attempts
+    int retryDelay = 3; // Start with 3 seconds
 
     for (int attempt = 0; attempt <= maxRetries; attempt++) {
+      // Check if operation was cancelled
+      if (isCancelled != null && isCancelled()) {
+        throw Exception('Operation cancelled by user');
+      }
+
       try {
         final prompt = _buildPrompt();
         List<Part> parts = [TextPart(prompt)];
@@ -94,21 +105,36 @@ class GeminiService {
 
         // Check if it's a rate limit error and we have retries left
         if ((errorMessage.contains('429') ||
-                errorMessage.contains('RESOURCE_EXHAUSTED')) &&
+                errorMessage.contains('RESOURCE_EXHAUSTED') ||
+                errorMessage.contains('rate_limit') ||
+                errorMessage.contains('rateLimitExceeded')) &&
             attempt < maxRetries) {
-          print(
-            'Rate limit hit, retrying in $retryDelay seconds... (attempt ${attempt + 1}/$maxRetries)',
-          );
+          // Notify about retry
+          if (onRetry != null) {
+            onRetry(attempt + 1, retryDelay);
+          }
+
+          // Wait with exponential backoff
           await Future.delayed(Duration(seconds: retryDelay));
-          retryDelay *= 2; // Exponential backoff: 2s, 4s, 8s
+          retryDelay = (retryDelay * 2.5)
+              .toInt(); // Exponential backoff: 3s, 7s, 17s, 42s, 105s
           continue; // Retry
         }
 
         // If no more retries or different error, throw
         if (errorMessage.contains('429') ||
-            errorMessage.contains('RESOURCE_EXHAUSTED')) {
+            errorMessage.contains('RESOURCE_EXHAUSTED') ||
+            errorMessage.contains('rate_limit') ||
+            errorMessage.contains('rateLimitExceeded')) {
           throw Exception(
-            'Too many requests. Please wait a moment and try again.',
+            'Rate limit exceeded after $maxRetries retry attempts.\n\n'
+            'This usually happens when:\n'
+            '• Multiple scans were done in quick succession\n'
+            '• Free tier has limited requests per minute\n\n'
+            'Solutions:\n'
+            '✓ Wait 1-2 minutes before trying again\n'
+            '✓ Check Vertex AI quota in Google Cloud Console\n'
+            '✓ Consider upgrading to paid tier for higher limits',
           );
         } else if (errorMessage.contains('quota') ||
             errorMessage.contains('QUOTA_EXCEEDED')) {
@@ -123,7 +149,9 @@ class GeminiService {
     }
 
     // Should never reach here, but just in case
-    throw Exception('Failed to process invoice after $maxRetries retries');
+    throw Exception(
+      'Failed to process invoice after $maxRetries retry attempts. Please wait a few minutes and try again.',
+    );
   }
 
   /// Build the prompt for invoice extraction

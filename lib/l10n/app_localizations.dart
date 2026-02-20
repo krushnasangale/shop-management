@@ -508,6 +508,7 @@ class AppLocalizations {
   String get invoiceScanningOnlyAvailableOnMobile =>
       translate('invoice_scanning_only_available_on_mobile');
   String get pdfScanLimitInfo => translate('pdf_scan_limit_info');
+  String get newSupplierAdded => translate('new_supplier_added');
 
   // Purchase Entry Details
   String get purchaseEntryRemovedLastProductDeleted =>

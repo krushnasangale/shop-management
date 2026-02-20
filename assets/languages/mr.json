@@ -405,6 +405,7 @@
     "quota_exceeded": "दैनिक कोटा संपला. कृपया उद्या पुन्हा प्रयत्न करा.",
     "invoice_scanning_only_available_on_mobile": "OCR सह इनवॉइस स्कॅनिंग केवळ Android आणि iOS डिव्हाइसवर उपलब्ध आहे. इनवॉइस स्कॅनिंग वैशिष्ट्य वापरण्यासाठी कृपया हे अॅप मोबाइल डिव्हाइसवर चालवा.",
     "pdf_scan_limit_info": "5 पृष्ठांपर्यंत समर्थन • टेबल-आधारित इनव्हॉइससाठी सर्वोत्तम",
+    "new_supplier_added": "✨ नवीन पुरवठादार \"{supplierName}\" जोडला गेला. तुम्ही नंतर संपर्क तपशील अपडेट करू शकता.",
     "purchase_entry_removed_last_product_deleted": "खरेदी नोंद हटवली (शेवटचा उत्पादन हटवला)",
     "product_removed_successfully": "उत्पादन यशस्वीरित्या हटवले",
     "error_removing_product": "उत्पादन हटवताना त्रुटी: ",
