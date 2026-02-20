@@ -84,6 +84,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   bool _isFromScannedInvoice = false; // Track if this is from scanned invoice
 
   late TextEditingController _minLimitController;
+  late ScrollController _selectedProductsScrollController;
   String? _selectedProductImageUrl;
   final ProfileService _profileService = ProfileService();
   StreamSubscription? _profileServiceSubscription;
@@ -105,6 +106,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _buyingPriceController = TextEditingController();
     _sellingPriceController = TextEditingController();
     _minLimitController = TextEditingController();
+    _selectedProductsScrollController = ScrollController();
     _loadProductNames();
     _loadSupplierDetails();
     _loadUnits();
@@ -919,6 +921,34 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         );
       },
     );
+  }
+
+  // Scroll to the first product with an error
+  void _scrollToFirstError() {
+    // Use WidgetsBinding to ensure this runs after the current frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_boughtItems.isEmpty) return;
+
+      // Find the index of the first item with an error
+      final errorIndex = _boughtItems.indexWhere(
+        (item) => item.sellingPrice <= 0 || item.minLimit <= 0,
+      );
+
+      if (errorIndex == -1) return; // No errors found
+
+      // Calculate the offset to scroll to (each item is 180 + 8 padding = 188)
+      final itemWidth = 188.0;
+      final offset = errorIndex * itemWidth;
+
+      // Animate scroll to the error
+      if (_selectedProductsScrollController.hasClients) {
+        _selectedProductsScrollController.animateTo(
+          offset,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   void _showSelectionSheet(
@@ -2429,6 +2459,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     _unitsSubscription?.cancel();
     _profileServiceSubscription?.cancel();
     _profileService.dispose();
+    _selectedProductsScrollController.dispose();
     super.dispose();
   }
 
@@ -2820,6 +2851,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                       : SizedBox(
                           height: 228,
                           child: ListView.builder(
+                            controller: _selectedProductsScrollController,
                             scrollDirection: Axis.horizontal,
                             shrinkWrap: false,
                             padding: const EdgeInsets.symmetric(horizontal: 4),
@@ -3291,13 +3323,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                             ],
                           ),
                           child: ElevatedButton(
-                            onPressed:
-                                _boughtItems.isEmpty ||
-                                    _boughtItems.any(
-                                      (item) =>
-                                          item.sellingPrice <= 0 ||
-                                          item.minLimit <= 0,
-                                    )
+                            onPressed: _boughtItems.isEmpty
                                 ? null
                                 : () {
                                     if (_supplierNameController.text.isEmpty) {
@@ -3307,7 +3333,15 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                       });
                                       return;
                                     }
-                                    _showReviewScreen();
+                                    if (_boughtItems.any(
+                                      (item) =>
+                                          item.sellingPrice <= 0 ||
+                                          item.minLimit <= 0,
+                                    )) {
+                                      _scrollToFirstError();
+                                    } else {
+                                      _showReviewScreen();
+                                    }
                                   },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.transparent,

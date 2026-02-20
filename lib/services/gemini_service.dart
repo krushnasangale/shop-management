@@ -22,7 +22,7 @@ class GeminiService {
       // It uses Firebase authentication automatically
       final vertexInstance = FirebaseAI.vertexAI(auth: FirebaseAuth.instance);
       _model = vertexInstance.generativeModel(
-        model: 'Gemini 2.0 Flash-Lite',
+        model: 'gemini-2.0-flash-lite',
         generationConfig: GenerationConfig(
           temperature: 0.1, // Low temperature for consistent, factual output
           topK: 32,
