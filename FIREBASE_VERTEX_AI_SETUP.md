@@ -1,52 +1,103 @@
-# Firebase Vertex AI Setup for Gemini
+# Firebase AI (Gemini 2.0) Setup Guide
 
 ## Current Status
-✅ `firebase_vertexai: ^0.2.2+1` package installed  
-✅ Service code updated to use Firebase Vertex AI  
-❌ Need to enable Vertex AI API in Google Cloud Console
+✅ `firebase_ai: ^3.8.0` package installed  
+✅ Service code using Firebase Vertex AI with Gemini 2.0  
+✅ Auto-retry logic with exponential backoff  
+⚠️ **Required**: Enable Vertex AI API in Google Cloud Console
 
 ## Step 1: Enable Vertex AI API
 
 1. **Open Google Cloud Console**:
    - Go to: https://console.cloud.google.com/
-   - Select your Firebase project from the dropdown
+   - Select your Firebase project: `shop-management-42ce1`
 
 2. **Enable Vertex AI API**:
-   - Click this direct link: https://console.cloud.google.com/apis/library/aiplatform.googleapis.com
-   - Or manually navigate to: **APIs & Services** → **Library**
+   - Direct link: https://console.cloud.google.com/apis/library/aiplatform.googleapis.com
+   - Or navigate: **APIs & Services** → **Library**
    - Search for "Vertex AI API"
    - Click **ENABLE**
+   - Wait 2-5 minutes for activation
 
-3. **Enable Generative Language API** (if needed):
-   - Go to: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com
-   - Click **ENABLE**
+3. **Enable Billing** (Required even for free tier):
+   - Go to: https://console.firebase.google.com/
+   - Select your project
+   - Settings → Usage and billing
+   - Upgrade to **Blaze (Pay as you go)** plan
 
-## Step 2: Verify Firebase Project Setup
+## Step 2: Firebase Authentication
 
-Your app should already have:
-- ✅ Firebase initialized in `main.dart`
-- ✅ `firebase_core` package installed
-- ✅ `google-services.json` (Android) or `GoogleService-Info.plist` (iOS)
+The app uses **Firebase Authentication** (no API keys needed):
+- ✅ Firebase Auth handles authentication automatically
+- ✅ No `.env` files or API keys required
+- ✅ Uses: `FirebaseAI.vertexAI(auth: FirebaseAuth.instance)`
 
-## Step 3: Test the Integration
+## Step 3: Test Invoice Scanning
 
-After enabling the APIs:
-
-1. **Restart your Flutter app** (full restart, not hot reload):
+1. **Restart your app** (full restart):
    ```bash
    flutter run
    ```
 
-2. **Test invoice scanning**:
-   - Open the app
-   - Navigate to Purchased Entries
-   - Tap the scan icon
-   - Choose "Take Photo" or "Choose from Gallery"
-   - Select an invoice image
+2. **Scan an invoice**:
+   - Navigate to **Purchased Entries**
+   - Tap the scan (➕) button
+   - Choose:
+     - **Camera** (Mobile only) - Capture invoice photo
+     - **Gallery** - Select from photos
+     - **PDF** - Select PDF invoice (supports up to 5 pages)
 
-## Expected Behavior
+## Features
 
-**Success**: You should see "Processing Invoice" dialog with "Powered by Gemini AI" badge, then the invoice data populated in the purchase entry form.
+### Multi-Page PDF Support
+- ✅ Supports 1-5 page invoices
+- ✅ Auto-limits to 15,000 characters
+- ✅ Extracts data from all pages
+
+### Discount Handling
+- ✅ Extracts base unit price (before discount)
+- ✅ Handles discount columns correctly
+- ✅ Stores original prices for accurate inventory tracking
+
+### Auto-Retry
+- ✅ 3 retry attempts with exponential backoff (2s, 4s, 8s)
+- ✅ Handles rate limiting automatically
+- ✅ Smart text limiting to avoid quota issues
+
+## Pricing
+
+**Free Tier** (Very Generous):
+- 1,500 requests/day - FREE
+- 15 requests/minute
+- 1M requests/month - FREE
+
+**Paid Tier** (Gemini 2.0 Flash):
+- Input: $0.075 per 1M tokens (~750K words)
+- Images: $0.00025 per image
+- Output: $0.30 per 1M tokens
+
+**Cost per invoice scan**: ~$0.0004 (less than 1/20th of a cent!)
+
+## Troubleshooting
+
+### "Too many requests" error:
+- ✅ Auto-retry already implemented
+- ⚠️ If scanning many invoices rapidly, wait 60 seconds
+
+### "API not enabled" error:
+- ❌ Enable Vertex AI API (see Step 1)
+- ⏳ Wait 2-5 minutes after enabling
+
+### "Billing not enabled" error:
+- ❌ Enable Blaze plan in Firebase Console
+- ℹ️ Free tier is sufficient for most businesses
+
+## Model Information
+
+- **Current Model**: `gemini-2.0-flash-exp`
+- **Previous Models**: Gemini 1.5 retired Sep 24, 2025
+- **Performance**: Fast, accurate, multi-language support
+- **Languages**: English, Hindi, Marathi (mixed text supported)
 
 **If you still get errors**:
 - Check the console output for specific error messages

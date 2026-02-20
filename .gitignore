@@ -44,7 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Environment variables
+# Environment variables (kept for security even though not currently used)
 .env
 *.env
-!.env.example
