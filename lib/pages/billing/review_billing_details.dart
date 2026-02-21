@@ -933,20 +933,10 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
 
       for (final productDoc in productsSnapshot.docs) {
         final productData = productDoc.data();
-        final productName = productData['productName'] as String?;
-        final supplierName = productData['supplierName'] as String?;
-        final buyingPrice =
-            (productData['buyingPrice'] as num?)?.toDouble() ?? 0.0;
-        final sellingPrice =
-            (productData['sellingPrice'] as num?)?.toDouble() ?? 0.0;
-        final quantity = (productData['quantity'] as num?)?.toInt() ?? 0;
+        final batchId = productData['batchId'] as String?;
 
         // Match by batchId to ensure we update the correct batch
-        if (productName == product.productName &&
-            supplierName == product.supplierName &&
-            buyingPrice == product.boughtPrice &&
-            sellingPrice == product.price &&
-            quantity >= product.initialQuantity) {
+        if (batchId != null && batchId == product.batchId) {
           final currentQty = (productData['quantity'] as num?)?.toInt() ?? 0;
           final newQty = (currentQty - product.quantity.toInt()).toInt();
 
