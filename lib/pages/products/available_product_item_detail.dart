@@ -152,9 +152,9 @@ class _AvailableProductDetailScreenState
 
   Future<void> _loadPurchaseHistory() async {
     try {
-      // Read from the product-purchase-history collection and aggregate by product name
+      // Read from the purchased-products collection to show live/current data
       final snapshot = await FirebaseFirestore.instance
-          .collection('product-purchase-history')
+          .collection('purchased-products')
           .doc(widget.userId)
           .collection('items')
           .get();
@@ -163,9 +163,27 @@ class _AvailableProductDetailScreenState
       for (var doc in snapshot.docs) {
         final item = doc.data();
 
-        // Match by product name to aggregate across all suppliers
+        // Match by product name and only include items with quantity > 0
         if (item['productName'] == widget.product.productName) {
-          history.add(item);
+          // Calculate total amount
+          final quantity = (item['initialQuantity'] as num?)?.toInt() ?? 0;
+          final buyingPrice = (item['buyingPrice'] as num?)?.toDouble() ?? 0.0;
+          final total = quantity * buyingPrice;
+
+          // Add with all required fields for display
+          history.add({
+            'id': doc.id,
+            'productName': item['productName'],
+            'supplierName': item['supplierName'] ?? 'Unknown',
+            'date': item['date'] ?? item['purchaseDate'] ?? '',
+            'quantity': quantity,
+            'buyingPrice': buyingPrice,
+            'sellingPrice': (item['sellingPrice'] as num?)?.toDouble() ?? 0.0,
+            'unit': item['unit'] ?? 'units',
+            'total': total,
+            'minLimit': item['minLimit'] ?? 0,
+            'batchId': item['batchId'] ?? doc.id,
+          });
         }
       }
 
@@ -753,6 +771,8 @@ class _AvailableProductDetailScreenState
 
       // Reload batches to reflect changes
       await _loadAllBatches();
+      // Reload purchase history to reflect changes in purchase tab
+      await _loadPurchaseHistory();
 
       if (mounted) {
         setState(() {
@@ -950,6 +970,8 @@ class _AvailableProductDetailScreenState
 
       // Reload batches to reflect changes
       await _loadAllBatches();
+      // Reload purchase history to reflect changes in purchase tab
+      await _loadPurchaseHistory();
 
       if (mounted) {
         setState(() {
@@ -1992,7 +2014,10 @@ class _AvailableProductDetailScreenState
                                           .collection('items')
                                           .doc(batchWithMinLimit.id)
                                           .update({'minLimit': newMinLimit})
-                                          .then((_) {
+                                          .then((_) async {
+                                            // Reload batches and purchase history to reflect changes
+                                            await _loadAllBatches();
+                                            await _loadPurchaseHistory();
                                             setState(() {
                                               _editingMinLimit = false;
                                             });
