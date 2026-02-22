@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 
 class ImageUploadService {
@@ -43,8 +44,11 @@ class ImageUploadService {
       // Report initial progress
       onProgress?.call(0.0);
 
-      // Compress the image (20% of total progress for compression)
-      final compressedFile = await _compressImage(image, productId);
+      // Compress the image in background isolate (20% of total progress for compression)
+      final compressedFile = await compute(_compressImageIsolate, {
+        'imagePath': image.path,
+        'productId': productId,
+      });
       onProgress?.call(0.2);
 
       // Upload the compressed image with progress tracking
@@ -76,30 +80,30 @@ class ImageUploadService {
     }
   }
 
-  /// Compresses an image file by resizing and reducing quality to meet file size limit
-  static Future<File> _compressImage(File imageFile, String productId) async {
+  /// Isolate function for image compression (runs in background)
+  static Future<File> _compressImageIsolate(Map<String, dynamic> params) async {
+    final String imagePath = params['imagePath'];
+    final String productId = params['productId'];
+    final imageFile = File(imagePath);
+
     try {
       // Read the image file
       final imageBytes = await imageFile.readAsBytes();
       final originalImage = img.decodeImage(imageBytes);
 
       if (originalImage == null) {
-        // If decoding fails, return original file
         return imageFile;
       }
 
-      // Resize the image to reduce size while maintaining quality
+      // Resize the image to reduce size
       img.Image resizedImage;
-
       if (originalImage.width > originalImage.height) {
-        // Landscape
         if (originalImage.width > maxImageSize) {
           resizedImage = img.copyResize(originalImage, width: maxImageSize);
         } else {
           resizedImage = originalImage;
         }
       } else {
-        // Portrait or square
         if (originalImage.height > maxImageSize) {
           resizedImage = img.copyResize(originalImage, height: maxImageSize);
         } else {
@@ -111,34 +115,48 @@ class ImageUploadService {
       final tempDir = await Directory.systemTemp.createTemp();
       final compressedFile = File('${tempDir.path}/compressed_$productId.jpg');
 
-      // Iteratively compress until file size is under limit
-      int quality = jpegQuality;
-      const int minQuality = 30; // Minimum acceptable quality
-      const int qualityStep = 10; // Quality reduction step
+      // Estimate optimal quality based on image dimensions to reduce iterations
+      final pixels = resizedImage.width * resizedImage.height;
+      int quality = _estimateQuality(pixels);
+      const int minQuality = 30;
 
-      while (quality >= minQuality) {
-        final compressedBytes = img.encodeJpg(resizedImage, quality: quality);
-        await compressedFile.writeAsBytes(compressedBytes);
+      // Try compression with estimated quality first
+      var compressedBytes = img.encodeJpg(resizedImage, quality: quality);
+      await compressedFile.writeAsBytes(compressedBytes);
+      var fileSizeKB = compressedBytes.length / 1024;
 
-        // Check file size
-        final fileSizeKB = await compressedFile.length() / 1024;
-        if (fileSizeKB <= maxFileSizeKB) {
-          // File size is acceptable
-          return compressedFile;
+      // If size is too large, do binary search for optimal quality (faster than linear)
+      if (fileSizeKB > maxFileSizeKB) {
+        int lowQuality = minQuality;
+        int highQuality = quality;
+
+        while (lowQuality <= highQuality && fileSizeKB > maxFileSizeKB) {
+          quality = (lowQuality + highQuality) ~/ 2;
+          compressedBytes = img.encodeJpg(resizedImage, quality: quality);
+          fileSizeKB = compressedBytes.length / 1024;
+
+          if (fileSizeKB > maxFileSizeKB) {
+            highQuality = quality - 1;
+          } else {
+            lowQuality = quality + 1;
+          }
         }
 
-        // Reduce quality for next iteration
-        quality -= qualityStep;
+        await compressedFile.writeAsBytes(compressedBytes);
       }
 
-      // If we couldn't achieve the target size, return the lowest quality version
-      final compressedBytes = img.encodeJpg(resizedImage, quality: minQuality);
-      await compressedFile.writeAsBytes(compressedBytes);
       return compressedFile;
     } catch (e) {
-      // If compression fails, return original file
       return imageFile;
     }
+  }
+
+  /// Estimate initial quality based on image size
+  static int _estimateQuality(int pixels) {
+    if (pixels < 100000) return 85; // Very small images
+    if (pixels < 300000) return 75; // Small images
+    if (pixels < 500000) return 65; // Medium images
+    return 55; // Large images
   }
 
   /// Deletes an image from Firebase Storage by URL

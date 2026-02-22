@@ -50,6 +50,7 @@ class _AvailableProductDetailScreenState
   List<Map<String, dynamic>> _filteredSoldHistory = []; // Filtered sold history
   bool _isLoadingSoldHistory = true;
   final Map<int, bool> _expandedBatches = {};
+  String? _currentImageUrl; // Track current product image URL
 
   // Search and filter state for purchases
   late TextEditingController _searchController;
@@ -66,6 +67,9 @@ class _AvailableProductDetailScreenState
   @override
   void initState() {
     super.initState();
+
+    // Initialize current image URL
+    _currentImageUrl = widget.product.imageUrl;
 
     // Initialize TabController
     _tabController = TabController(length: 3, vsync: this);
@@ -502,13 +506,23 @@ class _AvailableProductDetailScreenState
           );
 
           if (imageUrl != null) {
-            // Update the product document with new image URL
-            await FirebaseFirestore.instance
+            // Update Firestore and local state in parallel for faster UX
+            final updateFuture = FirebaseFirestore.instance
                 .collection('purchased-products')
                 .doc(widget.userId)
                 .collection('items')
                 .doc(widget.product.id)
                 .update({'imageUrl': imageUrl});
+
+            // Update UI immediately (optimistic update)
+            if (mounted) {
+              setState(() {
+                _currentImageUrl = imageUrl;
+              });
+            }
+
+            // Wait for Firestore update to complete
+            await updateFuture;
 
             // Close loading dialog
             if (mounted) {
@@ -521,21 +535,10 @@ class _AvailableProductDetailScreenState
                 SnackBar(
                   content: Text('Product image updated successfully!'),
                   backgroundColor: Colors.green,
+                  duration: Duration(seconds: 2),
                 ),
               );
             }
-
-            // Refresh the page to show new image
-            // Note: In a real app, you might want to update the state instead
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => AvailableProductDetailScreen(
-                  product: widget.product.copyWith(imageUrl: imageUrl),
-                  userId: widget.userId,
-                ),
-              ),
-            );
           } else {
             // Close loading dialog
             if (mounted) {
@@ -1501,13 +1504,10 @@ class _AvailableProductDetailScreenState
                                       minScale: 0.5,
                                       maxScale: 4.0,
                                       child:
-                                          widget.product.imageUrl != null &&
-                                              widget
-                                                  .product
-                                                  .imageUrl!
-                                                  .isNotEmpty
+                                          _currentImageUrl != null &&
+                                              _currentImageUrl!.isNotEmpty
                                           ? Image.network(
-                                              widget.product.imageUrl!,
+                                              _currentImageUrl!,
                                               fit: BoxFit.contain,
                                               loadingBuilder:
                                                   (
@@ -1563,10 +1563,10 @@ class _AvailableProductDetailScreenState
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(11),
                               child:
-                                  widget.product.imageUrl != null &&
-                                      widget.product.imageUrl!.isNotEmpty
+                                  _currentImageUrl != null &&
+                                      _currentImageUrl!.isNotEmpty
                                   ? Image.network(
-                                      widget.product.imageUrl!,
+                                      _currentImageUrl!,
                                       fit: BoxFit.cover,
                                       loadingBuilder:
                                           (context, child, loadingProgress) {
@@ -1639,13 +1639,10 @@ class _AvailableProductDetailScreenState
                                         minScale: 0.5,
                                         maxScale: 4.0,
                                         child:
-                                            widget.product.imageUrl != null &&
-                                                widget
-                                                    .product
-                                                    .imageUrl!
-                                                    .isNotEmpty
+                                            _currentImageUrl != null &&
+                                                _currentImageUrl!.isNotEmpty
                                             ? Image.network(
-                                                widget.product.imageUrl!,
+                                                _currentImageUrl!,
                                                 fit: BoxFit.contain,
                                                 loadingBuilder:
                                                     (
@@ -1739,7 +1736,7 @@ class _AvailableProductDetailScreenState
                           child: ElevatedButton.icon(
                             onPressed: () => _shareProduct(
                               widget.product.productName,
-                              widget.product.imageUrl,
+                              _currentImageUrl,
                             ),
                             icon: const Icon(Icons.share, size: 16),
                             label: const Text('Share'),
