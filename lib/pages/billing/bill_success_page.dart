@@ -10,7 +10,7 @@ class BillProductItem {
   final String supplierName;
   final String unit;
   final double quantity;
-  final int price;
+  final double price;
   final int boughtPrice;
   final double total;
   final String batchId;

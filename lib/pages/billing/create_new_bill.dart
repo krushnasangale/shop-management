@@ -92,7 +92,7 @@ class BillItem {
   final String batchId; // Track which batch this item came from
   final double profitMargin; // Profit per unit for this batch
   double billQuantity;
-  int billPrice;
+  double billPrice;
 
   BillItem({
     required this.productName,
@@ -243,7 +243,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   matchingProduct.quantity +
                   ((product['quantity'] ?? 0) as num).toInt(),
               billQuantity: (product['quantity'] ?? 0).toDouble(),
-              billPrice: ((product['price'] ?? 0) as num).toInt(),
+              billPrice: ((product['price'] ?? 0) as num).toDouble(),
               batchId: matchingProduct.batchId,
               profitMargin: matchingProduct.profitMargin,
             );
@@ -1657,7 +1657,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
             sellingPrice: product.sellingPrice,
             maxQuantity: product.quantity,
             billQuantity: 1,
-            billPrice: product.sellingPrice.toInt(),
+            billPrice: product.sellingPrice,
             batchId: product.batchId,
             profitMargin: product.profitMargin,
           ),
@@ -2015,7 +2015,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                         TextField(
                           controller: priceController,
                           keyboardType: const TextInputType.numberWithOptions(
-                            decimal: false,
+                            decimal: true,
                           ),
                           decoration: InputDecoration(
                             labelText: dialogLocalizations.translate(
@@ -2086,7 +2086,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     } else {
                       setState(() {
                         _billItems[index].billQuantity = quantity;
-                        _billItems[index].billPrice = price.toInt();
+                        _billItems[index].billPrice = price;
                       });
                       Navigator.pop(context);
                     }
