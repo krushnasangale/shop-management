@@ -37,7 +37,7 @@ class AppLocalizations {
   }
 
   // Common translations getters for easy access
-  String get appName => translate('app_name');
+  String get reports => translate('reports');
   String get topSellingProducts => translate('top_selling_products');
   String get leastSellingProducts => translate('least_selling_products');
   String get noSalesDataYet => translate('no_sales_data_yet');
@@ -806,6 +806,24 @@ class AppLocalizations {
   String get bySupplier => translate('by_supplier');
   String get errorProcessingPDF => translate('error_processing_pdf');
   String get appSettings => translate('app_settings');
+
+  // ITR and Reports getters
+  String get profitLossStatement => translate('profitLossStatement');
+  String get totalRevenue => translate('totalRevenue');
+  String get grossProfit => translate('grossProfit');
+  String get netProfit => translate('netProfit');
+  String get period => translate('period');
+  String get noDataAvailable => translate('noDataAvailable');
+  String get selectStartDate => translate('selectStartDate');
+  String get selectEndDate => translate('selectEndDate');
+  String get balanceSheet => translate('balanceSheet');
+  String get asOf => translate('asOf');
+  String get exportReport => translate('exportReport');
+  String get exportToPDF => translate('exportToPDF');
+  String get exportToExcel => translate('exportToExcel');
+  String get exportSuccessful => translate('exportSuccessful');
+  String get exportFailed => translate('exportFailed');
+  String get selectDateRangeFirst => translate('selectDateRangeFirst');
 
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {

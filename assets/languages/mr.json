@@ -743,5 +743,26 @@
     "enable_expiry_date_field": "खरेदी नोंदी जोडताना समाप्ती तारीख फील्ड सक्षम करा",
     "recent": "अलीकडील",
     "by_supplier": "पुरवठादारानुसार",
-    "error_processing_pdf": "PDF प्रक्रिया करण्यात त्रुटी"
+    "error_processing_pdf": "PDF प्रक्रिया करण्यात त्रुटी",
+    "profitLossStatement": "नफा आणि तोटा विवरणपत्र",
+    "totalRevenue": "एकूण महसूल",
+    "totalExpenses": "एकूण खर्च",
+    "grossProfit": "एकूण नफा",
+    "netProfit": "निव्वळ नफा",
+    "period": "कालावधी",
+    "selectDateRange": "तारीख श्रेणी निवडा",
+    "from": "पासून",
+    "to": "पर्यंत",
+    "noDataAvailable": "कोणताही डेटा उपलब्ध नाही",
+    "selectStartDate": "प्रारंभ तारीख निवडा",
+    "selectEndDate": "शेवटची तारीख निवडा",
+    "balanceSheet": "ताळेबंद",
+    "asOf": "या तारखेपर्यंत",
+    "exportReport": "अहवाल निर्यात करा",
+    "exportToPDF": "PDF मध्ये निर्यात करा",
+    "exportToExcel": "एक्सेलमध्ये निर्यात करा",
+    "exportSuccessful": "निर्यात यशस्वी",
+    "exportFailed": "निर्यात अयशस्वी",
+    "selectDateRangeFirst": "कृपया प्रथम तारीख श्रेणी निवडा"
+}
 }

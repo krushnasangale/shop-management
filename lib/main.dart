@@ -11,6 +11,7 @@ import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/expenses/expenses_list.dart';
 import 'package:flashbill/pages/dashboard.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
+import 'package:flashbill/pages/reports/reports_page.dart';
 import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:flashbill/providers/language_provider.dart';
@@ -506,6 +507,13 @@ class _MyHomePageState extends State<MyHomePage> {
               title: Text(_shopName),
               automaticallyImplyLeading: false,
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.bar_chart),
+                  onPressed: () {
+                    AppNavigator.push(context, const ReportsPage());
+                  },
+                  tooltip: localizations?.reports ?? 'Reports',
+                ),
                 Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),

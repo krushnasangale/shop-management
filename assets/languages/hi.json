@@ -743,5 +743,11 @@
     "enable_expiry_date_field": "खरीद प्रविष्टियाँ जोड़ते समय समाप्ति तिथि फ़ील्ड सक्षम करें",
     "recent": "हालिया",
     "by_supplier": "आपूर्तिकर्ता के अनुसार",
-    "error_processing_pdf": "PDF संसाधित करने में त्रुटि"
+    "error_processing_pdf": "PDF संसाधित करने में त्रुटि",
+    "exportReport": "रिपोर्ट निर्यात करें",
+    "exportToPDF": "PDF में निर्यात करें",
+    "exportToExcel": "एक्सेल में निर्यात करें",
+    "exportSuccessful": "निर्यात सफल",
+    "exportFailed": "निर्यात विफल",
+    "selectDateRangeFirst": "कृपया पहले दिनांक सीमा चुनें"
 }
