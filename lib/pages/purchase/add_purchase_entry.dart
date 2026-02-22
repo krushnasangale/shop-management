@@ -1051,12 +1051,32 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           child: SizedBox(
                             height: 50,
                             child: ElevatedButton.icon(
-                              onPressed: () {
+                              onPressed: () async {
                                 if (title == 'Products') {
-                                  _showAddProductNameDialog(
-                                    context,
-                                    setModalState,
-                                  );
+                                  final newProductName =
+                                      await _showAddProductNameDialog(
+                                        context,
+                                        setModalState,
+                                      );
+                                  if (newProductName != null &&
+                                      newProductName.isNotEmpty) {
+                                    setState(() {
+                                      controller.text = newProductName;
+                                      // Get the image URL for the newly added product
+                                      final newProduct = _allProducts
+                                          .firstWhere(
+                                            (p) => p['name'] == newProductName,
+                                            orElse: () => {},
+                                          );
+                                      if (newProduct.isNotEmpty) {
+                                        _selectedProductImageUrl =
+                                            newProduct['imageUrl'];
+                                      }
+                                    });
+                                    if (context.mounted) {
+                                      Navigator.pop(context);
+                                    }
+                                  }
                                 } else if (title == 'Units') {
                                   _showAddUnitDialog(context, setModalState);
                                 }
@@ -1168,17 +1188,18 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     );
   }
 
-  void _showAddProductNameDialog(
+  Future<String?> _showAddProductNameDialog(
     BuildContext context,
     StateSetter setModalState,
-  ) {
+  ) async {
     final productNameController = TextEditingController();
     String productNameError = '';
     File? selectedImage;
     bool isUploading = false;
     double uploadProgress = 0.0;
 
-    showDialog(
+    return await showDialog<String?>(
+      barrierDismissible: false,
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
@@ -1361,7 +1382,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               setModalState(() {});
 
                               if (context.mounted) {
-                                Navigator.pop(context);
+                                Navigator.pop(
+                                  context,
+                                  productNameController.text.trim(),
+                                );
                               }
                             } catch (e) {
                               setDialogState(() {
@@ -2845,7 +2869,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           ],
                         )
                       : SizedBox(
-                          height: Platform.isWindows ? 225 : 260,
+                          height: 260,
                           child: ListView.builder(
                             controller: _selectedProductsScrollController,
                             scrollDirection: Axis.horizontal,
@@ -2867,7 +2891,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Container(
-                                      height: Platform.isWindows ? 185 : 220,
+                                      height: 220,
                                       width: 180,
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
