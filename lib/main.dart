@@ -9,6 +9,7 @@ import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/pages/purchase/purchase_items_list.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/expenses/expenses_list.dart';
+import 'package:flashbill/pages/pending_payments_page.dart';
 import 'package:flashbill/pages/dashboard.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/providers/theme_provider.dart';
@@ -16,21 +17,41 @@ import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:flashbill/providers/language_provider.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/profile_service.dart';
-import 'package:flashbill/services/gemini_service.dart';
+import 'package:flashbill/services/notification_service.dart';
+import 'package:flashbill/utils/device_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'firebase_options.dart';
+import 'package:flashbill/services/gemini_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print("Handling a background message: ${message.messageId}");
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Initialize Firebase Analytics
+  FirebaseAnalytics.instance;
+
+  // Initialize Firebase Messaging for mobile platforms
+  if (!Platform.isWindows) {
+    await NotificationService().initialize();
+    NotificationService().setOnNotificationOpened(
+      MyApp.handleNotificationOpened,
+    );
+  }
 
   // Initialize Gemini service (uses Firebase Vertex AI)
   try {
@@ -55,35 +76,40 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  // Global navigator key for navigation from services
+  static final GlobalKey<NavigatorState> navigatorKey =
+      GlobalKey<NavigatorState>();
+
+  // Handle notification navigation
+  static void handleNotificationOpened(Map<String, dynamic> data) {
+    // final context = navigatorKey.currentContext;
+    // if (context == null) return;
+
+    // // Handle different notification types
+    // final type = data['type'];
+    // final id = data['id'];
+
+    // switch (type) {
+    //   case 'bill':
+    //     // Navigate to bill details (if implemented)
+    //     // AppNavigator.push(context, BillDetailsPage(billId: id));
+    //     break;
+    //   case 'payment':
+    //     // Navigate to pending payments
+    //     AppNavigator.push(context, const PendingPaymentsPage());
+    //     break;
+    //   case 'product':
+    //     // Navigate to available products
+    //     AppNavigator.push(context, const AvailableProducts());
+    //     break;
+    //   default:
+    //     // Navigate to dashboard
+    //     AppNavigator.push(context, const Dashboard());
+    // }
+  }
+
   Future<String> _getCurrentDeviceId() async {
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      String deviceId = '';
-
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id;
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        deviceId = iosInfo.identifierForVendor ?? 'unknown';
-      } else if (Platform.isWindows) {
-        final windowsInfo = await deviceInfo.windowsInfo;
-        deviceId = windowsInfo.deviceId;
-      } else if (Platform.isMacOS) {
-        final macInfo = await deviceInfo.macOsInfo;
-        deviceId = macInfo.systemGUID ?? 'unknown';
-      } else if (Platform.isLinux) {
-        final linuxInfo = await deviceInfo.linuxInfo;
-        deviceId = linuxInfo.machineId ?? 'unknown';
-      } else {
-        deviceId = 'web_${DateTime.now().millisecondsSinceEpoch}';
-      }
-
-      return deviceId;
-    } catch (e) {
-      debugPrint('Error getting device ID: $e');
-      return 'unknown';
-    }
+    return await DeviceUtils.getDeviceId();
   }
 
   @override
@@ -91,6 +117,7 @@ class MyApp extends StatelessWidget {
     return Consumer2<ThemeProvider, LanguageProvider>(
       builder: (context, themeProvider, languageProvider, _) {
         return MaterialApp(
+          navigatorKey: MyApp.navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: themeProvider.currentTheme,
           locale: languageProvider.currentLocale,

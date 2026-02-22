@@ -11,6 +11,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flashbill/services/dashboard_service.dart';
 import 'package:flashbill/widgets/dashboard_widgets.dart';
+import 'package:flashbill/services/notification_service.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -50,6 +51,11 @@ class _DashboardState extends State<Dashboard>
     _tabController = TabController(length: 3, vsync: this);
     _dashboardService = DashboardService();
     _loadFilterPreference();
+
+    // Request notification permission after dashboard loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService().requestPermission();
+    });
   }
 
   @override

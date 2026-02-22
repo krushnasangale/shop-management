@@ -1,12 +1,13 @@
+import 'package:flashbill/providers/language_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flashbill/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:flashbill/providers/language_provider.dart';
+import 'package:flashbill/services/notification_service.dart';
+import 'package:flashbill/utils/device_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -41,6 +42,11 @@ class _LoginScreenState extends State<LoginScreen> {
       // Track device after successful login
       if (userCredential.user != null) {
         await _trackDevice(userCredential.user!.uid);
+
+        // Save FCM token to Firestore on login
+        if (!Platform.isWindows) {
+          await NotificationService().saveTokenToFirestore();
+        }
       }
 
       if (!mounted) return;
@@ -79,56 +85,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _trackDevice(String userId) async {
     try {
-      final deviceInfo = DeviceInfoPlugin();
-      String deviceId = '';
-      String deviceName = '';
-      String deviceModel = '';
-      String osVersion = '';
-      String platform = '';
-
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id; // Unique device ID
-        deviceName = androidInfo.model;
-        deviceModel = androidInfo.device;
-        osVersion = 'Android ${androidInfo.version.release}';
-        platform = 'Android';
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        deviceId = iosInfo.identifierForVendor ?? 'unknown';
-        deviceName = iosInfo.name;
-        deviceModel = iosInfo.model;
-        osVersion = 'iOS ${iosInfo.systemVersion}';
-        platform = 'iOS';
-      } else if (Platform.isWindows) {
-        final windowsInfo = await deviceInfo.windowsInfo;
-        deviceId = windowsInfo.deviceId;
-        deviceName = windowsInfo.computerName;
-        deviceModel = 'Windows PC';
-        osVersion = windowsInfo.productName;
-        platform = 'Windows';
-      } else if (Platform.isMacOS) {
-        final macInfo = await deviceInfo.macOsInfo;
-        deviceId = macInfo.systemGUID ?? 'unknown';
-        deviceName = macInfo.computerName;
-        deviceModel = macInfo.model;
-        osVersion = 'macOS ${macInfo.osRelease}';
-        platform = 'macOS';
-      } else if (Platform.isLinux) {
-        final linuxInfo = await deviceInfo.linuxInfo;
-        deviceId = linuxInfo.machineId ?? 'unknown';
-        deviceName = linuxInfo.name;
-        deviceModel = linuxInfo.prettyName;
-        osVersion = linuxInfo.version ?? 'unknown';
-        platform = 'Linux';
-      } else {
-        // Web or other platforms
-        platform = 'Web';
-        deviceId = 'web_${DateTime.now().millisecondsSinceEpoch}';
-        deviceName = 'Web Browser';
-        deviceModel = 'Browser';
-        osVersion = 'Web';
-      }
+      final deviceInfo = await DeviceUtils.getDeviceInfo();
+      final deviceId = deviceInfo['deviceId']!;
+      final deviceName = deviceInfo['deviceName']!;
+      final deviceModel = deviceInfo['deviceModel']!;
+      final osVersion = deviceInfo['osVersion']!;
+      final platform = deviceInfo['platform']!;
 
       // Store device information in Firestore
       final deviceDoc = FirebaseFirestore.instance

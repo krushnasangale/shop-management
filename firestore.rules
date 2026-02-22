@@ -56,5 +56,13 @@ service cloud.firestore {
     match /product-purchase-history/{userId}/{document=**} {
       allow read, write: if isAuthenticated() && isOwnResource(userId);
     }
+
+    // FCM Tokens collection - users can only manage their own tokens
+    match /users-fcm-tokens/{document} {
+      allow read, write: if isAuthenticated() && 
+        resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && 
+        request.resource.data.userId == request.auth.uid;
+    }
   }
 }

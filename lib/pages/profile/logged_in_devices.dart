@@ -7,6 +7,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flashbill/pages/login/login.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/device_utils.dart';
 
 class LoggedInDevicesScreen extends StatefulWidget {
   const LoggedInDevicesScreen({super.key});
@@ -83,34 +84,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
   }
 
   Future<String> _getCurrentDeviceId() async {
-    try {
-      final deviceInfo = DeviceInfoPlugin();
-      String deviceId = '';
-
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        deviceId = androidInfo.id;
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        deviceId = iosInfo.identifierForVendor ?? '';
-      } else if (Platform.isWindows) {
-        final windowsInfo = await deviceInfo.windowsInfo;
-        deviceId = windowsInfo.deviceId;
-      } else if (Platform.isMacOS) {
-        final macInfo = await deviceInfo.macOsInfo;
-        deviceId = macInfo.systemGUID ?? '';
-      } else if (Platform.isLinux) {
-        final linuxInfo = await deviceInfo.linuxInfo;
-        deviceId = linuxInfo.machineId ?? '';
-      } else {
-        deviceId = 'web_${DateTime.now().millisecondsSinceEpoch}';
-      }
-
-      return deviceId;
-    } catch (e) {
-      debugPrint('Error getting current device id: $e');
-      return 'unknown';
-    }
+    return await DeviceUtils.getDeviceId();
   }
 
   void _showRemoveConfirmation(
