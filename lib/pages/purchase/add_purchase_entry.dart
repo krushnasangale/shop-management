@@ -2845,7 +2845,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           ],
                         )
                       : SizedBox(
-                          height: Platform.isWindows ? 220 : 260,
+                          height: Platform.isWindows ? 225 : 260,
                           child: ListView.builder(
                             controller: _selectedProductsScrollController,
                             scrollDirection: Axis.horizontal,
