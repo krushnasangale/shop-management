@@ -1332,7 +1332,7 @@ class _BillsState extends State<Bills> {
                             ),
                           ),
                           Text(
-                            '${localizations.currencySymbol}${bill.amountRemaining}',
+                            '${bill.amountRemaining}',
                             style: context.titleMedium?.copyWith(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
