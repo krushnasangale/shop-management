@@ -9,6 +9,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/services/file_service.dart';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:typed_data';
@@ -16,8 +17,10 @@ import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/products/available_product_item_detail.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart'
+    hide FileService;
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:image/image.dart' as img;
 
 class AvailableProducts extends StatefulWidget {
   const AvailableProducts({super.key});
@@ -438,7 +441,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     );
   }
 
-  Future<File> _generateProductsCatalogue(bool includePrices) async {
+  Future<Uint8List> _generateProductsCatalogue(bool includePrices) async {
     // Check for immediate cancellation
     if (_cancelGeneration) {
       throw Exception('Generation cancelled by user');
@@ -450,11 +453,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
     });
 
     final pdf = pw.Document();
-    final dir = await getTemporaryDirectory();
     final now = DateTime.now();
-    final dateTimeString =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-    final file = File('${dir.path}/products_catalogue_$dateTimeString.pdf');
+    debugPrint('Generating product catalogue PDF');
 
     // Group all products by name and calculate total quantities
     setState(() {
@@ -467,7 +467,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
     }
 
     Map<String, Map<String, dynamic>> groupedProducts = {};
-    for (var product in _boughtProducts) {
+    // Use _filteredProducts instead of _boughtProducts to match UI display
+    for (var product in _filteredProducts) {
       final productName = product.productName;
       if (!groupedProducts.containsKey(productName)) {
         groupedProducts[productName] = {
@@ -483,14 +484,20 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     final productsList = groupedProducts.values.toList();
 
-    // Download images for products that have them
+    // Download images for products that have them - OPTIMIZED PARALLEL PROCESSING
     setState(() {
       _generationProgress = 0.3; // 30% - Starting image downloads
     });
 
     Map<String, Uint8List?> productImages = {};
     final totalProducts = productsList.length;
-    for (int i = 0; i < productsList.length; i++) {
+
+    // Process images in parallel batches for much faster performance
+    const int batchSize =
+        50; // Increased from 25 to 50 for better parallelization
+    int processedCount = 0;
+
+    for (int i = 0; i < productsList.length; i += batchSize) {
       // Check for cancellation
       if (_cancelGeneration) {
         setState(() {
@@ -501,26 +508,43 @@ class _AvailableProductsState extends State<AvailableProducts> {
         throw Exception('Generation cancelled by user');
       }
 
-      final product = productsList[i];
-      final imageUrl = product['imageUrl'] as String?;
-      final productName = product['name'] as String;
-      if (imageUrl != null && imageUrl.isNotEmpty) {
-        try {
-          // Use cached image bytes instead of fresh download
-          productImages[productName] = await _getCachedImageBytes(imageUrl);
-        } catch (e) {
-          debugPrint('Error getting cached image for $productName: $e');
-          // If image retrieval fails, we'll use placeholder
-          productImages[productName] = null;
-        }
-      } else {
-        debugPrint('No image URL for $productName');
-        productImages[productName] = null;
+      final endIndex = (i + batchSize < productsList.length)
+          ? i + batchSize
+          : productsList.length;
+      final batch = productsList.sublist(i, endIndex);
+
+      // Process all images in this batch in parallel
+      final batchResults = await Future.wait(
+        batch.map((product) async {
+          final imageUrl = product['imageUrl'] as String?;
+          final productName = product['name'] as String;
+
+          // Skip downloading if no image URL, but still add to map
+          if (imageUrl == null || imageUrl.isEmpty) {
+            return MapEntry(productName, null);
+          }
+
+          try {
+            // Get and compress image for faster PDF generation
+            final compressedImage = await _getCompressedImageForPDF(imageUrl);
+            return MapEntry(productName, compressedImage);
+          } catch (e) {
+            debugPrint('Error processing image for $productName: $e');
+            return MapEntry(productName, null);
+          }
+        }),
+      );
+
+      // Add batch results to the map
+      for (final entry in batchResults) {
+        productImages[entry.key] = entry.value;
       }
+
+      processedCount += batch.length;
 
       // Update progress during image processing (30% to 70%)
       setState(() {
-        _generationProgress = 0.3 + (0.4 * (i + 1) / totalProducts);
+        _generationProgress = 0.3 + (0.4 * processedCount / totalProducts);
       });
     }
 
@@ -537,37 +561,37 @@ class _AvailableProductsState extends State<AvailableProducts> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(20),
+        margin: const pw.EdgeInsets.all(15), // Reduced margin for more space
         build: (pw.Context context) {
           List<pw.Widget> widgets = [];
 
-          // Shop Header
+          // Shop Header - Optimized
           widgets.add(
             pw.Container(
               width: double.infinity,
-              padding: const pw.EdgeInsets.all(20),
+              padding: const pw.EdgeInsets.all(15),
               decoration: pw.BoxDecoration(color: PdfColors.blue),
               child: pw.Column(
                 children: [
                   pw.Text(
                     _shopName,
                     style: pw.TextStyle(
-                      fontSize: 28,
+                      fontSize: 24,
                       fontWeight: pw.FontWeight.bold,
                       color: PdfColors.white,
                     ),
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 8),
+                  pw.SizedBox(height: 6),
                   pw.Text(
                     'Product Catalogue',
-                    style: pw.TextStyle(fontSize: 18, color: PdfColors.white),
+                    style: pw.TextStyle(fontSize: 16, color: PdfColors.white),
                     textAlign: pw.TextAlign.center,
                   ),
-                  pw.SizedBox(height: 4),
+                  pw.SizedBox(height: 3),
                   pw.Text(
                     'Generated on: ${now.toString().split('.')[0]}',
-                    style: pw.TextStyle(fontSize: 10, color: PdfColors.white),
+                    style: pw.TextStyle(fontSize: 9, color: PdfColors.white),
                     textAlign: pw.TextAlign.center,
                   ),
                 ],
@@ -575,10 +599,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
             ),
           );
 
-          widgets.add(pw.SizedBox(height: 20));
+          widgets.add(pw.SizedBox(height: 15));
 
-          // Products Grid - 3 products per row
-          const int productsPerRow = 3;
+          // Products Grid - 4 products per row (optimized for smaller images)
+          const int productsPerRow = 4;
           for (int i = 0; i < productsList.length; i += productsPerRow) {
             List<pw.Widget> rowWidgets = [];
 
@@ -594,25 +618,28 @@ class _AvailableProductsState extends State<AvailableProducts> {
               rowWidgets.add(
                 pw.Expanded(
                   child: pw.Container(
-                    margin: const pw.EdgeInsets.all(5),
-                    padding: const pw.EdgeInsets.all(10),
+                    margin: const pw.EdgeInsets.all(3),
+                    padding: const pw.EdgeInsets.all(8),
                     decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColors.grey300, width: 1),
-                      borderRadius: pw.BorderRadius.circular(8),
+                      border: pw.Border.all(
+                        color: PdfColors.grey300,
+                        width: 0.5,
+                      ),
+                      borderRadius: pw.BorderRadius.circular(6),
                     ),
                     child: pw.Column(
                       children: [
-                        // Product Image
+                        // Product Image (compressed to 200x200)
                         pw.Container(
-                          width: 100,
-                          height: 100,
+                          width: 80,
+                          height: 80,
                           decoration: pw.BoxDecoration(
                             color: PdfColors.grey200,
                           ),
                           child: imageBytes != null
                               ? pw.ClipRRect(
-                                  horizontalRadius: 8,
-                                  verticalRadius: 8,
+                                  horizontalRadius: 6,
+                                  verticalRadius: 6,
                                   child: pw.Image(
                                     pw.MemoryImage(imageBytes),
                                     fit: pw.BoxFit.cover,
@@ -672,9 +699,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
             widgets.add(pw.Row(children: rowWidgets));
 
-            // Add some space between rows
+            // Add some space between rows (reduced for faster generation)
             if (i + productsPerRow < productsList.length) {
-              widgets.add(pw.SizedBox(height: 10));
+              widgets.add(pw.SizedBox(height: 6));
             }
           }
 
@@ -708,14 +735,22 @@ class _AvailableProductsState extends State<AvailableProducts> {
       _generationProgress = 0.9; // 90% - Saving file
     });
 
-    await file.writeAsBytes(await pdf.save());
+    final pdfBytes = await pdf.save();
+
+    debugPrint(
+      'Catalogue PDF generated successfully (${pdfBytes.length} bytes)',
+    );
+
+    if (pdfBytes.isEmpty) {
+      throw Exception('PDF bytes are empty');
+    }
 
     // Complete
     setState(() {
       _generationProgress = 1.0; // 100% - Complete
     });
 
-    return file;
+    return pdfBytes;
   }
 
   void _generateAndSharePDF() async {
@@ -730,11 +765,27 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
       // Check if generation was cancelled after completion
       if (!_cancelGeneration) {
-        await Share.shareXFiles(
+        // Verify file exists before sharing
+        if (!await file.exists()) {
+          throw Exception('PDF file not found at ${file.path}');
+        }
+
+        final fileSize = await file.length();
+        debugPrint(
+          'Sharing products report PDF: ${file.path} (${fileSize} bytes)',
+        );
+
+        if (fileSize == 0) {
+          throw Exception('Cannot share empty PDF file');
+        }
+
+        final result = await Share.shareXFiles(
           [XFile(file.path)],
           text: '$_shopName - Products Report',
           subject: 'Products Report - $_shopName',
         );
+
+        debugPrint('Share result: ${result.status}');
       }
     } catch (e) {
       if (e.toString().contains('cancelled by user')) {
@@ -771,15 +822,29 @@ class _AvailableProductsState extends State<AvailableProducts> {
         _generationProgress = 0.0;
       });
 
-      final file = await _generateProductsCatalogue(includePrices);
+      final pdfBytes = await _generateProductsCatalogue(includePrices);
 
       // Check if generation was cancelled after completion
       if (!_cancelGeneration) {
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: '$_shopName - Product Catalogue',
-          subject: 'Product Catalogue - $_shopName',
+        // Generate file name using FileService
+        final fileName = FileService.generateTimestampedFileName(
+          includePrices ? 'product_catalogue_with_prices' : 'product_catalogue',
+          'pdf',
         );
+
+        // Share file using FileService (same as bill sharing)
+        final result = await FileService.shareFile(
+          fileBytes: pdfBytes,
+          fileName: fileName,
+          shareText: '$_shopName - Product Catalogue',
+          subFolder: 'Catalogues',
+        );
+
+        if (!result.success) {
+          throw Exception(result.errorMessage ?? 'Failed to share catalogue');
+        }
+
+        debugPrint('Catalogue shared successfully: ${result.filePath}');
       }
     } catch (e) {
       if (e.toString().contains('cancelled by user')) {
@@ -813,13 +878,27 @@ class _AvailableProductsState extends State<AvailableProducts> {
       final csvFile = await _generateProductsCSV();
 
       if (mounted) {
-        await Share.shareXFiles(
+        // Verify file exists before sharing
+        if (!await csvFile.exists()) {
+          throw Exception('CSV file not found at ${csvFile.path}');
+        }
+
+        final fileSize = await csvFile.length();
+        debugPrint('Sharing CSV report: ${csvFile.path} (${fileSize} bytes)');
+
+        if (fileSize == 0) {
+          throw Exception('Cannot share empty CSV file');
+        }
+
+        final result = await Share.shareXFiles(
           [XFile(csvFile.path)],
           text: localizations!.availableProductsReportCsv.replaceAll(
             '{shopName}',
             _shopName,
           ),
         );
+
+        debugPrint('Share result: ${result.status}');
       }
     } catch (e) {
       if (mounted) {
@@ -845,11 +924,13 @@ class _AvailableProductsState extends State<AvailableProducts> {
     }
 
     final pdf = pw.Document();
-    final dir = await getTemporaryDirectory();
+    // Use application documents directory for better persistence and sharing compatibility
+    final dir = await getApplicationDocumentsDirectory();
     final now = DateTime.now();
     final dateTimeString =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
     final file = File('${dir.path}/products_report_$dateTimeString.pdf');
+    debugPrint('Creating products report PDF at: ${file.path}');
 
     pdf.addPage(
       pw.Page(
@@ -994,16 +1075,34 @@ class _AvailableProductsState extends State<AvailableProducts> {
       ),
     );
 
-    await file.writeAsBytes(await pdf.save());
+    final pdfBytes = await pdf.save();
+    await file.writeAsBytes(pdfBytes);
+
+    // Verify file was created successfully
+    if (!await file.exists()) {
+      throw Exception('Failed to create PDF file');
+    }
+
+    final fileSize = await file.length();
+    debugPrint(
+      'Products report PDF saved successfully: ${file.path} (${fileSize} bytes)',
+    );
+
+    if (fileSize == 0) {
+      throw Exception('PDF file is empty');
+    }
+
     return file;
   }
 
   Future<File> _generateProductsCSV() async {
-    final dir = await getTemporaryDirectory();
+    // Use application documents directory for better persistence and sharing compatibility
+    final dir = await getApplicationDocumentsDirectory();
     final now = DateTime.now();
     final dateTimeString =
         '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
     final file = File('${dir.path}/products_report_$dateTimeString.csv');
+    debugPrint('Creating CSV report at: ${file.path}');
 
     // Create CSV header
     final csv = StringBuffer();
@@ -1021,34 +1120,81 @@ class _AvailableProductsState extends State<AvailableProducts> {
     }
 
     await file.writeAsString(csv.toString());
+
+    // Verify file was created successfully
+    if (!await file.exists()) {
+      throw Exception('Failed to create CSV file');
+    }
+
+    final fileSize = await file.length();
+    debugPrint(
+      'CSV report saved successfully: ${file.path} (${fileSize} bytes)',
+    );
+
+    if (fileSize == 0) {
+      throw Exception('CSV file is empty');
+    }
+
     return file;
   }
 
-  /// Get cached image bytes for a given URL, or download if not cached
-  Future<Uint8List?> _getCachedImageBytes(String imageUrl) async {
+  /// Get compressed and optimized image for PDF - MUCH FASTER than full resolution
+  Future<Uint8List?> _getCompressedImageForPDF(String imageUrl) async {
     try {
       // Try to get from cache first
       final cacheManager = DefaultCacheManager();
       final fileInfo = await cacheManager.getFileFromCache(imageUrl);
 
+      Uint8List? imageBytes;
+
       if (fileInfo != null && fileInfo.file.existsSync()) {
-        // Return cached image bytes
-        return await fileInfo.file.readAsBytes();
+        // Get cached image bytes
+        imageBytes = await fileInfo.file.readAsBytes();
+      } else {
+        // Download with timeout if not cached
+        final response = await http
+            .get(Uri.parse(imageUrl))
+            .timeout(
+              const Duration(seconds: 8), // Reduced timeout
+              onTimeout: () {
+                throw Exception('Image download timeout');
+              },
+            );
+
+        if (response.statusCode == 200) {
+          imageBytes = response.bodyBytes;
+          // Cache the downloaded image
+          await cacheManager.putFile(
+            imageUrl,
+            imageBytes,
+            fileExtension: 'jpg',
+          );
+        }
       }
 
-      // If not cached, download and cache it
-      final response = await http.get(Uri.parse(imageUrl));
-      if (response.statusCode == 200) {
-        // Cache the downloaded image
-        await cacheManager.putFile(
-          imageUrl,
-          response.bodyBytes,
-          fileExtension: 'jpg', // or appropriate extension
-        );
-        return response.bodyBytes;
-      }
+      if (imageBytes == null) return null;
+
+      // Decode and compress image for PDF (200x200 is sufficient for catalogue)
+      final originalImage = img.decodeImage(imageBytes);
+      if (originalImage == null) return imageBytes;
+
+      // Resize to max 200x200 for PDF (maintains aspect ratio)
+      final resized = img.copyResize(
+        originalImage,
+        width: 200,
+        height: 200,
+        interpolation: img.Interpolation.average,
+      );
+
+      // Encode as JPEG with 75% quality for smaller size
+      final compressed = img.encodeJpg(resized, quality: 75);
+
+      debugPrint(
+        'Compressed image from ${imageBytes.length} to ${compressed.length} bytes',
+      );
+      return Uint8List.fromList(compressed);
     } catch (e) {
-      debugPrint('Error getting cached image for $imageUrl: $e');
+      debugPrint('Error getting compressed image for $imageUrl: $e');
     }
     return null;
   }
