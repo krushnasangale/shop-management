@@ -481,12 +481,13 @@ class FileService {
         price = price.replaceAll('₹', '').trim();
 
         // Calculate total amount (quantity × rate)
-        final priceValue = int.tryParse(price.replaceAll(',', '')) ?? 0;
-        final qtyValue = double.tryParse(qty) ?? 0;
-        final totalAmount = (priceValue * qtyValue).toInt();
+        final priceValue = double.tryParse(price.replaceAll(',', '')) ?? 0.0;
+        final qtyValue = double.tryParse(qty.split(' ')[0]) ?? 0.0;
+        final totalAmount = priceValue * qtyValue;
 
         final formattedPrice = 'Rs. $price';
-        final formattedAmount = 'Rs. $totalAmount';
+        final formattedAmount =
+            'Rs. ${totalAmount % 1 == 0 ? totalAmount.toInt() : totalAmount}';
 
         return [
           '${entry.key + 1}',
