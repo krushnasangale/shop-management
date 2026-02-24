@@ -16,6 +16,7 @@ class BillProductItem {
   final String batchId;
   final double profitMargin;
   final int initialQuantity;
+  final int order; // Order field to maintain sequence
 
   BillProductItem({
     required this.productName,
@@ -28,6 +29,7 @@ class BillProductItem {
     required this.batchId,
     required this.profitMargin,
     required this.initialQuantity,
+    required this.order,
   });
 
   double get profitTotal => quantity * profitMargin;

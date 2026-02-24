@@ -93,6 +93,7 @@ class BillItem {
   final double profitMargin; // Profit per unit for this batch
   double billQuantity;
   double billPrice;
+  final int order; // Order field to maintain sequence
 
   BillItem({
     required this.productName,
@@ -105,6 +106,7 @@ class BillItem {
     required this.billPrice,
     required this.batchId,
     required this.profitMargin,
+    required this.order,
   });
 
   double get total => billQuantity * billPrice;
@@ -210,7 +212,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
       if (mounted && billData['products'] != null) {
         final products = billData['products'] as List<dynamic>;
 
-        for (var product in products) {
+        for (var i = 0; i < products.length; i++) {
+          final product = products[i];
           // Find the matching product in available products by batch ID
           final batchId = product['batchId'] as String?;
           if (batchId != null) {
@@ -246,6 +249,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
               billPrice: ((product['price'] ?? 0) as num).toDouble(),
               batchId: matchingProduct.batchId,
               profitMargin: matchingProduct.profitMargin,
+              order: (product['order'] as int?) ?? i,
             );
 
             setState(() {
@@ -1458,6 +1462,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 batchId: item.batchId,
                                 profitMargin: item.profitMargin,
                                 initialQuantity: item.maxQuantity,
+                                order: item.order,
                               );
                             }).toList();
 
@@ -1636,6 +1641,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
             billPrice: existingItem.billPrice,
             batchId: existingItem.batchId,
             profitMargin: existingItem.profitMargin,
+            order: existingItem.order,
           );
         }
       } else {
@@ -1660,6 +1666,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
             billPrice: product.sellingPrice,
             batchId: product.batchId,
             profitMargin: product.profitMargin,
+            order: _billItems.length,
           ),
         );
       }

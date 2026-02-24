@@ -905,6 +905,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             'batchId': widget.products[i].batchId,
             'profitMargin': widget.products[i].profitMargin,
             'profitTotal': widget.products[i].profitTotal,
+            'order': widget.products[i].order,
           },
       },
       'payments': [
