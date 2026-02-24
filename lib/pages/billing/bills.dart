@@ -4,11 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
@@ -16,6 +13,8 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/bills_data_service.dart';
+import 'package:flashbill/services/file_service.dart';
+import 'dart:typed_data';
 
 class Bills extends StatefulWidget {
   const Bills({super.key});
@@ -643,14 +642,28 @@ class _BillsState extends State<Bills> {
         },
       );
 
-      final pdfFile = await _generateBillsPDF(localizations);
+      final pdfBytes = await _generateBillsPDF(localizations);
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
 
-        await Share.shareXFiles([
-          XFile(pdfFile.path),
-        ], text: '${localizations.billsReportFrom} $_shopName');
+        // Generate file name using FileService
+        final fileName = FileService.generateTimestampedFileName(
+          'bills_report',
+          'pdf',
+        );
+
+        // Share file using FileService (same as product catalogue)
+        final result = await FileService.shareFile(
+          fileBytes: pdfBytes,
+          fileName: fileName,
+          shareText: '${localizations.billsReportFrom} $_shopName',
+          subFolder: 'Bills',
+        );
+
+        if (!result.success) {
+          throw Exception(result.errorMessage ?? 'Failed to share PDF');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -667,14 +680,30 @@ class _BillsState extends State<Bills> {
 
   void _generateAndShareCSV(AppLocalizations localizations) async {
     try {
-      final csvFile = await _generateBillsCSV(localizations);
+      final csvString = await _generateBillsCSV(localizations);
 
       if (mounted) {
-        await Share.shareXFiles(
-          [XFile(csvFile.path)],
-          text:
-              '${localizations.billsReportCsv} ${localizations.from} $_shopName',
+        // Convert CSV string to bytes
+        final csvBytes = Uint8List.fromList(csvString.codeUnits);
+
+        // Generate file name using FileService
+        final fileName = FileService.generateTimestampedFileName(
+          'bills_report',
+          'csv',
         );
+
+        // Share file using FileService (same as product catalogue)
+        final result = await FileService.shareFile(
+          fileBytes: csvBytes,
+          fileName: fileName,
+          shareText:
+              '${localizations.billsReportCsv} ${localizations.from} $_shopName',
+          subFolder: 'Bills',
+        );
+
+        if (!result.success) {
+          throw Exception(result.errorMessage ?? 'Failed to share CSV');
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -688,13 +717,9 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  Future<File> _generateBillsPDF(AppLocalizations localizations) async {
+  Future<Uint8List> _generateBillsPDF(AppLocalizations localizations) async {
     final pdf = pw.Document();
-    final dir = await getTemporaryDirectory();
     final now = DateTime.now();
-    final dateTimeString =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-    final file = File('${dir.path}/bills_report_$dateTimeString.pdf');
     final reportBills = _getReportBills();
 
     pdf.addPage(
@@ -835,16 +860,10 @@ class _BillsState extends State<Bills> {
       ),
     );
 
-    await file.writeAsBytes(await pdf.save());
-    return file;
+    return await pdf.save();
   }
 
-  Future<File> _generateBillsCSV(AppLocalizations localizations) async {
-    final dir = await getTemporaryDirectory();
-    final now = DateTime.now();
-    final dateTimeString =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-    final file = File('${dir.path}/bills_report_$dateTimeString.csv');
+  Future<String> _generateBillsCSV(AppLocalizations localizations) async {
     final reportBills = _getReportBills();
 
     // Create CSV header
@@ -861,8 +880,7 @@ class _BillsState extends State<Bills> {
       );
     }
 
-    await file.writeAsString(csv.toString());
-    return file;
+    return csv.toString();
   }
 
   @override
