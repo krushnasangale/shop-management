@@ -390,21 +390,18 @@ class _BillsState extends State<Bills> {
   }
 
   // Static status text for PDF
-  String _getPDFStatusText(
-    PaymentFilter filter,
-    AppLocalizations localizations,
-  ) {
+  String _getPDFStatusText(PaymentFilter filter) {
     switch (filter) {
       case PaymentFilter.all:
-        return localizations.all;
+        return 'All';
       case PaymentFilter.paid:
-        return localizations.paid;
+        return 'Paid';
       case PaymentFilter.partial:
-        return localizations.partiallyPaid;
+        return 'Partially Paid';
       case PaymentFilter.unpaid:
-        return localizations.unpaid;
+        return 'Unpaid';
       case PaymentFilter.previousDue:
-        return localizations.previousDue;
+        return 'Previous Due';
     }
   }
 
@@ -527,7 +524,7 @@ class _BillsState extends State<Bills> {
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          _generateAndSharePDF(localizations);
+                          _generateAndSharePDF();
                         },
                       ),
                     ),
@@ -543,7 +540,7 @@ class _BillsState extends State<Bills> {
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          _generateAndShareCSV(localizations);
+                          _generateAndShareCSV();
                         },
                       ),
                     ),
@@ -596,19 +593,19 @@ class _BillsState extends State<Bills> {
     }).toList();
   }
 
-  String _getDateRangeText(AppLocalizations localizations) {
+  String _getDateRangeText() {
     if (_reportStartDate == null && _reportEndDate == null) {
-      return localizations.allDates;
+      return 'All Dates';
     } else if (_reportStartDate != null && _reportEndDate != null) {
       return '${DateFormat('dd MMM yyyy').format(_reportStartDate!)} - ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
     } else if (_reportStartDate != null) {
-      return '${localizations.fromDate} ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
+      return 'From ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
     } else {
-      return '${localizations.upToDate} ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
+      return 'Up to ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
     }
   }
 
-  void _generateAndSharePDF(AppLocalizations localizations) async {
+  void _generateAndSharePDF() async {
     try {
       // Show loading dialog
       showDialog(
@@ -631,7 +628,7 @@ class _BillsState extends State<Bills> {
                     const CircularProgressIndicator(),
                     const SizedBox(height: 16),
                     Text(
-                      localizations.generatingPdf,
+                      'Generating PDF...',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                   ],
@@ -642,7 +639,7 @@ class _BillsState extends State<Bills> {
         },
       );
 
-      final pdfBytes = await _generateBillsPDF(localizations);
+      final pdfBytes = await _generateBillsPDF();
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
@@ -657,7 +654,7 @@ class _BillsState extends State<Bills> {
         final result = await FileService.shareFile(
           fileBytes: pdfBytes,
           fileName: fileName,
-          shareText: '${localizations.billsReportFrom} $_shopName',
+          shareText: 'Bills Report from $_shopName',
           subFolder: 'Bills',
         );
 
@@ -670,7 +667,7 @@ class _BillsState extends State<Bills> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${localizations.errorGeneratingPdf}: $e'),
+            content: Text('Error generating PDF: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -678,9 +675,9 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  void _generateAndShareCSV(AppLocalizations localizations) async {
+  void _generateAndShareCSV() async {
     try {
-      final csvString = await _generateBillsCSV(localizations);
+      final csvString = await _generateBillsCSV();
 
       if (mounted) {
         // Convert CSV string to bytes
@@ -696,8 +693,7 @@ class _BillsState extends State<Bills> {
         final result = await FileService.shareFile(
           fileBytes: csvBytes,
           fileName: fileName,
-          shareText:
-              '${localizations.billsReportCsv} ${localizations.from} $_shopName',
+          shareText: 'Bills Report CSV from $_shopName',
           subFolder: 'Bills',
         );
 
@@ -709,7 +705,7 @@ class _BillsState extends State<Bills> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${localizations.errorGeneratingCsv}: $e'),
+            content: Text('Error generating CSV: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -717,7 +713,7 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  Future<Uint8List> _generateBillsPDF(AppLocalizations localizations) async {
+  Future<Uint8List> _generateBillsPDF() async {
     final pdf = pw.Document();
     final now = DateTime.now();
     final reportBills = _getReportBills();
@@ -732,7 +728,7 @@ class _BillsState extends State<Bills> {
             children: [
               // Header
               pw.Text(
-                '$_shopName - ${localizations.billsReport}',
+                '$_shopName - Bills Report',
                 style: pw.TextStyle(
                   fontSize: 24,
                   fontWeight: pw.FontWeight.bold,
@@ -740,11 +736,11 @@ class _BillsState extends State<Bills> {
               ),
               pw.SizedBox(height: 10),
               pw.Text(
-                '${localizations.generatedOn}: ${now.toString().split('.')[0]}',
+                'Generated on: ${now.toString().split('.')[0]}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.Text(
-                '${localizations.filterApplied}: ${_getPDFStatusText(_selectedFilter, localizations)} | ${localizations.dateRange}: ${_getDateRangeText(localizations)}',
+                'Filter Applied: ${_getPDFStatusText(_selectedFilter)} | Date Range: ${_getDateRangeText()}',
                 style: const pw.TextStyle(fontSize: 10),
               ),
               pw.SizedBox(height: 20),
@@ -766,12 +762,12 @@ class _BillsState extends State<Bills> {
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
                     children:
                         [
-                              localizations.sNo,
-                              localizations.customerName,
-                              localizations.mobileNumber,
-                              localizations.billDate,
-                              localizations.totalAmount,
-                              localizations.status,
+                              'S.No',
+                              'Customer Name',
+                              'Mobile Number',
+                              'Bill Date',
+                              'Total Amount',
+                              'Status',
                             ]
                             .map(
                               (header) => pw.Padding(
@@ -828,7 +824,7 @@ class _BillsState extends State<Bills> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            '${localizations.currencySymbol}${bill.totalAmount}',
+                            'Rs.${bill.totalAmount}',
                             style: const pw.TextStyle(fontSize: 8),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -836,7 +832,7 @@ class _BillsState extends State<Bills> {
                         pw.Padding(
                           padding: const pw.EdgeInsets.all(5),
                           child: pw.Text(
-                            _getPDFStatusText(bill.status, localizations),
+                            _getPDFStatusText(bill.status),
                             style: const pw.TextStyle(fontSize: 8),
                             textAlign: pw.TextAlign.center,
                           ),
@@ -848,7 +844,7 @@ class _BillsState extends State<Bills> {
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                '${localizations.totalBills}: ${reportBills.length}',
+                'Total Bills: ${reportBills.length}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -863,20 +859,20 @@ class _BillsState extends State<Bills> {
     return await pdf.save();
   }
 
-  Future<String> _generateBillsCSV(AppLocalizations localizations) async {
+  Future<String> _generateBillsCSV() async {
     final reportBills = _getReportBills();
 
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      '${localizations.sNo},${localizations.customerName},${localizations.mobileNumber},${localizations.billDate},${localizations.totalAmount},${localizations.amountPaid},${localizations.amountRemaining},${localizations.status},${localizations.filterApplied}: ${_getPDFStatusText(_selectedFilter, localizations)},${localizations.dateRange}: ${_getDateRangeText(localizations)}',
+      'S.No,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getPDFStatusText(_selectedFilter)},Date Range: ${_getDateRangeText()}',
     );
 
     // Add bill rows
     for (var i = 0; i < reportBills.length; i++) {
       final bill = reportBills[i];
       csv.writeln(
-        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",${localizations.currencySymbol}${bill.totalAmount},${localizations.currencySymbol}${bill.amountPaid},${localizations.currencySymbol}${bill.amountRemaining},"${_getPDFStatusText(bill.status, localizations)}"',
+        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getPDFStatusText(bill.status)}"',
       );
     }
 

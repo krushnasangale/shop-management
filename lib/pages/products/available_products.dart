@@ -794,8 +794,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(localizations!.errorGeneratingPdf),
+          const SnackBar(
+            content: Text('Error generating PDF'),
             backgroundColor: Colors.red,
           ),
         );
@@ -886,10 +886,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         final result = await FileService.shareFile(
           fileBytes: csvBytes,
           fileName: fileName,
-          shareText: localizations!.availableProductsReportCsv.replaceAll(
-            '{shopName}',
-            _shopName,
-          ),
+          shareText: '$_shopName - Products Report CSV',
           subFolder: 'Products',
         );
 
@@ -903,12 +900,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              localizations!.errorGeneratingCsv.replaceAll(
-                '{error}',
-                e.toString(),
-              ),
-            ),
+            content: Text('Error generating CSV: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
@@ -967,13 +959,13 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     decoration: pw.BoxDecoration(color: PdfColors.grey300),
                     children:
                         [
-                              localizations!.sNo,
-                              localizations!.productName,
-                              localizations!.supplier,
-                              localizations!.unit,
-                              localizations!.qty,
-                              localizations!.buying,
-                              localizations!.selling,
+                              'S.No',
+                              'Product Name',
+                              'Supplier',
+                              'Unit',
+                              'Qty',
+                              'Buying',
+                              'Selling',
                             ]
                             .map(
                               (header) => pw.Padding(
@@ -1057,7 +1049,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
               ),
               pw.SizedBox(height: 20),
               pw.Text(
-                '${localizations!.totalProducts}: ${_filteredProducts.length}',
+                'Total Products: ${_filteredProducts.length}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -1085,7 +1077,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      '${localizations!.sNo},${localizations!.productName},${localizations!.supplier},${localizations!.unit},${localizations!.quantity},${localizations!.buyingPrice},${localizations!.sellingPrice},${localizations!.stockStatus},${localizations!.minLimit},${localizations!.filterApplied}: ${_getFilterLabel(_selectedFilter)}',
+      'S.No,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Stock Status,Min Limit,Filter Applied: ${_getFilterLabel(_selectedFilter)}',
     );
 
     // Add product rows - use filtered products
