@@ -4,13 +4,10 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import 'package:share_plus/share_plus.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:path_provider/path_provider.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/file_service.dart';
-import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'dart:typed_data';
 import 'package:flashbill/navigation/app_navigator.dart';
@@ -761,31 +758,29 @@ class _AvailableProductsState extends State<AvailableProducts> {
         _generationProgress = 0.0;
       });
 
-      final file = await _generateProductsPDF();
+      final pdfBytes = await _generateProductsPDF();
 
       // Check if generation was cancelled after completion
       if (!_cancelGeneration) {
-        // Verify file exists before sharing
-        if (!await file.exists()) {
-          throw Exception('PDF file not found at ${file.path}');
-        }
-
-        final fileSize = await file.length();
-        debugPrint(
-          'Sharing products report PDF: ${file.path} (${fileSize} bytes)',
+        // Generate file name using FileService
+        final fileName = FileService.generateTimestampedFileName(
+          'products_report',
+          'pdf',
         );
 
-        if (fileSize == 0) {
-          throw Exception('Cannot share empty PDF file');
-        }
-
-        final result = await Share.shareXFiles(
-          [XFile(file.path)],
-          text: '$_shopName - Products Report',
-          subject: 'Products Report - $_shopName',
+        // Share file using FileService (same as catalogue)
+        final result = await FileService.shareFile(
+          fileBytes: pdfBytes,
+          fileName: fileName,
+          shareText: '$_shopName - Products Report',
+          subFolder: 'Products',
         );
 
-        debugPrint('Share result: ${result.status}');
+        if (!result.success) {
+          throw Exception(result.errorMessage ?? 'Failed to share PDF');
+        }
+
+        debugPrint('Products report shared successfully: ${result.filePath}');
       }
     } catch (e) {
       if (e.toString().contains('cancelled by user')) {
@@ -875,30 +870,34 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
   void _generateAndShareCSV() async {
     try {
-      final csvFile = await _generateProductsCSV();
+      final csvString = await _generateProductsCSV();
 
       if (mounted) {
-        // Verify file exists before sharing
-        if (!await csvFile.exists()) {
-          throw Exception('CSV file not found at ${csvFile.path}');
-        }
+        // Convert CSV string to bytes
+        final csvBytes = Uint8List.fromList(csvString.codeUnits);
 
-        final fileSize = await csvFile.length();
-        debugPrint('Sharing CSV report: ${csvFile.path} (${fileSize} bytes)');
+        // Generate file name using FileService
+        final fileName = FileService.generateTimestampedFileName(
+          'products_report',
+          'csv',
+        );
 
-        if (fileSize == 0) {
-          throw Exception('Cannot share empty CSV file');
-        }
-
-        final result = await Share.shareXFiles(
-          [XFile(csvFile.path)],
-          text: localizations!.availableProductsReportCsv.replaceAll(
+        // Share file using FileService (same as catalogue)
+        final result = await FileService.shareFile(
+          fileBytes: csvBytes,
+          fileName: fileName,
+          shareText: localizations!.availableProductsReportCsv.replaceAll(
             '{shopName}',
             _shopName,
           ),
+          subFolder: 'Products',
         );
 
-        debugPrint('Share result: ${result.status}');
+        if (!result.success) {
+          throw Exception(result.errorMessage ?? 'Failed to share CSV');
+        }
+
+        debugPrint('CSV report shared successfully: ${result.filePath}');
       }
     } catch (e) {
       if (mounted) {
@@ -917,20 +916,15 @@ class _AvailableProductsState extends State<AvailableProducts> {
     }
   }
 
-  Future<File> _generateProductsPDF() async {
+  Future<Uint8List> _generateProductsPDF() async {
     // Check for immediate cancellation
     if (_cancelGeneration) {
       throw Exception('Generation cancelled by user');
     }
 
     final pdf = pw.Document();
-    // Use application documents directory for better persistence and sharing compatibility
-    final dir = await getApplicationDocumentsDirectory();
     final now = DateTime.now();
-    final dateTimeString =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-    final file = File('${dir.path}/products_report_$dateTimeString.pdf');
-    debugPrint('Creating products report PDF at: ${file.path}');
+    debugPrint('Generating products report PDF');
 
     pdf.addPage(
       pw.Page(
@@ -1076,33 +1070,17 @@ class _AvailableProductsState extends State<AvailableProducts> {
     );
 
     final pdfBytes = await pdf.save();
-    await file.writeAsBytes(pdfBytes);
+    debugPrint('Products report PDF generated (${pdfBytes.length} bytes)');
 
-    // Verify file was created successfully
-    if (!await file.exists()) {
-      throw Exception('Failed to create PDF file');
+    if (pdfBytes.isEmpty) {
+      throw Exception('PDF bytes are empty');
     }
 
-    final fileSize = await file.length();
-    debugPrint(
-      'Products report PDF saved successfully: ${file.path} (${fileSize} bytes)',
-    );
-
-    if (fileSize == 0) {
-      throw Exception('PDF file is empty');
-    }
-
-    return file;
+    return pdfBytes;
   }
 
-  Future<File> _generateProductsCSV() async {
-    // Use application documents directory for better persistence and sharing compatibility
-    final dir = await getApplicationDocumentsDirectory();
-    final now = DateTime.now();
-    final dateTimeString =
-        '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}_${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}';
-    final file = File('${dir.path}/products_report_$dateTimeString.csv');
-    debugPrint('Creating CSV report at: ${file.path}');
+  Future<String> _generateProductsCSV() async {
+    debugPrint('Generating products CSV report');
 
     // Create CSV header
     final csv = StringBuffer();
@@ -1119,23 +1097,16 @@ class _AvailableProductsState extends State<AvailableProducts> {
       );
     }
 
-    await file.writeAsString(csv.toString());
-
-    // Verify file was created successfully
-    if (!await file.exists()) {
-      throw Exception('Failed to create CSV file');
-    }
-
-    final fileSize = await file.length();
+    final csvString = csv.toString();
     debugPrint(
-      'CSV report saved successfully: ${file.path} (${fileSize} bytes)',
+      'Products CSV report generated (${csvString.length} characters)',
     );
 
-    if (fileSize == 0) {
-      throw Exception('CSV file is empty');
+    if (csvString.isEmpty) {
+      throw Exception('CSV content is empty');
     }
 
-    return file;
+    return csvString;
   }
 
   /// Get compressed and optimized image for PDF - MUCH FASTER than full resolution

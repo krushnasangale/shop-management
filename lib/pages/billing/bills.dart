@@ -904,7 +904,7 @@ class _BillsState extends State<Bills> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.more_vert),
+            icon: const Icon(Icons.share),
             onPressed: () => _showReportOptionsDialog(context, localizations),
           ),
           Container(
