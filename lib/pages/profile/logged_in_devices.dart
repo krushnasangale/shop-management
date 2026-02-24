@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:io' show Platform;
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flashbill/pages/login/login.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
