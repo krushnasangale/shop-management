@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
@@ -32,7 +33,6 @@ class _BillsState extends State<Bills> {
   bool _isLoading = true;
   bool _showSearchBar = false;
   late TextEditingController _searchController;
-  String _shopName = '--';
   DateTime? _reportStartDate;
   DateTime? _reportEndDate;
   final ScrollController _scrollController = ScrollController();
@@ -100,8 +100,6 @@ class _BillsState extends State<Bills> {
     }
 
     _userId = user.uid;
-
-    _loadShopName();
 
     // Initialize BillsDataService
     _billsDataService.initialize(_userId);
@@ -405,19 +403,6 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  Future<void> _loadShopName() async {
-    try {
-      final profileData = await _profileService.getCurrentUserProfile();
-      if (profileData != null && mounted) {
-        setState(() {
-          _shopName = (profileData['shopName'] as String?) ?? '--';
-        });
-      }
-    } catch (e) {
-      print('Error loading shop name: $e');
-    }
-  }
-
   void _showReportOptionsDialog(
     BuildContext context,
     AppLocalizations localizations,
@@ -654,7 +639,7 @@ class _BillsState extends State<Bills> {
         final result = await FileService.shareFile(
           fileBytes: pdfBytes,
           fileName: fileName,
-          shareText: 'Bills Report from $_shopName',
+          shareText: 'Bills Report',
           subFolder: 'Bills',
         );
 
@@ -680,8 +665,10 @@ class _BillsState extends State<Bills> {
       final csvString = await _generateBillsCSV();
 
       if (mounted) {
-        // Convert CSV string to bytes
-        final csvBytes = Uint8List.fromList(csvString.codeUnits);
+        // Convert CSV string to bytes with UTF-8 BOM for Excel compatibility
+        final utf8Bytes = utf8.encode(csvString);
+        final bom = [0xEF, 0xBB, 0xBF]; // UTF-8 BOM
+        final csvBytes = Uint8List.fromList([...bom, ...utf8Bytes]);
 
         // Generate file name using FileService
         final fileName = FileService.generateTimestampedFileName(
@@ -693,7 +680,7 @@ class _BillsState extends State<Bills> {
         final result = await FileService.shareFile(
           fileBytes: csvBytes,
           fileName: fileName,
-          shareText: 'Bills Report CSV from $_shopName',
+          shareText: 'Bills Report CSV',
           subFolder: 'Bills',
         );
 
@@ -713,145 +700,100 @@ class _BillsState extends State<Bills> {
     }
   }
 
+  // Helper method to create table cell widget
+  pw.Widget _buildTableCell(
+    String text, {
+    bool isCenter = false,
+    double fontSize = 8,
+  }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(5),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(fontSize: fontSize),
+        textAlign: isCenter ? pw.TextAlign.center : pw.TextAlign.left,
+      ),
+    );
+  }
+
   Future<Uint8List> _generateBillsPDF() async {
     final pdf = pw.Document();
     final now = DateTime.now();
+    final formattedDate =
+        '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
     final reportBills = _getReportBills();
 
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(20),
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Header
-              pw.Text(
-                '$_shopName - Bills Report',
-                style: pw.TextStyle(
-                  fontSize: 24,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                'Generated on: ${now.toString().split('.')[0]}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              pw.Text(
-                'Filter Applied: ${_getPDFStatusText(_selectedFilter)} | Date Range: ${_getDateRangeText()}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              pw.SizedBox(height: 20),
+          return [
+            // Header
+            pw.Text(
+              'Bills Report',
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              textAlign: pw.TextAlign.center,
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'Generated on: $formattedDate',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+            ),
+            pw.Text(
+              'Filter Applied: ${_getPDFStatusText(_selectedFilter)} | Date Range: ${_getDateRangeText()}',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+            ),
+            pw.SizedBox(height: 15),
 
-              // Bills Table
-              pw.Table(
-                border: pw.TableBorder.all(width: 1),
-                columnWidths: {
-                  0: const pw.FixedColumnWidth(30),
-                  1: const pw.FlexColumnWidth(2),
-                  2: const pw.FlexColumnWidth(1.5),
-                  3: const pw.FlexColumnWidth(1.2),
-                  4: const pw.FlexColumnWidth(1.2),
-                  5: const pw.FlexColumnWidth(1),
-                },
-                children: [
-                  // Header row
-                  pw.TableRow(
-                    decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    children:
-                        [
-                              'S.No',
-                              'Customer Name',
-                              'Mobile Number',
-                              'Bill Date',
-                              'Total Amount',
-                              'Status',
-                            ]
-                            .map(
-                              (header) => pw.Padding(
-                                padding: const pw.EdgeInsets.all(5),
-                                child: pw.Text(
-                                  header,
-                                  style: pw.TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: pw.FontWeight.bold,
-                                  ),
-                                  textAlign: pw.TextAlign.center,
-                                ),
-                              ),
-                            )
-                            .toList(),
-                  ),
-                  // Data rows
-                  ...reportBills.asMap().entries.map((entry) {
-                    final bill = entry.value;
-                    final index = entry.key + 1;
-                    return pw.TableRow(
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            index.toString(),
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            bill.customerName,
-                            style: const pw.TextStyle(fontSize: 8),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            bill.customerMobile,
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            bill.date,
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            'Rs.${bill.totalAmount}',
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            _getPDFStatusText(bill.status),
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                'Total Bills: ${reportBills.length}',
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontWeight: pw.FontWeight.bold,
+            // Bills Table
+            pw.Table(
+              border: pw.TableBorder.all(width: 1, color: PdfColors.grey400),
+              columnWidths: const {
+                0: pw.FixedColumnWidth(30),
+                1: pw.FlexColumnWidth(2),
+                2: pw.FlexColumnWidth(1.5),
+                3: pw.FlexColumnWidth(1.2),
+                4: pw.FlexColumnWidth(1.2),
+                5: pw.FlexColumnWidth(1),
+              },
+              children: [
+                // Header row
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                  children: ['S.N', 'Customer Name', 'Mobile Number', 'Bill Date', 'Total Amount', 'Status']
+                      .map((header) => pw.Padding(
+                            padding: const pw.EdgeInsets.all(5),
+                            child: pw.Text(
+                              header,
+                              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
+                              textAlign: pw.TextAlign.center,
+                            ),
+                          ))
+                      .toList(),
                 ),
-              ),
-            ],
-          );
+                // Data rows
+                ...reportBills.asMap().entries.map((entry) {
+                  final bill = entry.value;
+                  return pw.TableRow(
+                    children: [
+                      _buildTableCell((entry.key + 1).toString(), isCenter: true),
+                      _buildTableCell(bill.customerName),
+                      _buildTableCell(bill.customerMobile, isCenter: true),
+                      _buildTableCell(bill.date, isCenter: true),
+                      _buildTableCell('Rs.${bill.totalAmount}', isCenter: true),
+                      _buildTableCell(_getPDFStatusText(bill.status), isCenter: true),
+                    ],
+                  );
+                }),
+              ],
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text(
+              'Total Bills: ${reportBills.length}',
+              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+            ),
+          ];
         },
       ),
     );
