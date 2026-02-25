@@ -4,6 +4,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'dart:convert';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:flashbill/services/profile_service.dart';
@@ -167,6 +168,13 @@ class _AvailableProductsState extends State<AvailableProducts> {
       }
     } catch (e) {
       print('Error loading shop name: $e');
+    }
+  }
+
+  // Ensure shop name is loaded before generating reports
+  Future<void> _ensureShopNameLoaded() async {
+    if (_shopName == '--') {
+      await _loadShopName();
     }
   }
 
@@ -772,7 +780,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         final result = await FileService.shareFile(
           fileBytes: pdfBytes,
           fileName: fileName,
-          shareText: '$_shopName - Products Report',
+          shareText: 'Products Report',
           subFolder: 'Products',
         );
 
@@ -816,6 +824,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
         _cancelGeneration = false;
         _generationProgress = 0.0;
       });
+
+      // Ensure shop name is loaded before generating catalogue
+      await _ensureShopNameLoaded();
 
       final pdfBytes = await _generateProductsCatalogue(includePrices);
 
@@ -873,8 +884,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
       final csvString = await _generateProductsCSV();
 
       if (mounted) {
-        // Convert CSV string to bytes
-        final csvBytes = Uint8List.fromList(csvString.codeUnits);
+        // Convert CSV string to bytes with UTF-8 BOM for Excel compatibility
+        final utf8Bytes = utf8.encode(csvString);
+        final bom = [0xEF, 0xBB, 0xBF]; // UTF-8 BOM
+        final csvBytes = Uint8List.fromList([...bom, ...utf8Bytes]);
 
         // Generate file name using FileService
         final fileName = FileService.generateTimestampedFileName(
@@ -886,7 +899,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         final result = await FileService.shareFile(
           fileBytes: csvBytes,
           fileName: fileName,
-          shareText: '$_shopName - Products Report CSV',
+          shareText: 'Products Report CSV',
           subFolder: 'Products',
         );
 
@@ -908,155 +921,135 @@ class _AvailableProductsState extends State<AvailableProducts> {
     }
   }
 
+  // Helper method to create table cell widget
+  pw.Widget _buildTableCell(
+    String text, {
+    bool isCenter = false,
+    double fontSize = 8,
+  }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(5),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(fontSize: fontSize),
+        textAlign: isCenter ? pw.TextAlign.center : pw.TextAlign.left,
+      ),
+    );
+  }
+
   Future<Uint8List> _generateProductsPDF() async {
-    // Check for immediate cancellation
-    if (_cancelGeneration) {
-      throw Exception('Generation cancelled by user');
-    }
+    if (_cancelGeneration) throw Exception('Generation cancelled by user');
 
     final pdf = pw.Document();
     final now = DateTime.now();
+    final formattedDate =
+        '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+
     debugPrint('Generating products report PDF');
 
+    // Filter out products with 0 quantity and sort alphabetically (A to Z)
+    final productsWithStock =
+        _filteredProducts.where((p) => p.quantity > 0).toList()..sort(
+          (a, b) => a.productName.toLowerCase().compareTo(
+            b.productName.toLowerCase(),
+          ),
+        );
+
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         margin: const pw.EdgeInsets.all(20),
         build: (pw.Context context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              // Header
-              pw.Text(
-                '$_shopName - Available Products Report',
-                style: pw.TextStyle(
-                  fontSize: 24,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 10),
-              pw.Text(
-                'Generated on: ${now.toString().split('.')[0]} | Filter: ${_getFilterLabel(_selectedFilter)}',
-                style: const pw.TextStyle(fontSize: 10),
-              ),
-              pw.SizedBox(height: 20),
+          return [
+            // Header Section
+            pw.Text(
+              'Available Products Report',
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+              textAlign: pw.TextAlign.center,
+            ),
+            pw.SizedBox(height: 10),
+            pw.Text(
+              'Generated on: $formattedDate | Filter: ${_getFilterLabel(_selectedFilter)}',
+              style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
+            ),
+            pw.SizedBox(height: 15),
 
-              // Products Table
-              pw.Table(
-                border: pw.TableBorder.all(width: 1),
-                columnWidths: {
-                  0: const pw.FixedColumnWidth(30),
-                  1: const pw.FlexColumnWidth(2),
-                  2: const pw.FlexColumnWidth(1.5),
-                  3: const pw.FlexColumnWidth(1.2),
-                  4: const pw.FlexColumnWidth(1.2),
-                  5: const pw.FlexColumnWidth(1),
-                  6: const pw.FlexColumnWidth(1),
-                },
-                children: [
-                  // Header row
-                  pw.TableRow(
-                    decoration: pw.BoxDecoration(color: PdfColors.grey300),
-                    children:
-                        [
-                              'S.No',
-                              'Product Name',
-                              'Supplier',
-                              'Unit',
-                              'Qty',
-                              'Buying',
-                              'Selling',
-                            ]
-                            .map(
-                              (header) => pw.Padding(
-                                padding: const pw.EdgeInsets.all(5),
-                                child: pw.Text(
-                                  header,
-                                  style: pw.TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: pw.FontWeight.bold,
-                                  ),
-                                  textAlign: pw.TextAlign.center,
+            // Products Table
+            pw.Table(
+              border: pw.TableBorder.all(width: 1, color: PdfColors.grey400),
+              columnWidths: const {
+                0: pw.FixedColumnWidth(30),
+                1: pw.FlexColumnWidth(2),
+                2: pw.FlexColumnWidth(1.5),
+                3: pw.FlexColumnWidth(1),
+                4: pw.FlexColumnWidth(0.8),
+                5: pw.FlexColumnWidth(1),
+                6: pw.FlexColumnWidth(1),
+              },
+              children: [
+                // Header row
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                  children:
+                      [
+                            'S.N',
+                            'Product Name',
+                            'Supplier',
+                            'Unit',
+                            'Qty',
+                            'Buying',
+                            'Selling',
+                          ]
+                          .map(
+                            (header) => pw.Padding(
+                              padding: const pw.EdgeInsets.all(5),
+                              child: pw.Text(
+                                header,
+                                style: pw.TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: pw.FontWeight.bold,
                                 ),
+                                textAlign: pw.TextAlign.center,
                               ),
-                            )
-                            .toList(),
-                  ),
-                  // Data rows - use filtered products
-                  ..._filteredProducts.asMap().entries.map((entry) {
-                    final product = entry.value;
-                    final index = entry.key + 1;
-                    return pw.TableRow(
-                      children: [
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            index.toString(),
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            product.productName,
-                            style: const pw.TextStyle(fontSize: 8),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            product.supplierName,
-                            style: const pw.TextStyle(fontSize: 8),
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            product.unit,
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            product.quantity.toString(),
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            'Rs.${product.buyingPrice.toStringAsFixed(2)}',
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                        pw.Padding(
-                          padding: const pw.EdgeInsets.all(5),
-                          child: pw.Text(
-                            'Rs.${product.sellingPrice.toStringAsFixed(2)}',
-                            style: const pw.TextStyle(fontSize: 8),
-                            textAlign: pw.TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    );
-                  }),
-                ],
-              ),
-              pw.SizedBox(height: 20),
-              pw.Text(
-                'Total Products: ${_filteredProducts.length}',
-                style: pw.TextStyle(
-                  fontSize: 10,
-                  fontWeight: pw.FontWeight.bold,
+                            ),
+                          )
+                          .toList(),
                 ),
-              ),
-            ],
-          );
+                // Data rows
+                ...productsWithStock.asMap().entries.map((entry) {
+                  final product = entry.value;
+                  return pw.TableRow(
+                    children: [
+                      _buildTableCell(
+                        (entry.key + 1).toString(),
+                        isCenter: true,
+                      ),
+                      _buildTableCell(product.productName),
+                      _buildTableCell(product.supplierName),
+                      _buildTableCell(product.unit, isCenter: true),
+                      _buildTableCell(
+                        product.quantity.toString(),
+                        isCenter: true,
+                      ),
+                      _buildTableCell(
+                        'Rs.${product.buyingPrice.toStringAsFixed(2)}',
+                        isCenter: true,
+                      ),
+                      _buildTableCell(
+                        'Rs.${product.sellingPrice.toStringAsFixed(2)}',
+                        isCenter: true,
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+            pw.SizedBox(height: 20),
+            pw.Text(
+              'Total Products: ${productsWithStock.length}',
+              style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
+            ),
+          ];
         },
       ),
     );
@@ -1074,18 +1067,25 @@ class _AvailableProductsState extends State<AvailableProducts> {
   Future<String> _generateProductsCSV() async {
     debugPrint('Generating products CSV report');
 
+    // Filter out products with 0 quantity and sort alphabetically (A to Z)
+    final productsWithStock =
+        _filteredProducts.where((p) => p.quantity > 0).toList()..sort(
+          (a, b) => a.productName.toLowerCase().compareTo(
+            b.productName.toLowerCase(),
+          ),
+        );
+
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      'S.No,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Stock Status,Min Limit,Filter Applied: ${_getFilterLabel(_selectedFilter)}',
+      'S.No,Product Name,Supplier,Unit,Quantity,Buying Price,Selling Price,Filter Applied: ${_getFilterLabel(_selectedFilter)}',
     );
 
-    // Add product rows - use filtered products
-    for (var i = 0; i < _filteredProducts.length; i++) {
-      final product = _filteredProducts[i];
-      final status = _getStockStatus(product.quantity, product.minLimit);
+    // Add product rows - use products with stock sorted alphabetically
+    for (var i = 0; i < productsWithStock.length; i++) {
+      final product = productsWithStock[i];
       csv.writeln(
-        '${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},Rs.${product.buyingPrice.toStringAsFixed(2)},Rs.${product.sellingPrice.toStringAsFixed(2)},"$status",${product.minLimit}',
+        '${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},Rs.${product.buyingPrice.toStringAsFixed(2)},Rs.${product.sellingPrice.toStringAsFixed(2)}',
       );
     }
 
