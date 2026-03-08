@@ -105,6 +105,12 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     deliveryCharges = widget.deliveryCharges;
     previousDueAmount = widget.previousDueAmount;
     previousDueDescription = widget.previousDueDescription;
+
+    // Initialize ProfileService with current user ID
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _profileService.initialize(user.uid);
+    }
   }
 
   @override
