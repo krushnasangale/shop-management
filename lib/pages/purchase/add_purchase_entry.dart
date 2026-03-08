@@ -1926,6 +1926,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     String contactError = '';
     String locationError = '';
 
+    // Capture before showDialog so it isn't shadowed by the builder's context param
+    final bottomSheetContext = context;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -2094,22 +2097,28 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   'location': location,
                                 };
 
-                                await suppliersRef.add(newSupplier);
+                                final docRef = await suppliersRef.add(
+                                  newSupplier,
+                                );
+                                final newId = docRef.id;
 
-                                // Update local list
+                                // Update local list with real ID and auto-select
                                 setState(() {
                                   _supplierDetails.add({
-                                    'id': '',
+                                    'id': newId,
                                     'name': supplierName,
                                     'contact': contact,
                                     'location': location,
                                   });
+                                  _selectedSupplierId = newId;
+                                  _supplierNameController.text = supplierName;
+                                  _supplierNameError = '';
                                 });
 
-                                // Update the parent drawer state only (not dialog state)
+                                // Update the parent drawer state
                                 setModalState(() {
                                   displaySuppliers.add({
-                                    'id': '',
+                                    'id': newId,
                                     'name': supplierName,
                                     'contact': contact,
                                     'location': location,
@@ -2117,8 +2126,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 });
 
                                 if (mounted) {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  Navigator.pop(context); // close dialog
+                                  Navigator.pop(
+                                    bottomSheetContext,
+                                  ); // close bottom sheet
+                                  ScaffoldMessenger.of(
+                                    bottomSheetContext,
+                                  ).showSnackBar(
                                     SnackBar(
                                       content: Text(
                                         appLocalizations
