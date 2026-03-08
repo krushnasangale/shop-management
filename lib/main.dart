@@ -82,30 +82,37 @@ class MyApp extends StatelessWidget {
 
   // Handle notification navigation
   static void handleNotificationOpened(Map<String, dynamic> data) {
-    // final context = navigatorKey.currentContext;
-    // if (context == null) return;
+    final context = navigatorKey.currentContext;
+    if (context == null) return;
 
-    // // Handle different notification types
-    // final type = data['type'];
-    // final id = data['id'];
+    // Handle different notification types
+    final type = data['type'];
 
-    // switch (type) {
-    //   case 'bill':
-    //     // Navigate to bill details (if implemented)
-    //     // AppNavigator.push(context, BillDetailsPage(billId: id));
-    //     break;
-    //   case 'payment':
-    //     // Navigate to pending payments
-    //     AppNavigator.push(context, const PendingPaymentsPage());
-    //     break;
-    //   case 'product':
-    //     // Navigate to available products
-    //     AppNavigator.push(context, const AvailableProducts());
-    //     break;
-    //   default:
-    //     // Navigate to dashboard
-    //     AppNavigator.push(context, const Dashboard());
-    // }
+    switch (type) {
+      case 'bill':
+        // Navigate to bill details (if implemented)
+        // AppNavigator.push(context, BillDetailsPage(billId: id));
+        break;
+      case 'payment':
+        // Navigate to pending payments
+        AppNavigator.push(context, const PendingPaymentsPage());
+        break;
+      case 'product':
+        // Navigate to available products
+        AppNavigator.push(context, const AvailableProducts());
+        break;
+      case 'good_morning':
+        // Navigate to dashboard for daily overview
+        AppNavigator.push(context, const Dashboard());
+        break;
+      case 'low_stock':
+        // Navigate to products page to check stock
+        AppNavigator.push(context, const AvailableProducts());
+        break;
+      default:
+        // Navigate to dashboard
+        AppNavigator.push(context, const Dashboard());
+    }
   }
 
   Future<String> _getCurrentDeviceId() async {
