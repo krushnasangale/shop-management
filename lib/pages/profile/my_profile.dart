@@ -18,6 +18,7 @@ import 'package:flashbill/widgets/language_selector.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/services/notification_service.dart';
 import 'dart:async';
 
 class MyProfile extends StatefulWidget {
@@ -75,6 +76,7 @@ class _MyProfileState extends State<MyProfile> {
   Future<void> _logout() async {
     setState(() => _isLoggingOut = true);
     try {
+      await NotificationService().removeTokenFromFirestore();
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(

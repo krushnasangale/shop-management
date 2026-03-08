@@ -58,6 +58,13 @@ class NotificationService {
         _onNotificationOpened!(message.data);
       }
     });
+
+    // When FCM rotates the token (e.g. app reinstall, token expiry),
+    // update the stored token so this device keeps receiving notifications.
+    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
+      print('FCM token refreshed — updating Firestore: $newToken');
+      await _saveTokenToFirestore(newToken);
+    });
   }
 
   Future<void> requestPermission() async {
@@ -77,9 +84,23 @@ class NotificationService {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // Get device ID for unique token storage
+        // Get device ID and name for unique token storage
         final deviceId = await DeviceUtils.getDeviceId();
+        final deviceInfo = await DeviceUtils.getDeviceInfo();
         final docId = '${user.uid}_${deviceId}'; // Combine userId and deviceId
+
+        // Remove this token from any OTHER user's documents first
+        // (same device can only belong to one user at a time)
+        final existing = await FirebaseFirestore.instance
+            .collection('users-fcm-tokens')
+            .where('token', isEqualTo: token)
+            .get();
+        for (final doc in existing.docs) {
+          if (doc.data()['userId'] != user.uid) {
+            await doc.reference.delete();
+            print('Removed stale token from another user: ${doc.id}');
+          }
+        }
 
         await FirebaseFirestore.instance
             .collection('users-fcm-tokens')
@@ -88,6 +109,8 @@ class NotificationService {
               'userId': user.uid,
               'token': token,
               'deviceId': deviceId,
+              'deviceName': deviceInfo['deviceName'] ?? 'Unknown Device',
+              'deviceModel': deviceInfo['deviceModel'] ?? '',
               'platform': Platform.isAndroid
                   ? 'android'
                   : Platform.isIOS
@@ -100,6 +123,23 @@ class NotificationService {
       }
     } catch (e) {
       print('Error saving FCM token: $e');
+    }
+  }
+
+  /// Call this on logout to stop receiving notifications for this user
+  Future<void> removeTokenFromFirestore() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final deviceId = await DeviceUtils.getDeviceId();
+      final docId = '${user.uid}_${deviceId}';
+      await FirebaseFirestore.instance
+          .collection('users-fcm-tokens')
+          .doc(docId)
+          .delete();
+      print('FCM Token removed from Firestore on logout');
+    } catch (e) {
+      print('Error removing FCM token on logout: $e');
     }
   }
 

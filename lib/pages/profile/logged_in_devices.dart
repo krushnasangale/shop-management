@@ -6,6 +6,7 @@ import 'package:flashbill/pages/login/login.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/utils/device_utils.dart';
+import 'package:flashbill/services/notification_service.dart';
 
 class LoggedInDevicesScreen extends StatefulWidget {
   const LoggedInDevicesScreen({super.key});
@@ -56,6 +57,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
       // If the removed device is the current device, sign out locally as well.
       try {
         if (_currentDeviceId == deviceId) {
+          await NotificationService().removeTokenFromFirestore();
           await FirebaseAuth.instance.signOut();
           if (context.mounted) {
             Navigator.of(context).pushAndRemoveUntil(
