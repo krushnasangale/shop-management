@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'dart:async';
 import 'dart:io';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flashbill/pages/products/available_products.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/pages/products/tabs/sales_history_tab.dart';
@@ -1506,44 +1507,34 @@ class _AvailableProductDetailScreenState
                                       child:
                                           _currentImageUrl != null &&
                                               _currentImageUrl!.isNotEmpty
-                                          ? Image.network(
-                                              _currentImageUrl!,
+                                          ? CachedNetworkImage(
+                                              imageUrl: _currentImageUrl!,
                                               fit: BoxFit.contain,
-                                              loadingBuilder:
+                                              placeholder: (context, url) =>
+                                                  Container(
+                                                    height: 300,
+                                                    width: 300,
+                                                    color: Colors.grey.shade100,
+                                                    child: const Center(
+                                                      child:
+                                                          CircularProgressIndicator(),
+                                                    ),
+                                                  ),
+                                              errorWidget:
                                                   (
                                                     context,
-                                                    child,
-                                                    loadingProgress,
-                                                  ) {
-                                                    if (loadingProgress ==
-                                                        null) {
-                                                      return child;
-                                                    }
-                                                    return Container(
-                                                      height: 300,
-                                                      width: 300,
-                                                      color:
-                                                          Colors.grey.shade100,
-                                                      child: const Center(
-                                                        child:
-                                                            CircularProgressIndicator(),
-                                                      ),
-                                                    );
-                                                  },
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                    return Container(
-                                                      height: 300,
-                                                      width: 300,
-                                                      color:
-                                                          Colors.grey.shade100,
-                                                      child: const Icon(
-                                                        Icons.inventory_2,
-                                                        size: 100,
-                                                        color: Colors.grey,
-                                                      ),
-                                                    );
-                                                  },
+                                                    url,
+                                                    error,
+                                                  ) => Container(
+                                                    height: 300,
+                                                    width: 300,
+                                                    color: Colors.grey.shade100,
+                                                    child: const Icon(
+                                                      Icons.inventory_2,
+                                                      size: 100,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
                                             )
                                           : Container(
                                               height: 300,
@@ -1565,35 +1556,26 @@ class _AvailableProductDetailScreenState
                               child:
                                   _currentImageUrl != null &&
                                       _currentImageUrl!.isNotEmpty
-                                  ? Image.network(
-                                      _currentImageUrl!,
+                                  ? CachedNetworkImage(
+                                      imageUrl: _currentImageUrl!,
                                       fit: BoxFit.cover,
-                                      loadingBuilder:
-                                          (context, child, loadingProgress) {
-                                            if (loadingProgress == null) {
-                                              return child;
-                                            }
-                                            return Container(
-                                              color: Colors.grey.shade100,
-                                              child: const Center(
-                                                child:
-                                                    CircularProgressIndicator(),
+                                      placeholder: (context, url) => Container(
+                                        color: Colors.grey.shade100,
+                                        child: const Center(
+                                          child: CircularProgressIndicator(),
+                                        ),
+                                      ),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                            color: Colors.grey.shade100,
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.inventory_2,
+                                                size: 50,
+                                                color: Colors.grey,
                                               ),
-                                            );
-                                          },
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                            return Container(
-                                              color: Colors.grey.shade100,
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.inventory_2,
-                                                  size: 50,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                            );
-                                          },
+                                            ),
+                                          ),
                                     )
                                   : Container(
                                       color: Colors.grey.shade100,
@@ -1641,50 +1623,34 @@ class _AvailableProductDetailScreenState
                                         child:
                                             _currentImageUrl != null &&
                                                 _currentImageUrl!.isNotEmpty
-                                            ? Image.network(
-                                                _currentImageUrl!,
+                                            ? CachedNetworkImage(
+                                                imageUrl: _currentImageUrl!,
                                                 fit: BoxFit.contain,
-                                                loadingBuilder:
-                                                    (
-                                                      context,
-                                                      child,
-                                                      loadingProgress,
-                                                    ) {
-                                                      if (loadingProgress ==
-                                                          null) {
-                                                        return child;
-                                                      }
-                                                      return Container(
-                                                        height: 300,
-                                                        width: 300,
-                                                        color: Colors
-                                                            .grey
-                                                            .shade100,
-                                                        child: const Center(
-                                                          child:
-                                                              CircularProgressIndicator(),
+                                                placeholder: (context, url) =>
+                                                    Container(
+                                                      height: 300,
+                                                      width: 300,
+                                                      color:
+                                                          Colors.grey.shade100,
+                                                      child: const Center(
+                                                        child:
+                                                            CircularProgressIndicator(),
+                                                      ),
+                                                    ),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        Container(
+                                                          height: 300,
+                                                          width: 300,
+                                                          color: Colors
+                                                              .grey
+                                                              .shade100,
+                                                          child: const Icon(
+                                                            Icons.inventory_2,
+                                                            size: 100,
+                                                            color: Colors.grey,
+                                                          ),
                                                         ),
-                                                      );
-                                                    },
-                                                errorBuilder:
-                                                    (
-                                                      context,
-                                                      error,
-                                                      stackTrace,
-                                                    ) {
-                                                      return Container(
-                                                        height: 300,
-                                                        width: 300,
-                                                        color: Colors
-                                                            .grey
-                                                            .shade100,
-                                                        child: const Icon(
-                                                          Icons.inventory_2,
-                                                          size: 100,
-                                                          color: Colors.grey,
-                                                        ),
-                                                      );
-                                                    },
                                               )
                                             : Container(
                                                 height: 300,
