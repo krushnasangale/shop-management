@@ -258,6 +258,7 @@ class AppLocalizations {
   String get full => translate('full');
   String get goToDashboard => translate('go_to_dashboard');
   String get shareBill => translate('share_bill');
+  String get createNewBill => translate('create_new_bill');
   String get generatingPdf => translate('generating_pdf');
   String get errorGeneratingBill => translate('error_generating_bill');
 

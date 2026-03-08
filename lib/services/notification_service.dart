@@ -2,7 +2,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:io' show Platform;
+import 'dart:io' show Platform, File;
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
 import 'package:flashbill/utils/device_utils.dart';
 
 class NotificationService {
@@ -44,8 +46,8 @@ class NotificationService {
 
       if (message.notification != null) {
         print('Message also contained a notification: ${message.notification}');
-        // Show local notification
-        await _showLocalNotification(message.notification!);
+        // Show local notification with image support
+        await _showLocalNotification(message);
       }
     });
 
@@ -165,25 +167,76 @@ class NotificationService {
     }
   }
 
-  Future<void> _showLocalNotification(RemoteNotification notification) async {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
+  Future<void> _showLocalNotification(RemoteMessage message) async {
+    final notification = message.notification!;
+    final imageUrl = message.data['imageUrl'];
+    final notifId = DateTime.now().millisecondsSinceEpoch % 100000;
+
+    AndroidNotificationDetails androidDetails;
+
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      try {
+        final imagePath = await _downloadAndSaveImage(
+          imageUrl,
+          'notification_${notifId}',
+        );
+        final bigPictureStyle = BigPictureStyleInformation(
+          FilePathAndroidBitmap(imagePath),
+          largeIcon: FilePathAndroidBitmap(imagePath),
+          contentTitle: notification.title,
+          summaryText: notification.body,
+          htmlFormatContentTitle: false,
+          htmlFormatSummaryText: false,
+        );
+        androidDetails = AndroidNotificationDetails(
           'high_importance_channel',
           'High Importance Notifications',
           importance: Importance.high,
           priority: Priority.high,
+          icon: 'ic_notification',
+          styleInformation: bigPictureStyle,
+          largeIcon: FilePathAndroidBitmap(imagePath),
         );
-    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails();
-    const NotificationDetails details = NotificationDetails(
+      } catch (e) {
+        print('Error loading notification image: $e');
+        androidDetails = const AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: 'ic_notification',
+        );
+      }
+    } else {
+      androidDetails = const AndroidNotificationDetails(
+        'high_importance_channel',
+        'High Importance Notifications',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: 'ic_notification',
+      );
+    }
+
+    final details = NotificationDetails(
       android: androidDetails,
-      iOS: iosDetails,
+      iOS: const DarwinNotificationDetails(),
     );
 
     await _localNotifications.show(
-      notification.hashCode,
+      notifId,
       notification.title,
       notification.body,
       details,
     );
+  }
+
+  Future<String> _downloadAndSaveImage(String url, String fileName) async {
+    final directory = await getTemporaryDirectory();
+    final filePath = '${directory.path}/$fileName.jpg';
+    final file = File(filePath);
+    if (await file.exists()) return filePath;
+    final response = await http.get(Uri.parse(url));
+    await file.writeAsBytes(response.bodyBytes);
+    return filePath;
   }
 }

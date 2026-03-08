@@ -3,6 +3,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/file_service.dart';
+import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 
 class BillProductItem {
@@ -268,6 +269,39 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 45,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      side: const BorderSide(
+                        color: Colors.green,
+                        width: 2,
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const CreateNewBill(),
+                        ),
+                        (route) => route.isFirst,
+                      );
+                    },
+                    icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                    label: Text(
+                      localizations.createNewBill,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.green,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
