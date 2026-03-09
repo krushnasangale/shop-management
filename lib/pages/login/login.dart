@@ -2,6 +2,7 @@ import 'package:flashbill/providers/language_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flashbill/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io' show Platform;
 import 'package:flashbill/l10n/app_localizations.dart';
@@ -43,6 +44,18 @@ class _LoginScreenState extends State<LoginScreen> {
       if (userCredential.user != null) {
         await _trackDevice(userCredential.user!.uid);
 
+        // Set Crashlytics user identifier
+        if (!Platform.isWindows) {
+          await FirebaseCrashlytics.instance.setUserIdentifier(
+            userCredential.user!.uid,
+          );
+          await FirebaseCrashlytics.instance.setCustomKey(
+            'email',
+            userCredential.user!.email ?? 'unknown',
+          );
+          FirebaseCrashlytics.instance.log('User logged in');
+        }
+
         // Save FCM token to Firestore on login
         if (!Platform.isWindows) {
           await NotificationService().saveTokenToFirestore();
@@ -67,12 +80,26 @@ class _LoginScreenState extends State<LoginScreen> {
       }
       debugPrint('FirebaseAuthException during login: ${e.code} ${e.message}');
       debugPrint('$st');
+      if (!Platform.isWindows) {
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: 'Login auth error: ${e.code}',
+        );
+      }
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text(message)));
       }
-    } catch (e) {
+    } catch (e, st) {
+      if (!Platform.isWindows) {
+        FirebaseCrashlytics.instance.recordError(
+          e,
+          st,
+          reason: 'Login unexpected error',
+        );
+      }
       if (mounted) {
         ScaffoldMessenger.of(
           context,

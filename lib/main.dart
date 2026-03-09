@@ -25,8 +25,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'dart:ui';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'firebase_options.dart';
 import 'package:flashbill/services/gemini_service.dart';
 
@@ -44,6 +46,18 @@ void main() async {
 
   // Initialize Firebase Analytics
   FirebaseAnalytics.instance;
+
+  // Initialize Firebase Crashlytics
+  if (!Platform.isWindows) {
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    // Forward Flutter framework errors to Crashlytics
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    // Forward async/platform errors not caught by Flutter framework
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
   // Initialize Firebase Messaging for mobile platforms
   if (!Platform.isWindows) {
@@ -148,6 +162,12 @@ class MyApp extends StatelessWidget {
                 );
               }
               if (snapshot.hasData && snapshot.data != null) {
+                // Restore Crashlytics user identifier on session resume
+                if (!Platform.isWindows) {
+                  FirebaseCrashlytics.instance.setUserIdentifier(
+                    snapshot.data!.uid,
+                  );
+                }
                 // Listen to device revocation status in real-time
                 return FutureBuilder<String>(
                   future: _getCurrentDeviceId(),
