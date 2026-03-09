@@ -2633,7 +2633,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 onTap: isAlreadyAdded
                                     ? null
                                     : () {
-                                        // Get all available batches for this product
+                                        // Get batches with remaining quantity > 0
                                         final productBatches =
                                             _availableProducts
                                                 .where(
@@ -2641,7 +2641,25 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                                       p.productName ==
                                                       product.productName,
                                                 )
+                                                .where((p) {
+                                                  final used = _billItems
+                                                      .where(
+                                                        (item) =>
+                                                            item.batchId ==
+                                                            p.batchId,
+                                                      )
+                                                      .fold<int>(
+                                                        0,
+                                                        (sum, item) =>
+                                                            sum +
+                                                            item.billQuantity
+                                                                .toInt(),
+                                                      );
+                                                  return p.quantity > used;
+                                                })
                                                 .toList();
+
+                                        if (productBatches.isEmpty) return;
 
                                         if (productBatches.length == 1) {
                                           Navigator.pop(
