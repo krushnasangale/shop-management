@@ -840,6 +840,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       'amountPaid': widget.amountPaid,
       'amountRemaining': widget.amountRemaining,
       'totalAmountPaid': isTotalAmountPaid,
+      'previousDueAmount': previousDueAmount,
+      'previousPaidAmount': previousPaidAmount,
+      'previousDueDescription': previousDueDescription,
     };
 
     // Navigate to CreateNewBill with edit mode enabled
@@ -3155,196 +3158,169 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       return const SizedBox.shrink();
     }
 
-    final pendingAmount = previousDueAmount - previousPaidAmount;
+    final pendingAmount = (previousDueAmount - previousPaidAmount).clamp(
+      0.0,
+      double.infinity,
+    );
+    final isFullyPaid = pendingAmount == 0;
 
     return Card(
       color: cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 0,
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header
             Row(
               children: [
-                Icon(
-                  Icons.account_balance_wallet,
-                  color: Theme.of(context).primaryColor,
-                  size: 24,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.deepOrange.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_rounded,
+                    color: Colors.deepOrange,
+                    size: 20,
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Text(
-                  'Previous Due Details',
-                  style: context.titleLarge?.copyWith(
+                  'Previous Due',
+                  style: context.bodyLargeText?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 16,
+                  ),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isFullyPaid
+                        ? Colors.green.withOpacity(0.12)
+                        : Colors.orange.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isFullyPaid ? 'Cleared' : 'Pending',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isFullyPaid
+                          ? Colors.green.shade700
+                          : Colors.orange.shade700,
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
 
-            // Total Due
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.blue.withOpacity(0.3),
-                  width: 2,
+            const SizedBox(height: 14),
+            const Divider(height: 1),
+            const SizedBox(height: 14),
+
+            // Three amounts in a row
+            Row(
+              children: [
+                _buildDueAmountChip(
+                  label: 'Total Due',
+                  amount: previousDueAmount,
+                  color: Colors.blue,
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Due',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '₹${previousDueAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.receipt_long, size: 28, color: Colors.blue),
-                ],
-              ),
+                const SizedBox(width: 8),
+                _buildDueAmountChip(
+                  label: 'Paid',
+                  amount: previousPaidAmount,
+                  color: Colors.green,
+                ),
+                const SizedBox(width: 8),
+                _buildDueAmountChip(
+                  label: 'Remaining',
+                  amount: pendingAmount,
+                  color: isFullyPaid ? Colors.grey : Colors.deepOrange,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-
-            // Paid Amount
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Colors.green.withOpacity(0.3),
-                  width: 2,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Paid Amount',
-                          style: TextStyle(
-                            color: Colors.green.shade700,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '₹${previousPaidAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: Colors.green,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.check_circle, size: 28, color: Colors.green),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Pending Amount
-            if (pendingAmount > 0) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.orange.withOpacity(0.3),
-                    width: 2,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Pending Amount',
-                            style: TextStyle(
-                              color: Colors.orange.shade700,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          Text(
-                            '₹${pendingAmount.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.orange,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const Icon(Icons.schedule, size: 28, color: Colors.orange),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
 
             // Description
             if (previousDueDescription.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Description',
-                      style: TextStyle(
-                        color: Colors.grey.shade700,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.notes_rounded,
+                    size: 16,
+                    color: Colors.grey.shade500,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
                       previousDueDescription,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                        height: 1.4,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatAmount(double value) {
+    if (value == value.truncateToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
+  }
+
+  Widget _buildDueAmountChip({
+    required String label,
+    required double amount,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: color.withOpacity(0.8),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '₹${_formatAmount(amount)}',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),

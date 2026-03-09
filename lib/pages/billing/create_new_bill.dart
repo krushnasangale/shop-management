@@ -143,6 +143,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
   double _deliveryCharges = 0.0;
   late TextEditingController _previousDueAmountController;
   double _previousDueAmount = 0.0;
+  double _previousPaidAmount = 0.0; // preserved from existing bill when editing
   late TextEditingController _previousDueDescriptionController;
   String _previousDueAmountError = '';
   String _previousDueDescriptionError = '';
@@ -196,6 +197,21 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
     // Set payment status
     totalAmountPaid = billData['totalAmountPaid'] ?? true;
+
+    // Restore previous due details
+    final prevDueAmount =
+        (billData['previousDueAmount'] as num?)?.toDouble() ?? 0.0;
+    _previousDueAmount = prevDueAmount;
+    if (prevDueAmount > 0) {
+      _previousDueAmountController.text = prevDueAmount.toStringAsFixed(2);
+      _previousDueDescriptionController.text =
+          billData['previousDueDescription'] as String? ?? '';
+      // Restore paid amount so it isn't reset to 0 on edit
+      _previousPaidAmount =
+          (billData['previousPaidAmount'] as num?)?.toDouble() ?? 0.0;
+      // Ensure the previous due section is visible even if the setting is off
+      _previousDueEnabled = true;
+    }
 
     // Set amount paid and remaining
     final amountPaid = billData['amountPaid'] ?? 0;
@@ -1500,7 +1516,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 previousDueAmount: _previousDueEnabled
                                     ? _previousDueAmount
                                     : 0.0,
-                                previousPaidAmount: 0.0,
+                                previousPaidAmount: widget.isEditMode
+                                    ? _previousPaidAmount
+                                    : 0.0,
                                 previousDueDescription: _previousDueEnabled
                                     ? _previousDueDescriptionController.text
                                           .trim()
