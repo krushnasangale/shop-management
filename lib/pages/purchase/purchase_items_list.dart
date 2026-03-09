@@ -1158,7 +1158,21 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
     bool isCancelled = false;
     String statusMessage = loc?.processingInvoice ?? 'Processing Invoice';
     int currentAttempt = 0;
+    double scanProgress = 0.0;
+    Timer? progressTimer;
     void Function(void Function())? dialogSetState;
+
+    void startProgressTimer() {
+      progressTimer?.cancel();
+      progressTimer = Timer.periodic(const Duration(milliseconds: 150), (_) {
+        if (scanProgress < 0.88) {
+          dialogSetState?.call(() {
+            final step = (0.88 - scanProgress) * 0.035;
+            scanProgress = (scanProgress + step).clamp(0.0, 0.88);
+          });
+        }
+      });
+    }
 
     // Show loading dialog with stateful builder
     if (mounted) {
@@ -1218,6 +1232,30 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: scanProgress,
+                            minHeight: 8,
+                            backgroundColor: Colors.blue.withOpacity(0.15),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.blue,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '${(scanProgress * 100).toInt()}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.blue,
+                            ),
+                          ),
+                        ),
                         if (currentAttempt > 0) ...[
                           const SizedBox(height: 16),
                           Container(
@@ -1263,8 +1301,11 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
       ).then((_) {
         // If dialog is dismissed, mark as cancelled
         isCancelled = true;
+        progressTimer?.cancel();
       });
     }
+
+    startProgressTimer();
 
     try {
       // Extract text from PDF
@@ -1302,11 +1343,14 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
           // Update dialog state to show retry attempt
           currentAttempt = attempt;
           statusMessage = 'Retrying in $delay seconds...';
+          scanProgress = 0.15;
+          startProgressTimer();
           dialogSetState?.call(() {});
         },
         isCancelled: () => isCancelled,
       );
 
+      progressTimer?.cancel();
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
@@ -1327,6 +1371,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
         }
       }
     } catch (e) {
+      progressTimer?.cancel();
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
@@ -1364,7 +1409,21 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
     bool isCancelled = false;
     String statusMessage = loc?.scanningInvoice ?? 'Scanning Invoice';
     int currentAttempt = 0;
+    double scanProgress = 0.0;
+    Timer? progressTimer;
     void Function(void Function())? dialogSetState;
+
+    void startProgressTimer() {
+      progressTimer?.cancel();
+      progressTimer = Timer.periodic(const Duration(milliseconds: 150), (_) {
+        if (scanProgress < 0.88) {
+          dialogSetState?.call(() {
+            final step = (0.88 - scanProgress) * 0.035;
+            scanProgress = (scanProgress + step).clamp(0.0, 0.88);
+          });
+        }
+      });
+    }
 
     // Show loading dialog with stateful builder
     if (mounted) {
@@ -1425,6 +1484,30 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: scanProgress,
+                            minHeight: 8,
+                            backgroundColor: Colors.green.withOpacity(0.15),
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.green,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '${(scanProgress * 100).toInt()}%',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ),
                         if (currentAttempt > 0) ...[
                           const SizedBox(height: 16),
                           Container(
@@ -1470,8 +1553,11 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
       ).then((_) {
         // If dialog is dismissed, mark as cancelled
         isCancelled = true;
+        progressTimer?.cancel();
       });
     }
+
+    startProgressTimer();
 
     try {
       // Use Gemini to extract invoice data directly from image
@@ -1482,11 +1568,14 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
           // Update dialog state to show retry attempt
           currentAttempt = attempt;
           statusMessage = 'Retrying in $delay seconds...';
+          scanProgress = 0.15;
+          startProgressTimer();
           dialogSetState?.call(() {});
         },
         isCancelled: () => isCancelled,
       );
 
+      progressTimer?.cancel();
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
@@ -1507,6 +1596,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
         }
       }
     } catch (e) {
+      progressTimer?.cancel();
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();

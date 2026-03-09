@@ -2,9 +2,10 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 admin.initializeApp();
 
-// Scheduled function: Runs every day at 9:30 AM IST (3:00 AM UTC)
+// Scheduled function: Runs every day at 9:30 AM IST
+// Note: timeZone('Asia/Kolkata') means the cron expression is interpreted in IST directly
 exports.sendDailyNotifications = functions.pubsub
-    .schedule('0 3 * * *') // 3:00 AM UTC = 9:30 AM IST+1 (considering DST)
+    .schedule('30 9 * * *') // 9:30 AM IST
     .timeZone('Asia/Kolkata')
     .onRun(async (context) => {
         console.log('Starting daily good morning notifications at', new Date().toISOString());
