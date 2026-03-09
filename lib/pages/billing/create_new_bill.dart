@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
@@ -44,6 +45,7 @@ class BoughtProduct {
   final String batchId;
   final String purchaseDate;
   final double profitMargin;
+  final String? imageUrl;
 
   BoughtProduct({
     required this.id,
@@ -58,6 +60,7 @@ class BoughtProduct {
     required this.batchId,
     required this.purchaseDate,
     required this.profitMargin,
+    this.imageUrl,
   });
 
   factory BoughtProduct.fromMap(String id, Map<dynamic, dynamic> data) {
@@ -78,6 +81,7 @@ class BoughtProduct {
       batchId: data['batchId'] ?? id,
       purchaseDate: data['purchaseDate'] ?? data['date'] ?? '',
       profitMargin: margin,
+      imageUrl: data['imageUrl'] as String?,
     );
   }
 }
@@ -1634,6 +1638,15 @@ class _CreateNewBillState extends State<CreateNewBill> {
     return _billItems.fold(0, (sum, item) => sum + item.billQuantity.toInt());
   }
 
+  Widget _productImagePlaceholder() {
+    return Container(
+      width: 52,
+      height: 52,
+      color: Colors.grey.shade100,
+      child: const Icon(Icons.inventory_2, size: 26, color: Colors.grey),
+    );
+  }
+
   bool _isProductAlreadyAdded(String productName) {
     return _billItems.any((item) => item.productName == productName);
   }
@@ -2658,162 +2671,209 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                     vertical: 8.0,
                                     horizontal: 12.0,
                                   ),
-                                  child: Column(
+                                  child: Row(
                                     crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                        CrossAxisAlignment.center,
                                     children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                      // Product image
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child:
+                                            product.imageUrl != null &&
+                                                product.imageUrl!.isNotEmpty
+                                            ? CachedNetworkImage(
+                                                imageUrl: product.imageUrl!,
+                                                width: 52,
+                                                height: 52,
+                                                fit: BoxFit.cover,
+                                                placeholder: (context, url) =>
+                                                    _productImagePlaceholder(),
+                                                errorWidget:
+                                                    (context, url, error) =>
+                                                        _productImagePlaceholder(),
+                                              )
+                                            : _productImagePlaceholder(),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      // Product details
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
                                               children: [
-                                                Row(
-                                                  children: [
-                                                    Flexible(
-                                                      child: Text(
-                                                        product.productName[0]
-                                                                .toUpperCase() +
-                                                            product.productName
-                                                                .substring(1),
-                                                        style: TextStyle(
-                                                          color:
-                                                              Theme.of(context)
-                                                                  .textTheme
-                                                                  .bodyLarge
-                                                                  ?.color,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                          fontSize: 16,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    if (batchCount > 1) ...[
-                                                      const SizedBox(width: 6),
-                                                      Container(
-                                                        padding:
-                                                            const EdgeInsets.symmetric(
-                                                              horizontal: 6,
-                                                              vertical: 2,
-                                                            ),
-                                                        decoration: BoxDecoration(
-                                                          color: Colors.purple
-                                                              .withOpacity(
-                                                                0.15,
-                                                              ),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                4,
-                                                              ),
-                                                          border: Border.all(
-                                                            color:
-                                                                Colors.purple,
-                                                            width: 1,
-                                                          ),
-                                                        ),
-                                                        child: Text(
-                                                          '$batchCount ${modalLocalizations.translate('batches')}',
-                                                          style:
-                                                              const TextStyle(
-                                                                color: Colors
-                                                                    .purple,
-                                                                fontSize: 9,
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Row(
+                                                        children: [
+                                                          Flexible(
+                                                            child: Text(
+                                                              product.productName[0]
+                                                                      .toUpperCase() +
+                                                                  product
+                                                                      .productName
+                                                                      .substring(
+                                                                        1,
+                                                                      ),
+                                                              style: TextStyle(
+                                                                color:
+                                                                    Theme.of(
+                                                                          context,
+                                                                        )
+                                                                        .textTheme
+                                                                        .bodyLarge
+                                                                        ?.color,
                                                                 fontWeight:
                                                                     FontWeight
-                                                                        .bold,
+                                                                        .w600,
+                                                                fontSize: 16,
                                                               ),
-                                                        ),
+                                                            ),
+                                                          ),
+                                                          if (batchCount >
+                                                              1) ...[
+                                                            const SizedBox(
+                                                              width: 6,
+                                                            ),
+                                                            Container(
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        6,
+                                                                    vertical: 2,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                color: Colors
+                                                                    .purple
+                                                                    .withOpacity(
+                                                                      0.15,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      4,
+                                                                    ),
+                                                                border: Border.all(
+                                                                  color: Colors
+                                                                      .purple,
+                                                                  width: 1,
+                                                                ),
+                                                              ),
+                                                              child: Text(
+                                                                '$batchCount ${modalLocalizations.translate('batches')}',
+                                                                style: const TextStyle(
+                                                                  color: Colors
+                                                                      .purple,
+                                                                  fontSize: 9,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ],
                                                       ),
                                                     ],
-                                                  ],
+                                                  ),
+                                                ),
+                                                if (isAlreadyAdded)
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          vertical: 4,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.orange,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            4,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      modalLocalizations
+                                                          .translate(
+                                                            'already_added',
+                                                          ),
+                                                      style: TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  '${modalLocalizations.translate('unit_label')} ${product.unit}',
+                                                  style: TextStyle(
+                                                    color: isAlreadyAdded
+                                                        ? Colors.grey
+                                                        : Theme.of(context)
+                                                              .textTheme
+                                                              .bodyMedium
+                                                              ?.color,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  '${modalLocalizations.translate('qty_label')} $totalQuantity',
+                                                  style: TextStyle(
+                                                    color: isAlreadyAdded
+                                                        ? Colors.grey
+                                                        : Colors.blue,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12,
+                                                  ),
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          if (isAlreadyAdded)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .spaceBetween,
+                                              children: [
+                                                Text(
+                                                  '${modalLocalizations.translate('buying_label')} ${modalLocalizations.translate('currency_symbol')}${product.buyingPrice.toStringAsFixed(2)}',
+                                                  style: TextStyle(
+                                                    color: isAlreadyAdded
+                                                        ? Colors.grey
+                                                        : Colors.red[400],
+                                                    fontSize: 11,
                                                   ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.orange,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                modalLocalizations.translate(
-                                                  'already_added',
                                                 ),
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
+                                                Text(
+                                                  '${modalLocalizations.translate('selling_label')} ${modalLocalizations.translate('currency_symbol')}${product.sellingPrice.toStringAsFixed(2)}',
+                                                  style: TextStyle(
+                                                    color: isAlreadyAdded
+                                                        ? Colors.grey
+                                                        : Colors.green[400],
+                                                    fontSize: 11,
+                                                  ),
                                                 ),
-                                              ),
+                                              ],
                                             ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            '${modalLocalizations.translate('unit_label')} ${product.unit}',
-                                            style: TextStyle(
-                                              color: isAlreadyAdded
-                                                  ? Colors.grey
-                                                  : Theme.of(context)
-                                                        .textTheme
-                                                        .bodyMedium
-                                                        ?.color,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${modalLocalizations.translate('qty_label')} $totalQuantity',
-                                            style: TextStyle(
-                                              color: isAlreadyAdded
-                                                  ? Colors.grey
-                                                  : Colors.blue,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            '${modalLocalizations.translate('buying_label')} ${modalLocalizations.translate('currency_symbol')}${product.buyingPrice.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              color: isAlreadyAdded
-                                                  ? Colors.grey
-                                                  : Colors.red[400],
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                          Text(
-                                            '${modalLocalizations.translate('selling_label')} ${modalLocalizations.translate('currency_symbol')}${product.sellingPrice.toStringAsFixed(2)}',
-                                            style: TextStyle(
-                                              color: isAlreadyAdded
-                                                  ? Colors.grey
-                                                  : Colors.green[400],
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                          ],
+                                        ),
+                                      ), // Expanded (product details)
                                     ],
-                                  ),
+                                  ), // Row (image + details)
                                 ),
                               ),
                             );
