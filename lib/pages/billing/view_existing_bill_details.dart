@@ -1152,35 +1152,35 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         children: [
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(10.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // --- 1. Bill/Customer Info Card ---
                   _buildCustomerInfoCard(context, cardColor),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   // --- 2. Products List Card ---
                   _buildProductsCard(context, cardColor),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   // --- 3. Financial Summary Card ---
                   _buildSummaryCard(context, cardColor),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   // --- 4. Previous Due Card ---
                   _buildPreviousDueCard(context, cardColor),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   // --- 5. Profit & Loss Card ---
                   _buildProfitLossCard(context, cardColor),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
 
                   // --- 6. Payment History Card ---
                   _buildPaymentHistoryCard(context, cardColor),
 
                   // --- 6. Fixed Bottom Action (e.g., Record Payment) ---
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -2101,7 +2101,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 20, 10, 0),
+        padding: const EdgeInsets.fromLTRB(10, 14, 10, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2113,7 +2113,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     localizations.paymentHistory,
                     style: context.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      fontSize: 14,
                     ),
                   ),
                 ),
@@ -2175,7 +2175,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                     '₹ ${payment.amount}',
                                     style: context.titleMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
-                                      fontSize: 16,
+                                      fontSize: 14,
                                     ),
                                   ),
                                   if (payment.amount > 0)
@@ -2218,7 +2218,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                               Text(
                                 payment.date,
                                 style: context.subtitleMedium?.copyWith(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
@@ -2240,7 +2240,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2326,19 +2326,19 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ),
             Text(
               localizations.customerName,
-              style: context.subtitleMedium?.copyWith(fontSize: 14),
+              style: context.subtitleMedium?.copyWith(fontSize: 12),
             ),
             Text(
               customerName,
               style: context.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
-                fontSize: 18,
+                fontSize: 15,
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               localizations.customerMobileNumber,
-              style: context.subtitleMedium?.copyWith(fontSize: 14),
+              style: context.subtitleMedium?.copyWith(fontSize: 12),
             ),
             Row(
               children: [
@@ -2362,7 +2362,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             customerMobile,
                             style: context.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              fontSize: 18,
+                              fontSize: 15,
                             ),
                           ),
                           Icon(Icons.edit, size: 16, color: Colors.blue[600]),
@@ -2412,13 +2412,13 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 ],
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             if (_vehicleNumberEnabled ||
                 customerVehicle != null ||
                 customerVehicle!.isNotEmpty) ...[
               Text(
                 localizations.customerVehicleNumber,
-                style: context.subtitleMedium?.copyWith(fontSize: 14),
+                style: context.subtitleMedium?.copyWith(fontSize: 12),
               ),
               GestureDetector(
                 onTap: _showEditVehicleDialog,
@@ -2439,7 +2439,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         customerVehicle ?? localizations.nA,
                         style: context.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          fontSize: 18,
+                          fontSize: 15,
                         ),
                       ),
                       Icon(Icons.edit, size: 16, color: Colors.blue[600]),
@@ -2447,7 +2447,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
             ],
           ],
         ),
@@ -2466,9 +2466,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       children: [
         Row(
           children: [
-            Icon(icon, color: Colors.blue, size: 20),
+            Icon(icon, color: Colors.blue, size: 16),
             const SizedBox(width: 8),
-            Text(title, style: context.subtitleMedium?.copyWith(fontSize: 12)),
+            Text(title, style: context.subtitleMedium?.copyWith(fontSize: 11)),
           ],
         ),
         const SizedBox(height: 4),
@@ -2476,7 +2476,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           subtitle,
           style: context.bodyLargeText?.copyWith(
             fontWeight: FontWeight.w600,
-            fontSize: 14,
+            fontSize: 13,
           ),
         ),
       ],
@@ -2487,7 +2487,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Card(
       color: cardColor,
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -2495,10 +2495,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               localizations.products,
               style: context.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
-                fontSize: 18,
+                fontSize: 15,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             ...products.asMap().entries.map((entry) {
               final index = entry.key;
               final product = entry.value;
@@ -2769,7 +2769,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         child: const Icon(
                           Icons.shopping_bag,
                           color: Colors.white,
-                          size: 24,
+                          size: 20,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -2777,7 +2777,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         localizations.totalItems,
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 16,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -2796,7 +2796,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       totalItems,
                       style: TextStyle(
                         color: Colors.blue.shade700,
-                        fontSize: 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -2813,7 +2813,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   Text(
                     localizations.discount,
                     style: context.titleMedium?.copyWith(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.normal,
                     ),
                   ),
@@ -2839,7 +2839,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             style: TextStyle(
                               color: Colors.orange[700],
                               fontWeight: FontWeight.w600,
-                              fontSize: 16,
+                              fontSize: 14,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -2861,7 +2861,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     Text(
                       localizations.deliveryCharges,
                       style: context.titleMedium?.copyWith(
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: FontWeight.normal,
                       ),
                     ),
@@ -2870,7 +2870,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       style: TextStyle(
                         color: Colors.blue[700],
                         fontWeight: FontWeight.w600,
-                        fontSize: 16,
+                        fontSize: 14,
                       ),
                     ),
                   ],
@@ -2887,7 +2887,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     localizations.finalAmount,
                     style: TextStyle(
                       color: Colors.green[700],
-                      fontSize: 18,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -2895,7 +2895,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     '₹ ${int.parse(totalAmount.replaceAll('₹ ', '')) + (_deliveryChargesEnabled ? deliveryCharges : 0) - discount}',
                     style: TextStyle(
                       color: Colors.green[700],
-                      fontSize: 18,
+                      fontSize: 15,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -2915,7 +2915,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   Text(
                     localizations.amountPaid,
                     style: context.bodyLargeText?.copyWith(
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.normal,
                     ),
                   ),
@@ -2941,7 +2941,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             style: TextStyle(
                               color: Colors.green[700],
                               fontWeight: FontWeight.w600,
-                              fontSize: 16,
+                              fontSize: 14,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -2972,7 +2972,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               children: [
                 Text(
                   localizations.paymentStatus,
-                  style: context.bodyLargeText?.copyWith(fontSize: 16),
+                  style: context.bodyLargeText?.copyWith(fontSize: 14),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -2988,7 +2988,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     style: TextStyle(
                       color: getStatusColor(),
                       fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                      fontSize: 12,
                     ),
                   ),
                 ),
@@ -3007,7 +3007,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 children: [
                   Text(
                     localizations.nextPaymentDate,
-                    style: context.bodyLargeText?.copyWith(fontSize: 16),
+                    style: context.bodyLargeText?.copyWith(fontSize: 14),
                   ),
                   GestureDetector(
                     onTap: _showEditNextPaymentDateDialog,
@@ -3028,7 +3028,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             nextPaymentDate!,
                             style: context.titleMedium?.copyWith(
                               fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                              fontSize: 12,
                             ),
                           ),
                           const SizedBox(width: 6),
@@ -3087,14 +3087,14 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   localizations.profitLoss,
                   style: context.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
-                    fontSize: 18,
+                    fontSize: 15,
                   ),
                 ),
                 Text(
                   '${localizations.margin}: ${profitPercentage.abs().toStringAsFixed(1)}%',
                   style: TextStyle(
                     color: profitColor.withOpacity(0.8),
-                    fontSize: 16,
+                    fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -3122,7 +3122,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           profitLossLabel,
                           style: TextStyle(
                             color: profitColor,
-                            fontSize: 14,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -3130,7 +3130,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           '₹ ${totalProfit.abs().toStringAsFixed(2)}',
                           style: TextStyle(
                             color: profitColor,
-                            fontSize: 28,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -3141,7 +3141,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     isProfitable
                         ? Icons.trending_up_rounded
                         : Icons.trending_down_rounded,
-                    size: 48,
+                    size: 36,
                     color: profitColor.withOpacity(0.6),
                   ),
                 ],
@@ -3336,7 +3336,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     Color displayColor =
         valueColor ??
         (isBold ? context.primaryTextColor! : context.secondaryTextColor!);
-    double fontSize = isBold ? 18 : 16;
+    double fontSize = isBold ? 15 : 13;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
