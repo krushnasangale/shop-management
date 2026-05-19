@@ -830,7 +830,7 @@ class _AvailableProductDetailScreenState
           ElevatedButton(
             onPressed: () {
               final newQuantity = int.tryParse(quantityController.text);
-              if (newQuantity != null && newQuantity > 0) {
+              if (newQuantity != null) {
                 _saveBatchQuantity(batch.id, newQuantity);
                 Navigator.pop(context);
               } else {
@@ -929,16 +929,26 @@ class _AvailableProductDetailScreenState
       // Calculate new initial quantity (adjust by the difference)
       final newInitialQuantity = oldInitialQuantity + quantityDifference;
 
-      // Update the product batch quantity
-      await firestore
-          .collection('purchased-products')
-          .doc(widget.userId)
-          .collection('items')
-          .doc(batchId)
-          .update({
-            'quantity': newQuantity,
-            'initialQuantity': newInitialQuantity,
-          });
+      // If newQuantity is 0, delete the batch
+      if (newQuantity == 0) {
+        await firestore
+            .collection('purchased-products')
+            .doc(widget.userId)
+            .collection('items')
+            .doc(batchId)
+            .delete();
+      } else {
+        // Update the product batch quantity
+        await firestore
+            .collection('purchased-products')
+            .doc(widget.userId)
+            .collection('items')
+            .doc(batchId)
+            .update({
+              'quantity': newQuantity,
+              'initialQuantity': newInitialQuantity,
+            });
+      }
 
       // Update the purchase record's totalUnits and totalAmount if purchaseId exists
       if (purchaseId != null && purchaseId.isNotEmpty) {
@@ -981,9 +991,15 @@ class _AvailableProductDetailScreenState
         setState(() {
           _editingBatchQuantities[batchId] = false;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(localizations.quantityUpdated)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newQuantity == 0
+                  ? localizations.quantityUpdated + ' (Batch removed)'
+                  : localizations.quantityUpdated,
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
