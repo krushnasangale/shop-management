@@ -932,24 +932,41 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           .collection('items')
           .get();
 
-      for (final productDoc in productsSnapshot.docs) {
+      final matchingDocs = productsSnapshot.docs.where((productDoc) {
         final productData = productDoc.data();
-        final batchId = productData['batchId'] as String?;
+        final docBatchId = (productData['batchId'] as String?) ?? productDoc.id;
+        return docBatchId == product.batchId;
+      }).toList();
 
-        // Match by batchId to ensure we update the correct batch
-        if (batchId != null && batchId == product.batchId) {
-          final currentQty = (productData['quantity'] as num?)?.toInt() ?? 0;
-          final newQty = (currentQty - product.quantity.toInt()).toInt();
+      // If duplicate rows exist for the same batchId, consume stock from rows
+      // that actually have quantity first.
+      matchingDocs.sort((a, b) {
+        final qtyA = (a.data()['quantity'] as num?)?.toInt() ?? 0;
+        final qtyB = (b.data()['quantity'] as num?)?.toInt() ?? 0;
+        return qtyB.compareTo(qtyA);
+      });
 
-          // Update quantity (set to 0 if it goes below 0, don't delete)
-          await firestore
-              .collection('purchased-products')
-              .doc(userId)
-              .collection('items')
-              .doc(productDoc.id)
-              .update({'quantity': newQty.clamp(0, double.infinity).toInt()});
-          break; // Found and updated, move to next product
-        }
+      int remainingToReduce = product.quantity.toInt();
+      for (final productDoc in matchingDocs) {
+        if (remainingToReduce <= 0) break;
+
+        final productData = productDoc.data();
+        final currentQty = (productData['quantity'] as num?)?.toInt() ?? 0;
+        if (currentQty <= 0) continue;
+
+        final reduction = remainingToReduce > currentQty
+            ? currentQty
+            : remainingToReduce;
+        final newQty = currentQty - reduction;
+
+        await firestore
+            .collection('purchased-products')
+            .doc(userId)
+            .collection('items')
+            .doc(productDoc.id)
+            .update({'quantity': newQty});
+
+        remainingToReduce -= reduction;
       }
     }
   }
@@ -979,7 +996,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           final batchId = product['batchId'] as String?;
 
           if (productName != null && supplierName != null && batchId != null) {
-            // Find the matching product by batchId and restore quantity
+            // Find matching rows by batchId (or doc ID fallback) and restore
+            // into the first matching row.
             final productsSnapshot = await firestore
                 .collection('purchased-products')
                 .doc(userId)
@@ -988,7 +1006,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
 
             for (final productDoc in productsSnapshot.docs) {
               final productData = productDoc.data();
-              final docBatchId = productData['batchId'] as String?;
+              final docBatchId =
+                  (productData['batchId'] as String?) ?? productDoc.id;
 
               if (docBatchId == batchId) {
                 final currentQty =
