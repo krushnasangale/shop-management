@@ -144,9 +144,7 @@ class _CustomersState extends State<Customers> {
                 padding: EdgeInsets.zero,
                 onPressed: _toggleSearch,
                 child: Icon(
-                  _showSearchBar
-                      ? CupertinoIcons.xmark
-                      : CupertinoIcons.search,
+                  _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
                 ),
               ),
               CupertinoButton(
@@ -166,12 +164,14 @@ class _CustomersState extends State<Customers> {
         title: Text(title),
         actions: [
           IconButton(
+            style: Adaptive.compactIconButton,
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: _toggleSearch,
           ),
           Padding(
             padding: const EdgeInsets.only(left: 8, right: 8),
             child: IconButton(
+              style: Adaptive.compactIconButton,
               icon: const Icon(Icons.add),
               tooltip: loc?.addCustomer ?? 'Add Customer',
               onPressed: () => _showForm(),
@@ -329,8 +329,7 @@ class _CustomersState extends State<Customers> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                loc?.customerAddedSuccessfully ??
-                    'Customer added successfully',
+                loc?.customerAddedSuccessfully ?? 'Customer added successfully',
               ),
             ),
           );
@@ -420,8 +419,7 @@ class _CustomersState extends State<Customers> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            loc?.customerDeletedSuccessfully ??
-                'Customer deleted successfully',
+            loc?.customerDeletedSuccessfully ?? 'Customer deleted successfully',
           ),
         ),
       );
@@ -803,10 +801,10 @@ class _CustomerFormSheetState extends State<_CustomerFormSheet> {
                 controller: _nameController,
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) => _upper(_nameController),
-                decoration: InputDecoration(
-                  labelText: widget.nameLabel,
-                  hintText: widget.nameHint,
-                  prefixIcon: const Icon(Icons.person_outline),
+                decoration: Adaptive.compactField(
+                  label: widget.nameLabel,
+                  hint: widget.nameHint,
+                  icon: Icons.person_outline,
                   errorText: _nameError,
                 ),
               ),
@@ -814,10 +812,10 @@ class _CustomerFormSheetState extends State<_CustomerFormSheet> {
               TextField(
                 controller: _mobileController,
                 keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: widget.mobileLabel,
-                  hintText: widget.mobileHint,
-                  prefixIcon: const Icon(Icons.phone_outlined),
+                decoration: Adaptive.compactField(
+                  label: widget.mobileLabel,
+                  hint: widget.mobileHint,
+                  icon: Icons.phone_outlined,
                   errorText: _mobileError,
                 ),
               ),
@@ -829,10 +827,10 @@ class _CustomerFormSheetState extends State<_CustomerFormSheet> {
                   FilteringTextInputFormatter.deny(RegExp(r'\s')),
                 ],
                 onChanged: (_) => _upper(_vehicleController),
-                decoration: InputDecoration(
-                  labelText: widget.vehicleLabel,
-                  hintText: widget.vehicleHint,
-                  prefixIcon: const Icon(Icons.directions_car_outlined),
+                decoration: Adaptive.compactField(
+                  label: widget.vehicleLabel,
+                  hint: widget.vehicleHint,
+                  icon: Icons.directions_car_outlined,
                 ),
               ),
               const SizedBox(height: 20),
@@ -841,6 +839,7 @@ class _CustomerFormSheetState extends State<_CustomerFormSheet> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
+                      style: Adaptive.compactOutlined,
                       child: Text(widget.cancelLabel),
                     ),
                   ),
@@ -848,6 +847,7 @@ class _CustomerFormSheetState extends State<_CustomerFormSheet> {
                   Expanded(
                     child: FilledButton(
                       onPressed: _save,
+                      style: Adaptive.compactFilled,
                       child: Text(widget.saveLabel),
                     ),
                   ),

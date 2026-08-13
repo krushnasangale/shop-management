@@ -1062,7 +1062,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(localizations.billDetails),

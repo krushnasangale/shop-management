@@ -169,9 +169,7 @@ class _ProductNameState extends State<ProductName> {
                 padding: EdgeInsets.zero,
                 onPressed: _toggleSearch,
                 child: Icon(
-                  _showSearchBar
-                      ? CupertinoIcons.xmark
-                      : CupertinoIcons.search,
+                  _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
                 ),
               ),
               CupertinoButton(
@@ -191,12 +189,14 @@ class _ProductNameState extends State<ProductName> {
         title: Text(title),
         actions: [
           IconButton(
+            style: Adaptive.compactIconButton,
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: _toggleSearch,
           ),
           Padding(
             padding: const EdgeInsets.only(left: 8, right: 8),
             child: IconButton(
+              style: Adaptive.compactIconButton,
               icon: const Icon(Icons.add),
               tooltip: loc?.addProductName ?? 'Add Product Name',
               onPressed: () => _showProductForm(),
@@ -239,8 +239,7 @@ class _ProductNameState extends State<ProductName> {
               : ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(0, 4, 8, 16),
-                  itemCount:
-                      _currentlyLoadedItems + (_isLoadingMore ? 1 : 0),
+                  itemCount: _currentlyLoadedItems + (_isLoadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index >= _currentlyLoadedItems) {
                       return Padding(
@@ -675,9 +674,9 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
               children: [
                 Text(
                   'Product image',
-                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: Theme.of(
+                    sheetContext,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -810,18 +809,18 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
             autofocus: true,
             textCapitalization: TextCapitalization.characters,
             onChanged: (_) => _upper(),
-            decoration: InputDecoration(
-              labelText: widget.nameLabel,
-              hintText: widget.nameHint,
-              prefixIcon: const Icon(Icons.inventory_2_outlined),
+            decoration: Adaptive.compactField(
+              label: widget.nameLabel,
+              hint: widget.nameHint,
+              icon: Icons.inventory_2_outlined,
             ),
           ),
         const SizedBox(height: 16),
         Text(
           'Product Image (Optional)',
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.labelLarge?.copyWith(color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 8),
         preview,
@@ -902,6 +901,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
+                      style: Adaptive.compactOutlined,
                       child: Text(widget.cancelLabel),
                     ),
                   ),
@@ -909,6 +909,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   Expanded(
                     child: FilledButton(
                       onPressed: _saving ? null : _save,
+                      style: Adaptive.compactFilled,
                       child: Text(widget.saveLabel),
                     ),
                   ),

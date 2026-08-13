@@ -171,9 +171,7 @@ class MyApp extends StatelessWidget {
             stream: FirebaseAuth.instance.authStateChanges(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Scaffold(
-                  body: Center(child: Adaptive.progress()),
-                );
+                return Scaffold(body: Center(child: Adaptive.progress()));
               }
               if (snapshot.hasData && snapshot.data != null) {
                 // Listen to device revocation status in real-time
@@ -477,29 +475,29 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
-    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: _selectedIndex == 0
           ? AppBar(
               title: Text(_shopName),
               automaticallyImplyLeading: false,
               actions: [
-                IconButton(
-                  onPressed: () {
-                    AppNavigator.push(context, const MyProfile());
-                  },
-                  tooltip: localizations?.myProfile ?? 'My Profile',
-                  icon: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: scheme.primaryContainer,
-                    child: Icon(
-                      Icons.person_rounded,
-                      size: 18,
-                      color: scheme.onPrimaryContainer,
-                    ),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    color: Colors.grey.withValues(alpha: 0.2),
+                  ),
+                  height: 40,
+                  width: 40,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(Icons.account_circle, size: 35),
+                    onPressed: () {
+                      AppNavigator.push(context, const MyProfile());
+                    },
+                    tooltip: localizations?.myProfile ?? 'My Profile',
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 14),
               ],
             )
           : null,

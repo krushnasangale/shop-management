@@ -203,8 +203,7 @@ class _EditProfileState extends State<EditProfile> {
         return _SignaturePickerSheet(
           title: loc?.addUpdateSignature ?? 'Update Signature',
           subtitle:
-              loc?.chooseSignatureMethod ??
-              'Choose how to add your signature',
+              loc?.chooseSignatureMethod ?? 'Choose how to add your signature',
           cancelLabel: loc?.cancel ?? 'Cancel',
           options: options,
         );
@@ -295,6 +294,7 @@ class _EditProfileState extends State<EditProfile> {
                                   ]);
                                   Navigator.pop(buildContext);
                                 },
+                                style: Adaptive.compactOutlined,
                                 child: Text(
                                   AppLocalizations.of(buildContext)?.cancel ??
                                       'Cancel',
@@ -352,8 +352,7 @@ class _EditProfileState extends State<EditProfile> {
                                     ).showSnackBar(
                                       SnackBar(
                                         content: Text(
-                                          localizations
-                                                  ?.pleaseDrawSignature ??
+                                          localizations?.pleaseDrawSignature ??
                                               'Please draw your signature',
                                         ),
                                         backgroundColor: scheme.error,
@@ -361,6 +360,7 @@ class _EditProfileState extends State<EditProfile> {
                                     );
                                   }
                                 },
+                                style: Adaptive.compactFilled,
                                 child: Text(
                                   localizations?.saveSignature ??
                                       'Save Signature',
@@ -809,9 +809,9 @@ class _SignaturePickerSheet extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
             Card(
@@ -1076,6 +1076,10 @@ class _SaveButton extends StatelessWidget {
       return CupertinoButton.filled(onPressed: onPressed, child: child);
     }
 
-    return FilledButton(onPressed: onPressed, child: child);
+    return FilledButton(
+      onPressed: onPressed,
+      style: Adaptive.compactFilled,
+      child: child,
+    );
   }
 }

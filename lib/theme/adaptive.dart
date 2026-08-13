@@ -4,6 +4,16 @@ import 'package:material_ui/material_ui.dart';
 
 /// Platform-adaptive helpers: Cupertino on Apple, Material 3 elsewhere.
 abstract final class Adaptive {
+  static const compactFieldPadding = EdgeInsets.symmetric(
+    horizontal: 16,
+    vertical: 12,
+  );
+  static const compactIconSize = 20.0;
+  static const compactPrefixConstraints = BoxConstraints(
+    minWidth: 44,
+    minHeight: 44,
+  );
+
   static bool get isCupertino {
     if (kIsWeb) return false;
     return defaultTargetPlatform == TargetPlatform.iOS ||
@@ -22,10 +32,7 @@ abstract final class Adaptive {
     required WidgetBuilder builder,
   }) {
     if (isCupertino) {
-      return showCupertinoModalPopup<T>(
-        context: context,
-        builder: builder,
-      );
+      return showCupertinoModalPopup<T>(context: context, builder: builder);
     }
     return showModalBottomSheet<T>(
       context: context,
@@ -34,6 +41,39 @@ abstract final class Adaptive {
       builder: builder,
     );
   }
+
+  static InputDecoration compactField({
+    required String label,
+    String? hint,
+    IconData? icon,
+    String? errorText,
+  }) {
+    return InputDecoration(
+      isDense: true,
+      labelText: label,
+      hintText: hint,
+      errorText: errorText,
+      prefixIcon: icon == null ? null : Icon(icon, size: compactIconSize),
+      prefixIconConstraints: icon == null ? null : compactPrefixConstraints,
+      contentPadding: compactFieldPadding,
+    );
+  }
+
+  static ButtonStyle get compactFilled => FilledButton.styleFrom(
+    minimumSize: const Size.fromHeight(48),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
+  static ButtonStyle get compactOutlined => OutlinedButton.styleFrom(
+    minimumSize: const Size(0, 44),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  );
+
+  static ButtonStyle get compactIconButton => IconButton.styleFrom(
+    minimumSize: const Size(44, 44),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    iconSize: compactIconSize,
+  );
 
   static Widget searchField({
     required TextEditingController controller,
@@ -46,8 +86,8 @@ abstract final class Adaptive {
         child: CupertinoSearchTextField(
           controller: controller,
           placeholder: hint,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          itemSize: 18,
+          padding: compactFieldPadding,
+          itemSize: compactIconSize,
         ),
       );
     }
@@ -57,20 +97,12 @@ abstract final class Adaptive {
       child: TextField(
         controller: controller,
         autofocus: true,
-        style: const TextStyle(fontSize: 14),
         decoration: InputDecoration(
           isDense: true,
           hintText: hint,
-          hintStyle: const TextStyle(fontSize: 14),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 10,
-          ),
-          prefixIcon: const Icon(Icons.search, size: 20),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: 40,
-            minHeight: 40,
-          ),
+          contentPadding: compactFieldPadding,
+          prefixIcon: const Icon(Icons.search, size: compactIconSize),
+          prefixIconConstraints: compactPrefixConstraints,
           suffixIcon: query.isNotEmpty
               ? IconButton(
                   icon: const Icon(Icons.clear, size: 18),

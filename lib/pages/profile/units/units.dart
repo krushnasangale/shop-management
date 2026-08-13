@@ -119,9 +119,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                 padding: EdgeInsets.zero,
                 onPressed: _toggleSearch,
                 child: Icon(
-                  _showSearchBar
-                      ? CupertinoIcons.xmark
-                      : CupertinoIcons.search,
+                  _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
                 ),
               ),
               CupertinoButton(
@@ -141,12 +139,14 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
         title: Text(title),
         actions: [
           IconButton(
+            style: Adaptive.compactIconButton,
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: _toggleSearch,
           ),
           Padding(
             padding: const EdgeInsets.only(left: 8, right: 8),
             child: IconButton(
+              style: Adaptive.compactIconButton,
               icon: const Icon(Icons.add),
               tooltip: loc?.addNewUnit ?? 'Add New Unit',
               onPressed: _showAddUnit,
@@ -226,9 +226,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            '${loc?.errorAddingUnit ?? 'Error adding unit'}: $e',
-          ),
+          content: Text('${loc?.errorAddingUnit ?? 'Error adding unit'}: $e'),
         ),
       );
     }
@@ -562,10 +560,10 @@ class _NameFormSheetState extends State<_NameFormSheet> {
                 autofocus: true,
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) => _upper(),
-                decoration: InputDecoration(
-                  labelText: widget.fieldLabel,
-                  hintText: widget.fieldHint,
-                  prefixIcon: const Icon(Icons.straighten_outlined),
+                decoration: Adaptive.compactField(
+                  label: widget.fieldLabel,
+                  hint: widget.fieldHint,
+                  icon: Icons.straighten_outlined,
                 ),
               ),
               const SizedBox(height: 20),
@@ -574,6 +572,7 @@ class _NameFormSheetState extends State<_NameFormSheet> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
+                      style: Adaptive.compactOutlined,
                       child: Text(widget.cancelLabel),
                     ),
                   ),
@@ -581,6 +580,7 @@ class _NameFormSheetState extends State<_NameFormSheet> {
                   Expanded(
                     child: FilledButton(
                       onPressed: _save,
+                      style: Adaptive.compactFilled,
                       child: Text(widget.saveLabel),
                     ),
                   ),

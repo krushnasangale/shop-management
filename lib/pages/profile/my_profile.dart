@@ -7,6 +7,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/login/login.dart';
 import 'package:flashbill/pages/profile/app_preferences/app_settings.dart';
+import 'package:flashbill/pages/profile/change_password.dart';
 import 'package:flashbill/pages/profile/customer/customers.dart';
 import 'package:flashbill/pages/profile/edit_profile.dart';
 import 'package:flashbill/pages/profile/logged_in_devices.dart';
@@ -168,7 +169,8 @@ class _MyProfileState extends State<MyProfile> {
             _SettingsTile(
               icon: Icons.lock_outline,
               title: loc?.changePassword ?? 'Change Password',
-              onTap: () => _showChangePasswordDialog(),
+              onTap: () =>
+                  AppNavigator.push(context, const ChangePasswordPage()),
             ),
             _SettingsTile(
               icon: Icons.privacy_tip_outlined,
@@ -233,263 +235,6 @@ class _MyProfileState extends State<MyProfile> {
         ),
       ),
     );
-  }
-
-  Future<void> _showChangePasswordDialog() async {
-    final currentPasswordController = TextEditingController();
-    final newPasswordController = TextEditingController();
-    final confirmPasswordController = TextEditingController();
-    String? currentPasswordError;
-    String? newPasswordError;
-    String? confirmPasswordError;
-    var showCurrentPassword = false;
-    var showNewPassword = false;
-    var showConfirmPassword = false;
-    final localizations = AppLocalizations.of(context);
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text(localizations?.changePassword ?? 'Change Password'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: currentPasswordController,
-                      obscureText: !showCurrentPassword,
-                      decoration: InputDecoration(
-                        labelText:
-                            localizations?.currentPassword ??
-                            'Current Password',
-                        errorText: currentPasswordError,
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            showCurrentPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setDialogState(() {
-                              showCurrentPassword = !showCurrentPassword;
-                            });
-                          },
-                        ),
-                      ),
-                      onChanged: (_) {
-                        if (currentPasswordError != null) {
-                          setDialogState(() => currentPasswordError = null);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: newPasswordController,
-                      obscureText: !showNewPassword,
-                      decoration: InputDecoration(
-                        labelText: localizations?.newPassword ?? 'New Password',
-                        helperText:
-                            localizations?.passwordMinLength ??
-                            'Password must be at least 6 characters',
-                        errorText: newPasswordError,
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            showNewPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setDialogState(() {
-                              showNewPassword = !showNewPassword;
-                            });
-                          },
-                        ),
-                      ),
-                      onChanged: (_) {
-                        if (newPasswordError != null) {
-                          setDialogState(() => newPasswordError = null);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: confirmPasswordController,
-                      obscureText: !showConfirmPassword,
-                      decoration: InputDecoration(
-                        labelText:
-                            localizations?.confirmNewPassword ??
-                            'Confirm New Password',
-                        errorText: confirmPasswordError,
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            showConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                          onPressed: () {
-                            setDialogState(() {
-                              showConfirmPassword = !showConfirmPassword;
-                            });
-                          },
-                        ),
-                      ),
-                      onChanged: (_) {
-                        if (confirmPasswordError != null) {
-                          setDialogState(() => confirmPasswordError = null);
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
-                  child: Text(localizations?.cancel ?? 'Cancel'),
-                ),
-                FilledButton(
-                  onPressed: () async {
-                    var hasError = false;
-                    setDialogState(() {
-                      currentPasswordError = null;
-                      newPasswordError = null;
-                      confirmPasswordError = null;
-
-                      if (currentPasswordController.text.isEmpty) {
-                        currentPasswordError =
-                            localizations?.currentPasswordRequired ??
-                            'Current password is required';
-                        hasError = true;
-                      }
-                      if (newPasswordController.text.isEmpty) {
-                        newPasswordError =
-                            localizations?.newPasswordRequired ??
-                            'New password is required';
-                        hasError = true;
-                      } else if (newPasswordController.text.length < 6) {
-                        newPasswordError =
-                            localizations?.passwordMinLength ??
-                            'Password must be at least 6 characters';
-                        hasError = true;
-                      }
-                      if (confirmPasswordController.text.isEmpty) {
-                        confirmPasswordError =
-                            localizations?.confirmPasswordRequired ??
-                            'Please confirm your password';
-                        hasError = true;
-                      } else if (newPasswordController.text !=
-                          confirmPasswordController.text) {
-                        confirmPasswordError =
-                            localizations?.passwordsDoNotMatch ??
-                            'Passwords do not match';
-                        hasError = true;
-                      }
-                    });
-                    if (hasError) return;
-
-                    try {
-                      showDialog<void>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => AlertDialog(
-                          content: Row(
-                            children: [
-                              SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: Adaptive.progress(),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Text(
-                                  localizations?.updatingPassword ??
-                                      'Updating password...',
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-
-                      final user = FirebaseAuth.instance.currentUser;
-                      if (user == null) {
-                        if (context.mounted) Navigator.pop(context);
-                        if (dialogContext.mounted) Navigator.pop(dialogContext);
-                        if (mounted) {
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                localizations?.userNotAuthenticated ??
-                                    'User not authenticated',
-                              ),
-                            ),
-                          );
-                        }
-                        return;
-                      }
-
-                      final credential = EmailAuthProvider.credential(
-                        email: user.email!,
-                        password: currentPasswordController.text,
-                      );
-                      await user.reauthenticateWithCredential(credential);
-                      await user.updatePassword(newPasswordController.text);
-
-                      if (context.mounted) Navigator.pop(context);
-                      if (dialogContext.mounted) Navigator.pop(dialogContext);
-                      if (mounted) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              localizations?.passwordChangedSuccessfully ??
-                                  'Password changed successfully!',
-                            ),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) Navigator.pop(context);
-                      var errorMessage =
-                          localizations?.failedToChangePassword ??
-                          'Failed to change password';
-                      if (e.toString().contains('wrong-password')) {
-                        errorMessage =
-                            localizations?.currentPasswordIncorrect ??
-                            'Current password is incorrect';
-                      } else if (e.toString().contains('weak-password')) {
-                        errorMessage =
-                            localizations?.newPasswordTooWeak ??
-                            'New password is too weak';
-                      } else if (e.toString().contains(
-                        'requires-recent-login',
-                      )) {
-                        errorMessage =
-                            localizations?.reauthenticateRequired ??
-                            'Please log out and log in again for security';
-                      }
-                      setDialogState(() => currentPasswordError = errorMessage);
-                    }
-                  },
-                  child: Text(
-                    localizations?.changePassword ?? 'Change Password',
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    currentPasswordController.dispose();
-    newPasswordController.dispose();
-    confirmPasswordController.dispose();
   }
 }
 
@@ -635,10 +380,7 @@ class _SettingsTile extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (value != null)
-                Text(
-                  value!,
-                  style: TextStyle(color: scheme.onSurfaceVariant),
-                ),
+                Text(value!, style: TextStyle(color: scheme.onSurfaceVariant)),
               Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
             ],
           ),

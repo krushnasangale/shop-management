@@ -57,6 +57,12 @@ abstract final class AppTheme {
           letterSpacing: -0.3,
         ),
       ),
+      actionIconTheme: ActionIconThemeData(
+        backButtonIconBuilder: (context) => const Icon(
+          Icons.arrow_back_ios_new,
+          size: 20,
+        ),
+      ),
       cardTheme: CardThemeData(
         color: isLight ? Colors.white : const Color(0xFF171C22),
         elevation: 0,

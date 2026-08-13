@@ -148,9 +148,7 @@ class _SuppliersState extends State<Suppliers> {
                 padding: EdgeInsets.zero,
                 onPressed: _toggleSearch,
                 child: Icon(
-                  _showSearchBar
-                      ? CupertinoIcons.xmark
-                      : CupertinoIcons.search,
+                  _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
                 ),
               ),
               CupertinoButton(
@@ -170,12 +168,14 @@ class _SuppliersState extends State<Suppliers> {
         title: Text(title),
         actions: [
           IconButton(
+            style: Adaptive.compactIconButton,
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
             onPressed: _toggleSearch,
           ),
           Padding(
             padding: const EdgeInsets.only(left: 8, right: 8),
             child: IconButton(
+              style: Adaptive.compactIconButton,
               icon: const Icon(Icons.add),
               tooltip: loc?.addSupplier ?? 'Add Supplier',
               onPressed: _showAddSupplier,
@@ -623,9 +623,7 @@ class _SupplierFormSheetState extends State<_SupplierFormSheet> {
         padding: EdgeInsets.only(bottom: bottomInset),
         child: Container(
           decoration: BoxDecoration(
-            color: CupertinoColors.systemGroupedBackground.resolveFrom(
-              context,
-            ),
+            color: CupertinoColors.systemGroupedBackground.resolveFrom(context),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: SafeArea(
@@ -698,20 +696,20 @@ class _SupplierFormSheetState extends State<_SupplierFormSheet> {
                 controller: _nameController,
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) => _upper(_nameController),
-                decoration: InputDecoration(
-                  labelText: widget.nameLabel,
-                  hintText: widget.nameHint,
-                  prefixIcon: const Icon(Icons.storefront_outlined),
+                decoration: Adaptive.compactField(
+                  label: widget.nameLabel,
+                  hint: widget.nameHint,
+                  icon: Icons.storefront_outlined,
                 ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _contactController,
                 keyboardType: TextInputType.phone,
-                decoration: InputDecoration(
-                  labelText: widget.contactLabel,
-                  hintText: widget.contactHint,
-                  prefixIcon: const Icon(Icons.phone_outlined),
+                decoration: Adaptive.compactField(
+                  label: widget.contactLabel,
+                  hint: widget.contactHint,
+                  icon: Icons.phone_outlined,
                 ),
               ),
               const SizedBox(height: 12),
@@ -719,10 +717,10 @@ class _SupplierFormSheetState extends State<_SupplierFormSheet> {
                 controller: _locationController,
                 textCapitalization: TextCapitalization.characters,
                 onChanged: (_) => _upper(_locationController),
-                decoration: InputDecoration(
-                  labelText: widget.locationLabel,
-                  hintText: widget.locationHint,
-                  prefixIcon: const Icon(Icons.location_on_outlined),
+                decoration: Adaptive.compactField(
+                  label: widget.locationLabel,
+                  hint: widget.locationHint,
+                  icon: Icons.location_on_outlined,
                 ),
               ),
               const SizedBox(height: 20),
@@ -731,6 +729,7 @@ class _SupplierFormSheetState extends State<_SupplierFormSheet> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
+                      style: Adaptive.compactOutlined,
                       child: Text(widget.cancelLabel),
                     ),
                   ),
@@ -738,6 +737,7 @@ class _SupplierFormSheetState extends State<_SupplierFormSheet> {
                   Expanded(
                     child: FilledButton(
                       onPressed: _save,
+                      style: Adaptive.compactFilled,
                       child: Text(widget.saveLabel),
                     ),
                   ),

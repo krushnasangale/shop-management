@@ -1,8 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:intl/intl.dart';
-import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 
 class SupplierHistoryScreen extends StatefulWidget {
   final String supplierId;
@@ -21,14 +24,13 @@ class SupplierHistoryScreen extends StatefulWidget {
 }
 
 class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
-  late List<Map<String, dynamic>> _supplierHistory;
-  late Map<String, List<Map<String, dynamic>>> _groupedHistory;
+  List<Map<String, dynamic>> _supplierHistory = [];
+  Map<String, List<Map<String, dynamic>>> _groupedHistory = {};
   bool _isLoading = true;
   double _totalSpent = 0;
   int _totalTransactions = 0;
   int _totalUnits = 0;
-  int _sortByIndex =
-      0; // 0: Recent First, 1: Oldest First, 2: Amount High to Low, 3: Amount Low to High
+  int _sortByIndex = 0;
 
   @override
   void initState() {
@@ -50,53 +52,48 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
 
       for (var doc in snapshot.docs) {
         final purchase = doc.data();
+        if (purchase['supplierName'] != widget.supplierName) continue;
 
-        // Filter by supplier name
-        if (purchase['supplierName'] == widget.supplierName) {
-          final totalAmount = (purchase['totalAmount'] ?? 0).toDouble();
-          final totalQty = (purchase['totalUnits'] as num?)?.toInt() ?? 0;
-          totalSpent += totalAmount;
-          totalUnits += totalQty;
+        final totalAmount = (purchase['totalAmount'] ?? 0).toDouble();
+        final totalQty = (purchase['totalUnits'] as num?)?.toInt() ?? 0;
+        totalSpent += totalAmount;
+        totalUnits += totalQty;
 
-          history.add({
-            'id': doc.id,
-            'date': purchase['date'] ?? 'N/A',
-            'supplierName': purchase['supplierName'] ?? 'Unknown',
-            'totalUnits': totalQty,
-            'totalAmount': totalAmount,
-            'timestamp': purchase['timestamp'],
-            'itemCount': (purchase['items'] as List?)?.length ?? 0,
-          });
-        }
+        history.add({
+          'id': doc.id,
+          'date': purchase['date'] ?? 'N/A',
+          'supplierName': purchase['supplierName'] ?? 'Unknown',
+          'totalUnits': totalQty,
+          'totalAmount': totalAmount,
+          'timestamp': purchase['timestamp'],
+          'itemCount': (purchase['items'] as List?)?.length ?? 0,
+        });
       }
 
-      // Sort by date (most recent first)
       history.sort(
         (a, b) => b['date'].toString().compareTo(a['date'].toString()),
       );
 
-      if (mounted) {
-        setState(() {
-          _supplierHistory = history;
-          _totalSpent = totalSpent;
-          _totalTransactions = history.length;
-          _totalUnits = totalUnits;
-          _groupedHistory = _groupByMonth(history);
-          _isLoading = false;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        _supplierHistory = history;
+        _totalSpent = totalSpent;
+        _totalTransactions = history.length;
+        _totalUnits = totalUnits;
+        _groupedHistory = _groupByMonth(history);
+        _isLoading = false;
+      });
     } catch (e) {
-      if (mounted) {
-        final localizations = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${localizations?.errorLoadingHistory ?? 'Error loading history'}: $e',
-            ),
+      if (!mounted) return;
+      final localizations = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${localizations?.errorLoadingHistory ?? 'Error loading history'}: $e',
           ),
-        );
-        setState(() => _isLoading = false);
-      }
+        ),
+      );
+      setState(() => _isLoading = false);
     }
   }
 
@@ -114,51 +111,39 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
           final monthYear = DateFormat(
             'MMMM yyyy',
           ).format(DateTime(year, month));
-
-          if (!grouped.containsKey(monthYear)) {
-            grouped[monthYear] = [];
-          }
-          grouped[monthYear]!.add(transaction);
+          grouped.putIfAbsent(monthYear, () => []).add(transaction);
         }
       } catch (e) {
-        // If date parsing fails, put in "Unknown" group
-        if (!grouped.containsKey('Unknown')) {
-          grouped['Unknown'] = [];
-        }
-        grouped['Unknown']!.add(transaction);
+        grouped.putIfAbsent('Unknown', () => []).add(transaction);
       }
     }
     return grouped;
   }
 
   void _sortHistory() {
-    List<Map<String, dynamic>> sorted = List.from(_supplierHistory);
+    final sorted = List<Map<String, dynamic>>.from(_supplierHistory);
 
     switch (_sortByIndex) {
-      case 0: // Recent First
+      case 0:
         sorted.sort(
           (a, b) => b['date'].toString().compareTo(a['date'].toString()),
         );
-        break;
-      case 1: // Oldest First
+      case 1:
         sorted.sort(
           (a, b) => a['date'].toString().compareTo(b['date'].toString()),
         );
-        break;
-      case 2: // Amount: High to Low
+      case 2:
         sorted.sort(
           (a, b) => ((b['totalAmount'] ?? 0) as num).toDouble().compareTo(
             ((a['totalAmount'] ?? 0) as num).toDouble(),
           ),
         );
-        break;
-      case 3: // Amount: Low to High
+      case 3:
         sorted.sort(
           (a, b) => ((a['totalAmount'] ?? 0) as num).toDouble().compareTo(
             ((b['totalAmount'] ?? 0) as num).toDouble(),
           ),
         );
-        break;
     }
 
     setState(() {
@@ -167,625 +152,401 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
     });
   }
 
+  List<String> _sortOptions(AppLocalizations? loc) => [
+    loc?.recentFirst ?? 'Recent First',
+    loc?.oldestFirst ?? 'Oldest First',
+    loc?.amountHighToLow ?? 'Amount: High to Low',
+    loc?.amountLowToHigh ?? 'Amount: Low to High',
+  ];
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final localizations = AppLocalizations.of(context);
+    final loc = AppLocalizations.of(context);
 
-    // Get localized sort options
-    final sortOptions = [
-      localizations?.recentFirst ?? 'Recent First',
-      localizations?.oldestFirst ?? 'Oldest First',
-      localizations?.amountHighToLow ?? 'Amount: High to Low',
-      localizations?.amountLowToHigh ?? 'Amount: Low to High',
-    ];
+    if (Adaptive.isCupertino) {
+      return CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          middle: Text(widget.supplierName, overflow: TextOverflow.ellipsis),
+          trailing: CupertinoButton(
+            padding: EdgeInsets.zero,
+            onPressed: () => _showSortSheet(loc),
+            child: const Icon(CupertinoIcons.sort_down),
+          ),
+        ),
+        child: SafeArea(child: _buildBody(loc)),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.supplierName),
-        centerTitle: false,
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: PopupMenuButton<int>(
-              icon: const Icon(Icons.sort),
-              tooltip: localizations?.sortBy ?? 'Sort by',
-              onSelected: (value) {
-                setState(() {
-                  _sortByIndex = value;
-                });
-                _sortHistory();
-              },
-              itemBuilder: (context) =>
-                  sortOptions.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final option = entry.value;
-                    return PopupMenuItem<int>(
-                      value: index,
-                      child: Row(
-                        children: [
-                          if (_sortByIndex == index)
-                            Icon(
-                              Icons.check,
-                              size: 18,
-                              color: isDark
-                                  ? Colors.blue.shade300
-                                  : Colors.blue.shade700,
-                            ),
-                          if (_sortByIndex == index) const SizedBox(width: 8),
-                          Text(
-                            option,
-                            style: TextStyle(
-                              fontWeight: _sortByIndex == index
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ],
+          PopupMenuButton<int>(
+            icon: const Icon(Icons.sort),
+            tooltip: loc?.sortBy ?? 'Sort by',
+            onSelected: (value) {
+              setState(() => _sortByIndex = value);
+              _sortHistory();
+            },
+            itemBuilder: (context) {
+              final options = _sortOptions(loc);
+              return [
+                for (var i = 0; i < options.length; i++)
+                  PopupMenuItem<int>(
+                    value: i,
+                    child: Text(
+                      options[i],
+                      style: TextStyle(
+                        fontWeight: _sortByIndex == i
+                            ? FontWeight.w700
+                            : FontWeight.w400,
                       ),
-                    );
-                  }).toList(),
-            ),
+                    ),
+                  ),
+              ];
+            },
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _supplierHistory.isEmpty
-          ? _buildEmptyState(localizations)
-          : CustomScrollView(
-              slivers: [
-                // Enhanced Summary Card
-                SliverToBoxAdapter(
-                  child: Container(
-                    margin: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: isDark
-                            ? [Colors.blue.shade800, Colors.purple.shade800]
-                            : [Colors.blue.shade400, Colors.purple.shade400],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 6,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14.0),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.business_center,
-                                  color: Colors.white,
-                                  size: 18,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              const Text(
-                                'Business Summary',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '₹${_totalSpent.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 26,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Total Invested',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.shopping_bag_outlined,
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '$_totalTransactions ${localizations?.purchases ?? 'Purchases'}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Quick Stats Row
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: _buildQuickStatCard(
-                      icon: Icons.inventory_2_outlined,
-                      label: localizations?.items ?? 'Items',
-                      value: '$_totalUnits',
-                      color: Colors.orange,
-                      isDark: isDark,
-                    ),
-                  ),
-                ),
-
-                // Grouped History List
-                SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate((context, index) {
-                      final monthYear = _groupedHistory.keys.elementAt(index);
-                      final transactions = _groupedHistory[monthYear]!;
-                      final monthTotal = transactions.fold<double>(
-                        0,
-                        (double sum, t) =>
-                            sum + ((t['totalAmount'] ?? 0) as num).toDouble(),
-                      );
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Month Header
-                          Container(
-                            margin: const EdgeInsets.only(top: 8, bottom: 4),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? Colors.grey.shade800
-                                  : Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_month,
-                                  size: 18,
-                                  color: isDark
-                                      ? Colors.blue.shade300
-                                      : Colors.blue.shade700,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  monthYear,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? Colors.grey.shade200
-                                        : Colors.grey.shade800,
-                                  ),
-                                ),
-                                const Spacer(),
-                                Text(
-                                  '₹${monthTotal.toStringAsFixed(0)}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green.shade600,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 3,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: isDark
-                                        ? Colors.blue.shade900.withValues(
-                                            alpha: 0.5,
-                                          )
-                                        : Colors.blue.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    '${transactions.length}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark
-                                          ? Colors.blue.shade200
-                                          : Colors.blue.shade700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Transactions
-                          ...transactions.map(
-                            (transaction) => _buildTransactionCard(
-                              transaction,
-                              isDark,
-                              localizations,
-                            ),
-                          ),
-                        ],
-                      );
-                    }, childCount: _groupedHistory.keys.length),
-                  ),
-                ),
-              ],
-            ),
+      body: _buildBody(loc),
     );
   }
 
-  Widget _buildQuickStatCard({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-    required bool isDark,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade800 : color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? color.withValues(alpha: 0.3)
-              : color.withValues(alpha: 0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 18),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey.shade200 : Colors.grey.shade800,
-                ),
+  Future<void> _showSortSheet(AppLocalizations? loc) async {
+    final options = _sortOptions(loc);
+    final selected = await showCupertinoModalPopup<int>(
+      context: context,
+      builder: (sheetContext) {
+        return CupertinoActionSheet(
+          title: Text(loc?.sortBy ?? 'Sort by'),
+          actions: [
+            for (var i = 0; i < options.length; i++)
+              CupertinoActionSheetAction(
+                onPressed: () => Navigator.pop(sheetContext, i),
+                child: Text(options[i]),
               ),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTransactionCard(
-    Map<String, dynamic> purchase,
-    bool isDark,
-    AppLocalizations? localizations,
-  ) {
-    final amount = ((purchase['totalAmount'] ?? 0) as num).toDouble();
-    final isHighValue = amount > 10000;
-
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PurchaseEntryDetails(entry: purchase),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext),
+            child: Text(loc?.cancel ?? 'Cancel'),
           ),
         );
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.grey.shade800 : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isHighValue
-                ? Colors.amber.withValues(alpha: 0.5)
-                : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
-            width: isHighValue ? 2 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+    );
+    if (selected == null) return;
+    setState(() => _sortByIndex = selected);
+    _sortHistory();
+  }
+
+  Widget _buildBody(AppLocalizations? loc) {
+    if (_isLoading) {
+      return Center(child: Adaptive.progress());
+    }
+    if (_supplierHistory.isEmpty) {
+      return _EmptyState(loc: loc);
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      children: [
+        _SummaryCard(
+          totalSpent: _totalSpent,
+          purchases: _totalTransactions,
+          items: _totalUnits,
+          purchasesLabel: loc?.purchases ?? 'Purchases',
+          itemsLabel: loc?.items ?? 'Items',
+        ),
+        const SizedBox(height: 20),
+        for (final monthYear in _groupedHistory.keys) ...[
+          _MonthHeader(
+            title: monthYear,
+            total: _groupedHistory[monthYear]!.fold<double>(
+              0,
+              (total, t) =>
+                  total + ((t['totalAmount'] ?? 0) as num).toDouble(),
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Purchase Date and Supplier
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 11,
-                              color: isDark
-                                  ? Colors.grey.shade500
-                                  : Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              purchase['date'],
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: isDark
-                                    ? Colors.grey.shade100
-                                    : Colors.grey.shade900,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 3),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.business,
-                              size: 11,
-                              color: isDark
-                                  ? Colors.grey.shade500
-                                  : Colors.grey.shade600,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              purchase['supplierName'],
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: isDark
-                                    ? Colors.grey.shade400
-                                    : Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (isHighValue)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.amber.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.star,
-                            size: 12,
-                            color: Colors.amber.shade700,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            localizations?.high ?? 'HIGH',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.amber.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Divider
-              Divider(
-                height: 1,
-                color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-              ),
-              const SizedBox(height: 8),
-
-              // Total Amount and Items Badge
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        localizations?.totalAmount ?? 'Total Amount',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark
-                              ? Colors.grey.shade500
-                              : Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '₹${amount.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green.shade600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: [
-                      if ((purchase['itemCount'] ?? 0) > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.purple.withValues(alpha: 0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.inventory_2_outlined,
-                                size: 12,
-                                color: Colors.purple.shade700,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${purchase['itemCount']} ${localizations?.items ?? 'Items'}',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.purple.shade700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: Colors.blue.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.shopping_bag_outlined,
-                              size: 12,
-                              color: Colors.blue.shade700,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${purchase['totalUnits']} ${localizations?.qty ?? 'Qty'}',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue.shade700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
+            count: _groupedHistory[monthYear]!.length,
           ),
-        ),
-      ),
+          _TransactionGroup(
+            transactions: _groupedHistory[monthYear]!,
+            qtyLabel: loc?.qty ?? 'Qty',
+            onOpen: _openPurchase,
+          ),
+          const SizedBox(height: 16),
+        ],
+      ],
     );
   }
 
-  Widget _buildEmptyState(AppLocalizations? localizations) {
+  void _openPurchase(Map<String, dynamic> purchase) {
+    AppNavigator.push(context, PurchaseEntryDetails(entry: purchase));
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  const _SummaryCard({
+    required this.totalSpent,
+    required this.purchases,
+    required this.items,
+    required this.purchasesLabel,
+    required this.itemsLabel,
+  });
+
+  final double totalSpent;
+  final int purchases;
+  final int items;
+  final String purchasesLabel;
+  final String itemsLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    Widget row(String label, String value, {bool emphasize = false}) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Text(label, style: TextStyle(color: scheme.onSurfaceVariant)),
+            const Spacer(),
+            Text(
+              value,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface,
+                fontSize: emphasize ? 18 : 15,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (Adaptive.isCupertino) {
+      return CupertinoListSection.insetGrouped(
+        margin: EdgeInsets.zero,
+        header: const Text('BUSINESS SUMMARY'),
+        children: [
+          CupertinoListTile(
+            title: const Text('Total Invested'),
+            additionalInfo: Text('₹${totalSpent.toStringAsFixed(2)}'),
+          ),
+          CupertinoListTile(
+            title: Text(purchasesLabel),
+            additionalInfo: Text('$purchases'),
+          ),
+          CupertinoListTile(
+            title: Text(itemsLabel),
+            additionalInfo: Text('$items'),
+          ),
+        ],
+      );
+    }
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          row('Total Invested', '₹${totalSpent.toStringAsFixed(2)}', emphasize: true),
+          const Divider(height: 1, indent: 16),
+          row(purchasesLabel, '$purchases'),
+          const Divider(height: 1, indent: 16),
+          row(itemsLabel, '$items'),
+        ],
+      ),
+    );
+  }
+}
+
+class _MonthHeader extends StatelessWidget {
+  const _MonthHeader({
+    required this.title,
+    required this.total,
+    required this.count,
+  });
+
+  final String title;
+  final double total;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title.toUpperCase(),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Text(
+            '₹${total.toStringAsFixed(0)}',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '$count',
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransactionGroup extends StatelessWidget {
+  const _TransactionGroup({
+    required this.transactions,
+    required this.qtyLabel,
+    required this.onOpen,
+  });
+
+  final List<Map<String, dynamic>> transactions;
+  final String qtyLabel;
+  final ValueChanged<Map<String, dynamic>> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    if (Adaptive.isCupertino) {
+      return CupertinoListSection.insetGrouped(
+        margin: EdgeInsets.zero,
+        children: [
+          for (final purchase in transactions)
+            _TransactionTile(
+              purchase: purchase,
+              qtyLabel: qtyLabel,
+              onOpen: () => onOpen(purchase),
+            ),
+        ],
+      );
+    }
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < transactions.length; i++) ...[
+            _TransactionTile(
+              purchase: transactions[i],
+              qtyLabel: qtyLabel,
+              onOpen: () => onOpen(transactions[i]),
+            ),
+            if (i != transactions.length - 1)
+              const Divider(height: 1, indent: 16),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TransactionTile extends StatelessWidget {
+  const _TransactionTile({
+    required this.purchase,
+    required this.qtyLabel,
+    required this.onOpen,
+  });
+
+  final Map<String, dynamic> purchase;
+  final String qtyLabel;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final amount = ((purchase['totalAmount'] ?? 0) as num).toDouble();
+    final qty = purchase['totalUnits'] ?? 0;
+    final date = purchase['date']?.toString() ?? 'N/A';
+    final amountText = '₹${amount.toStringAsFixed(2)}';
+    final subtitle = '$qty $qtyLabel';
+
+    if (Adaptive.isCupertino) {
+      return CupertinoListTile(
+        title: Text(
+          date,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            color: scheme.onSurface,
+          ),
+        ),
+        subtitle: Text(subtitle),
+        additionalInfo: Text(amountText),
+        trailing: const CupertinoListTileChevron(),
+        onTap: onOpen,
+      );
+    }
+
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
+      title: Text(
+        date,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
+      ),
+      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Text(
+        amountText,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: scheme.onSurface,
+        ),
+      ),
+      onTap: onOpen,
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.loc});
+
+  final AppLocalizations? loc;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.shopping_bag_outlined,
-                size: 64,
-                color: Colors.grey.shade400,
-              ),
+            Icon(
+              Icons.shopping_bag_outlined,
+              size: 48,
+              color: scheme.onSurfaceVariant,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 12),
             Text(
-              localizations?.noPurchaseHistory ?? 'No Purchase History',
+              loc?.noPurchaseHistory ?? 'No Purchase History',
               style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey.shade800,
+                fontWeight: FontWeight.w700,
+                color: scheme.onSurface,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
-              localizations?.noTransactionsWithSupplier ??
-                  'No transactions found with\nthis supplier yet',
+              loc?.noTransactionsWithSupplier ??
+                  'No transactions found with this supplier yet',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              style: TextStyle(color: scheme.onSurfaceVariant),
             ),
           ],
         ),
