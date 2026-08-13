@@ -1,24 +1,21 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import 'package:flashbill/l10n/app_localizations.dart';
-import 'package:flashbill/utils/search_utils.dart';
 
-// --- Data Model ---
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/utils/search_utils.dart';
+import 'package:material_ui/material_ui.dart';
+
 class UnitOfMeasure {
   final String id;
   final String name;
 
   UnitOfMeasure({required this.id, required this.name});
 
-  // Convert to Map for Firebase
-  Map<String, dynamic> toMap() {
-    return {'name': name};
-  }
+  Map<String, dynamic> toMap() => {'name': name};
 
-  // Create from Map
   factory UnitOfMeasure.fromMap(String id, Map<dynamic, dynamic> data) {
     return UnitOfMeasure(id: id, name: data['name'] ?? '');
   }
@@ -32,15 +29,14 @@ class MeasurementUnitsScreen extends StatefulWidget {
 }
 
 class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
-  late String _userId;
-  late List<UnitOfMeasure> _units;
-  late List<UnitOfMeasure> _filteredUnits;
+  String _userId = '';
+  List<UnitOfMeasure> _units = [];
+  List<UnitOfMeasure> _filteredUnits = [];
   bool _isLoading = true;
   String _searchQuery = '';
   late TextEditingController _searchController;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _unitsSubscription;
   bool _showSearchBar = false;
-  final TextEditingController _unitNameController = TextEditingController();
 
   @override
   void initState() {
@@ -52,10 +48,23 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
 
   @override
   void dispose() {
-    _unitNameController.dispose();
     _searchController.dispose();
     _unitsSubscription?.cancel();
     super.dispose();
+  }
+
+  List<UnitOfMeasure> _applyFilter(List<UnitOfMeasure> units, String query) {
+    if (query.isEmpty) return units;
+    return units
+        .where((unit) => SearchUtils.matchesSubsequence(unit.name, query))
+        .toList();
+  }
+
+  void _filterUnits() {
+    setState(() {
+      _searchQuery = _searchController.text;
+      _filteredUnits = _applyFilter(_units, _searchQuery);
+    });
   }
 
   void _getUserAndLoadUnits() {
@@ -78,487 +87,592 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
         .doc(_userId)
         .collection('items')
         .snapshots()
-        .listen((QuerySnapshot<Map<String, dynamic>> snapshot) {
-          // Early return if widget is disposed
+        .listen((snapshot) {
           if (!mounted) return;
-
           final loadedUnits = snapshot.docs
               .map((doc) => UnitOfMeasure.fromMap(doc.id, doc.data()))
               .toList();
-          // Sort units alphabetically by name (A to Z)
           loadedUnits.sort(
             (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
           );
-
-          // Single setState call with all updates
-          if (mounted) {
-            setState(() {
-              _units = loadedUnits;
-              _isLoading = false;
-            });
-            _filterUnits();
-          }
+          setState(() {
+            _units = loadedUnits;
+            _filteredUnits = _applyFilter(loadedUnits, _searchController.text);
+            _isLoading = false;
+          });
         });
-  }
-
-  void _filterUnits() {
-    _searchQuery = _searchController.text;
-    if (!mounted) return;
-    setState(() {
-      if (_searchQuery.isEmpty) {
-        _filteredUnits = _units;
-      } else {
-        _filteredUnits = _units
-            .where(
-              (unit) => SearchUtils.matchesSubsequence(unit.name, _searchQuery),
-            )
-            .toList();
-      }
-    });
-  }
-
-  // --- POPUP FUNCTION: Add New Unit ---
-  void _showAddUnitPopup() {
-    final localizations = AppLocalizations.of(context);
-    // Clear controllers before showing
-    _unitNameController.clear();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // Theme colors for the dialog
-        final cardColor = context.cardColor;
-
-        return AlertDialog(
-          backgroundColor: cardColor,
-          title: Text(
-            localizations?.addNewUnit ?? 'Add New Unit',
-            style: context.bodyLargeText,
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                TextField(
-                  controller: _unitNameController,
-                  style: context.bodyLargeText,
-                  textCapitalization: TextCapitalization.characters,
-                  onChanged: (value) {
-                    if (value != value.toUpperCase()) {
-                      _unitNameController.text = value.toUpperCase();
-                      _unitNameController.selection =
-                          TextSelection.fromPosition(
-                            TextPosition(offset: value.toUpperCase().length),
-                          );
-                    }
-                  },
-                  decoration: InputDecoration(
-                    labelText:
-                        localizations?.unitNameExample ??
-                        'Unit Name (e.g., METER, PIECE)',
-                    labelStyle: TextStyle(
-                      color: context.primaryTextColor!.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text(
-                localizations?.cancel ?? 'Cancel',
-                style: TextStyle(color: Colors.red),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              child: Text(
-                localizations?.add ?? 'Add',
-                style: TextStyle(color: Colors.white),
-              ),
-              onPressed: () async {
-                if (_unitNameController.text.isNotEmpty) {
-                  try {
-                    await FirebaseFirestore.instance
-                        .collection('units')
-                        .doc(_userId)
-                        .collection('items')
-                        .add({'name': _unitNameController.text.trim()});
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                    }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            '${localizations?.errorAddingUnit ?? 'Error adding unit'}: $e',
-                          ),
-                        ),
-                      );
-                    }
-                  }
-                }
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // --- Helper Widget for the Unit List Item (Card) ---
-  Widget _buildUnitCard(BuildContext context, UnitOfMeasure unit, int index) {
-    final cardColor = context.cardColor;
-
-    return Card(
-      color: cardColor,
-      margin: const EdgeInsets.symmetric(vertical: 6.0),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        side: BorderSide(
-          color: context.secondaryTextColor!.withValues(alpha: 0.1),
-          width: 1.0,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                // Text Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        unit.name,
-                        style: context.titleLarge?.copyWith(fontSize: 18),
-                      ),
-                      const SizedBox(
-                        height: 4,
-                      ), // Added small space for separation
-                    ],
-                  ),
-                ),
-
-                // Action Buttons
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () => _showEditUnitPopup(unit),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _showDeleteConfirmation(unit),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(localizations?.measurementUnits ?? 'Measurement Units'),
-        centerTitle: false,
-        actions: [
-          IconButton(
-            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _showSearchBar = !_showSearchBar;
-                if (!_showSearchBar) {
-                  _searchController.clear();
-                }
-              });
-            },
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // --- Search Bar ---
-                if (_showSearchBar)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10.0,
-                      vertical: 8.0,
-                    ),
-                    child: Card(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText:
-                              localizations?.searchUnits ?? 'Search units...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () => _searchController.clear(),
-                                )
-                              : null,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          filled: false,
-                          fillColor: Colors.grey[200],
-                        ),
-                      ),
-                    ),
-                  ),
-                // --- Units List ---
-                Expanded(
-                  child: _filteredUnits.isEmpty
-                      ? Center(
-                          child: Text(
-                            _searchQuery.isEmpty
-                                ? localizations?.noUnitsYet ??
-                                      'No units yet. Add one to get started!'
-                                : '${localizations?.noUnitsFound ?? 'No units found for'} "$_searchQuery"',
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 10.0,
-                            vertical: !_showSearchBar ? 8.0 : 0.0,
-                          ),
-                          itemCount: _filteredUnits.length,
-                          itemBuilder: (context, index) {
-                            final unit = _filteredUnits[index];
-                            return _buildUnitCard(context, unit, index);
-                          },
-                        ),
-                ),
-              ],
-            ),
-      // --- Floating Action Button with Popup ---
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'add_unit_fab',
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: const Color(0xFF2196F3),
-        onPressed: _showAddUnitPopup,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-    );
-  }
+    final loc = AppLocalizations.of(context);
+    final title = loc?.measurementUnits ?? 'Measurement Units';
 
-  void _showEditUnitPopup(UnitOfMeasure unit) {
-    final localizations = AppLocalizations.of(context);
-    // Controllers for editing
-    final nameController = TextEditingController(text: unit.name);
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            localizations?.editUnit ?? 'Edit Unit',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Column(
+    if (Adaptive.isCupertino) {
+      return CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          middle: Text(title),
+          trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              buildFormField(
-                localizations?.unitNameExample ??
-                    'Unit Name (e.g., METER, PIECE)',
-                localizations?.enterUnitName ?? 'Enter unit name',
-                nameController,
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _toggleSearch,
+                child: Icon(
+                  _showSearchBar
+                      ? CupertinoIcons.xmark
+                      : CupertinoIcons.search,
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.only(left: 8),
+                onPressed: _showAddUnit,
+                child: const Icon(CupertinoIcons.add),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations?.cancel ?? 'Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await FirebaseFirestore.instance
-                      .collection('units')
-                      .doc(_userId)
-                      .collection('items')
-                      .doc(unit.id)
-                      .update({'name': nameController.text});
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${localizations?.errorUpdatingUnit ?? 'Error updating unit'}: $e',
-                        ),
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                localizations?.save ?? 'Save',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
+        ),
+        child: SafeArea(child: _buildBody(loc)),
+      );
+    }
 
-  Widget buildFormField(
-    String label,
-    String hint,
-    TextEditingController controller, {
-    IconData? suffixIcon,
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-    Function()? onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title),
+        actions: [
+          IconButton(
+            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            onPressed: _toggleSearch,
           ),
-          const SizedBox(height: 8.0),
-          Container(
-            height: 53,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(color: Colors.grey[700]!),
-            ),
-            child: TextFormField(
-              onTap: onTap,
-              controller: controller,
-              keyboardType: keyboardType,
-              maxLines: maxLines,
-              textCapitalization: TextCapitalization.characters,
-              onChanged: (value) {
-                if (value != value.toUpperCase()) {
-                  controller.text = value.toUpperCase();
-                  controller.selection = TextSelection.fromPosition(
-                    TextPosition(offset: value.toUpperCase().length),
-                  );
-                }
-              },
-              decoration: InputDecoration(
-                fillColor: Colors.white,
-                hintText: hint,
-                hintStyle: TextStyle(color: Colors.grey[700]!),
-                filled: true,
-                contentPadding: EdgeInsets.symmetric(
-                  vertical: maxLines > 1 ? 16.0 : 16.0,
-                  horizontal: 16.0,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12.0),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: suffixIcon != null
-                    ? Icon(suffixIcon, color: Colors.grey[700]!)
-                    : null,
-              ),
+          Padding(
+            padding: const EdgeInsets.only(left: 8, right: 8),
+            child: IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: loc?.addNewUnit ?? 'Add New Unit',
+              onPressed: _showAddUnit,
             ),
           ),
         ],
       ),
+      body: _buildBody(loc),
     );
   }
 
-  void _showDeleteConfirmation(UnitOfMeasure unit) {
-    final localizations = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            localizations?.deleteUnit ?? 'Delete Unit',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+  void _toggleSearch() {
+    setState(() {
+      _showSearchBar = !_showSearchBar;
+      if (!_showSearchBar) _searchController.clear();
+    });
+  }
+
+  Widget _buildBody(AppLocalizations? loc) {
+    if (_isLoading) {
+      return Center(child: Adaptive.progress());
+    }
+
+    return Column(
+      children: [
+        if (_showSearchBar)
+          Adaptive.searchField(
+            controller: _searchController,
+            query: _searchQuery,
+            hint: loc?.searchUnits ?? 'Search units...',
           ),
-          content: Text(
-            '${localizations?.confirmDeleteUnit ?? 'Are you sure you want to remove'} ${unit.name}?',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations?.cancel ?? 'Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  await FirebaseFirestore.instance
-                      .collection('units')
-                      .doc(_userId)
-                      .collection('items')
-                      .doc(unit.id)
-                      .delete();
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '${localizations?.errorDeletingUnit ?? 'Error deleting unit'}: $e',
-                        ),
-                      ),
+        Expanded(
+          child: _filteredUnits.isEmpty
+              ? _DirectoryEmptyState(
+                  icon: Icons.straighten_outlined,
+                  message: _searchQuery.isEmpty
+                      ? (loc?.noUnitsYet ??
+                            'No units yet. Add one to get started!')
+                      : '${loc?.noUnitsFound ?? 'No units found for'} "$_searchQuery"',
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(0, 4, 8, 16),
+                  itemCount: _filteredUnits.length,
+                  itemBuilder: (context, index) {
+                    final unit = _filteredUnits[index];
+                    return _UnitTile(
+                      unit: unit,
+                      onEdit: () => _showEditUnit(unit),
+                      onDelete: () => _confirmDelete(unit),
+                      editLabel: loc?.edit ?? 'Edit',
+                      deleteLabel: loc?.delete ?? 'Delete',
                     );
-                  }
-                }
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showAddUnit() async {
+    final loc = AppLocalizations.of(context);
+    final name = await _showNameSheet(
+      title: loc?.addNewUnit ?? 'Add New Unit',
+      saveLabel: loc?.add ?? 'Add',
+      fieldLabel: loc?.unitNameExample ?? 'Unit Name (e.g., METER, PIECE)',
+      fieldHint: loc?.enterUnitName ?? 'Enter unit name',
+    );
+    if (name == null || name.isEmpty || _userId.isEmpty) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('units')
+          .doc(_userId)
+          .collection('items')
+          .add({'name': name});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${loc?.errorAddingUnit ?? 'Error adding unit'}: $e',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _showEditUnit(UnitOfMeasure unit) async {
+    final loc = AppLocalizations.of(context);
+    final name = await _showNameSheet(
+      title: loc?.editUnit ?? 'Edit Unit',
+      saveLabel: loc?.save ?? 'Save',
+      fieldLabel: loc?.unitNameExample ?? 'Unit Name (e.g., METER, PIECE)',
+      fieldHint: loc?.enterUnitName ?? 'Enter unit name',
+      initialValue: unit.name,
+    );
+    if (name == null || name.isEmpty || _userId.isEmpty) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('units')
+          .doc(_userId)
+          .collection('items')
+          .doc(unit.id)
+          .update({'name': name});
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${loc?.errorUpdatingUnit ?? 'Error updating unit'}: $e',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<String?> _showNameSheet({
+    required String title,
+    required String saveLabel,
+    required String fieldLabel,
+    required String fieldHint,
+    String initialValue = '',
+  }) {
+    final loc = AppLocalizations.of(context);
+    return Adaptive.showSheet<String>(
+      context: context,
+      builder: (sheetContext) {
+        return _NameFormSheet(
+          title: title,
+          saveLabel: saveLabel,
+          cancelLabel: loc?.cancel ?? 'Cancel',
+          fieldLabel: fieldLabel,
+          fieldHint: fieldHint,
+          initialValue: initialValue,
+        );
+      },
+    );
+  }
+
+  Future<void> _confirmDelete(UnitOfMeasure unit) async {
+    final loc = AppLocalizations.of(context);
+    final confirmed = await _confirmDestructive(
+      context: context,
+      title: loc?.deleteUnit ?? 'Delete Unit',
+      message:
+          '${loc?.confirmDeleteUnit ?? 'Are you sure you want to remove'} ${unit.name}?',
+      confirmLabel: loc?.delete ?? 'Delete',
+      cancelLabel: loc?.cancel ?? 'Cancel',
+    );
+    if (confirmed != true || _userId.isEmpty) return;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('units')
+          .doc(_userId)
+          .collection('items')
+          .doc(unit.id)
+          .delete();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${loc?.errorDeletingUnit ?? 'Error deleting unit'}: $e',
+          ),
+        ),
+      );
+    }
+  }
+}
+
+class _UnitTile extends StatelessWidget {
+  const _UnitTile({
+    required this.unit,
+    required this.onEdit,
+    required this.onDelete,
+    required this.editLabel,
+    required this.deleteLabel,
+  });
+
+  final UnitOfMeasure unit;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final String editLabel;
+  final String deleteLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final avatar = ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: ColoredBox(
+        color: scheme.primaryContainer,
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Center(
+            child: Text(
+              unit.name.isNotEmpty ? unit.name[0].toUpperCase() : '?',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: scheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final nameStyle = TextStyle(
+      color: scheme.onSurface,
+      fontWeight: FontWeight.w700,
+    );
+
+    if (Adaptive.isCupertino) {
+      return CupertinoListTile(
+        padding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+        leading: avatar,
+        title: Text(
+          unit.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: nameStyle,
+        ),
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.only(right: 4),
+          onPressed: () => _showCupertinoActions(context),
+          child: const Icon(CupertinoIcons.ellipsis),
+        ),
+        onTap: onEdit,
+      );
+    }
+
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
+      minVerticalPadding: 4,
+      leading: avatar,
+      title: Text(
+        unit.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: nameStyle,
+      ),
+      trailing: PopupMenuButton<String>(
+        padding: const EdgeInsets.all(8),
+        onSelected: (value) {
+          if (value == 'edit') onEdit();
+          if (value == 'delete') onDelete();
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(value: 'edit', child: Text(editLabel)),
+          PopupMenuItem(value: 'delete', child: Text(deleteLabel)),
+        ],
+      ),
+      onTap: onEdit,
+    );
+  }
+
+  Future<void> _showCupertinoActions(BuildContext context) async {
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetContext) {
+        return CupertinoActionSheet(
+          title: Text(unit.name),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                onEdit();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+              child: Text(editLabel),
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                onDelete();
+              },
+              child: Text(deleteLabel),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext),
+            child: const Text('Cancel'),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _NameFormSheet extends StatefulWidget {
+  const _NameFormSheet({
+    required this.title,
+    required this.saveLabel,
+    required this.cancelLabel,
+    required this.fieldLabel,
+    required this.fieldHint,
+    required this.initialValue,
+  });
+
+  final String title;
+  final String saveLabel;
+  final String cancelLabel;
+  final String fieldLabel;
+  final String fieldHint;
+  final String initialValue;
+
+  @override
+  State<_NameFormSheet> createState() => _NameFormSheetState();
+}
+
+class _NameFormSheetState extends State<_NameFormSheet> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final value = _controller.text.trim();
+    if (value.isEmpty) return;
+    Navigator.pop(context, value);
+  }
+
+  void _upper() {
+    final value = _controller.text;
+    final upper = value.toUpperCase();
+    if (value != upper) {
+      _controller.value = _controller.value.copyWith(
+        text: upper,
+        selection: TextSelection.collapsed(offset: upper.length),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    if (Adaptive.isCupertino) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: Material(
+          color: CupertinoColors.systemGroupedBackground.resolveFrom(context),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CupertinoNavigationBar(
+                  automaticallyImplyLeading: false,
+                  middle: Text(widget.title),
+                  leading: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(widget.cancelLabel),
+                  ),
+                  trailing: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _save,
+                    child: Text(widget.saveLabel),
+                  ),
+                ),
+                CupertinoFormSection.insetGrouped(
+                  children: [
+                    CupertinoTextFormFieldRow(
+                      controller: _controller,
+                      prefix: Text(widget.fieldLabel),
+                      placeholder: widget.fieldHint,
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (_) => _upper(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _controller,
+                autofocus: true,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) => _upper(),
+                decoration: InputDecoration(
+                  labelText: widget.fieldLabel,
+                  hintText: widget.fieldHint,
+                  prefixIcon: const Icon(Icons.straighten_outlined),
                 ),
               ),
-              child: Text(
-                localizations?.delete ?? 'Delete',
-                style: TextStyle(color: Colors.white),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(widget.cancelLabel),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _save,
+                      child: Text(widget.saveLabel),
+                    ),
+                  ),
+                ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DirectoryEmptyState extends StatelessWidget {
+  const _DirectoryEmptyState({required this.icon, required this.message});
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: scheme.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+Future<bool?> _confirmDestructive({
+  required BuildContext context,
+  required String title,
+  required String message,
+  required String confirmLabel,
+  required String cancelLabel,
+}) {
+  if (Adaptive.isCupertino) {
+    return showCupertinoDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return CupertinoAlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            CupertinoDialogAction(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(cancelLabel),
+            ),
+            CupertinoDialogAction(
+              isDestructiveAction: true,
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: Text(confirmLabel),
             ),
           ],
         );
       },
     );
   }
+
+  return showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(cancelLabel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: Text(confirmLabel),
+          ),
+        ],
+      );
+    },
+  );
 }

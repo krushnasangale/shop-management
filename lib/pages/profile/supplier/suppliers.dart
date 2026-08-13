@@ -1,14 +1,15 @@
-import 'dart:math';
-import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
-import 'package:flashbill/pages/profile/supplier/supplier_history.dart';
-import 'package:flashbill/l10n/app_localizations.dart';
-import 'package:flashbill/utils/search_utils.dart';
 
-// --- Supplier Data Model ---
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/profile/supplier/supplier_history.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/utils/search_utils.dart';
+import 'package:material_ui/material_ui.dart';
+
 class Supplier {
   final String id;
   final String name;
@@ -22,12 +23,10 @@ class Supplier {
     required this.location,
   });
 
-  // Convert Supplier to Map for Firebase
   Map<String, dynamic> toMap() {
     return {'name': name, 'contact': contact, 'location': location};
   }
 
-  // Create Supplier from Map
   factory Supplier.fromMap(String id, Map<dynamic, dynamic> data) {
     return Supplier(
       id: id,
@@ -46,38 +45,15 @@ class Suppliers extends StatefulWidget {
 }
 
 class _SuppliersState extends State<Suppliers> {
-  late String _userId;
-  late List<Supplier> _suppliers;
-  late List<Supplier> _filteredSuppliers;
+  String _userId = '';
+  List<Supplier> _suppliers = [];
+  List<Supplier> _filteredSuppliers = [];
   bool _isLoading = true;
   String _searchQuery = '';
   late TextEditingController _searchController;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _suppliersSubscription;
   bool _showSearchBar = false;
-
-  // --- Random Color Generator for Avatar Initials ---
-  final Random _random = Random();
-  Color _generateRandomColor() {
-    return Color.fromARGB(
-      255,
-      _random.nextInt(200) + 50, // Avoid very dark colors that hide text
-      _random.nextInt(200) + 50,
-      _random.nextInt(200) + 50,
-    );
-  }
-
-  // --- Helper to get initials ---
-  String _getInitials(String name) {
-    List<String> parts = name.trim().split(RegExp(r'\s+'));
-    parts = parts.where((part) => part.isNotEmpty).toList();
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    } else if (parts.isNotEmpty) {
-      return parts[0][0].toUpperCase();
-    }
-    return '';
-  }
 
   @override
   void initState() {
@@ -94,32 +70,26 @@ class _SuppliersState extends State<Suppliers> {
     super.dispose();
   }
 
+  List<Supplier> _applyFilter(List<Supplier> suppliers, String query) {
+    if (query.isEmpty) return suppliers;
+    return suppliers
+        .where(
+          (supplier) =>
+              SearchUtils.matchesSubsequence(supplier.name, query) ||
+              SearchUtils.matchesSubsequence(supplier.contact, query) ||
+              SearchUtils.matchesSubsequence(supplier.location, query),
+        )
+        .toList();
+  }
+
   void _filterSuppliers() {
-    _searchQuery = _searchController.text;
     setState(() {
-      if (_searchQuery.isEmpty) {
-        _filteredSuppliers = _suppliers;
-      } else {
-        _filteredSuppliers = _suppliers
-            .where(
-              (supplier) =>
-                  SearchUtils.matchesSubsequence(supplier.name, _searchQuery) ||
-                  SearchUtils.matchesSubsequence(
-                    supplier.contact,
-                    _searchQuery,
-                  ) ||
-                  SearchUtils.matchesSubsequence(
-                    supplier.location,
-                    _searchQuery,
-                  ),
-            )
-            .toList();
-      }
+      _searchQuery = _searchController.text;
+      _filteredSuppliers = _applyFilter(_suppliers, _searchQuery);
     });
   }
 
   void _getUserAndLoadSuppliers() {
-    // Get current logged-in user
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _userId = user.uid;
@@ -128,6 +98,7 @@ class _SuppliersState extends State<Suppliers> {
       setState(() {
         _isLoading = false;
         _suppliers = [];
+        _filteredSuppliers = [];
       });
     }
   }
@@ -145,14 +116,16 @@ class _SuppliersState extends State<Suppliers> {
               .map((doc) => Supplier.fromMap(doc.id, doc.data()))
               .toList();
 
-          // Sort suppliers alphabetically by name (A to Z)
           loadedSuppliers.sort(
             (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
           );
           if (mounted) {
             setState(() {
               _suppliers = loadedSuppliers;
-              _filterSuppliers();
+              _filteredSuppliers = _applyFilter(
+                loadedSuppliers,
+                _searchController.text,
+              );
               _isLoading = false;
             });
           }
@@ -161,495 +134,651 @@ class _SuppliersState extends State<Suppliers> {
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
+    final loc = AppLocalizations.of(context);
+    final title = loc?.suppliers ?? 'Suppliers';
+
+    if (Adaptive.isCupertino) {
+      return CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          middle: Text(title),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CupertinoButton(
+                padding: EdgeInsets.zero,
+                onPressed: _toggleSearch,
+                child: Icon(
+                  _showSearchBar
+                      ? CupertinoIcons.xmark
+                      : CupertinoIcons.search,
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.only(left: 8),
+                onPressed: _showAddSupplier,
+                child: const Icon(CupertinoIcons.add),
+              ),
+            ],
+          ),
+        ),
+        child: SafeArea(child: _buildBody(loc)),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations?.suppliers ?? 'Suppliers'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
+        title: Text(title),
         actions: [
           IconButton(
             icon: Icon(_showSearchBar ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _showSearchBar = !_showSearchBar;
-                if (!_showSearchBar) {
-                  _searchController.clear();
-                }
-              });
-            },
+            onPressed: _toggleSearch,
           ),
-          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(left: 8, right: 8),
+            child: IconButton(
+              icon: const Icon(Icons.add),
+              tooltip: loc?.addSupplier ?? 'Add Supplier',
+              onPressed: _showAddSupplier,
+            ),
+          ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // --- Search Bar ---
-                if (_showSearchBar)
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: 14.0,
-                      right: 14.0,
-                      bottom: 8.0,
-                      top: 8.0,
-                    ),
-                    child: Card(
-                      child: TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText:
-                              localizations?.searchSuppliers ??
-                              'Search Suppliers...',
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                  },
-                                )
-                              : null,
-                          filled: false,
-                          fillColor: Theme.of(
-                            context,
-                          ).inputDecorationTheme.fillColor,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.0),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                // --- Suppliers List ---
-                Expanded(
-                  child: _filteredSuppliers.isEmpty
-                      ? Center(
-                          child: Text(
-                            _searchQuery.isEmpty
-                                ? localizations?.noSuppliersYet ??
-                                      'No suppliers yet. Add one to get started!'
-                                : '${localizations?.noSuppliersFound ?? 'No suppliers found for'} "$_searchQuery"',
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.0,
-                            vertical: !_showSearchBar ? 8.0 : 0.0,
-                          ),
-                          itemCount: _filteredSuppliers.length,
-                          itemBuilder: (context, index) {
-                            final supplier = _filteredSuppliers[index];
-                            final initials = _getInitials(supplier.name);
-                            final avatarColor = _generateRandomColor();
-
-                            return _buildSupplierCard(
-                              context,
-                              supplier,
-                              initials,
-                              avatarColor,
-                            );
-                          },
-                        ),
-                ),
-              ],
-            ),
-      floatingActionButton: FloatingActionButton(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        onPressed: () => addNewSupplier(),
-        backgroundColor: const Color(0xFF2196F3),
-        tooltip: localizations?.addSupplier ?? 'Add Supplier',
-        child: const Icon(Icons.add, color: Colors.white, size: 45),
-      ),
+      body: _buildBody(loc),
     );
   }
 
-  // Helper Widget for a single Supplier Card
-  Widget _buildSupplierCard(
-    BuildContext context,
-    Supplier supplier,
-    String initials,
-    Color avatarColor,
-  ) {
-    final localizations = AppLocalizations.of(context);
-    final cardColor = context.cardColor;
-
-    return Card(
-      color: cardColor,
-      margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 3.0),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.0),
-        side: BorderSide(
-          color: context.secondaryTextColor!.withValues(alpha: 0.1),
-          width: 1.0,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(
-          top: 8.0,
-          bottom: 0.0,
-          left: 10.0,
-          right: 10.0,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // Initials Avatar
-                CircleAvatar(
-                  radius: 20,
-                  backgroundColor: avatarColor,
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Supplier Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        supplier.name,
-                        style: context.titleLarge?.copyWith(fontSize: 16),
-                      ),
-                      const SizedBox(height: 3),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(supplier.contact, style: context.subtitleMedium),
-                          Text(
-                            supplier.location,
-                            style: context.subtitleMedium,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton.icon(
-                  onPressed: () => _showSupplierHistory(supplier),
-                  icon: const Icon(Icons.history, size: 18),
-                  label: Text(localizations?.history ?? 'History'),
-                  style: TextButton.styleFrom(foregroundColor: Colors.green),
-                ),
-                TextButton.icon(
-                  onPressed: () => _editSupplier(supplier),
-                  icon: const Icon(Icons.edit, size: 18),
-                  label: Text(localizations?.edit ?? 'Edit'),
-                  style: TextButton.styleFrom(foregroundColor: Colors.blue),
-                ),
-                TextButton.icon(
-                  onPressed: () => _showDeleteConfirmation(supplier),
-                  icon: const Icon(Icons.delete, size: 18),
-                  label: Text(localizations?.delete ?? 'Delete'),
-                  style: TextButton.styleFrom(foregroundColor: Colors.red),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  void _toggleSearch() {
+    setState(() {
+      _showSearchBar = !_showSearchBar;
+      if (!_showSearchBar) {
+        _searchController.clear();
+      }
+    });
   }
 
-  void addNewSupplier() {
-    final nameController = TextEditingController();
-    final contactController = TextEditingController();
-    final locationController = TextEditingController();
+  Widget _buildBody(AppLocalizations? loc) {
+    if (_isLoading) {
+      return Center(child: Adaptive.progress());
+    }
 
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        final localizations = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(
-            localizations?.addSupplier ?? 'Add Supplier',
-            style: context.bodyLargeText,
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              buildFormField(
-                localizations?.supplierName ?? 'Supplier Name',
-                localizations?.enterSupplierName ?? 'Enter Supplier Name',
-                nameController,
-              ),
-              buildFormField(
-                localizations?.supplierContact ?? 'Supplier Contact',
-                localizations?.enterContactNumber ?? 'Enter Contact Number',
-                contactController,
-                keyboardType: TextInputType.phone,
-              ),
-              buildFormField(
-                localizations?.supplierLocation ?? 'Supplier Location',
-                localizations?.enterLocation ?? 'Enter Location',
-                locationController,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations?.cancel ?? 'Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isNotEmpty &&
-                    contactController.text.isNotEmpty &&
-                    locationController.text.isNotEmpty) {
-                  final newSupplier = {
-                    'name': nameController.text.trim(),
-                    'contact': contactController.text,
-                    'location': locationController.text.trim(),
-                  };
-                  await FirebaseFirestore.instance
-                      .collection('suppliers')
-                      .doc(_userId)
-                      .collection('items')
-                      .add(newSupplier);
-                  if (context.mounted) Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Add', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget buildFormField(
-    String label,
-    String hint,
-    TextEditingController controller, {
-    IconData? suffixIcon,
-    TextInputType keyboardType = TextInputType.text,
-    int maxLines = 1,
-    Function()? onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8.0),
-          Container(
-            height: 53,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(color: Colors.grey[700]!),
-            ),
-            child: Builder(
-              builder: (context) {
-                final isDarkMode =
-                    Theme.of(context).brightness == Brightness.dark;
-                return TextFormField(
-                  onTap: onTap,
-                  controller: controller,
-                  keyboardType: keyboardType,
-                  maxLines: maxLines,
-                  textCapitalization: keyboardType == TextInputType.phone
-                      ? TextCapitalization.none
-                      : TextCapitalization.characters,
-                  onChanged: (value) {
-                    // Only apply uppercase conversion for name and location (not phone)
-                    if (keyboardType != TextInputType.phone) {
-                      if (value != value.toUpperCase()) {
-                        controller.text = value.toUpperCase();
-                        controller.selection = TextSelection.fromPosition(
-                          TextPosition(offset: value.toUpperCase().length),
-                        );
-                      }
-                    }
+    return Column(
+      children: [
+        if (_showSearchBar) _buildSearchField(loc),
+        Expanded(
+          child: _filteredSuppliers.isEmpty
+              ? _EmptyState(
+                  message: _searchQuery.isEmpty
+                      ? (loc?.noSuppliersYet ??
+                            'No suppliers yet. Add one to get started!')
+                      : '${loc?.noSuppliersFound ?? 'No suppliers found for'} "$_searchQuery"',
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(0, 4, 8, 16),
+                  itemCount: _filteredSuppliers.length,
+                  itemBuilder: (context, index) {
+                    final supplier = _filteredSuppliers[index];
+                    return _SupplierTile(
+                      supplier: supplier,
+                      onOpen: () => _showSupplierHistory(supplier),
+                      onHistory: () => _showSupplierHistory(supplier),
+                      onEdit: () => _showEditSupplier(supplier),
+                      onDelete: () => _confirmDelete(supplier),
+                      historyLabel: loc?.history ?? 'History',
+                      editLabel: loc?.edit ?? 'Edit',
+                      deleteLabel: loc?.delete ?? 'Delete',
+                    );
                   },
-                  style: TextStyle(
-                    color: isDarkMode ? Colors.white : Colors.black,
-                  ),
-                  decoration: InputDecoration(
-                    fillColor: isDarkMode ? Colors.grey[800] : Colors.white,
-                    hintText: hint,
-                    hintStyle: TextStyle(color: Colors.grey[500]!),
-                    filled: true,
-                    contentPadding: EdgeInsets.symmetric(
-                      vertical: maxLines > 1 ? 16.0 : 16.0,
-                      horizontal: 16.0,
-                    ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                      borderSide: BorderSide.none,
-                    ),
-                    suffixIcon: suffixIcon != null
-                        ? Icon(suffixIcon, color: Colors.grey[700]!)
-                        : null,
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+                ),
+        ),
+      ],
     );
   }
 
-  void _editSupplier(Supplier supplier) {
-    final nameController = TextEditingController(text: supplier.name);
-    final contactController = TextEditingController(text: supplier.contact);
-    final locationController = TextEditingController(text: supplier.location);
+  Widget _buildSearchField(AppLocalizations? loc) {
+    return Adaptive.searchField(
+      controller: _searchController,
+      hint: loc?.searchSuppliers ?? 'Search Suppliers...',
+      query: _searchQuery,
+    );
+  }
 
-    showDialog(
+  Future<void> _showAddSupplier() async {
+    final result = await _showSupplierForm();
+    if (result == null || _userId.isEmpty) return;
+
+    await FirebaseFirestore.instance
+        .collection('suppliers')
+        .doc(_userId)
+        .collection('items')
+        .add(result);
+  }
+
+  Future<void> _showEditSupplier(Supplier supplier) async {
+    final result = await _showSupplierForm(supplier: supplier);
+    if (result == null || _userId.isEmpty) return;
+
+    await FirebaseFirestore.instance
+        .collection('suppliers')
+        .doc(_userId)
+        .collection('items')
+        .doc(supplier.id)
+        .update(result);
+  }
+
+  Future<Map<String, String>?> _showSupplierForm({Supplier? supplier}) {
+    final loc = AppLocalizations.of(context);
+    return Adaptive.showSheet<Map<String, String>>(
       context: context,
-      builder: (BuildContext context) {
-        final localizations = AppLocalizations.of(context);
-        return AlertDialog(
-          title: Text(
-            localizations?.editSupplier ?? 'Edit Supplier',
-            style: context.bodyLargeText,
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              buildFormField(
-                localizations?.supplierName ?? 'Supplier Name',
-                localizations?.enterSupplierName ?? 'Enter Supplier Name',
-                nameController,
-              ),
-              buildFormField(
-                localizations?.supplierContact ?? 'Supplier Contact',
-                localizations?.enterContactNumber ?? 'Enter Contact Number',
-                contactController,
-                keyboardType: TextInputType.phone,
-              ),
-              buildFormField(
-                localizations?.supplierLocation ?? 'Supplier Location',
-                localizations?.enterLocation ?? 'Enter Location',
-                locationController,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations?.cancel ?? 'Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.isNotEmpty &&
-                    contactController.text.isNotEmpty &&
-                    locationController.text.isNotEmpty) {
-                  await FirebaseFirestore.instance
-                      .collection('suppliers')
-                      .doc(_userId)
-                      .collection('items')
-                      .doc(supplier.id)
-                      .update({
-                        'name': nameController.text,
-                        'contact': contactController.text,
-                        'location': locationController.text,
-                      });
-                  if (context.mounted) Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                localizations?.save ?? 'Save',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
+      builder: (sheetContext) {
+        return _SupplierFormSheet(
+          title: supplier == null
+              ? (loc?.addSupplier ?? 'Add Supplier')
+              : (loc?.editSupplier ?? 'Edit Supplier'),
+          saveLabel: supplier == null
+              ? (loc?.add ?? 'Add')
+              : (loc?.save ?? 'Save'),
+          cancelLabel: loc?.cancel ?? 'Cancel',
+          nameLabel: loc?.supplierName ?? 'Supplier Name',
+          nameHint: loc?.enterSupplierName ?? 'Enter Supplier Name',
+          contactLabel: loc?.supplierContact ?? 'Supplier Contact',
+          contactHint: loc?.enterContactNumber ?? 'Enter Contact Number',
+          locationLabel: loc?.supplierLocation ?? 'Supplier Location',
+          locationHint: loc?.enterLocation ?? 'Enter Location',
+          initialName: supplier?.name ?? '',
+          initialContact: supplier?.contact ?? '',
+          initialLocation: supplier?.location ?? '',
         );
       },
     );
   }
 
   void _showSupplierHistory(Supplier supplier) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => SupplierHistoryScreen(
-          supplierId: supplier.id,
-          supplierName: supplier.name,
-          userId: _userId,
-        ),
+    AppNavigator.push(
+      context,
+      SupplierHistoryScreen(
+        supplierId: supplier.id,
+        supplierName: supplier.name,
+        userId: _userId,
       ),
     );
   }
 
-  void _showDeleteConfirmation(Supplier supplier) {
-    showDialog(
+  Future<void> _confirmDelete(Supplier supplier) async {
+    final loc = AppLocalizations.of(context);
+    final confirmed = await _showDeleteDialog(supplier, loc);
+    if (confirmed != true || _userId.isEmpty) return;
+
+    await FirebaseFirestore.instance
+        .collection('suppliers')
+        .doc(_userId)
+        .collection('items')
+        .doc(supplier.id)
+        .delete();
+  }
+
+  Future<bool?> _showDeleteDialog(Supplier supplier, AppLocalizations? loc) {
+    final title = loc?.deleteSupplier ?? 'Delete Supplier';
+    final message =
+        '${loc?.confirmDeleteSupplier ?? 'Are you sure you want to delete'} ${supplier.name}?';
+
+    if (Adaptive.isCupertino) {
+      return showCupertinoDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          return CupertinoAlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              CupertinoDialogAction(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(loc?.cancel ?? 'Cancel'),
+              ),
+              CupertinoDialogAction(
+                isDestructiveAction: true,
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(loc?.delete ?? 'Delete'),
+              ),
+            ],
+          );
+        },
+      );
+    }
+
+    return showDialog<bool>(
       context: context,
-      builder: (BuildContext context) {
-        final localizations = AppLocalizations.of(context);
+      builder: (dialogContext) {
         return AlertDialog(
-          title: Text(
-            localizations?.deleteSupplier ?? 'Delete Supplier',
-            style: context.bodyLargeText,
-          ),
-          content: Text(
-            '${localizations?.confirmDeleteSupplier ?? 'Are you sure you want to delete'} ${supplier.name}?',
-          ),
+          title: Text(title),
+          content: Text(message),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations?.cancel ?? 'Cancel'),
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(loc?.cancel ?? 'Cancel'),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                await FirebaseFirestore.instance
-                    .collection('suppliers')
-                    .doc(_userId)
-                    .collection('items')
-                    .doc(supplier.id)
-                    .delete();
-                if (context.mounted) Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
-              child: Text(
-                localizations?.delete ?? 'Delete',
-                style: TextStyle(color: Colors.white),
-              ),
+              child: Text(loc?.delete ?? 'Delete'),
             ),
           ],
         );
       },
+    );
+  }
+}
+
+String _initials(String name) {
+  final parts = name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList();
+  if (parts.length >= 2) {
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+  if (parts.isNotEmpty) {
+    return parts[0][0].toUpperCase();
+  }
+  return '?';
+}
+
+class _SupplierTile extends StatelessWidget {
+  const _SupplierTile({
+    required this.supplier,
+    required this.onOpen,
+    required this.onHistory,
+    required this.onEdit,
+    required this.onDelete,
+    required this.historyLabel,
+    required this.editLabel,
+    required this.deleteLabel,
+  });
+
+  final Supplier supplier;
+  final VoidCallback onOpen;
+  final VoidCallback onHistory;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final String historyLabel;
+  final String editLabel;
+  final String deleteLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final details = [
+      if (supplier.contact.isNotEmpty) supplier.contact,
+      if (supplier.location.isNotEmpty) supplier.location,
+    ].join('  ·  ');
+    final avatar = ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: ColoredBox(
+        color: scheme.primaryContainer,
+        child: SizedBox(
+          width: 36,
+          height: 36,
+          child: Center(
+            child: Text(
+              _initials(supplier.name),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: scheme.onPrimaryContainer,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final nameStyle = TextStyle(
+      color: scheme.onSurface,
+      fontWeight: FontWeight.w700,
+    );
+
+    if (Adaptive.isCupertino) {
+      return CupertinoListTile(
+        padding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+        leading: avatar,
+        title: Text(
+          supplier.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: nameStyle,
+        ),
+        subtitle: details.isEmpty
+            ? null
+            : Text(details, maxLines: 1, overflow: TextOverflow.ellipsis),
+        trailing: CupertinoButton(
+          padding: const EdgeInsets.only(right: 4),
+          onPressed: () => _showCupertinoActions(context),
+          child: const Icon(CupertinoIcons.ellipsis),
+        ),
+        onTap: onOpen,
+      );
+    }
+
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
+      minVerticalPadding: 4,
+      leading: avatar,
+      title: Text(
+        supplier.name,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: nameStyle,
+      ),
+      subtitle: details.isEmpty
+          ? null
+          : Text(details, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: PopupMenuButton<String>(
+        padding: const EdgeInsets.all(8),
+        onSelected: (value) {
+          switch (value) {
+            case 'history':
+              onHistory();
+            case 'edit':
+              onEdit();
+            case 'delete':
+              onDelete();
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(value: 'history', child: Text(historyLabel)),
+          PopupMenuItem(value: 'edit', child: Text(editLabel)),
+          PopupMenuItem(value: 'delete', child: Text(deleteLabel)),
+        ],
+      ),
+      onTap: onOpen,
+    );
+  }
+
+  Future<void> _showCupertinoActions(BuildContext context) async {
+    await showCupertinoModalPopup<void>(
+      context: context,
+      builder: (sheetContext) {
+        return CupertinoActionSheet(
+          title: Text(supplier.name),
+          actions: [
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                onHistory();
+              },
+              child: Text(historyLabel),
+            ),
+            CupertinoActionSheetAction(
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                onEdit();
+              },
+              child: Text(editLabel),
+            ),
+            CupertinoActionSheetAction(
+              isDestructiveAction: true,
+              onPressed: () {
+                Navigator.pop(sheetContext);
+                onDelete();
+              },
+              child: Text(deleteLabel),
+            ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(sheetContext),
+            child: const Text('Cancel'),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SupplierFormSheet extends StatefulWidget {
+  const _SupplierFormSheet({
+    required this.title,
+    required this.saveLabel,
+    required this.cancelLabel,
+    required this.nameLabel,
+    required this.nameHint,
+    required this.contactLabel,
+    required this.contactHint,
+    required this.locationLabel,
+    required this.locationHint,
+    required this.initialName,
+    required this.initialContact,
+    required this.initialLocation,
+  });
+
+  final String title;
+  final String saveLabel;
+  final String cancelLabel;
+  final String nameLabel;
+  final String nameHint;
+  final String contactLabel;
+  final String contactHint;
+  final String locationLabel;
+  final String locationHint;
+  final String initialName;
+  final String initialContact;
+  final String initialLocation;
+
+  @override
+  State<_SupplierFormSheet> createState() => _SupplierFormSheetState();
+}
+
+class _SupplierFormSheetState extends State<_SupplierFormSheet> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _contactController;
+  late final TextEditingController _locationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _contactController = TextEditingController(text: widget.initialContact);
+    _locationController = TextEditingController(text: widget.initialLocation);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _contactController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final name = _nameController.text.trim();
+    final contact = _contactController.text.trim();
+    final location = _locationController.text.trim();
+    if (name.isEmpty || contact.isEmpty || location.isEmpty) return;
+
+    Navigator.pop(context, {
+      'name': name,
+      'contact': contact,
+      'location': location,
+    });
+  }
+
+  void _upper(TextEditingController controller) {
+    final value = controller.text;
+    final upper = value.toUpperCase();
+    if (value != upper) {
+      controller.value = controller.value.copyWith(
+        text: upper,
+        selection: TextSelection.collapsed(offset: upper.length),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+
+    if (Adaptive.isCupertino) {
+      return Padding(
+        padding: EdgeInsets.only(bottom: bottomInset),
+        child: Container(
+          decoration: BoxDecoration(
+            color: CupertinoColors.systemGroupedBackground.resolveFrom(
+              context,
+            ),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CupertinoNavigationBar(
+                  automaticallyImplyLeading: false,
+                  middle: Text(widget.title),
+                  leading: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(widget.cancelLabel),
+                  ),
+                  trailing: CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    onPressed: _save,
+                    child: Text(widget.saveLabel),
+                  ),
+                ),
+                CupertinoFormSection.insetGrouped(
+                  children: [
+                    CupertinoTextFormFieldRow(
+                      controller: _nameController,
+                      prefix: Text(widget.nameLabel),
+                      placeholder: widget.nameHint,
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (_) => _upper(_nameController),
+                    ),
+                    CupertinoTextFormFieldRow(
+                      controller: _contactController,
+                      prefix: Text(widget.contactLabel),
+                      placeholder: widget.contactHint,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    CupertinoTextFormFieldRow(
+                      controller: _locationController,
+                      prefix: Text(widget.locationLabel),
+                      placeholder: widget.locationHint,
+                      textCapitalization: TextCapitalization.characters,
+                      onChanged: (_) => _upper(_locationController),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) => _upper(_nameController),
+                decoration: InputDecoration(
+                  labelText: widget.nameLabel,
+                  hintText: widget.nameHint,
+                  prefixIcon: const Icon(Icons.storefront_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _contactController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: widget.contactLabel,
+                  hintText: widget.contactHint,
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _locationController,
+                textCapitalization: TextCapitalization.characters,
+                onChanged: (_) => _upper(_locationController),
+                decoration: InputDecoration(
+                  labelText: widget.locationLabel,
+                  hintText: widget.locationHint,
+                  prefixIcon: const Icon(Icons.location_on_outlined),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(widget.cancelLabel),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _save,
+                      child: Text(widget.saveLabel),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.local_shipping_outlined,
+              size: 48,
+              color: scheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
