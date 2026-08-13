@@ -250,7 +250,7 @@ class _EditProfileState extends State<EditProfile> {
       context: context,
       barrierDismissible: true,
       barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionDuration: const Duration(milliseconds: 200),
       pageBuilder:
           (
@@ -574,15 +574,19 @@ class _EditProfileState extends State<EditProfile> {
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 colors: [
-                                  const Color(0xFF2196F3).withOpacity(0.1),
-                                  const Color(0xFF2196F3).withOpacity(0.3),
+                                  const Color(
+                                    0xFF2196F3,
+                                  ).withValues(alpha: 0.1),
+                                  const Color(
+                                    0xFF2196F3,
+                                  ).withValues(alpha: 0.3),
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
                                 ),
@@ -615,7 +619,9 @@ class _EditProfileState extends State<EditProfile> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),

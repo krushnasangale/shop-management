@@ -576,7 +576,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   padding: const EdgeInsets.all(8),
                   margin: const EdgeInsets.only(bottom: 16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     border: Border.all(color: Colors.blue, width: 1),
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -1116,7 +1116,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               tileColor:
                                   (item['productName'] ?? item['name'] ?? '') ==
                                       controller.text
-                                  ? Colors.blue.withOpacity(0.1)
+                                  ? Colors.blue.withValues(alpha: 0.1)
                                   : null,
                               leading: title == 'Products'
                                   ? Container(
@@ -1770,7 +1770,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
+                                    color: Colors.black.withValues(alpha: 0.1),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
@@ -2921,8 +2921,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                           color:
                                               hasSellingPriceError ||
                                                   hasMinLimitError
-                                              ? Colors.red.withOpacity(0.5)
-                                              : Colors.blue.withOpacity(0.2),
+                                              ? Colors.red.withValues(
+                                                  alpha: 0.5,
+                                                )
+                                              : Colors.blue.withValues(
+                                                  alpha: 0.2,
+                                                ),
                                           width: 1.5,
                                         ),
                                         boxShadow: [
@@ -2930,8 +2934,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                             color:
                                                 hasSellingPriceError ||
                                                     hasMinLimitError
-                                                ? Colors.red.withOpacity(0.1)
-                                                : Colors.blue.withOpacity(0.1),
+                                                ? Colors.red.withValues(
+                                                    alpha: 0.1,
+                                                  )
+                                                : Colors.blue.withValues(
+                                                    alpha: 0.1,
+                                                  ),
                                             blurRadius: 8,
                                             offset: const Offset(0, 4),
                                           ),
@@ -2961,7 +2969,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                                 boxShadow: [
                                                   BoxShadow(
                                                     color: Colors.blue
-                                                        .withOpacity(0.3),
+                                                        .withValues(alpha: 0.3),
                                                     blurRadius: 4,
                                                     offset: const Offset(0, 2),
                                                   ),

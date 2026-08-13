@@ -250,7 +250,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 6,
                           offset: const Offset(0, 3),
                         ),
@@ -265,7 +265,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: Colors.white.withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: const Icon(
@@ -299,7 +299,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                           Text(
                             'Total Invested',
                             style: TextStyle(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
                             ),
@@ -311,7 +311,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(
@@ -319,7 +319,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                               children: [
                                 Icon(
                                   Icons.shopping_bag_outlined,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                   size: 16,
                                 ),
                                 const SizedBox(width: 6),
@@ -420,7 +420,9 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                                   ),
                                   decoration: BoxDecoration(
                                     color: isDark
-                                        ? Colors.blue.shade900.withOpacity(0.5)
+                                        ? Colors.blue.shade900.withValues(
+                                            alpha: 0.5,
+                                          )
                                         : Colors.blue.shade100,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -466,10 +468,12 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey.shade800 : color.withOpacity(0.1),
+        color: isDark ? Colors.grey.shade800 : color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? color.withOpacity(0.3) : color.withOpacity(0.2),
+          color: isDark
+              ? color.withValues(alpha: 0.3)
+              : color.withValues(alpha: 0.2),
           width: 1,
         ),
       ),
@@ -527,13 +531,13 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isHighValue
-                ? Colors.amber.withOpacity(0.5)
+                ? Colors.amber.withValues(alpha: 0.5)
                 : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
             width: isHighValue ? 2 : 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -606,7 +610,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.2),
+                        color: Colors.amber.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -677,10 +681,10 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.purple.withOpacity(0.15),
+                            color: Colors.purple.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Colors.purple.withOpacity(0.3),
+                              color: Colors.purple.withValues(alpha: 0.3),
                               width: 1,
                             ),
                           ),
@@ -710,10 +714,10 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.15),
+                          color: Colors.blue.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: Colors.blue.withOpacity(0.3),
+                            color: Colors.blue.withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),

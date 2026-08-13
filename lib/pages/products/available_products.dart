@@ -1199,7 +1199,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withValues(alpha: 0.2),
             ),
             height: 40,
             width: 40,
@@ -1233,20 +1233,23 @@ class _AvailableProductsState extends State<AvailableProducts> {
                       borderRadius: BorderRadius.circular(16.0),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                           spreadRadius: 1,
                         ),
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           blurRadius: 0,
                           offset: const Offset(0, 0),
                           spreadRadius: 1,
                         ),
                       ],
                       gradient: LinearGradient(
-                        colors: [Colors.white, Colors.white.withOpacity(0.95)],
+                        colors: [
+                          Colors.white,
+                          Colors.white.withValues(alpha: 0.95),
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -1320,7 +1323,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
           // Loading overlay for catalogue generation
           if (_isGeneratingReport)
             Container(
-              color: Colors.black.withOpacity(0.7),
+              color: Colors.black.withValues(alpha: 0.7),
               child: Center(
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 32),
@@ -1330,7 +1333,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 20,
                         spreadRadius: 5,
                       ),
@@ -1343,7 +1346,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
+                          color: Colors.blue.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: const SizedBox(
@@ -1460,20 +1463,20 @@ class _AvailableProductsState extends State<AvailableProducts> {
         borderRadius: BorderRadius.circular(12.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 0,
             offset: const Offset(0, 0),
             spreadRadius: 1,
           ),
         ],
         gradient: LinearGradient(
-          colors: [Colors.white, Colors.white.withOpacity(0.95)],
+          colors: [Colors.white, Colors.white.withValues(alpha: 0.95)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -1489,9 +1492,9 @@ class _AvailableProductsState extends State<AvailableProducts> {
         },
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         backgroundColor: cardColor,
-        selectedColor: Colors.blue.withOpacity(0.2),
+        selectedColor: Colors.blue.withValues(alpha: 0.2),
         side: BorderSide(
-          color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
+          color: isSelected ? Colors.blue : Colors.grey.withValues(alpha: 0.5),
           width: 0.8,
         ),
         labelStyle: TextStyle(
@@ -1548,7 +1551,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: stockColor.withOpacity(0.15),
+        color: stockColor.withValues(alpha: 0.15),
         border: Border.all(color: stockColor, width: 1),
         borderRadius: BorderRadius.circular(8),
       ),
@@ -1684,7 +1687,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         }
 
         // Determine border color based on expiry status
-        Color borderColor = context.secondaryTextColor!.withOpacity(0.1);
+        Color borderColor = context.secondaryTextColor!.withValues(alpha: 0.1);
         double borderWidth = 1.0;
 
         if (hasExpired) {
@@ -1701,13 +1704,13 @@ class _AvailableProductsState extends State<AvailableProducts> {
             borderRadius: BorderRadius.circular(16.0),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 12,
                 offset: const Offset(0, 4),
                 spreadRadius: 1,
               ),
               BoxShadow(
-                color: borderColor.withOpacity(0.1),
+                color: borderColor.withValues(alpha: 0.1),
                 blurRadius: 0,
                 offset: const Offset(0, 0),
                 spreadRadius: borderWidth,
@@ -1716,7 +1719,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
             gradient: LinearGradient(
               colors: [
                 cardColor ?? Colors.white,
-                (cardColor ?? Colors.white).withOpacity(0.95),
+                (cardColor ?? Colors.white).withValues(alpha: 0.95),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -1738,8 +1741,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
                     );
                   },
                   borderRadius: BorderRadius.circular(16.0),
-                  splashColor: Colors.blue.withOpacity(0.1),
-                  highlightColor: Colors.blue.withOpacity(0.05),
+                  splashColor: Colors.blue.withValues(alpha: 0.1),
+                  highlightColor: Colors.blue.withValues(alpha: 0.05),
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Row(
@@ -1755,7 +1758,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                               borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
+                                  color: Colors.black.withValues(alpha: 0.1),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
@@ -1924,14 +1927,14 @@ class _AvailableProductsState extends State<AvailableProducts> {
                                         (hasExpired
                                                 ? Colors.red
                                                 : Colors.orange)
-                                            .withOpacity(0.1),
+                                            .withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color:
                                           (hasExpired
                                                   ? Colors.red
                                                   : Colors.orange)
-                                              .withOpacity(0.3),
+                                              .withValues(alpha: 0.3),
                                       width: 1,
                                     ),
                                   ),

@@ -69,7 +69,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
 
         return ListView.separated(
           itemCount: userDocs.length,
-          separatorBuilder: (_, __) => const SizedBox(height: 12),
+          separatorBuilder: (_, _) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final userDoc = userDocs[index];
             final userData = userDoc.data() as Map<String, dynamic>;
@@ -142,8 +142,8 @@ class _UsersListWidgetState extends State<UsersListWidget> {
                   ),
                   decoration: BoxDecoration(
                     color: isActive
-                        ? Colors.green.withOpacity(0.15)
-                        : Colors.orange.withOpacity(0.15),
+                        ? Colors.green.withValues(alpha: 0.15)
+                        : Colors.orange.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -200,7 +200,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
               ),
 
             // Action Buttons
-            Divider(color: secondaryTextColor?.withOpacity(0.2)),
+            Divider(color: secondaryTextColor?.withValues(alpha: 0.2)),
             const SizedBox(height: 8),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -247,9 +247,9 @@ class _UsersListWidgetState extends State<UsersListWidget> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

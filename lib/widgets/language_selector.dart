@@ -78,11 +78,11 @@ class _LanguageSelectorState extends State<LanguageSelector>
             colors: isDark
                 ? [
                     theme.scaffoldBackgroundColor,
-                    theme.scaffoldBackgroundColor.withOpacity(0.8),
+                    theme.scaffoldBackgroundColor.withValues(alpha: 0.8),
                   ]
                 : [
-                    theme.primaryColor.withOpacity(0.02),
-                    Colors.white.withOpacity(0.5),
+                    theme.primaryColor.withValues(alpha: 0.02),
+                    Colors.white.withValues(alpha: 0.5),
                   ],
           ),
         ),
@@ -140,7 +140,9 @@ class _LanguageSelectorState extends State<LanguageSelector>
                                     ? LinearGradient(
                                         colors: [
                                           theme.primaryColor,
-                                          theme.primaryColor.withOpacity(0.8),
+                                          theme.primaryColor.withValues(
+                                            alpha: 0.8,
+                                          ),
                                         ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
@@ -154,8 +156,10 @@ class _LanguageSelectorState extends State<LanguageSelector>
                                 boxShadow: [
                                   BoxShadow(
                                     color: isSelected
-                                        ? theme.primaryColor.withOpacity(0.3)
-                                        : Colors.black.withOpacity(0.05),
+                                        ? theme.primaryColor.withValues(
+                                            alpha: 0.3,
+                                          )
+                                        : Colors.black.withValues(alpha: 0.05),
                                     blurRadius: isSelected ? 12 : 8,
                                     offset: const Offset(0, 4),
                                     spreadRadius: isSelected ? 2 : 0,
@@ -163,8 +167,12 @@ class _LanguageSelectorState extends State<LanguageSelector>
                                 ],
                                 border: Border.all(
                                   color: isSelected
-                                      ? theme.primaryColor.withOpacity(0.5)
-                                      : theme.dividerColor.withOpacity(0.1),
+                                      ? theme.primaryColor.withValues(
+                                          alpha: 0.5,
+                                        )
+                                      : theme.dividerColor.withValues(
+                                          alpha: 0.1,
+                                        ),
                                   width: isSelected ? 2 : 1,
                                 ),
                               ),
@@ -178,8 +186,10 @@ class _LanguageSelectorState extends State<LanguageSelector>
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       color: isSelected
-                                          ? Colors.white.withOpacity(0.2)
-                                          : theme.primaryColor.withOpacity(0.1),
+                                          ? Colors.white.withValues(alpha: 0.2)
+                                          : theme.primaryColor.withValues(
+                                              alpha: 0.1,
+                                            ),
                                     ),
                                     child: Center(
                                       child: Text(
@@ -216,14 +226,16 @@ class _LanguageSelectorState extends State<LanguageSelector>
                                           style: theme.textTheme.bodyMedium
                                               ?.copyWith(
                                                 color: isSelected
-                                                    ? Colors.white.withOpacity(
-                                                        0.9,
+                                                    ? Colors.white.withValues(
+                                                        alpha: 0.9,
                                                       )
                                                     : theme
                                                           .textTheme
                                                           .bodyMedium
                                                           ?.color
-                                                          ?.withOpacity(0.6),
+                                                          ?.withValues(
+                                                            alpha: 0.6,
+                                                          ),
                                               ),
                                         ),
                                       ],

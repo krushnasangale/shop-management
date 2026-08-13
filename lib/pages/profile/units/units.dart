@@ -157,7 +157,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                         localizations?.unitNameExample ??
                         'Unit Name (e.g., METER, PIECE)',
                     labelStyle: TextStyle(
-                      color: context.primaryTextColor!.withOpacity(0.7),
+                      color: context.primaryTextColor!.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -222,7 +222,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
         side: BorderSide(
-          color: context.secondaryTextColor!.withOpacity(0.1),
+          color: context.secondaryTextColor!.withValues(alpha: 0.1),
           width: 1.0,
         ),
       ),

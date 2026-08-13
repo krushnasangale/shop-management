@@ -69,8 +69,8 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Theme.of(context).primaryColor.withOpacity(0.8),
-                Theme.of(context).primaryColor.withOpacity(0.6),
+                Theme.of(context).primaryColor.withValues(alpha: 0.8),
+                Theme.of(context).primaryColor.withValues(alpha: 0.6),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -81,7 +81,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
           icon: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(
@@ -97,7 +97,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Theme.of(context).primaryColor.withOpacity(0.05),
+              Theme.of(context).primaryColor.withValues(alpha: 0.05),
               Colors.white,
             ],
             begin: Alignment.topCenter,
@@ -135,8 +135,8 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.grey.withOpacity(0.1),
-                    Colors.grey.withOpacity(0.05),
+                    Colors.grey.withValues(alpha: 0.1),
+                    Colors.grey.withValues(alpha: 0.05),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -228,7 +228,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.3),
+            color: color.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 6),
           ),
@@ -240,7 +240,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: Colors.white, size: 24),
@@ -259,7 +259,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
             title,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.white.withOpacity(0.9),
+              color: Colors.white.withValues(alpha: 0.9),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -285,7 +285,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
             child: Material(
               elevation: 4,
               borderRadius: BorderRadius.circular(16),
-              shadowColor: Colors.black.withOpacity(0.1),
+              shadowColor: Colors.black.withValues(alpha: 0.1),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
                 onTap: () {
@@ -356,7 +356,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.green.withOpacity(0.3),
+                                  color: Colors.green.withValues(alpha: 0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
                                 ),
@@ -384,10 +384,10 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.purple.withOpacity(0.1),
+                              color: Colors.purple.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.purple.withOpacity(0.2),
+                                color: Colors.purple.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -416,10 +416,10 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
+                              color: Colors.blue.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.blue.withOpacity(0.2),
+                                color: Colors.blue.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),

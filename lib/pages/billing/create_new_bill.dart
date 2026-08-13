@@ -957,12 +957,12 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: paymentMethod == 'cash'
-                                      ? Colors.blue.withOpacity(0.2)
-                                      : Colors.grey.withOpacity(0.1),
+                                      ? Colors.blue.withValues(alpha: 0.2)
+                                      : Colors.grey.withValues(alpha: 0.1),
                                   border: Border.all(
                                     color: paymentMethod == 'cash'
                                         ? Colors.blue
-                                        : Colors.grey.withOpacity(0.3),
+                                        : Colors.grey.withValues(alpha: 0.3),
                                     width: paymentMethod == 'cash' ? 2 : 1,
                                   ),
                                   borderRadius: BorderRadius.circular(10),
@@ -1007,12 +1007,12 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: paymentMethod == 'online'
-                                      ? Colors.green.withOpacity(0.2)
-                                      : Colors.grey.withOpacity(0.1),
+                                      ? Colors.green.withValues(alpha: 0.2)
+                                      : Colors.grey.withValues(alpha: 0.1),
                                   border: Border.all(
                                     color: paymentMethod == 'online'
                                         ? Colors.green
-                                        : Colors.grey.withOpacity(0.3),
+                                        : Colors.grey.withValues(alpha: 0.3),
                                     width: paymentMethod == 'online' ? 2 : 1,
                                   ),
                                   borderRadius: BorderRadius.circular(10),
@@ -1902,9 +1902,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                        border: Border.all(
+                          color: Colors.blue.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2254,7 +2256,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           .textTheme
                                           .bodyMedium
                                           ?.color
-                                          ?.withOpacity(0.1) ??
+                                          ?.withValues(alpha: 0.1) ??
                                       Colors.grey,
                                   width: 1.5,
                                 ),
@@ -2557,9 +2559,11 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                      border: Border.all(
+                        color: Colors.blue.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2624,7 +2628,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                           .textTheme
                                           .bodyMedium
                                           ?.color
-                                          ?.withOpacity(0.1) ??
+                                          ?.withValues(alpha: 0.1) ??
                                       Colors.grey,
                                   width: 1.5,
                                 ),
@@ -2771,8 +2775,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                                               decoration: BoxDecoration(
                                                                 color: Colors
                                                                     .purple
-                                                                    .withOpacity(
-                                                                      0.15,
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.15,
                                                                     ),
                                                                 borderRadius:
                                                                     BorderRadius.circular(
@@ -3146,7 +3151,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                         width: 45,
                                         height: 45,
                                         decoration: BoxDecoration(
-                                          color: Colors.blue.withOpacity(0.2),
+                                          color: Colors.blue.withValues(
+                                            alpha: 0.2,
+                                          ),
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),

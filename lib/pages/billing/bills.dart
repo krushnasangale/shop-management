@@ -761,28 +761,47 @@ class _BillsState extends State<Bills> {
                 // Header row
                 pw.TableRow(
                   decoration: const pw.BoxDecoration(color: PdfColors.grey300),
-                  children: ['S.N', 'Customer Name', 'Mobile Number', 'Bill Date', 'Total Amount', 'Status']
-                      .map((header) => pw.Padding(
-                            padding: const pw.EdgeInsets.all(5),
-                            child: pw.Text(
-                              header,
-                              style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold),
-                              textAlign: pw.TextAlign.center,
+                  children:
+                      [
+                            'S.N',
+                            'Customer Name',
+                            'Mobile Number',
+                            'Bill Date',
+                            'Total Amount',
+                            'Status',
+                          ]
+                          .map(
+                            (header) => pw.Padding(
+                              padding: const pw.EdgeInsets.all(5),
+                              child: pw.Text(
+                                header,
+                                style: pw.TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: pw.FontWeight.bold,
+                                ),
+                                textAlign: pw.TextAlign.center,
+                              ),
                             ),
-                          ))
-                      .toList(),
+                          )
+                          .toList(),
                 ),
                 // Data rows
                 ...reportBills.asMap().entries.map((entry) {
                   final bill = entry.value;
                   return pw.TableRow(
                     children: [
-                      _buildTableCell((entry.key + 1).toString(), isCenter: true),
+                      _buildTableCell(
+                        (entry.key + 1).toString(),
+                        isCenter: true,
+                      ),
                       _buildTableCell(bill.customerName),
                       _buildTableCell(bill.customerMobile, isCenter: true),
                       _buildTableCell(bill.date, isCenter: true),
                       _buildTableCell('Rs.${bill.totalAmount}', isCenter: true),
-                      _buildTableCell(_getPDFStatusText(bill.status), isCenter: true),
+                      _buildTableCell(
+                        _getPDFStatusText(bill.status),
+                        isCenter: true,
+                      ),
                     ],
                   );
                 }),
@@ -848,7 +867,7 @@ class _BillsState extends State<Bills> {
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withValues(alpha: 0.2),
             ),
             height: 40,
             width: 40,
@@ -883,13 +902,13 @@ class _BillsState extends State<Bills> {
                         borderRadius: BorderRadius.circular(16.0),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                             spreadRadius: 1,
                           ),
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             blurRadius: 0,
                             offset: const Offset(0, 0),
                             spreadRadius: 1,
@@ -898,7 +917,7 @@ class _BillsState extends State<Bills> {
                         gradient: LinearGradient(
                           colors: [
                             Colors.white,
-                            Colors.white.withOpacity(0.95),
+                            Colors.white.withValues(alpha: 0.95),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -948,13 +967,13 @@ class _BillsState extends State<Bills> {
                             borderRadius: BorderRadius.circular(16.0),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
+                                color: Colors.black.withValues(alpha: 0.08),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                                 spreadRadius: 1,
                               ),
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.1),
+                                color: Colors.grey.withValues(alpha: 0.1),
                                 blurRadius: 0,
                                 offset: const Offset(0, 0),
                                 spreadRadius: 1,
@@ -963,7 +982,7 @@ class _BillsState extends State<Bills> {
                             gradient: LinearGradient(
                               colors: [
                                 Colors.white,
-                                Colors.white.withOpacity(0.95),
+                                Colors.white.withValues(alpha: 0.95),
                               ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
@@ -993,11 +1012,11 @@ class _BillsState extends State<Bills> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             backgroundColor: Theme.of(context).cardTheme.color,
-                            selectedColor: Colors.blue.withOpacity(0.2),
+                            selectedColor: Colors.blue.withValues(alpha: 0.2),
                             side: BorderSide(
                               color: (_selectedSort != SortOption.dateNewest)
                                   ? Colors.blue
-                                  : Colors.grey.withOpacity(0.5),
+                                  : Colors.grey.withValues(alpha: 0.5),
                               width: 0.8,
                             ),
                             labelStyle: TextStyle(
@@ -1112,7 +1131,7 @@ class _BillsState extends State<Bills> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -1152,9 +1171,9 @@ class _BillsState extends State<Bills> {
       },
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       backgroundColor: cardColor,
-      selectedColor: Colors.blue.withOpacity(0.2),
+      selectedColor: Colors.blue.withValues(alpha: 0.2),
       side: BorderSide(
-        color: isSelected ? Colors.blue : Colors.grey.withOpacity(0.5),
+        color: isSelected ? Colors.blue : Colors.grey.withValues(alpha: 0.5),
         width: 0.8,
       ),
       labelStyle: TextStyle(
@@ -1177,16 +1196,19 @@ class _BillsState extends State<Bills> {
       margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(width: 1, color: Colors.black.withOpacity(0.1)),
+        border: Border.all(
+          width: 1,
+          color: Colors.black.withValues(alpha: 0.1),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha: 0.1),
             blurRadius: 0,
             offset: const Offset(0, 0),
             spreadRadius: 1,
@@ -1194,7 +1216,7 @@ class _BillsState extends State<Bills> {
         ],
 
         gradient: LinearGradient(
-          colors: [Colors.white, Colors.white.withOpacity(0.95)],
+          colors: [Colors.white, Colors.white.withValues(alpha: 0.95)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),

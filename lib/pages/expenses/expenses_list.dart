@@ -180,20 +180,20 @@ class _ExpensesListState extends State<ExpensesList>
                 borderRadius: BorderRadius.circular(16.0),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha: 0.08),
                     blurRadius: 12,
                     offset: const Offset(0, 4),
                     spreadRadius: 1,
                   ),
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     blurRadius: 0,
                     offset: const Offset(0, 0),
                     spreadRadius: 1,
                   ),
                 ],
                 gradient: LinearGradient(
-                  colors: [Colors.white, Colors.white.withOpacity(0.95)],
+                  colors: [Colors.white, Colors.white.withValues(alpha: 0.95)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -259,17 +259,17 @@ class _ExpensesListState extends State<ExpensesList>
                         borderRadius: BorderRadius.circular(12.0),
                         border: Border.all(
                           width: 1,
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                             spreadRadius: 1,
                           ),
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             blurRadius: 0,
                             offset: const Offset(0, 0),
                             spreadRadius: 1,
@@ -278,7 +278,7 @@ class _ExpensesListState extends State<ExpensesList>
                         gradient: LinearGradient(
                           colors: [
                             Colors.white,
-                            Colors.white.withOpacity(0.95),
+                            Colors.white.withValues(alpha: 0.95),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -309,7 +309,7 @@ class _ExpensesListState extends State<ExpensesList>
                                     decoration: BoxDecoration(
                                       color: _getCategoryColor(
                                         category,
-                                      ).withOpacity(0.1),
+                                      ).withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: Icon(
@@ -360,7 +360,9 @@ class _ExpensesListState extends State<ExpensesList>
                                       borderRadius: BorderRadius.circular(20),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.red.withOpacity(0.3),
+                                          color: Colors.red.withValues(
+                                            alpha: 0.3,
+                                          ),
                                           blurRadius: 8,
                                           offset: const Offset(0, 3),
                                         ),
@@ -481,24 +483,27 @@ class _ExpensesListState extends State<ExpensesList>
                   borderRadius: BorderRadius.circular(12.0),
                   border: Border.all(
                     width: 1,
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                       spreadRadius: 1,
                     ),
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       blurRadius: 0,
                       offset: const Offset(0, 0),
                       spreadRadius: 1,
                     ),
                   ],
                   gradient: LinearGradient(
-                    colors: [Colors.white, Colors.white.withOpacity(0.95)],
+                    colors: [
+                      Colors.white,
+                      Colors.white.withValues(alpha: 0.95),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -533,7 +538,7 @@ class _ExpensesListState extends State<ExpensesList>
                                   decoration: BoxDecoration(
                                     color: _getCategoryColor(
                                       category,
-                                    ).withOpacity(0.1),
+                                    ).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Icon(
@@ -573,7 +578,7 @@ class _ExpensesListState extends State<ExpensesList>
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.15),
+                                color: Colors.red.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
@@ -598,7 +603,7 @@ class _ExpensesListState extends State<ExpensesList>
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
+                                color: Colors.blue.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
@@ -626,7 +631,7 @@ class _ExpensesListState extends State<ExpensesList>
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.purple.withOpacity(0.1),
+                                color: Colors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
@@ -757,7 +762,7 @@ class _ExpensesListState extends State<ExpensesList>
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -771,7 +776,7 @@ class _ExpensesListState extends State<ExpensesList>
                             Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: Colors.purple.withOpacity(0.1),
+                                color: Colors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
@@ -872,7 +877,7 @@ class _ExpensesListState extends State<ExpensesList>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -886,7 +891,7 @@ class _ExpensesListState extends State<ExpensesList>
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
@@ -978,7 +983,7 @@ class _ExpensesListState extends State<ExpensesList>
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha: 0.08),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -992,7 +997,7 @@ class _ExpensesListState extends State<ExpensesList>
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.indigo.withOpacity(0.1),
+                                color: Colors.indigo.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
@@ -1093,7 +1098,7 @@ class _ExpensesListState extends State<ExpensesList>
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -1107,7 +1112,7 @@ class _ExpensesListState extends State<ExpensesList>
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
@@ -1155,7 +1160,7 @@ class _ExpensesListState extends State<ExpensesList>
                               BoxShadow(
                                 color: _getCategoryColor(
                                   category,
-                                ).withOpacity(0.3),
+                                ).withValues(alpha: 0.3),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -1236,17 +1241,17 @@ class _ExpensesListState extends State<ExpensesList>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.15),
+            color: color.withValues(alpha: 0.15),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
         ],
-        border: Border.all(color: color.withOpacity(0.1), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.1), width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1255,12 +1260,15 @@ class _ExpensesListState extends State<ExpensesList>
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [color.withOpacity(0.2), color.withOpacity(0.1)],
+                colors: [
+                  color.withValues(alpha: 0.2),
+                  color.withValues(alpha: 0.1),
+                ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: color.withOpacity(0.2), width: 1),
+              border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
             ),
             child: Icon(icon, color: color, size: 24),
           ),
@@ -1414,16 +1422,16 @@ class _ExpensesListState extends State<ExpensesList>
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                Theme.of(context).primaryColor.withOpacity(0.95),
-                Theme.of(context).primaryColor.withOpacity(0.85),
-                Theme.of(context).primaryColor.withOpacity(0.75),
+                Theme.of(context).primaryColor.withValues(alpha: 0.95),
+                Theme.of(context).primaryColor.withValues(alpha: 0.85),
+                Theme.of(context).primaryColor.withValues(alpha: 0.75),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             boxShadow: [
               BoxShadow(
-                color: Theme.of(context).primaryColor.withOpacity(0.3),
+                color: Theme.of(context).primaryColor.withValues(alpha: 0.3),
                 blurRadius: 20,
                 offset: const Offset(0, 4),
               ),
@@ -1452,7 +1460,7 @@ class _ExpensesListState extends State<ExpensesList>
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withValues(alpha: 0.2),
             ),
             height: 40,
             width: 40,
@@ -1488,7 +1496,7 @@ class _ExpensesListState extends State<ExpensesList>
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha: 0.08),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -1699,7 +1707,7 @@ class CategoryExpensesPage extends StatelessWidget {
                   margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                   child: Card(
                     elevation: 8,
-                    shadowColor: const Color(0xFF667eea).withOpacity(0.3),
+                    shadowColor: const Color(0xFF667eea).withValues(alpha: 0.3),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -1734,7 +1742,7 @@ class CategoryExpensesPage extends StatelessWidget {
                                     BoxShadow(
                                       color: const Color(
                                         0xFF667eea,
-                                      ).withOpacity(0.3),
+                                      ).withValues(alpha: 0.3),
                                       spreadRadius: 2,
                                       blurRadius: 8,
                                       offset: const Offset(0, 4),
@@ -1790,7 +1798,7 @@ class CategoryExpensesPage extends StatelessWidget {
                                     BoxShadow(
                                       color: const Color(
                                         0xFF667eea,
-                                      ).withOpacity(0.3),
+                                      ).withValues(alpha: 0.3),
                                       spreadRadius: 1,
                                       blurRadius: 4,
                                       offset: const Offset(0, 2),
@@ -1878,7 +1886,7 @@ class CategoryExpensesPage extends StatelessWidget {
                           color: Colors.white,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.grey.withOpacity(0.1),
+                              color: Colors.grey.withValues(alpha: 0.1),
                               spreadRadius: 1,
                               blurRadius: 4,
                               offset: const Offset(0, 2),
@@ -2016,7 +2024,7 @@ class CategoryExpensesPage extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 18),

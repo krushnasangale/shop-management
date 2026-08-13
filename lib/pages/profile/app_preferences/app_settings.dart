@@ -185,13 +185,13 @@ class _AppSettingsState extends State<AppSettings> {
         borderRadius: BorderRadius.circular(20.0),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
         border: Border.all(
-          color: Theme.of(context).dividerColor.withOpacity(0.1),
+          color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
           width: 1,
         ),
       ),
@@ -208,10 +208,14 @@ class _AppSettingsState extends State<AppSettings> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).primaryColor.withOpacity(0.12),
+                    color: Theme.of(
+                      context,
+                    ).primaryColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12.0),
                     border: Border.all(
-                      color: Theme.of(context).primaryColor.withOpacity(0.2),
+                      color: Theme.of(
+                        context,
+                      ).primaryColor.withValues(alpha: 0.2),
                       width: 1,
                     ),
                   ),
@@ -242,7 +246,7 @@ class _AppSettingsState extends State<AppSettings> {
                           fontSize: 13,
                           color: Theme.of(
                             context,
-                          ).textTheme.bodyMedium?.color?.withOpacity(0.8),
+                          ).textTheme.bodyMedium?.color?.withValues(alpha: 0.8),
                           height: 1.4,
                         ),
                       ),
@@ -258,7 +262,7 @@ class _AppSettingsState extends State<AppSettings> {
                     activeThumbColor: Theme.of(context).primaryColor,
                     activeTrackColor: Theme.of(
                       context,
-                    ).primaryColor.withOpacity(0.4),
+                    ).primaryColor.withValues(alpha: 0.4),
                     inactiveThumbColor: Colors.grey.shade400,
                     inactiveTrackColor: Colors.grey.shade300,
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,

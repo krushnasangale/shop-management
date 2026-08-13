@@ -198,7 +198,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.purple.withOpacity(0.1),
+        color: Colors.purple.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -293,17 +293,17 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                         borderRadius: BorderRadius.circular(12.0),
                         border: Border.all(
                           width: 1,
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 12,
                             offset: const Offset(0, 4),
                             spreadRadius: 1,
                           ),
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: 0.1),
                             blurRadius: 0,
                             offset: const Offset(0, 0),
                             spreadRadius: 1,
@@ -312,7 +312,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                         gradient: LinearGradient(
                           colors: [
                             Colors.white,
-                            Colors.white.withOpacity(0.95),
+                            Colors.white.withValues(alpha: 0.95),
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
@@ -383,7 +383,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.15),
+                                      color: Colors.green.withValues(
+                                        alpha: 0.15,
+                                      ),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Text(
@@ -401,7 +403,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                               // Divider
                               Divider(
                                 height: 1,
-                                color: Colors.grey.withOpacity(0.3),
+                                color: Colors.grey.withValues(alpha: 0.3),
                               ),
                               const SizedBox(height: 8),
                               // Bottom Section with Details
@@ -443,7 +445,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                                       vertical: 6,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.blue.withOpacity(0.1),
+                                      color: Colors.blue.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
                                     child: Row(
@@ -506,24 +508,27 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                   borderRadius: BorderRadius.circular(12.0),
                   border: Border.all(
                     width: 1,
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
+                      color: Colors.black.withValues(alpha: 0.08),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                       spreadRadius: 1,
                     ),
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha: 0.1),
                       blurRadius: 0,
                       offset: const Offset(0, 0),
                       spreadRadius: 1,
                     ),
                   ],
                   gradient: LinearGradient(
-                    colors: [Colors.white, Colors.white.withOpacity(0.95)],
+                    colors: [
+                      Colors.white,
+                      Colors.white.withValues(alpha: 0.95),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -593,7 +598,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.15),
+                                color: Colors.green.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -618,7 +623,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
+                                color: Colors.blue.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
@@ -646,7 +651,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.purple.withOpacity(0.1),
+                                color: Colors.purple.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
@@ -710,7 +715,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withValues(alpha: 0.2),
             ),
             height: 40,
             width: 40,
@@ -833,7 +838,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                   leading: Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(Icons.camera_alt, color: Colors.blue),
@@ -854,7 +859,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.photo_library, color: Colors.green),
@@ -876,7 +881,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                 leading: Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(Icons.picture_as_pdf, color: Colors.orange),
@@ -1197,7 +1202,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.blue.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: const CircularProgressIndicator(
@@ -1238,7 +1243,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                           child: LinearProgressIndicator(
                             value: scanProgress,
                             minHeight: 8,
-                            backgroundColor: Colors.blue.withOpacity(0.15),
+                            backgroundColor: Colors.blue.withValues(
+                              alpha: 0.15,
+                            ),
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               Colors.blue,
                             ),
@@ -1448,7 +1455,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
+                            color: Colors.green.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: const CircularProgressIndicator(
@@ -1490,7 +1497,9 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                           child: LinearProgressIndicator(
                             value: scanProgress,
                             minHeight: 8,
-                            backgroundColor: Colors.green.withOpacity(0.15),
+                            backgroundColor: Colors.green.withValues(
+                              alpha: 0.15,
+                            ),
                             valueColor: const AlwaysStoppedAnimation<Color>(
                               Colors.green,
                             ),

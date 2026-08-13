@@ -328,7 +328,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.orange.withOpacity(0.3),
+                  color: Colors.orange.withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -343,7 +343,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                     Text(
                       localizations?.totalPending ?? 'Total Pending',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
@@ -362,7 +362,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
@@ -437,7 +437,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                         Icon(
                           Icons.check_circle_outline,
                           size: 80,
-                          color: Colors.green.withOpacity(0.5),
+                          color: Colors.green.withValues(alpha: 0.5),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -471,7 +471,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(
-                            color: Colors.orange.withOpacity(0.3),
+                            color: Colors.orange.withValues(alpha: 0.3),
                             width: 1.5,
                           ),
                         ),
@@ -549,7 +549,9 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                                         vertical: 6,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.15),
+                                        color: Colors.orange.withValues(
+                                          alpha: 0.15,
+                                        ),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
                                           color: Colors.orange,

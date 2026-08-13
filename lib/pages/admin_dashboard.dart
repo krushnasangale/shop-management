@@ -116,7 +116,7 @@ class _OverviewTabState extends State<_OverviewTab> {
 
               if (snapshot.hasError) {
                 return Card(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha: 0.1),
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
                     child: Column(
@@ -182,7 +182,7 @@ class _OverviewTabState extends State<_OverviewTab> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.15),
+                              color: Colors.blue.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -222,7 +222,8 @@ class _UsersTab extends StatelessWidget {
             color: cardColor,
             border: Border(
               bottom: BorderSide(
-                color: secondaryTextColor?.withOpacity(0.2) ?? Colors.grey,
+                color:
+                    secondaryTextColor?.withValues(alpha: 0.2) ?? Colors.grey,
               ),
             ),
           ),

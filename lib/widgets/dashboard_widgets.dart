@@ -41,23 +41,25 @@ class _ExpandableCardState extends State<ExpandableCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : widget.themeColor.withOpacity(0.05),
+        color: isDark
+            ? Colors.grey[850]
+            : widget.themeColor.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
-              ? widget.themeColor.withOpacity(0.3)
-              : widget.themeColor.withOpacity(0.15),
+              ? widget.themeColor.withValues(alpha: 0.3)
+              : widget.themeColor.withValues(alpha: 0.15),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: widget.themeColor.withOpacity(0.08),
+            color: widget.themeColor.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: widget.themeColor.withOpacity(0.04),
+            color: widget.themeColor.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
             spreadRadius: 0,
@@ -94,7 +96,7 @@ class _ExpandableCardState extends State<ExpandableCard> {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: widget.themeColor.withOpacity(0.15),
+                            color: widget.themeColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -231,19 +233,19 @@ class MetricCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
-              ? textColor.withOpacity(0.4)
-              : textColor.withOpacity(0.2),
+              ? textColor.withValues(alpha: 0.4)
+              : textColor.withValues(alpha: 0.2),
           width: isDark ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: textColor.withOpacity(0.08),
+            color: textColor.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
             spreadRadius: 1,
           ),
           BoxShadow(
-            color: textColor.withOpacity(0.04),
+            color: textColor.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
             spreadRadius: 0,
@@ -274,8 +276,8 @@ class MetricCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? textColor.withOpacity(0.15)
-                      : textColor.withOpacity(0.1),
+                      ? textColor.withValues(alpha: 0.15)
+                      : textColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, size: 16, color: textColor),

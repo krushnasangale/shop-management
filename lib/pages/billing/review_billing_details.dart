@@ -156,8 +156,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                       ),
                       decoration: BoxDecoration(
                         color: widget.paymentMethod == 'cash'
-                            ? Colors.blue.withOpacity(0.1)
-                            : Colors.green.withOpacity(0.1),
+                            ? Colors.blue.withValues(alpha: 0.1)
+                            : Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: widget.paymentMethod == 'cash'
@@ -211,7 +211,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               ],
             ),
             Divider(
-              color: context.secondaryTextColor?.withOpacity(0.3),
+              color: context.secondaryTextColor?.withValues(alpha: 0.3),
               height: 20,
             ),
 
@@ -313,8 +313,9 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: widget.products.length,
-              separatorBuilder: (context, index) =>
-                  Divider(color: context.secondaryTextColor?.withOpacity(0.3)),
+              separatorBuilder: (context, index) => Divider(
+                color: context.secondaryTextColor?.withValues(alpha: 0.3),
+              ),
               itemBuilder: (context, index) {
                 final product = widget.products[index];
                 return Padding(
@@ -455,7 +456,9 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Divider(color: context.secondaryTextColor?.withOpacity(0.3)),
+                Divider(
+                  color: context.secondaryTextColor?.withValues(alpha: 0.3),
+                ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -480,7 +483,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               ],
             ),
             const SizedBox(height: 12),
-            Divider(color: context.secondaryTextColor?.withOpacity(0.3)),
+            Divider(color: context.secondaryTextColor?.withValues(alpha: 0.3)),
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -496,8 +499,8 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ),
                   decoration: BoxDecoration(
                     color: ((widget.amountRemaining ?? 0) == 0)
-                        ? Colors.green.withOpacity(0.2)
-                        : Colors.orange.withOpacity(0.2),
+                        ? Colors.green.withValues(alpha: 0.2)
+                        : Colors.orange.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -517,7 +520,9 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             ),
             if ((widget.amountRemaining ?? 0) > 0) ...[
               const SizedBox(height: 12),
-              Divider(color: context.secondaryTextColor?.withOpacity(0.3)),
+              Divider(
+                color: context.secondaryTextColor?.withValues(alpha: 0.3),
+              ),
               const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

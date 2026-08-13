@@ -38,19 +38,19 @@ class OrderNowPage extends StatelessWidget {
           : ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: orderNowProducts.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final product = orderNowProducts[index];
                 return Container(
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.grey[850]
-                        : Colors.red.withOpacity(0.05),
+                        : Colors.red.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isDark
-                          ? Colors.red.withOpacity(0.3)
-                          : Colors.red.withOpacity(0.15),
+                          ? Colors.red.withValues(alpha: 0.3)
+                          : Colors.red.withValues(alpha: 0.15),
                       width: 1,
                     ),
                   ),
@@ -61,7 +61,7 @@ class OrderNowPage extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.15),
+                          color: Colors.red.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
@@ -109,7 +109,7 @@ class OrderNowPage extends StatelessWidget {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.15),
+                          color: Colors.red.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(

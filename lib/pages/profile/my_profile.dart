@@ -542,7 +542,7 @@ class _MyProfileState extends State<MyProfile> {
                         style: TextStyle(
                           color: Theme.of(
                             context,
-                          ).colorScheme.onSurface.withOpacity(0.6),
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                       trailing: const Icon(Icons.chevron_right),
@@ -647,7 +647,7 @@ class _MyProfileState extends State<MyProfile> {
                               style: TextStyle(
                                 color: Theme.of(
                                   context,
-                                ).colorScheme.onSurface.withOpacity(0.6),
+                                ).colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
                             ),
                             const Icon(Icons.chevron_right, color: Colors.grey),
@@ -671,7 +671,7 @@ class _MyProfileState extends State<MyProfile> {
                           style: TextStyle(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -694,7 +694,7 @@ class _MyProfileState extends State<MyProfile> {
                           style: TextStyle(
                             color: Theme.of(
                               context,
-                            ).colorScheme.onSurface.withOpacity(0.6),
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
                         ),
                       ],
@@ -724,7 +724,9 @@ class _MyProfileState extends State<MyProfile> {
                         style: const TextStyle(color: Colors.redAccent),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent.withOpacity(0.1),
+                        backgroundColor: Colors.redAccent.withValues(
+                          alpha: 0.1,
+                        ),
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(
                           vertical: 12,
@@ -817,7 +819,7 @@ class _MyProfileState extends State<MyProfile> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -885,7 +887,7 @@ class _MyProfileState extends State<MyProfile> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

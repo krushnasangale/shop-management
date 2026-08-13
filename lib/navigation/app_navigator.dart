@@ -11,8 +11,8 @@ class AppNavigator {
     return Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => page,
-        transitionsBuilder: (_, animation, __, child) {
+        pageBuilder: (_, animation, _) => page,
+        transitionsBuilder: (_, animation, _, child) {
           return FadeTransition(opacity: animation, child: child);
         },
         transitionDuration: duration,
@@ -30,8 +30,8 @@ class AppNavigator {
     return Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => page,
-        transitionsBuilder: (_, animation, __, child) {
+        pageBuilder: (_, animation, _) => page,
+        transitionsBuilder: (_, animation, _, child) {
           final offsetAnimation = Tween(
             begin: const Offset(1.0, 0.0),
             end: Offset.zero,
@@ -53,8 +53,8 @@ class AppNavigator {
     return Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (_, animation, __) => page,
-        transitionsBuilder: (_, animation, __, child) =>
+        pageBuilder: (_, animation, _) => page,
+        transitionsBuilder: (_, animation, _, child) =>
             FadeTransition(opacity: animation, child: child),
         transitionDuration: duration,
       ),

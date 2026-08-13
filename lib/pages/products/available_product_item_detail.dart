@@ -995,7 +995,7 @@ class _AvailableProductDetailScreenState
           SnackBar(
             content: Text(
               newQuantity == 0
-                  ? localizations.quantityUpdated + ' (Batch removed)'
+                  ? '${localizations.quantityUpdated} (Batch removed)'
                   : localizations.quantityUpdated,
             ),
           ),
@@ -1497,7 +1497,7 @@ class _AvailableProductDetailScreenState
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1615,7 +1615,7 @@ class _AvailableProductDetailScreenState
                             width: 28,
                             height: 28,
                             decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.6),
+                              color: Colors.black.withValues(alpha: 0.6),
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: IconButton(
@@ -1847,7 +1847,7 @@ class _AvailableProductDetailScreenState
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
+                                    color: Colors.blue.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                   child: Text(
@@ -1917,7 +1917,9 @@ class _AvailableProductDetailScreenState
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
+                                      color: Colors.green.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Text(
@@ -1953,7 +1955,7 @@ class _AvailableProductDetailScreenState
                                 child: Container(
                                   padding: const EdgeInsets.all(6),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.1),
+                                    color: Colors.red.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Icon(
@@ -2044,7 +2046,7 @@ class _AvailableProductDetailScreenState
                               child: Container(
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
+                                  color: Colors.blue.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
@@ -2107,7 +2109,7 @@ class _AvailableProductDetailScreenState
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _allBatches.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 6),
+                      separatorBuilder: (_, _) => const SizedBox(height: 6),
                       itemBuilder: (context, index) {
                         final batch = _allBatches[index];
                         final isFirstBatch = index == 0;
@@ -2160,10 +2162,12 @@ class _AvailableProductDetailScreenState
                                                   decoration: BoxDecoration(
                                                     color: isFirstBatch
                                                         ? Colors.orange
-                                                              .withOpacity(0.15)
+                                                              .withValues(
+                                                                alpha: 0.15,
+                                                              )
                                                         : Colors.blue
-                                                              .withOpacity(
-                                                                0.15,
+                                                              .withValues(
+                                                                alpha: 0.15,
                                                               ),
                                                     borderRadius:
                                                         BorderRadius.circular(
@@ -2303,8 +2307,8 @@ class _AvailableProductDetailScreenState
                                                                 ),
                                                             decoration: BoxDecoration(
                                                               color: Colors.blue
-                                                                  .withOpacity(
-                                                                    0.1,
+                                                                  .withValues(
+                                                                    alpha: 0.1,
                                                                   ),
                                                               border: Border.all(
                                                                 color:
@@ -2499,8 +2503,8 @@ class _AvailableProductDetailScreenState
                                                                 ),
                                                             decoration: BoxDecoration(
                                                               color: Colors.blue
-                                                                  .withOpacity(
-                                                                    0.1,
+                                                                  .withValues(
+                                                                    alpha: 0.1,
                                                                   ),
                                                               border: Border.all(
                                                                 color:

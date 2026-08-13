@@ -140,7 +140,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   height: 100,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                   ),
                   child: const Icon(
                     Icons.check_circle_outline,
@@ -172,7 +172,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
                       color:
-                          context.secondaryTextColor?.withOpacity(0.1) ??
+                          context.secondaryTextColor?.withValues(alpha: 0.1) ??
                           Colors.grey,
                       width: 1,
                     ),
@@ -279,10 +279,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      side: const BorderSide(
-                        color: Colors.green,
-                        width: 2,
-                      ),
+                      side: const BorderSide(color: Colors.green, width: 2),
                     ),
                     onPressed: () {
                       Navigator.of(context).pushAndRemoveUntil(
@@ -292,7 +289,10 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                         (route) => route.isFirst,
                       );
                     },
-                    icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                    icon: const Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.green,
+                    ),
                     label: Text(
                       localizations.createNewBill,
                       style: const TextStyle(
@@ -455,7 +455,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: valueColor.withOpacity(0.1),
+            color: valueColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(

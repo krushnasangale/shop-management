@@ -312,7 +312,7 @@ class _CustomersState extends State<Customers> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10.0),
         side: BorderSide(
-          color: context.secondaryTextColor!.withOpacity(0.1),
+          color: context.secondaryTextColor!.withValues(alpha: 0.1),
           width: 1.0,
         ),
       ),

@@ -187,7 +187,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
@@ -202,7 +202,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.1),
+                              color: Colors.blue.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Icon(
@@ -505,7 +505,9 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                                   boxShadow: isSelected
                                       ? [
                                           BoxShadow(
-                                            color: Colors.blue.withOpacity(0.2),
+                                            color: Colors.blue.withValues(
+                                              alpha: 0.2,
+                                            ),
                                             blurRadius: 4,
                                             offset: const Offset(0, 2),
                                           ),
@@ -542,7 +544,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            shadowColor: Colors.blue.withOpacity(0.3),
+                            shadowColor: Colors.blue.withValues(alpha: 0.3),
                           ),
                           child: _isLoading
                               ? const SizedBox(

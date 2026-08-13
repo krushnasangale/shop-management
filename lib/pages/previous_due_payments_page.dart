@@ -223,7 +223,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
         backgroundColor: Colors.purple[600],
         foregroundColor: Colors.white,
         elevation: 0,
-        shadowColor: Colors.purple.withOpacity(0.3),
+        shadowColor: Colors.purple.withValues(alpha: 0.3),
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -422,7 +422,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors.purple.withOpacity(0.1),
+                            color: Colors.purple.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -460,7 +460,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                       vertical: 6,
                     ),
                     itemCount: _filteredPayments.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 6),
+                    separatorBuilder: (_, _) => const SizedBox(height: 6),
                     itemBuilder: (context, index) {
                       final payment = _filteredPayments[index];
                       final status = _getPreviousDueStatus(payment);
@@ -484,12 +484,12 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                               ),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: statusColor.withOpacity(0.2),
+                                color: statusColor.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: statusColor.withOpacity(0.08),
+                                  color: statusColor.withValues(alpha: 0.08),
                                   blurRadius: 12,
                                   offset: const Offset(0, 6),
                                 ),
@@ -498,8 +498,10 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                             child: InkWell(
                               onTap: () => _navigateToBillDetails(payment),
                               borderRadius: BorderRadius.circular(16),
-                              splashColor: statusColor.withOpacity(0.1),
-                              highlightColor: statusColor.withOpacity(0.05),
+                              splashColor: statusColor.withValues(alpha: 0.1),
+                              highlightColor: statusColor.withValues(
+                                alpha: 0.05,
+                              ),
                               child: Padding(
                                 padding: const EdgeInsets.all(12),
                                 child: Column(
@@ -562,8 +564,8 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                                             vertical: 2,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: statusColor.withOpacity(
-                                              0.15,
+                                            color: statusColor.withValues(
+                                              alpha: 0.15,
                                             ),
                                             borderRadius: BorderRadius.circular(
                                               8,
@@ -625,14 +627,15 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                                               vertical: 3,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.orange.withOpacity(
-                                                0.1,
+                                              color: Colors.orange.withValues(
+                                                alpha: 0.1,
                                               ),
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                               border: Border.all(
-                                                color: Colors.orange
-                                                    .withOpacity(0.3),
+                                                color: Colors.orange.withValues(
+                                                  alpha: 0.3,
+                                                ),
                                                 width: 1,
                                               ),
                                             ),
@@ -714,15 +717,15 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
+          colors: [color.withValues(alpha: 0.1), color.withValues(alpha: 0.05)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.2), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -733,7 +736,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: Icon(_getSummaryIcon(title), color: color, size: 16),

@@ -36,10 +36,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
     return AlertDialog(
       title: Text(
         'Add New User',
-        style: TextStyle(
-          color: primaryTextColor,
-          fontWeight: FontWeight.bold,
-        ),
+        style: TextStyle(color: primaryTextColor, fontWeight: FontWeight.bold),
       ),
       content: SingleChildScrollView(
         child: Form(
@@ -81,12 +78,12 @@ class _AddUserDialogState extends State<AddUserDialog> {
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
                     ),
                     onPressed: () {
-                      setState(
-                        () => _obscurePassword = !_obscurePassword,
-                      );
+                      setState(() => _obscurePassword = !_obscurePassword);
                     },
                   ),
                   border: OutlineInputBorder(
@@ -255,47 +252,34 @@ class _AddUserDialogState extends State<AddUserDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
+        color: Colors.blue.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             plan.displayName,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(plan.description, style: const TextStyle(fontSize: 12)),
+          const SizedBox(height: 8),
+          ...plan.features.map(
+            (feature) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, size: 16, color: Colors.green[600]),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(feature, style: const TextStyle(fontSize: 11)),
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            plan.description,
-            style: const TextStyle(fontSize: 12),
-          ),
-          const SizedBox(height: 8),
-          ...plan.features
-              .map((feature) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: Colors.green[600],
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            feature,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ))
-              ,
         ],
       ),
     );

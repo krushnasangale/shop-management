@@ -1214,7 +1214,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
@@ -1756,7 +1756,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -1949,7 +1949,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
+                      color: Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -2138,7 +2138,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ],
             ),
             Divider(
-              color: context.secondaryTextColor?.withOpacity(0.3),
+              color: context.secondaryTextColor?.withValues(alpha: 0.3),
               height: 20,
             ),
             if (paymentRecords.isEmpty)
@@ -2186,11 +2186,17 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                       ),
                                       decoration: BoxDecoration(
                                         color: payment.paymentMethod == 'cash'
-                                            ? Colors.blue.withOpacity(0.15)
+                                            ? Colors.blue.withValues(
+                                                alpha: 0.15,
+                                              )
                                             : payment.paymentMethod ==
                                                   'discount'
-                                            ? Colors.orange.withOpacity(0.15)
-                                            : Colors.green.withOpacity(0.15),
+                                            ? Colors.orange.withValues(
+                                                alpha: 0.15,
+                                              )
+                                            : Colors.green.withValues(
+                                                alpha: 0.15,
+                                              ),
                                         borderRadius: BorderRadius.circular(4),
                                       ),
                                       child: Text(
@@ -2266,8 +2272,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       ),
                       decoration: BoxDecoration(
                         color: paymentMethod == 'cash'
-                            ? Colors.blue.withOpacity(0.1)
-                            : Colors.green.withOpacity(0.1),
+                            ? Colors.blue.withValues(alpha: 0.1)
+                            : Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: paymentMethod == 'cash'
@@ -2321,7 +2327,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ],
             ),
             Divider(
-              color: context.secondaryTextColor?.withOpacity(0.3),
+              color: context.secondaryTextColor?.withValues(alpha: 0.3),
               height: 20,
             ),
             Text(
@@ -2351,9 +2357,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.05),
+                        color: Colors.blue.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                        border: Border.all(
+                          color: Colors.blue.withValues(alpha: 0.2),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2380,7 +2388,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.green),
                       ),
@@ -2398,7 +2406,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.blue),
                       ),
@@ -2428,9 +2436,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.05),
+                    color: Colors.blue.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2537,19 +2547,21 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       vertical: 2,
                     ),
                     childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    backgroundColor: Colors.blue.withOpacity(0.02),
-                    collapsedBackgroundColor: Colors.blue.withOpacity(0.02),
+                    backgroundColor: Colors.blue.withValues(alpha: 0.02),
+                    collapsedBackgroundColor: Colors.blue.withValues(
+                      alpha: 0.02,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                       side: BorderSide(
-                        color: Colors.blue.withOpacity(0.15),
+                        color: Colors.blue.withValues(alpha: 0.15),
                         width: 1,
                       ),
                     ),
                     collapsedShape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                       side: BorderSide(
-                        color: Colors.blue.withOpacity(0.15),
+                        color: Colors.blue.withValues(alpha: 0.15),
                         width: 1,
                       ),
                     ),
@@ -2615,7 +2627,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     ),
                     children: [
                       // Expanded details
-                      Divider(color: Colors.grey.withOpacity(0.2), height: 12),
+                      Divider(
+                        color: Colors.grey.withValues(alpha: 0.2),
+                        height: 12,
+                      ),
                       const SizedBox(height: 8),
 
                       if (batchId.isNotEmpty)
@@ -2627,10 +2642,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.purple.withOpacity(0.15),
+                              color: Colors.purple.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: Colors.purple.withOpacity(0.3),
+                                color: Colors.purple.withValues(alpha: 0.3),
                               ),
                             ),
                             child: Text(
@@ -2692,9 +2707,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         decoration: BoxDecoration(
-          color: accentColor.withOpacity(0.08),
+          color: accentColor.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: accentColor.withOpacity(0.15), width: 0.5),
+          border: Border.all(
+            color: accentColor.withValues(alpha: 0.15),
+            width: 0.5,
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -2749,7 +2767,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.blue.withOpacity(0.3),
+                    color: Colors.blue.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -2763,7 +2781,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
+                          color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: const Icon(
@@ -2825,10 +2843,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Colors.orange.withOpacity(0.3),
+                          color: Colors.orange.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -2903,7 +2921,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ),
             ),
             Divider(
-              color: context.secondaryTextColor?.withOpacity(0.3),
+              color: context.secondaryTextColor?.withValues(alpha: 0.3),
               height: 16,
             ),
             // Amount Paid row with edit functionality
@@ -2927,10 +2945,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: Colors.green.withOpacity(0.3),
+                          color: Colors.green.withValues(alpha: 0.3),
                         ),
                       ),
                       child: Row(
@@ -2963,7 +2981,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               isBold: true,
             ),
             Divider(
-              color: context.secondaryTextColor?.withOpacity(0.3),
+              color: context.secondaryTextColor?.withValues(alpha: 0.3),
               height: 16,
             ),
 
@@ -2980,7 +2998,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: getStatusColor().withOpacity(0.2),
+                    color: getStatusColor().withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -2999,7 +3017,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 nextPaymentDate!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Divider(
-                color: context.secondaryTextColor?.withOpacity(0.3),
+                color: context.secondaryTextColor?.withValues(alpha: 0.3),
                 height: 16,
               ),
               Row(
@@ -3017,9 +3035,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                        border: Border.all(
+                          color: Colors.blue.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -3093,7 +3113,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 Text(
                   '${localizations.margin}: ${profitPercentage.abs().toStringAsFixed(1)}%',
                   style: TextStyle(
-                    color: profitColor.withOpacity(0.8),
+                    color: profitColor.withValues(alpha: 0.8),
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
                   ),
@@ -3104,10 +3124,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: profitColor.withOpacity(0.1),
+                color: profitColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: profitColor.withOpacity(0.3),
+                  color: profitColor.withValues(alpha: 0.3),
                   width: 2,
                 ),
               ),
@@ -3142,7 +3162,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         ? Icons.trending_up_rounded
                         : Icons.trending_down_rounded,
                     size: 36,
-                    color: profitColor.withOpacity(0.6),
+                    color: profitColor.withValues(alpha: 0.6),
                   ),
                 ],
               ),
@@ -3179,7 +3199,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.deepOrange.withOpacity(0.12),
+                    color: Colors.deepOrange.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
@@ -3204,8 +3224,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   ),
                   decoration: BoxDecoration(
                     color: isFullyPaid
-                        ? Colors.green.withOpacity(0.12)
-                        : Colors.orange.withOpacity(0.12),
+                        ? Colors.green.withValues(alpha: 0.12)
+                        : Colors.orange.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -3296,7 +3316,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -3307,7 +3327,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w500,
-                color: color.withOpacity(0.8),
+                color: color.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 4),

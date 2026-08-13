@@ -87,7 +87,7 @@ class NotificationService {
         // Get device ID and name for unique token storage
         final deviceId = await DeviceUtils.getDeviceId();
         final deviceInfo = await DeviceUtils.getDeviceInfo();
-        final docId = '${user.uid}_${deviceId}'; // Combine userId and deviceId
+        final docId = '${user.uid}_$deviceId'; // Combine userId and deviceId
 
         // Remove this token from any OTHER user's documents first
         // (same device can only belong to one user at a time)
@@ -132,7 +132,7 @@ class NotificationService {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) return;
       final deviceId = await DeviceUtils.getDeviceId();
-      final docId = '${user.uid}_${deviceId}';
+      final docId = '${user.uid}_$deviceId';
       await FirebaseFirestore.instance
           .collection('users-fcm-tokens')
           .doc(docId)
@@ -218,7 +218,7 @@ class NotificationService {
       try {
         final imagePath = await _downloadAndSaveImage(
           imageUrl,
-          'notification_${notifId}',
+          'notification_$notifId',
         );
         final bigPictureStyle = BigPictureStyleInformation(
           FilePathAndroidBitmap(imagePath),

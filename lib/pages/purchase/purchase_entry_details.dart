@@ -374,7 +374,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: BorderSide(
-                  color: context.secondaryTextColor!.withOpacity(0.1),
+                  color: context.secondaryTextColor!.withValues(alpha: 0.1),
                   width: 1,
                 ),
               ),
@@ -458,7 +458,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                     side: BorderSide(
-                      color: context.secondaryTextColor!.withOpacity(0.1),
+                      color: context.secondaryTextColor!.withValues(alpha: 0.1),
                       width: 1,
                     ),
                   ),
@@ -473,7 +473,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                               width: 28,
                               height: 28,
                               decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
+                                color: Colors.blue.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Center(
@@ -522,10 +522,10 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.purple.withOpacity(0.1),
+                                  color: Colors.purple.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(4),
                                   border: Border.all(
-                                    color: Colors.purple.withOpacity(0.3),
+                                    color: Colors.purple.withValues(alpha: 0.3),
                                     width: 0.5,
                                   ),
                                 ),
@@ -666,7 +666,9 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                         ),
                         const SizedBox(height: 10),
                         Divider(
-                          color: context.secondaryTextColor?.withOpacity(0.1),
+                          color: context.secondaryTextColor?.withValues(
+                            alpha: 0.1,
+                          ),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -702,15 +704,15 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    Colors.green.withOpacity(0.1),
-                    Colors.green.withOpacity(0.05),
+                    Colors.green.withValues(alpha: 0.1),
+                    Colors.green.withValues(alpha: 0.05),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.green.withOpacity(0.2),
+                  color: Colors.green.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),

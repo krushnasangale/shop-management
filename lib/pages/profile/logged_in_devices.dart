@@ -260,7 +260,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: platformColor.withOpacity(0.1),
+                      color: platformColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(platformIcon, color: platformColor, size: 28),
@@ -325,7 +325,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                             horizontal: 10,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.grey.withOpacity(0.12),
+                            color: Colors.grey.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(

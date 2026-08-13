@@ -190,7 +190,7 @@ class _DashboardState extends State<Dashboard>
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: displayProducts.length,
-                separatorBuilder: (_, __) => Divider(
+                separatorBuilder: (_, _) => Divider(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.grey[700]!
                       : Colors.grey[300]!,
@@ -245,7 +245,7 @@ class _DashboardState extends State<Dashboard>
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: displayProducts.length,
-                separatorBuilder: (_, __) => Divider(
+                separatorBuilder: (_, _) => Divider(
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.grey[700]!
                       : Colors.grey[300]!,
@@ -294,7 +294,7 @@ class _DashboardState extends State<Dashboard>
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount:
                         _dashboardData?.pendingPayments.payments.length ?? 0,
-                    separatorBuilder: (_, __) => Divider(
+                    separatorBuilder: (_, _) => Divider(
                       color: Theme.of(context).brightness == Brightness.dark
                           ? Colors.grey[700]!
                           : Colors.grey[300]!,
@@ -331,7 +331,9 @@ class _DashboardState extends State<Dashboard>
                   ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.orange[600],
-                    side: BorderSide(color: Colors.orange.withOpacity(0.5)),
+                    side: BorderSide(
+                      color: Colors.orange.withValues(alpha: 0.5),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
@@ -348,12 +350,14 @@ class _DashboardState extends State<Dashboard>
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.purple.withOpacity(0.05),
+        color: isDark
+            ? Colors.grey[850]
+            : Colors.purple.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
-              ? Colors.purple.withOpacity(0.3)
-              : Colors.purple.withOpacity(0.15),
+              ? Colors.purple.withValues(alpha: 0.3)
+              : Colors.purple.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
@@ -384,7 +388,7 @@ class _DashboardState extends State<Dashboard>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.purple.withOpacity(0.15),
+                          color: Colors.purple.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -553,12 +557,12 @@ class _DashboardState extends State<Dashboard>
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.green.withOpacity(0.05),
+        color: isDark ? Colors.grey[850] : Colors.green.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
-              ? Colors.green.withOpacity(0.3)
-              : Colors.green.withOpacity(0.15),
+              ? Colors.green.withValues(alpha: 0.3)
+              : Colors.green.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
@@ -598,10 +602,10 @@ class _DashboardState extends State<Dashboard>
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.15),
+                    color: Colors.orange.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: Colors.orange.withOpacity(0.3),
+                      color: Colors.orange.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -642,11 +646,11 @@ class _DashboardState extends State<Dashboard>
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.green.withOpacity(0.1)
-                          : Colors.green.withOpacity(0.1),
+                          ? Colors.green.withValues(alpha: 0.1)
+                          : Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.green.withOpacity(0.3),
+                        color: Colors.green.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -700,11 +704,11 @@ class _DashboardState extends State<Dashboard>
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isDark
-                          ? Colors.blue.withOpacity(0.1)
-                          : Colors.blue.withOpacity(0.1),
+                          ? Colors.blue.withValues(alpha: 0.1)
+                          : Colors.blue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.blue.withOpacity(0.3),
+                        color: Colors.blue.withValues(alpha: 0.3),
                         width: 1,
                       ),
                     ),
@@ -764,12 +768,12 @@ class _DashboardState extends State<Dashboard>
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.blue.withOpacity(0.05),
+        color: isDark ? Colors.grey[850] : Colors.blue.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
-              ? Colors.blue.withOpacity(0.3)
-              : Colors.blue.withOpacity(0.15),
+              ? Colors.blue.withValues(alpha: 0.3)
+              : Colors.blue.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
@@ -804,7 +808,7 @@ class _DashboardState extends State<Dashboard>
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.blue.withOpacity(0.15),
+                              color: Colors.blue.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -858,7 +862,7 @@ class _DashboardState extends State<Dashboard>
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _dashboardData?.upcomingPayments.length ?? 0,
-                      separatorBuilder: (_, __) => Divider(
+                      separatorBuilder: (_, _) => Divider(
                         color: isDark ? Colors.grey[700] : Colors.grey[300],
                         height: 12,
                       ),
@@ -938,12 +942,12 @@ class _DashboardState extends State<Dashboard>
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.red.withOpacity(0.05),
+        color: isDark ? Colors.grey[850] : Colors.red.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isDark
-              ? Colors.red.withOpacity(0.3)
-              : Colors.red.withOpacity(0.15),
+              ? Colors.red.withValues(alpha: 0.3)
+              : Colors.red.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
@@ -973,7 +977,7 @@ class _DashboardState extends State<Dashboard>
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.15),
+                          color: Colors.red.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -1029,7 +1033,7 @@ class _DashboardState extends State<Dashboard>
                                     .productsData
                                     .orderNowProducts
                                     .length),
-                          separatorBuilder: (_, __) => Divider(
+                          separatorBuilder: (_, _) => Divider(
                             color: isDark ? Colors.grey[700] : Colors.grey[300],
                             height: 12,
                           ),
@@ -1076,7 +1080,7 @@ class _DashboardState extends State<Dashboard>
                                     vertical: 4,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.15),
+                                    color: Colors.red.withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
@@ -1117,10 +1121,10 @@ class _DashboardState extends State<Dashboard>
                                 vertical: 10,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.red.withOpacity(0.1),
+                                color: Colors.red.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: Colors.red.withOpacity(0.3),
+                                  color: Colors.red.withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                               ),
@@ -1266,13 +1270,13 @@ class _DashboardState extends State<Dashboard>
                                 ),
                                 decoration: BoxDecoration(
                                   color: isDark
-                                      ? Colors.blue.withOpacity(0.2)
-                                      : Colors.blue.withOpacity(0.1),
+                                      ? Colors.blue.withValues(alpha: 0.2)
+                                      : Colors.blue.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
                                     color: isDark
-                                        ? Colors.blue.withOpacity(0.6)
-                                        : Colors.blue.withOpacity(0.3),
+                                        ? Colors.blue.withValues(alpha: 0.6)
+                                        : Colors.blue.withValues(alpha: 0.3),
                                     width: isDark ? 1.2 : 1,
                                   ),
                                 ),
@@ -1634,12 +1638,14 @@ class _DashboardState extends State<Dashboard>
           child: Container(
             margin: const EdgeInsets.only(right: 8),
             decoration: BoxDecoration(
-              color: isDark ? Colors.grey[850] : Colors.blue.withOpacity(0.1),
+              color: isDark
+                  ? Colors.grey[850]
+                  : Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isDark
-                    ? Colors.blue.withOpacity(0.4)
-                    : Colors.blue.withOpacity(0.2),
+                    ? Colors.blue.withValues(alpha: 0.4)
+                    : Colors.blue.withValues(alpha: 0.2),
                 width: isDark ? 1.5 : 1,
               ),
             ),
@@ -1655,8 +1661,8 @@ class _DashboardState extends State<Dashboard>
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? Colors.blue.withOpacity(0.15)
-                            : Colors.blue.withOpacity(0.15),
+                            ? Colors.blue.withValues(alpha: 0.15)
+                            : Colors.blue.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
@@ -1699,12 +1705,14 @@ class _DashboardState extends State<Dashboard>
           child: Container(
             margin: const EdgeInsets.only(left: 8),
             decoration: BoxDecoration(
-              color: isDark ? Colors.grey[850] : profitBgColor.withOpacity(0.1),
+              color: isDark
+                  ? Colors.grey[850]
+                  : profitBgColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: isDark
-                    ? profitBgColor.withOpacity(0.4)
-                    : profitBgColor.withOpacity(0.2),
+                    ? profitBgColor.withValues(alpha: 0.4)
+                    : profitBgColor.withValues(alpha: 0.2),
                 width: isDark ? 1.5 : 1,
               ),
             ),
@@ -1720,8 +1728,8 @@ class _DashboardState extends State<Dashboard>
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
                         color: isDark
-                            ? profitBgColor.withOpacity(0.15)
-                            : profitBgColor.withOpacity(0.15),
+                            ? profitBgColor.withValues(alpha: 0.15)
+                            : profitBgColor.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(

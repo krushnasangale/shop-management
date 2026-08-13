@@ -457,9 +457,9 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3), width: 1),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
       ),
       child: Column(
         children: [
@@ -499,9 +499,9 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3), width: 1),
+          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
         ),
         child: Column(
           children: [
@@ -662,7 +662,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.blue.withOpacity(0.3),
+                  color: Colors.blue.withValues(alpha: 0.3),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -682,7 +682,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -735,7 +735,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -833,7 +833,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                         decoration: BoxDecoration(
                           color: _getMarginColor(
                             profitMargin,
-                          ).withOpacity(0.15),
+                          ).withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -903,8 +903,8 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                   ),
                   decoration: BoxDecoration(
                     color: totalProfit >= 0
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.red.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
@@ -962,7 +962,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? Colors.grey[800]?.withOpacity(0.5)
+                      ? Colors.grey[800]?.withValues(alpha: 0.5)
                       : Colors.grey[50],
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -1040,13 +1040,13 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
-                      Colors.blue.withOpacity(0.05),
-                      Colors.blue.withOpacity(0.1),
+                      Colors.blue.withValues(alpha: 0.05),
+                      Colors.blue.withValues(alpha: 0.1),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: Colors.blue.withOpacity(0.2),
+                    color: Colors.blue.withValues(alpha: 0.2),
                     width: 1,
                   ),
                 ),
