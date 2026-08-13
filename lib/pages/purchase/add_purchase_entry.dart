@@ -14,6 +14,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flashbill/services/image_upload_service.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class AddPurchaseEntry extends StatefulWidget {
   final String? purchaseId;
@@ -205,7 +206,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         _calculateTotalBoughtAmount();
       });
     } catch (e) {
-      print('Error loading existing purchase data: $e');
+      appLog('Error loading existing purchase data: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error loading purchase data: $e')),
@@ -324,7 +325,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         });
       }
     } catch (e) {
-      print('Error loading app settings: $e');
+      appLog('Error loading app settings: $e');
       // Default to false if error
       if (mounted) {
         setState(() {
@@ -350,12 +351,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
       if (existingSupplier.isNotEmpty) {
         // Supplier exists, return the ID
-        print('✅ Supplier exists: ${existingSupplier['name']}');
+        appLog('✅ Supplier exists: ${existingSupplier['name']}');
         return existingSupplier['id'] ?? '';
       }
 
       // Supplier doesn't exist, create it
-      print('🆕 Creating new supplier: $supplierName');
+      appLog('🆕 Creating new supplier: $supplierName');
       final suppliersRef = FirebaseFirestore.instance
           .collection('suppliers')
           .doc(user.uid)
@@ -379,10 +380,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         });
       });
 
-      print('✅ Supplier created with ID: ${docRef.id}');
+      appLog('✅ Supplier created with ID: ${docRef.id}');
       return docRef.id;
     } catch (e) {
-      print('❌ Error handling scanned supplier: $e');
+      appLog('❌ Error handling scanned supplier: $e');
       return '';
     }
   }
@@ -411,7 +412,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
         if (existingProduct.isEmpty) {
           // Product doesn't exist, create it
-          print('🆕 Creating new product: $productName');
+          appLog('🆕 Creating new product: $productName');
 
           final newProduct = {
             'name': productName.trim(),
@@ -429,13 +430,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             });
           });
 
-          print('✅ Product created with ID: ${docRef.id}');
+          appLog('✅ Product created with ID: ${docRef.id}');
         } else {
-          print('✅ Product exists: ${existingProduct['name']}');
+          appLog('✅ Product exists: ${existingProduct['name']}');
         }
       }
     } catch (e) {
-      print('❌ Error handling scanned products: $e');
+      appLog('❌ Error handling scanned products: $e');
     }
   }
 
@@ -463,7 +464,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
 
         if (existingUnit.isEmpty) {
           // Unit doesn't exist, create it
-          print('🆕 Creating new unit: $unitName');
+          appLog('🆕 Creating new unit: $unitName');
 
           final newUnit = {'name': unitName.trim()};
 
@@ -474,20 +475,20 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             _allUnits.add({'id': docRef.id, 'name': unitName.trim()});
           });
 
-          print('✅ Unit created with ID: ${docRef.id}');
+          appLog('✅ Unit created with ID: ${docRef.id}');
         } else {
-          print('✅ Unit exists: ${existingUnit['name']}');
+          appLog('✅ Unit exists: ${existingUnit['name']}');
         }
       }
     } catch (e) {
-      print('❌ Error handling scanned units: $e');
+      appLog('❌ Error handling scanned units: $e');
     }
   }
 
   void _calculateTotalBoughtAmount() {
     _totalBoughtAmount = _boughtItems.fold(
       0.0,
-      (sum, item) => sum + item.total,
+      (total, item) => total + item.total,
     );
   }
 
@@ -1521,7 +1522,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 // This will trigger a rebuild of the modal sheet with updated items
                               });
 
-                              if (mounted) {
+                              if (context.mounted) {
                                 Navigator.pop(context);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -1534,7 +1535,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               }
                             }
                           } catch (e) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
@@ -2125,8 +2126,10 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   });
                                 });
 
-                                if (mounted) {
+                                if (context.mounted) {
                                   Navigator.pop(context); // close dialog
+                                }
+                                if (bottomSheetContext.mounted) {
                                   Navigator.pop(
                                     bottomSheetContext,
                                   ); // close bottom sheet
@@ -2146,7 +2149,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                   );
                                 }
                               } else {
-                                if (mounted) {
+                                if (context.mounted) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
@@ -2158,7 +2161,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                               }
                             }
                           } catch (e) {
-                            if (mounted) {
+                            if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
@@ -2254,6 +2257,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
           orElse: () => {},
         );
         if (existingSupplier['contact']?.isEmpty ?? true) {
+          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -2288,11 +2292,11 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
       int totalUnits = 0;
       for (var item in _boughtItems) {
         totalUnits += item.initialQuantity;
-        print(
+        appLog(
           'Item: ${item.productName}, initialQuantity: ${item.initialQuantity}',
         );
       }
-      print(
+      appLog(
         'Calculated totalUnits: $totalUnits, totalProducts: $totalProducts, totalAmount: $_totalBoughtAmount',
       );
 
@@ -2444,7 +2448,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         Navigator.of(context).pop();
       }
     } catch (e) {
-      print('Error saving bought entry: $e');
+      appLog('Error saving bought entry: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${appLocalizations.error}: $e')),

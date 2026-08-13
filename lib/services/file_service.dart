@@ -56,7 +56,9 @@ class FileService {
       await file.writeAsBytes(fileBytes);
 
       // Share the file
-      await Share.shareXFiles([XFile(filePath)], text: shareText);
+      await SharePlus.instance.share(
+        ShareParams(files: [XFile(filePath)], text: shareText),
+      );
 
       return FileResult(success: true, filePath: filePath);
     } catch (e) {

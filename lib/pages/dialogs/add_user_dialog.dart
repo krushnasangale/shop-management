@@ -300,7 +300,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
       planType: _selectedPlanType,
     );
 
-    if (mounted) {
+    if (context.mounted) {
       if (result != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

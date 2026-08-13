@@ -19,6 +19,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart'
     hide FileService;
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:image/image.dart' as img;
+import 'package:flashbill/utils/app_logger.dart';
 
 class AvailableProducts extends StatefulWidget {
   const AvailableProducts({super.key});
@@ -167,7 +168,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
         }
       }
     } catch (e) {
-      print('Error loading shop name: $e');
+      appLog('Error loading shop name: $e');
     }
   }
 
@@ -793,6 +794,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     } catch (e) {
       if (e.toString().contains('cancelled by user')) {
         // Show cancellation message
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('PDF generation cancelled'),
@@ -801,6 +803,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
           ),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Error generating PDF'),
@@ -855,6 +858,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     } catch (e) {
       if (e.toString().contains('cancelled by user')) {
         // Show cancellation message
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Catalogue generation cancelled'),
@@ -863,6 +867,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
           ),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error generating catalogue: ${e.toString()}'),
@@ -1623,7 +1628,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
         final productName = displayedProductNames[index];
         final batches = groupedByName[productName]!;
-        final totalQty = batches.fold<int>(0, (sum, p) => sum + p.quantity);
+        final totalQty = batches.fold<int>(0, (total, p) => total + p.quantity);
 
         // Filter only available batches (quantity > 0)
         final availableBatches = batches.where((p) => p.quantity > 0).toList();

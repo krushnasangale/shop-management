@@ -763,7 +763,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     // Calculate total amount including delivery charges
     final productsTotal = widget.products.fold<double>(
       0.0,
-      (sum, product) => sum + product.total,
+      (total, product) => total + product.total,
     );
     final totalAmount = (productsTotal + widget.deliveryCharges).toInt();
 

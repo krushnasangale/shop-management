@@ -258,14 +258,13 @@ class _EditProfileState extends State<EditProfile> {
             Animation<double> animation,
             Animation<double> secondaryAnimation,
           ) {
-            return WillPopScope(
-              onWillPop: () async {
+            return PopScope(
+              onPopInvokedWithResult: (didPop, result) {
                 // Reset to portrait when closing
                 SystemChrome.setPreferredOrientations([
                   DeviceOrientation.portraitUp,
                   DeviceOrientation.portraitDown,
                 ]);
-                return true;
               },
               child: SafeArea(
                 child: Scaffold(
@@ -606,9 +605,7 @@ class _EditProfileState extends State<EditProfile> {
                             bottom: 0,
                             right: 0,
                             child: GestureDetector(
-                              onTap: () {
-                                // TODO: Add image picker functionality
-                              },
+                              onTap: () {},
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF2196F3),

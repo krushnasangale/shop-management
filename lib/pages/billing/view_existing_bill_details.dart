@@ -15,6 +15,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:printing/printing.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -163,7 +164,7 @@ class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
             shopName = profileData['shopName'] ?? 'Shop';
           }
         } catch (e) {
-          print('Error fetching shop name: $e');
+          appLog('Error fetching shop name: $e');
         }
 
         return await FileService.shareExistingFile(
@@ -376,7 +377,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         }
       }
     } catch (e) {
-      print('Error loading payment records from cache: $e');
+      appLog('Error loading payment records from cache: $e');
     }
   }
 
@@ -410,7 +411,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         });
       }
     } catch (e) {
-      print('Error loading discount from cache: $e');
+      appLog('Error loading discount from cache: $e');
     }
   }
 
@@ -465,7 +466,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         });
       }
     } catch (e) {
-      print('Error loading app settings: $e');
+      appLog('Error loading app settings: $e');
       // Default to true if error
       if (mounted) {
         setState(() {
@@ -514,7 +515,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         });
       }
     } catch (e) {
-      print('Error updating bill data from cache: $e');
+      appLog('Error updating bill data from cache: $e');
     }
   }
 
@@ -639,7 +640,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             }
           }
         } catch (e) {
-          print('Error fetching profile data: $e');
+          appLog('Error fetching profile data: $e');
         }
 
         // Generate PDF with already-fetched profile data
@@ -694,6 +695,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     );
 
     if (confirmed == true) {
+      if (!mounted) return;
       setState(() {
         _isDeleting = true;
       });
@@ -858,6 +860,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     ).then((result) {
       // If bill was edited successfully, pop back to refresh the bills list
       if (result == true) {
+        if (!mounted) return;
         Navigator.pop(context, true);
       }
     });
@@ -906,7 +909,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           }
         }
       } catch (e) {
-        print('Error fetching owner signature: $e');
+        appLog('Error fetching owner signature: $e');
       }
     }
 
@@ -993,6 +996,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             'paymentMethod': selectedPaymentMethod,
           });
 
+      if (!mounted) return;
       // Update local state
       setState(() {
         amountPaid = '₹ $newTotalAmountPaid';
@@ -1008,6 +1012,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         SnackBar(content: Text(localizations.paymentRecordedSuccessfully)),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
@@ -1044,7 +1049,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         paymentRecords.add(newPayment);
       });
     } catch (e) {
-      print('Error adding payment record: $e');
+      appLog('Error adding payment record: $e');
       rethrow;
     }
   }
@@ -1071,6 +1076,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       Printing.layoutPdf(onLayout: (format) async => pdfBytes);
                     })
                     .catchError((e) {
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
@@ -1263,35 +1269,31 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: RadioListTile<String>(
-                                title: Text(localizations.cash),
-                                value: 'cash',
-                                groupValue: selectedPaymentMethod,
-                                contentPadding: EdgeInsets.zero,
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedPaymentMethod = value ?? 'cash';
-                                  });
-                                },
+                        RadioGroup<String>(
+                          groupValue: selectedPaymentMethod,
+                          onChanged: (value) {
+                            setState(() {
+                              selectedPaymentMethod = value ?? 'cash';
+                            });
+                          },
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: RadioListTile<String>(
+                                  title: Text(localizations.cash),
+                                  value: 'cash',
+                                  contentPadding: EdgeInsets.zero,
+                                ),
                               ),
-                            ),
-                            Expanded(
-                              child: RadioListTile<String>(
-                                title: Text(localizations.online),
-                                value: 'online',
-                                groupValue: selectedPaymentMethod,
-                                contentPadding: EdgeInsets.zero,
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedPaymentMethod = value ?? 'cash';
-                                  });
-                                },
+                              Expanded(
+                                child: RadioListTile<String>(
+                                  title: Text(localizations.online),
+                                  value: 'online',
+                                  contentPadding: EdgeInsets.zero,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -1439,6 +1441,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           .doc(billId)
           .update({'nextPaymentDate': newDate});
 
+      if (!mounted) return;
       setState(() {
         nextPaymentDate = newDate;
         _nextPaymentDateController.text = newDate;
@@ -1450,6 +1453,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
@@ -1538,6 +1542,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           .doc(billId)
           .update({'customerMobile': newMobile});
 
+      if (!mounted) return;
       setState(() {
         customerMobile = newMobile;
       });
@@ -1546,6 +1551,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         SnackBar(content: Text(localizations.mobileNumberUpdatedSuccessfully)),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
@@ -1645,6 +1651,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           .doc(billId)
           .update({'customerVehicle': newVehicle ?? ''});
 
+      if (!mounted) return;
       setState(() {
         customerVehicle = newVehicle;
       });
@@ -1653,6 +1660,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         SnackBar(content: Text(localizations.vehicleNumberUpdatedSuccessfully)),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
@@ -1684,7 +1692,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         }
       }
     } catch (e) {
-      print('Error fetching shop name: $e');
+      appLog('Error fetching shop name: $e');
     }
 
     // Prepare message based on payment status
@@ -1901,6 +1909,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       // Reload payment records to show the discount
       await _loadPaymentRecords();
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -1917,6 +1926,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
@@ -2086,10 +2096,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       // Reload payment records to show the adjustment
       await _loadPaymentRecords();
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(localizations.amountUpdatedSuccessfully)),
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));

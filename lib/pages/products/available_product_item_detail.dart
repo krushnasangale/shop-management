@@ -445,6 +445,7 @@ class _AvailableProductDetailScreenState
     await _showImageSourceDialog((source) async {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: source);
+      if (!mounted) return;
       if (image != null) {
         // Show loading dialog with progress
         double uploadProgress = 0.0;
@@ -700,7 +701,9 @@ class _AvailableProductDetailScreenState
           await tempFile.writeAsBytes(response.bodyBytes);
 
           // Share with image
-          await Share.shareXFiles([XFile(tempFile.path)], text: shareText);
+          await SharePlus.instance.share(
+            ShareParams(files: [XFile(tempFile.path)], text: shareText),
+          );
 
           // Clean up temp file after sharing
           tempFile.delete().ignore();
@@ -711,11 +714,11 @@ class _AvailableProductDetailScreenState
           }
 
           // Fallback to text-only sharing if image download fails
-          await Share.share(shareText);
+          await SharePlus.instance.share(ShareParams(text: shareText));
         }
       } else {
         // Share text only
-        await Share.share(shareText);
+        await SharePlus.instance.share(ShareParams(text: shareText));
       }
     } catch (e) {
       // Close loading dialog if it's open
@@ -731,7 +734,7 @@ class _AvailableProductDetailScreenState
             '💰 Price: ₹${batch.sellingPrice.toStringAsFixed(2)}\n'
             '📊 Available: ${batch.quantity} ${batch.unit}';
 
-        await Share.share(fallbackText);
+        await SharePlus.instance.share(ShareParams(text: fallbackText));
       } catch (fallbackError) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1371,7 +1374,7 @@ class _AvailableProductDetailScreenState
                                     }
 
                                     setState(() => isDeleting = false);
-                                    if (mounted) {
+                                    if (context.mounted) {
                                       Navigator.of(
                                         context,
                                       ).pop(); // Close dialog
@@ -1390,7 +1393,7 @@ class _AvailableProductDetailScreenState
                                     }
                                   } catch (e) {
                                     setState(() => isDeleting = false);
-                                    if (mounted) {
+                                    if (context.mounted) {
                                       Navigator.of(
                                         context,
                                       ).pop(); // Close dialog
@@ -1999,6 +2002,7 @@ class _AvailableProductDetailScreenState
                                             // Reload batches and purchase history to reflect changes
                                             await _loadAllBatches();
                                             await _loadPurchaseHistory();
+                                            if (!context.mounted) return;
                                             setState(() {
                                               _editingMinLimit = false;
                                             });
@@ -2015,6 +2019,7 @@ class _AvailableProductDetailScreenState
                                             );
                                           })
                                           .catchError((e) {
+                                            if (!context.mounted) return;
                                             ScaffoldMessenger.of(
                                               context,
                                             ).showSnackBar(

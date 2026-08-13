@@ -6,6 +6,7 @@ import 'dart:io' show Platform, File;
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:flashbill/utils/device_utils.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -41,11 +42,11 @@ class NotificationService {
 
     // Set up listeners without requesting permission yet
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-      print('Got a message whilst in the foreground!');
-      print('Message data: ${message.data}');
+      appLog('Got a message whilst in the foreground!');
+      appLog('Message data: ${message.data}');
 
       if (message.notification != null) {
-        print('Message also contained a notification: ${message.notification}');
+        appLog('Message also contained a notification: ${message.notification}');
         // Show local notification with image support
         await _showLocalNotification(message);
       }
@@ -53,7 +54,7 @@ class NotificationService {
 
     // Handle when app is opened from notification
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      print('Message clicked!');
+      appLog('Message clicked!');
       if (_onNotificationOpened != null) {
         _onNotificationOpened!(message.data);
       }
@@ -62,7 +63,7 @@ class NotificationService {
     // When FCM rotates the token (e.g. app reinstall, token expiry),
     // update the stored token so this device keeps receiving notifications.
     FirebaseMessaging.instance.onTokenRefresh.listen((newToken) async {
-      print('FCM token refreshed — updating Firestore: $newToken');
+      appLog('FCM token refreshed — updating Firestore: $newToken');
       await _saveTokenToFirestore(newToken);
     });
   }
@@ -75,7 +76,7 @@ class NotificationService {
 
     // Get token after permission
     final fCMToken = await messaging.getToken();
-    print('FCM Token: $fCMToken');
+    appLog('FCM Token: $fCMToken');
 
     // Note: Token is saved to Firestore only on login, not here
   }
@@ -98,7 +99,7 @@ class NotificationService {
         for (final doc in existing.docs) {
           if (doc.data()['userId'] != user.uid) {
             await doc.reference.delete();
-            print('Removed stale token from another user: ${doc.id}');
+            appLog('Removed stale token from another user: ${doc.id}');
           }
         }
 
@@ -119,10 +120,10 @@ class NotificationService {
               'updatedAt': FieldValue.serverTimestamp(),
               'createdAt': FieldValue.serverTimestamp(),
             }, SetOptions(merge: true));
-        print('FCM Token saved to Firestore for device: $deviceId');
+        appLog('FCM Token saved to Firestore for device: $deviceId');
       }
     } catch (e) {
-      print('Error saving FCM token: $e');
+      appLog('Error saving FCM token: $e');
     }
   }
 
@@ -137,9 +138,9 @@ class NotificationService {
           .collection('users-fcm-tokens')
           .doc(docId)
           .delete();
-      print('FCM Token removed from Firestore on logout');
+      appLog('FCM Token removed from Firestore on logout');
     } catch (e) {
-      print('Error removing FCM token on logout: $e');
+      appLog('Error removing FCM token on logout: $e');
     }
   }
 
@@ -156,7 +157,7 @@ class NotificationService {
           .where((token) => token.isNotEmpty)
           .toList();
     } catch (e) {
-      print('Error getting user tokens: $e');
+      appLog('Error getting user tokens: $e');
       return [];
     }
   }
@@ -172,7 +173,7 @@ class NotificationService {
     final tokens = await getUserTokens(userId);
 
     if (tokens.isEmpty) {
-      print('No FCM tokens found for user: $userId');
+      appLog('No FCM tokens found for user: $userId');
       return;
     }
 
@@ -189,8 +190,8 @@ class NotificationService {
     }
     */
 
-    print('Found ${tokens.length} device(s) for user $userId');
-    print('Tokens: $tokens');
+    appLog('Found ${tokens.length} device(s) for user $userId');
+    appLog('Tokens: $tokens');
     // In production, send this to your FCM server
   }
 
@@ -238,7 +239,7 @@ class NotificationService {
           largeIcon: FilePathAndroidBitmap(imagePath),
         );
       } catch (e) {
-        print('Error loading notification image: $e');
+        appLog('Error loading notification image: $e');
         androidDetails = const AndroidNotificationDetails(
           'high_importance_channel',
           'High Importance Notifications',

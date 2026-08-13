@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_ai/firebase_ai.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 /// Service for interacting with Google Gemini AI API
 /// Handles invoice scanning and data extraction
@@ -38,9 +39,9 @@ class GeminiService {
       );
 
       _isInitialized = true;
-      print('✅ Gemini Service initialized successfully');
+      appLog('✅ Gemini Service initialized successfully');
     } catch (e) {
-      print('❌ Error initializing Gemini Service: $e');
+      appLog('❌ Error initializing Gemini Service: $e');
       rethrow;
     }
   }
@@ -142,7 +143,7 @@ class GeminiService {
             'Daily quota exceeded. Please try again tomorrow or upgrade to paid tier.',
           );
         } else {
-          print('Error in extractInvoiceData: $e');
+          appLog('Error in extractInvoiceData: $e');
           throw Exception('Gemini API Error: $errorMessage');
         }
       }
@@ -226,8 +227,8 @@ Focus on accuracy over completeness. If data is unclear, make best estimate but 
 
       return jsonData;
     } catch (e) {
-      print('Error parsing JSON from Gemini response: $e');
-      print('Response was: $response');
+      appLog('Error parsing JSON from Gemini response: $e');
+      appLog('Response was: $response');
       // Return empty structure if parsing fails
       return {
         'supplierName': 'Unknown Supplier',

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 /// Centralized service for managing bills data to reduce Firestore reads
 class BillsDataService {
@@ -36,7 +37,7 @@ class BillsDataService {
             _billsController.add(_cachedBills);
           },
           onError: (error) {
-            print('Error in bills stream: $error');
+            appLog('Error in bills stream: $error');
           },
         );
   }

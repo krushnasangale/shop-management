@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class PendingPaymentsPage extends StatefulWidget {
   const PendingPaymentsPage({super.key});
@@ -98,7 +99,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
         _sortPayments();
       }
     } catch (e) {
-      print('Error loading pending payments: $e');
+      appLog('Error loading pending payments: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }

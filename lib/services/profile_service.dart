@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 /// Centralized service for managing profile-related data and operations
 class ProfileService {
@@ -54,7 +55,7 @@ class ProfileService {
             }
           },
           onError: (error) {
-            print('Error in profile stream: $error');
+            appLog('Error in profile stream: $error');
           },
         );
   }
@@ -80,7 +81,7 @@ class ProfileService {
 
       // Real-time stream will automatically update the cache
     } catch (e) {
-      print('Error updating profile data: $e');
+      appLog('Error updating profile data: $e');
       rethrow;
     }
   }
@@ -107,7 +108,7 @@ class ProfileService {
         'appSettings': appSettings,
       }, SetOptions(merge: true));
     } catch (e) {
-      print('Error updating app setting: $e');
+      appLog('Error updating app setting: $e');
       rethrow;
     }
   }
@@ -135,7 +136,7 @@ class ProfileService {
         'appSettings': updatedAppSettings,
       }, SetOptions(merge: true));
     } catch (e) {
-      print('Error updating app settings: $e');
+      appLog('Error updating app settings: $e');
       rethrow;
     }
   }
@@ -153,7 +154,7 @@ class ProfileService {
       // Always return real-time cached data - no API calls
       return _cachedProfileData;
     } catch (e) {
-      print('Error getting current user profile: $e');
+      appLog('Error getting current user profile: $e');
       rethrow;
     }
   }
@@ -171,7 +172,7 @@ class ProfileService {
       // Return real-time cached data
       return _cachedProfileData;
     } catch (e) {
-      print('Error getting user profile: $e');
+      appLog('Error getting user profile: $e');
       rethrow;
     }
   }

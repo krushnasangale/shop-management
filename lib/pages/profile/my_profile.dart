@@ -20,6 +20,7 @@ import 'package:provider/provider.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/notification_service.dart';
 import 'dart:async';
+import 'package:flashbill/utils/app_logger.dart';
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -58,11 +59,11 @@ class _MyProfileState extends State<MyProfile> {
           }
         },
         onError: (error) {
-          print('Error listening to shop name: $error');
+          appLog('Error listening to shop name: $error');
         },
       );
     } catch (e) {
-      print('Error initializing profile service: $e');
+      appLog('Error initializing profile service: $e');
     }
   }
 
@@ -431,8 +432,12 @@ class _MyProfileState extends State<MyProfile> {
                       // Update password
                       await user.updatePassword(newPasswordController.text);
 
-                      Navigator.pop(context); // Close loading
-                      Navigator.pop(dialogContext); // Close dialog
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                      }
+                      if (dialogContext.mounted) {
+                        Navigator.pop(dialogContext); // Close dialog
+                      }
 
                       if (mounted) {
                         ScaffoldMessenger.of(this.context).showSnackBar(
@@ -446,7 +451,9 @@ class _MyProfileState extends State<MyProfile> {
                         );
                       }
                     } catch (e) {
-                      Navigator.pop(context); // Close loading
+                      if (context.mounted) {
+                        Navigator.pop(context); // Close loading
+                      }
 
                       String errorMessage =
                           localizations?.failedToChangePassword ??

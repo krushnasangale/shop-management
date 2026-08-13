@@ -29,11 +29,12 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'firebase_options.dart';
 import 'package:flashbill/services/gemini_service.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  print("Handling a background message: ${message.messageId}");
+  appLog("Handling a background message: ${message.messageId}");
 }
 
 void main() async {
@@ -57,8 +58,8 @@ void main() async {
   try {
     await GeminiService().initialize();
   } catch (e) {
-    print('⚠️ Warning: Could not initialize Gemini service: $e');
-    print('   Make sure Firebase is properly configured for this project.');
+    appLog('⚠️ Warning: Could not initialize Gemini service: $e');
+    appLog('   Make sure Firebase is properly configured for this project.');
   }
 
   runApp(
@@ -331,11 +332,11 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         },
         onError: (error) {
-          print('Error listening to shop name: $error');
+          appLog('Error listening to shop name: $error');
         },
       );
     } catch (e) {
-      print('Error setting up shop name listener: $e');
+      appLog('Error setting up shop name listener: $e');
     }
   }
 
@@ -349,11 +350,11 @@ class _MyHomePageState extends State<MyHomePage> {
           }
         },
         onError: (error) {
-          print('Error listening to app settings: $error');
+          appLog('Error listening to app settings: $error');
         },
       );
     } catch (e) {
-      print('Error setting up app settings listener: $e');
+      appLog('Error setting up app settings listener: $e');
     }
   }
 
@@ -382,7 +383,7 @@ class _MyHomePageState extends State<MyHomePage> {
             });
       }
     } catch (e) {
-      print('Error listening to products count: $e');
+      appLog('Error listening to products count: $e');
     }
   }
 

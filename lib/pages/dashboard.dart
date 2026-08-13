@@ -12,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flashbill/services/dashboard_service.dart';
 import 'package:flashbill/widgets/dashboard_widgets.dart';
 import 'package:flashbill/services/notification_service.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -150,7 +151,7 @@ class _DashboardState extends State<Dashboard>
             }
           },
           onError: (error) {
-            print('Dashboard data error: $error');
+            appLog('Dashboard data error: $error');
             if (mounted) {
               setState(() => _isLoading = false);
             }
@@ -2010,7 +2011,7 @@ class _DashboardState extends State<Dashboard>
         ),
       );
     } catch (e) {
-      print('Error navigating to bill details: $e');
+      appLog('Error navigating to bill details: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error opening bill details: $e')));

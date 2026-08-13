@@ -415,7 +415,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         subFolder: 'Bills',
       );
 
-      if (mounted) {
+      if (context.mounted) {
         Navigator.pop(context); // Close loading dialog
 
         if (!result.success) {
@@ -430,7 +430,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         }
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

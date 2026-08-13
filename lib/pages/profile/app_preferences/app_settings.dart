@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'dart:async';
+import 'package:flashbill/utils/app_logger.dart';
 
 class AppSettings extends StatefulWidget {
   const AppSettings({super.key});
@@ -61,14 +62,14 @@ class _AppSettingsState extends State<AppSettings> {
           }
         },
         onError: (error) {
-          print('Error loading settings: $error');
+          appLog('Error loading settings: $error');
           if (mounted) {
             setState(() => _isLoading = false);
           }
         },
       );
     } catch (e) {
-      print('Error initializing settings: $e');
+      appLog('Error initializing settings: $e');
       setState(() => _isLoading = false);
     }
   }
@@ -78,7 +79,7 @@ class _AppSettingsState extends State<AppSettings> {
     try {
       await _profileService.updateAppSetting(key, value);
     } catch (e) {
-      print('Error saving setting: $e');
+      appLog('Error saving setting: $e');
       // Show error to user
       if (mounted) {
         ScaffoldMessenger.of(

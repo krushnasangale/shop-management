@@ -16,6 +16,7 @@ import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/services/file_service.dart';
 import 'dart:typed_data';
+import 'package:flashbill/utils/app_logger.dart';
 
 class Bills extends StatefulWidget {
   const Bills({super.key});
@@ -125,14 +126,14 @@ class _BillsState extends State<Bills> {
             });
           }
         } catch (e) {
-          print('Error processing bills data: $e');
+          appLog('Error processing bills data: $e');
           if (mounted) {
             setState(() => _isLoading = false);
           }
         }
       },
       onError: (error) {
-        print('Bills stream error: $error');
+        appLog('Bills stream error: $error');
         if (mounted) {
           setState(() => _isLoading = false);
         }
@@ -313,35 +314,39 @@ class _BillsState extends State<Bills> {
                       ],
                     ),
                     const SizedBox(height: 12),
-                    ...SortOption.values.map((option) {
-                      final isSelected = _selectedSort == option;
-                      return RadioListTile<SortOption>(
-                        title: Text(
-                          _getSortText(option, localizations),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        value: option,
-                        groupValue: _selectedSort,
-                        onChanged: (value) {
-                          if (value != null) {
-                            setModalState(() {
-                              Navigator.pop(context);
-                              setState(() {
-                                _selectedSort = value;
-                                _filterBills();
-                              });
+                    RadioGroup<SortOption>(
+                      groupValue: _selectedSort,
+                      onChanged: (value) {
+                        if (value != null) {
+                          setModalState(() {
+                            Navigator.pop(context);
+                            setState(() {
+                              _selectedSort = value;
+                              _filterBills();
                             });
-                          }
-                        },
-                        dense: true,
-                        contentPadding: EdgeInsets.zero,
-                      );
-                    }),
+                          });
+                        }
+                      },
+                      child: Column(
+                        children: SortOption.values.map((option) {
+                          final isSelected = _selectedSort == option;
+                          return RadioListTile<SortOption>(
+                            title: Text(
+                              _getSortText(option, localizations),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                            value: option,
+                            dense: true,
+                            contentPadding: EdgeInsets.zero,
+                          );
+                        }).toList(),
+                      ),
+                    ),
 
                     const SizedBox(height: 16),
                   ],
@@ -572,7 +577,7 @@ class _BillsState extends State<Bills> {
           );
         }
       } catch (e) {
-        print('Error parsing date: ${bill.date}, error: $e');
+        appLog('Error parsing date: ${bill.date}, error: $e');
       }
       return true;
     }).toList();

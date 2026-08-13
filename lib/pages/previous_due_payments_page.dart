@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class PreviousDuePaymentsPage extends StatefulWidget {
   const PreviousDuePaymentsPage({super.key});
@@ -112,7 +113,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
         });
       }
     } catch (e) {
-      print('Error loading previous due payments: $e');
+      appLog('Error loading previous due payments: $e');
       if (mounted) {
         setState(() => _isLoading = false);
       }

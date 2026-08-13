@@ -9,6 +9,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class ExpensesList extends StatefulWidget {
   const ExpensesList({super.key});
@@ -107,7 +108,7 @@ class _ExpensesListState extends State<ExpensesList>
             }
           },
           onError: (error) {
-            print('Error loading expenses: $error');
+            appLog('Error loading expenses: $error');
             setState(() {
               _isLoading = false;
             });
@@ -439,7 +440,7 @@ class _ExpensesListState extends State<ExpensesList>
       final expenses = entry.value;
       final totalAmount = expenses.fold<double>(
         0,
-        (sum, expense) => sum + ((expense['amount'] ?? 0) as num).toDouble(),
+        (total, expense) => total + ((expense['amount'] ?? 0) as num).toDouble(),
       );
       final totalExpenses = expenses.length;
       final lastExpenseDate = expenses.isNotEmpty
@@ -669,7 +670,7 @@ class _ExpensesListState extends State<ExpensesList>
     final totalExpenses = _expenses.length;
     final totalAmount = _expenses.fold<double>(
       0,
-      (sum, expense) => sum + ((expense['amount'] ?? 0) as num).toDouble(),
+      (total, expense) => total + ((expense['amount'] ?? 0) as num).toDouble(),
     );
 
     // Group by categories for pie chart data
@@ -1654,8 +1655,8 @@ class CategoryExpensesPage extends StatelessWidget {
     // Calculate category statistics
     final totalAmount = expenses.fold<double>(
       0,
-      (double sum, expense) =>
-          sum + ((expense['amount'] ?? 0) as num).toDouble(),
+      (double total, expense) =>
+          total + ((expense['amount'] ?? 0) as num).toDouble(),
     );
     final totalExpenses = expenses.length;
     final averageAmount = totalExpenses > 0 ? totalAmount / totalExpenses : 0.0;

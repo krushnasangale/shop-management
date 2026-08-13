@@ -15,6 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class CreateNewBill extends StatefulWidget {
   final bool isEditMode;
@@ -453,7 +454,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
         });
       }
     } catch (e) {
-      print('Error loading app settings: $e');
+      appLog('Error loading app settings: $e');
       // Default to true if error
       if (mounted) {
         setState(() {
@@ -1441,6 +1442,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             if (customerId == null) {
                               // Add new customer to database
                               customerId = await _addNewCustomer();
+                              if (!context.mounted) return;
                               if (customerId == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -1494,6 +1496,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                             final amountRemainingValue =
                                 totalBillAmount - amountPaidValue;
 
+                            if (!context.mounted) return;
                             AppNavigator.push(
                               context,
                               ReviewBillingDetails(
@@ -1624,18 +1627,18 @@ class _CreateNewBillState extends State<CreateNewBill> {
 
       return docRef.id;
     } catch (e) {
-      print('Error adding customer: $e');
+      appLog('Error adding customer: $e');
       return null;
     }
   }
 
   int _getTotalAmount() {
-    final productTotal = _billItems.fold(0.0, (sum, item) => sum + item.total);
+    final productTotal = _billItems.fold(0.0, (total, item) => total + item.total);
     return (productTotal + _deliveryCharges).toInt();
   }
 
   int _getTotalQuantity() {
-    return _billItems.fold(0, (sum, item) => sum + item.billQuantity.toInt());
+    return _billItems.fold(0, (total, item) => total + item.billQuantity.toInt());
   }
 
   Widget _productImagePlaceholder() {
@@ -1758,7 +1761,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       .toList();
                   final totalQuantityAlreadyAdded = existingBillItems.fold(
                     0,
-                    (sum, item) => sum + item.billQuantity.toInt(),
+                    (total, item) => total + item.billQuantity.toInt(),
                   );
                   final isBatchFullyUsed =
                       totalQuantityAlreadyAdded >= batch.quantity;
@@ -2346,7 +2349,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
           .toList();
       final totalQuantityAlreadyAdded = existingBillItems.fold(
         0,
-        (int sum, item) => sum + item.billQuantity.toInt(),
+        (int total, item) => total + item.billQuantity.toInt(),
       );
 
       // Only include products with remaining quantity > 0
@@ -2431,8 +2434,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               final totalQuantityAlreadyAdded =
                                   existingBillItems.fold(
                                     0,
-                                    (sum, item) =>
-                                        sum + item.billQuantity.toInt(),
+                                    (total, item) =>
+                                        total + item.billQuantity.toInt(),
                                   );
 
                               // Only include products with remaining quantity > 0
@@ -2494,8 +2497,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                 final totalQuantityAlreadyAdded =
                                     existingBillItems.fold(
                                       0,
-                                      (sum, item) =>
-                                          sum + item.billQuantity.toInt(),
+                                      (total, item) =>
+                                          total + item.billQuantity.toInt(),
                                     );
 
                                 // Only include products with remaining quantity > 0
@@ -2654,8 +2657,8 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                                       )
                                                       .fold<int>(
                                                         0,
-                                                        (sum, item) =>
-                                                            sum +
+                                                        (total, item) =>
+                                                            total +
                                                             item.billQuantity
                                                                 .toInt(),
                                                       );
@@ -2934,9 +2937,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
     List<Contact> contacts = [];
     try {
       contacts = await FastContacts.getAllContacts();
-      print('Fetched ${contacts.length} contacts');
+      appLog('Fetched ${contacts.length} contacts');
     } catch (e) {
-      print('Error fetching contacts: $e');
+      appLog('Error fetching contacts: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -3130,7 +3133,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                       );
                                     }
                                   } catch (e) {
-                                    print('Error selecting contact: $e');
+                                    appLog('Error selecting contact: $e');
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Text(

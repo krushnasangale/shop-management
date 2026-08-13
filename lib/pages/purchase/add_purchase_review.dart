@@ -388,7 +388,7 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                       try {
                                         await widget.onConfirm();
 
-                                        if (mounted) {
+                                        if (context.mounted) {
                                           ScaffoldMessenger.of(
                                             context,
                                           ).showSnackBar(
@@ -403,7 +403,7 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                                           Navigator.of(context).pop();
                                         }
                                       } catch (e) {
-                                        if (mounted) {
+                                        if (context.mounted) {
                                           setState(() {
                                             isLoading = false;
                                           });

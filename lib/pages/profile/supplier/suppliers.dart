@@ -427,7 +427,7 @@ class _SuppliersState extends State<Suppliers> {
                       .doc(_userId)
                       .collection('items')
                       .add(newSupplier);
-                  if (mounted) Navigator.pop(context);
+                  if (context.mounted) Navigator.pop(context);
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -576,7 +576,7 @@ class _SuppliersState extends State<Suppliers> {
                         'contact': contactController.text,
                         'location': locationController.text,
                       });
-                  if (mounted) Navigator.pop(context);
+                  if (context.mounted) Navigator.pop(context);
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -634,7 +634,7 @@ class _SuppliersState extends State<Suppliers> {
                     .collection('items')
                     .doc(supplier.id)
                     .delete();
-                if (mounted) Navigator.pop(context);
+                if (context.mounted) Navigator.pop(context);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

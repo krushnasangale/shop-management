@@ -307,12 +307,12 @@ class _LanguageSelectorState extends State<LanguageSelector>
                               _tempSelectedLanguage!,
                             );
 
-                            if (context.mounted) {
-                              await Future.delayed(
-                                const Duration(milliseconds: 300),
-                              );
-                              Navigator.of(context).pop();
-                            }
+                            if (!context.mounted) return;
+                            await Future.delayed(
+                              const Duration(milliseconds: 300),
+                            );
+                            if (!context.mounted) return;
+                            Navigator.of(context).pop();
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.primaryColor,

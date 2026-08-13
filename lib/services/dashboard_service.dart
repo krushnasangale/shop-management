@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'bills_data_service.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 /// Service for dashboard calculations using centralized bills data
 class DashboardService {
@@ -48,7 +49,7 @@ class DashboardService {
             }
           })
           .catchError((error) {
-            print('Error calculating initial dashboard data: $error');
+            appLog('Error calculating initial dashboard data: $error');
             if (!controller.isClosed) {
               controller.addError(error);
             }
@@ -70,7 +71,7 @@ class DashboardService {
             controller.add(dashboardData);
           }
         } catch (e) {
-          print('Error calculating dashboard data: $e');
+          appLog('Error calculating dashboard data: $e');
           if (!controller.isClosed) {
             controller.addError(e);
           }
@@ -111,7 +112,7 @@ class DashboardService {
                 controller.add(dashboardData);
               }
             } catch (e) {
-              print('Error calculating dashboard data on products change: $e');
+              appLog('Error calculating dashboard data on products change: $e');
               if (!controller.isClosed) {
                 controller.addError(e);
               }
@@ -378,7 +379,7 @@ class DashboardService {
             }
           }
         } catch (e) {
-          print('Error parsing date $nextPaymentDate: $e');
+          appLog('Error parsing date $nextPaymentDate: $e');
         }
       }
     }
@@ -504,7 +505,7 @@ class DashboardService {
         availableProductsCount: availableProductNames.length,
       );
     } catch (e) {
-      print('Error loading products data: $e');
+      appLog('Error loading products data: $e');
       return ProductsData.empty();
     }
   }
@@ -542,7 +543,7 @@ class DashboardService {
       }
       return false;
     } catch (e) {
-      print('Error parsing date "$billDate": $e');
+      appLog('Error parsing date "$billDate": $e');
       return false;
     }
   }

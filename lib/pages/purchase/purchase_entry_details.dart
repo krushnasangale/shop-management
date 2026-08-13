@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class PurchaseEntryDetails extends StatefulWidget {
   final Map<String, dynamic> entry;
@@ -65,7 +66,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
             }
           });
     } catch (e) {
-      print('Error loading purchase data: $e');
+      appLog('Error loading purchase data: $e');
     }
   }
 
@@ -134,7 +135,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
 
       _subscriptions.add(subscription);
     } catch (e) {
-      print('Error loading items: $e');
+      appLog('Error loading items: $e');
       setState(() {
         _isLoading = false;
       });
@@ -165,7 +166,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
 
       await batch.commit();
     } catch (e) {
-      print('Error during migration: $e');
+      appLog('Error during migration: $e');
     }
   }
 
@@ -273,7 +274,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
         }
       }
     } catch (e) {
-      print('Error removing product: $e');
+      appLog('Error removing product: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

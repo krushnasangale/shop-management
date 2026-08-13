@@ -15,6 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:flashbill/utils/app_logger.dart';
 
 class PurchaseItemsList extends StatefulWidget {
   const PurchaseItemsList({super.key});
@@ -117,8 +118,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
                 final bills = entry.value;
                 final totalAmount = bills.fold<double>(
                   0,
-                  (sum, bill) =>
-                      sum + ((bill['totalAmount'] ?? 0) as num).toDouble(),
+                  (total, bill) =>
+                      total + ((bill['totalAmount'] ?? 0) as num).toDouble(),
                 );
                 final totalBills = bills.length;
                 final lastPurchaseDate = bills.isNotEmpty
@@ -152,7 +153,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
             }
           },
           onError: (error) {
-            print('Error loading bought entries: $error');
+            appLog('Error loading bought entries: $error');
             setState(() {
               _isLoading = false;
             });
@@ -922,7 +923,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
     final localizations = AppLocalizations.of(context);
     try {
       final ImagePicker picker = ImagePicker();
-      print('Opening camera...');
+      appLog('Opening camera...');
 
       final XFile? image = await picker.pickImage(
         source: ImageSource.camera,
@@ -932,16 +933,16 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
         preferredCameraDevice: CameraDevice.rear,
       );
 
-      print('Photo captured: ${image?.path}');
+      appLog('Photo captured: ${image?.path}');
 
       if (image != null && mounted) {
         await _processImage(image.path);
       } else {
-        print('No photo captured or widget not mounted');
+        appLog('No photo captured or widget not mounted');
       }
     } catch (e, stackTrace) {
-      print('Error in _scanFromCamera: $e');
-      print('Stack trace: $stackTrace');
+      appLog('Error in _scanFromCamera: $e');
+      appLog('Stack trace: $stackTrace');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -959,7 +960,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
     final localizations = AppLocalizations.of(context);
     try {
       final ImagePicker picker = ImagePicker();
-      print('Opening gallery picker...');
+      appLog('Opening gallery picker...');
 
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
@@ -968,16 +969,16 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
         maxHeight: 4000,
       );
 
-      print('Image selected: ${image?.path}');
+      appLog('Image selected: ${image?.path}');
 
       if (image != null && mounted) {
         await _processImage(image.path);
       } else {
-        print('No image selected or widget not mounted');
+        appLog('No image selected or widget not mounted');
       }
     } catch (e, stackTrace) {
-      print('Error in _scanFromGallery: $e');
-      print('Stack trace: $stackTrace');
+      appLog('Error in _scanFromGallery: $e');
+      appLog('Stack trace: $stackTrace');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1188,8 +1189,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
           return StatefulBuilder(
             builder: (context, setDialogState) {
               dialogSetState = setDialogState; // Capture setState
-              return WillPopScope(
-                onWillPop: () async => false,
+              return PopScope(
+                canPop: false,
                 child: Dialog(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -1441,8 +1442,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList>
           return StatefulBuilder(
             builder: (context, setDialogState) {
               dialogSetState = setDialogState; // Capture setState
-              return WillPopScope(
-                onWillPop: () async => false,
+              return PopScope(
+                canPop: false,
                 child: Dialog(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
