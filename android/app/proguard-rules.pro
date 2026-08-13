@@ -1,3 +1,9 @@
+# Crashlytics
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception
+-keep class com.google.firebase.crashlytics.** { *; }
+-dontwarn com.google.firebase.crashlytics.**
+
 # Keep rules for ML Kit text recognition language models
 -keep class com.google.mlkit.vision.text.** { *; }
 -dontwarn com.google.mlkit.vision.text.**

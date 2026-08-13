@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 
 class OrderNowPage extends StatelessWidget {

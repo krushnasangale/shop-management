@@ -11,7 +11,7 @@ import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/gemini_service.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';

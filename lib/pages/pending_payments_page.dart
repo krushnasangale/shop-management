@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';

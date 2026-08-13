@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flashbill/pages/expenses/expense_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';

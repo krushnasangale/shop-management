@@ -1,114 +1,40 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flashbill/theme/app_theme.dart';
 
 class ThemeProvider with ChangeNotifier {
+  static const _prefKey = 'is_light_theme';
+
   bool _isLightTheme = true;
 
   bool get isLightTheme => _isLightTheme;
 
-  void toggleTheme() {
-    _isLightTheme = !_isLightTheme;
-    notifyListeners();
+  ThemeMode get themeMode =>
+      _isLightTheme ? ThemeMode.light : ThemeMode.dark;
+
+  ThemeData get lightTheme => AppTheme.light();
+
+  ThemeData get darkTheme => AppTheme.dark();
+
+  ThemeData get currentTheme => _isLightTheme ? lightTheme : darkTheme;
+
+  ThemeProvider() {
+    _load();
   }
 
-  ThemeData get currentTheme {
-    if (_isLightTheme) {
-      return ThemeData.light().copyWith(
-        primaryColor: const Color(0xFF2196F3),
-        colorScheme: const ColorScheme.light().copyWith(
-          primary: const Color(0xFF2196F3),
-          secondary: Colors.blueAccent,
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF0F2F5),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-        ),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-          titleMedium: TextStyle(color: Colors.black),
-          bodyLarge: TextStyle(color: Colors.black),
-          bodyMedium: TextStyle(color: Colors.grey),
-        ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF2196F3),
-          foregroundColor: Colors.white,
-        ),
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Colors.white,
-          selectedItemColor: Color(0xFF2196F3),
-          unselectedItemColor: Colors.grey,
-          elevation: 8,
-          type: BottomNavigationBarType.fixed,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.grey[200],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      );
-    } else {
-      return ThemeData.dark().copyWith(
-        primaryColor: const Color(0xFF2196F3),
-        colorScheme: const ColorScheme.dark().copyWith(
-          primary: const Color(0xFF2196F3),
-          secondary: Colors.blueAccent,
-        ),
-        scaffoldBackgroundColor: Colors.black,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.blue,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
-        cardTheme: CardThemeData(
-          color: const Color(0xFF1E272E),
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.0),
-          ),
-        ),
-        textTheme: const TextTheme(
-          titleLarge: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-          titleMedium: TextStyle(color: Colors.white),
-          bodyLarge: TextStyle(color: Colors.white),
-          bodyMedium: TextStyle(color: Colors.grey),
-        ),
-        floatingActionButtonTheme: const FloatingActionButtonThemeData(
-          backgroundColor: Color(0xFF2196F3),
-          foregroundColor: Colors.white,
-        ),
-        bottomNavigationBarTheme: BottomNavigationBarThemeData(
-          backgroundColor: Colors.grey[900],
-          selectedItemColor: const Color(0xFF2196F3),
-          unselectedItemColor: Colors.grey,
-          elevation: 8,
-          type: BottomNavigationBarType.fixed,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.grey[800],
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8.0),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      );
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getBool(_prefKey);
+    if (stored != null && stored != _isLightTheme) {
+      _isLightTheme = stored;
+      notifyListeners();
     }
+  }
+
+  Future<void> toggleTheme() async {
+    _isLightTheme = !_isLightTheme;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefKey, _isLightTheme);
   }
 }

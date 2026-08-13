@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class AppNavigator {
   /// Pushes a new page with a fade transition (default)

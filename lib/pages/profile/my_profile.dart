@@ -1,6 +1,6 @@
 import 'package:flashbill/pages/profile/app_preferences/app_settings.dart';
 import 'package:flashbill/pages/profile/logged_in_devices.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

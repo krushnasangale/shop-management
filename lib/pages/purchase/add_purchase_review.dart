@@ -1,5 +1,5 @@
 import 'package:flashbill/l10n/app_localizations.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class BoughtItemReview {
   final String productName;

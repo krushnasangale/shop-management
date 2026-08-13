@@ -1,6 +1,6 @@
 import 'package:flashbill/pages/expenses/add_expense_entry.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/login/login.dart';
 import 'package:flashbill/pages/products/available_products.dart';
@@ -29,7 +29,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'firebase_options.dart';
 import 'package:flashbill/services/gemini_service.dart';
+import 'package:flashbill/services/crash_reporting_service.dart';
 import 'package:flashbill/utils/app_logger.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/theme/app_theme.dart';
+import 'package:flashbill/widgets/app_bottom_nav.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -42,6 +46,9 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Crashlytics + Performance: crashes, uncaught errors, ANRs, UI hangs
+  await CrashReportingService.instance.initialize();
 
   // Initialize Firebase Analytics
   FirebaseAnalytics.instance;
@@ -57,9 +64,14 @@ void main() async {
   // Initialize Gemini service (uses Firebase Vertex AI)
   try {
     await GeminiService().initialize();
-  } catch (e) {
+  } catch (e, stack) {
     appLog('⚠️ Warning: Could not initialize Gemini service: $e');
     appLog('   Make sure Firebase is properly configured for this project.');
+    await CrashReportingService.instance.recordError(
+      e,
+      stack,
+      reason: 'gemini_init',
+    );
   }
 
   runApp(
@@ -126,26 +138,41 @@ class MyApp extends StatelessWidget {
       builder: (context, themeProvider, languageProvider, _) {
         return MaterialApp(
           navigatorKey: MyApp.navigatorKey,
+          navigatorObservers: [CrashReportingService.navigatorObserver],
           debugShowCheckedModeBanner: false,
-          theme: themeProvider.currentTheme,
+          theme: themeProvider.lightTheme,
+          darkTheme: themeProvider.darkTheme,
+          themeMode: themeProvider.themeMode,
           locale: languageProvider.currentLocale,
           supportedLocales: const [
             Locale('en', ''), // English
             Locale('hi', ''), // Hindi
             Locale('mr', ''), // Marathi
           ],
-          localizationsDelegates: const [
+          localizationsDelegates: [
             AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
           ],
+          builder: (context, child) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              CrashReportingService.instance.markAppReady();
+            });
+            final content = child ?? const SizedBox.shrink();
+            // Plugins still import package:flutter/material.dart during the SDK transition.
+            // ignore: deprecated_member_use
+            return MaterialUiCompatibilityBridge(
+              child: CupertinoTheme(
+                data: AppTheme.cupertino(Theme.of(context).brightness),
+                child: content,
+              ),
+            );
+          },
           home: StreamBuilder<User?>(
             stream: FirebaseAuth.instance.authStateChanges(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
+                return Scaffold(
+                  body: Center(child: Adaptive.progress()),
                 );
               }
               if (snapshot.hasData && snapshot.data != null) {
@@ -405,119 +432,34 @@ class _MyHomePageState extends State<MyHomePage> {
     if (_expensesEnabled) const ExpensesList(),
   ];
 
-  // Dynamic list of navigation items based on settings
-  List<BottomNavigationBarItem> get _navigationItems {
+  List<AppDestination> get _destinations {
     final localizations = AppLocalizations.of(context);
     return [
-      BottomNavigationBarItem(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: _selectedIndex == 0
-                ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.dashboard, size: 24),
-        ),
+      AppDestination(
+        icon: Icons.dashboard_outlined,
+        selectedIcon: Icons.dashboard,
         label: localizations?.dashboard ?? 'Dashboard',
       ),
-      BottomNavigationBarItem(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: _selectedIndex == 1
-                ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.center,
-            children: [
-              const Icon(Icons.inventory_2, size: 24),
-              if (_productsCount > 0)
-                Positioned(
-                  right: -8,
-                  top: -8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade500,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: Theme.of(context).scaffoldBackgroundColor,
-                        width: 2,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.shade500.withValues(alpha: 0.3),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    child: Text(
-                      _productsCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+      AppDestination(
+        icon: Icons.inventory_2_outlined,
+        selectedIcon: Icons.inventory_2,
         label: localizations?.availability ?? 'Availability',
+        badge: _productsCount > 0 ? _productsCount.toString() : null,
       ),
-      BottomNavigationBarItem(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: _selectedIndex == 2
-                ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.receipt_long, size: 24),
-        ),
+      AppDestination(
+        icon: Icons.receipt_long_outlined,
+        selectedIcon: Icons.receipt_long,
         label: localizations?.bills ?? 'Bills',
       ),
-      BottomNavigationBarItem(
-        icon: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: _selectedIndex == 3
-                ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(Icons.shopping_bag, size: 24),
-        ),
+      AppDestination(
+        icon: Icons.shopping_bag_outlined,
+        selectedIcon: Icons.shopping_bag,
         label: localizations?.purchases ?? 'Purchases',
       ),
       if (_expensesEnabled)
-        BottomNavigationBarItem(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _selectedIndex == (_expensesEnabled ? 4 : -1)
-                  ? Theme.of(context).primaryColor.withValues(alpha: 0.1)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.account_balance_wallet, size: 24),
-          ),
+        AppDestination(
+          icon: Icons.account_balance_wallet_outlined,
+          selectedIcon: Icons.account_balance_wallet,
           label: localizations?.expenses ?? 'Expenses',
         ),
     ];
@@ -535,148 +477,56 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: _selectedIndex == 0
           ? AppBar(
               title: Text(_shopName),
               automaticallyImplyLeading: false,
               actions: [
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    color: Colors.grey.withValues(alpha: 0.2),
-                  ),
-                  height: 40,
-                  width: 40,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(Icons.account_circle, size: 35),
-                    onPressed: () async {
-                      AppNavigator.push(context, const MyProfile());
-                    },
-                    tooltip: localizations?.myProfile ?? 'My Profile',
+                IconButton(
+                  onPressed: () {
+                    AppNavigator.push(context, const MyProfile());
+                  },
+                  tooltip: localizations?.myProfile ?? 'My Profile',
+                  icon: CircleAvatar(
+                    radius: 16,
+                    backgroundColor: scheme.primaryContainer,
+                    child: Icon(
+                      Icons.person_rounded,
+                      size: 18,
+                      color: scheme.onPrimaryContainer,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 8),
               ],
             )
           : null,
       body: IndexedStack(index: _selectedIndex, children: _screens),
-
       floatingActionButton:
           (_selectedIndex == 2 ||
               _selectedIndex == 3 ||
               (_expensesEnabled && _selectedIndex == 4))
-          ? Container(
-              height: 60,
-              width: 60,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.purple.shade400,
-                    Colors.blue.shade400,
-                    Colors.cyan.shade400,
-                    Colors.teal.shade400,
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.purple.shade300.withValues(alpha: 0.6),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: Colors.blue.shade300.withValues(alpha: 0.4),
-                    blurRadius: 15,
-                    spreadRadius: 1,
-                    offset: const Offset(0, 2),
-                  ),
-                  BoxShadow(
-                    color: Colors.cyan.shade300.withValues(alpha: 0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Container(
-                margin: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.9),
-                      Colors.white.withValues(alpha: 0.7),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: FloatingActionButton(
-                  heroTag: 'fab_$_selectedIndex',
-                  onPressed: () {
-                    if (_selectedIndex == 2) {
-                      AppNavigator.push(context, const CreateNewBill());
-                    } else if (_selectedIndex == 3) {
-                      AppNavigator.push(context, const AddPurchaseEntry());
-                    } else if (_expensesEnabled && _selectedIndex == 4) {
-                      AppNavigator.push(context, const AddExpenseEntry());
-                    }
-                  },
-                  backgroundColor: Colors.transparent,
-                  elevation: 0,
-                  tooltip: localizations?.addItem ?? 'Add Item',
-                  child: Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.purple.shade500,
-                          Colors.blue.shade500,
-                          Colors.cyan.shade500,
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white, size: 32),
-                  ),
-                ),
-              ),
+          ? FloatingActionButton(
+              heroTag: 'fab_$_selectedIndex',
+              onPressed: () {
+                if (_selectedIndex == 2) {
+                  AppNavigator.push(context, const CreateNewBill());
+                } else if (_selectedIndex == 3) {
+                  AppNavigator.push(context, const AddPurchaseEntry());
+                } else if (_expensesEnabled && _selectedIndex == 4) {
+                  AppNavigator.push(context, const AddExpenseEntry());
+                }
+              },
+              tooltip: localizations?.addItem ?? 'Add Item',
+              child: const Icon(Icons.add_rounded),
             )
           : null,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-          selectedItemColor: Theme.of(context).primaryColor,
-          unselectedItemColor: Colors.grey.shade500,
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-          ),
-          elevation: 0,
-          showUnselectedLabels: true,
-          items: _navigationItems,
-        ),
+      bottomNavigationBar: AppBottomNav(
+        index: _selectedIndex,
+        destinations: _destinations,
+        onSelect: _onItemTapped,
       ),
     );
   }

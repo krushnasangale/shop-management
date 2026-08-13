@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';

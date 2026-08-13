@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Extension on BuildContext to provide easy access to theme-based text styles
 /// This ensures consistent text styling across the entire app

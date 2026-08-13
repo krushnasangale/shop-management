@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flashbill/pages/previous_due_details_page.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/services/bills_data_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/navigation/app_navigator.dart';

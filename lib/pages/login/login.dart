@@ -1,5 +1,6 @@
 import 'package:flashbill/providers/language_provider.dart';
-import 'package:flutter/material.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -8,6 +9,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flashbill/services/notification_service.dart';
 import 'package:flashbill/utils/device_utils.dart';
+import 'package:flashbill/theme/adaptive.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -130,176 +132,62 @@ class _LoginScreenState extends State<LoginScreen> {
       listen: false,
     );
     final loc = AppLocalizations.of(context);
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
+        final scheme = Theme.of(context).colorScheme;
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
           ),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
+          child: Padding(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF1e1e30) : Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withAlpha(40),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header with icon and close button
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2196f3).withAlpha(30),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.language_rounded,
-                        color: Color(0xFF2196f3),
-                        size: 28,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+                    Icon(Icons.language_rounded, color: scheme.primary),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         loc?.selectLanguage ?? 'Select Language',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.white : Colors.black87,
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        color: isDarkMode ? Colors.white70 : Colors.black54,
-                      ),
-                      tooltip: 'Close',
+                      icon: const Icon(Icons.close_rounded),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-
-                // Language options
+                const SizedBox(height: 16),
                 ...languageProvider.supportedLanguages.map((language) {
                   final isSelected =
                       languageProvider.currentLocale.languageCode ==
                       language['code'];
-
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: InkWell(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: ListTile(
                       onTap: () async {
                         await languageProvider.changeLanguage(
                           language['code'] ?? 'en',
                         );
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                        }
+                        if (context.mounted) Navigator.pop(context);
                       },
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color(0xFF2196f3).withAlpha(20)
-                              : (isDarkMode
-                                    ? const Color(0xFF2a2a40)
-                                    : Colors.grey[50]),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isSelected
-                                ? const Color(0xFF2196f3)
-                                : Colors.transparent,
-                            width: 2,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            // Radio indicator
-                            Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFF2196f3)
-                                      : (isDarkMode
-                                            ? Colors.grey[600]!
-                                            : Colors.grey[400]!),
-                                  width: 2,
-                                ),
-                                color: isSelected
-                                    ? const Color(0xFF2196f3)
-                                    : Colors.transparent,
-                              ),
-                              child: isSelected
-                                  ? const Icon(
-                                      Icons.check,
-                                      size: 16,
-                                      color: Colors.white,
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 16),
-
-                            // Language names
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    language['nativeName'] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDarkMode
-                                          ? Colors.white
-                                          : Colors.black87,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    language['name'] ?? '',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: isDarkMode
-                                          ? Colors.grey[400]
-                                          : Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Selected indicator
-                            if (isSelected)
-                              const Icon(
-                                Icons.check_circle,
-                                color: Color(0xFF2196f3),
-                                size: 24,
-                              ),
-                          ],
-                        ),
+                      selected: isSelected,
+                      selectedTileColor: scheme.primary.withValues(alpha: 0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      title: Text(language['nativeName'] ?? ''),
+                      subtitle: Text(language['name'] ?? ''),
+                      trailing: isSelected
+                          ? Icon(Icons.check_circle, color: scheme.primary)
+                          : null,
                     ),
                   );
                 }),
@@ -313,8 +201,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
     final size = MediaQuery.of(context).size;
+    final loc = AppLocalizations.of(context);
 
     return Scaffold(
       body: Container(
@@ -324,68 +213,38 @@ class _LoginScreenState extends State<LoginScreen> {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isDarkMode
-                ? [
-                    const Color(0xFFbbdefb),
-                    const Color(0xFF64b5f6),
-                    const Color(0xFF2196f3),
-                  ]
-                : [
-                    const Color(0xFFbbdefb),
-                    const Color(0xFF64b5f6),
-                    const Color(0xFF2196f3),
-                  ],
+            colors: [
+              scheme.primary.withValues(alpha: 0.92),
+              scheme.primary,
+              scheme.primaryContainer,
+            ],
           ),
         ),
         child: SafeArea(
           child: Stack(
             children: [
-              // Language selector button
               Positioned(
-                top: 16,
-                right: 16,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)?.selectLanguage ??
-                          'Select Language',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    IconButton(
-                      onPressed: _showLanguageSelector,
-                      icon: const Icon(
-                        Icons.language_rounded,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                      tooltip: 'Change Language',
-                    ),
-                  ],
+                top: 8,
+                right: 8,
+                child: IconButton.filledTonal(
+                  onPressed: _showLanguageSelector,
+                  tooltip: loc?.selectLanguage ?? 'Select Language',
+                  icon: const Icon(Icons.language_rounded),
                 ),
               ),
-              // Main content
               Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
-                      maxWidth: size.width > 600 ? 450 : double.infinity,
+                      maxWidth: size.width > 600 ? 440 : double.infinity,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // Logo and Welcome Text
-                        _buildHeader(),
-                        const SizedBox(height: 48),
-
-                        // Login Card
-                        _buildLoginCard(isDarkMode),
+                        _buildHeader(scheme, loc),
+                        const SizedBox(height: 36),
+                        _buildLoginCard(scheme, loc),
                       ],
                     ),
                   ),
@@ -398,130 +257,98 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    final loc = AppLocalizations.of(context);
+  Widget _buildHeader(ColorScheme scheme, AppLocalizations? loc) {
     return Column(
       children: [
-        // Modern Logo Container
         Container(
-          width: 100,
-          height: 100,
+          width: 88,
+          height: 88,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: scheme.surface,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withAlpha(51),
-                blurRadius: 20,
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 24,
                 offset: const Offset(0, 10),
               ),
             ],
           ),
-          child: const Icon(
-            Icons.store_rounded,
-            size: 50,
-            color: Color(0xFF2196f3),
-          ),
+          child: Icon(Icons.storefront_rounded, size: 40, color: scheme.primary),
         ),
-        const SizedBox(height: 24),
-
-        // Welcome Text
+        const SizedBox(height: 20),
         Text(
           loc?.welcomeBack ?? 'Welcome Back',
-          style: const TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 0.5,
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+            color: scheme.onPrimary,
+            letterSpacing: -0.4,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           loc?.signInToContinue ?? 'Sign in to continue',
           style: TextStyle(
             fontSize: 16,
-            color: Colors.white.withAlpha(204),
-            letterSpacing: 0.3,
+            color: scheme.onPrimary.withValues(alpha: 0.82),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildLoginCard(bool isDarkMode) {
-    final loc = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(32.0),
-      decoration: BoxDecoration(
-        color: isDarkMode
-            ? const Color(0xFFbbdefb).withAlpha(235)
-            : Colors.white.withAlpha(250),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(25),
-            blurRadius: 30,
-            offset: const Offset(0, 15),
-          ),
-        ],
-      ),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Email Field
-            _buildTextField(
-              controller: _emailController,
-              label: loc?.email ?? 'Email',
-              hint: loc?.enterEmailOrUsername ?? 'Enter your email or username',
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-              validator: (v) {
-                if (v == null || v.trim().isEmpty) {
-                  return loc?.pleaseEnterEmailOrUsername ??
-                      'Please enter email or username';
-                }
-                return null;
-              },
-              isDarkMode: isDarkMode,
-            ),
-            const SizedBox(height: 24),
-
-            // Password Field
-            _buildTextField(
-              controller: _passwordController,
-              label: loc?.password ?? 'Password',
-              hint: loc?.enterPassword ?? 'Enter your password',
-              icon: Icons.lock_outline_rounded,
-              obscureText: !_showPassword,
-              isDarkMode: isDarkMode,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _showPassword
-                      ? Icons.visibility_rounded
-                      : Icons.visibility_off_rounded,
-                  color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                  size: 22,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _showPassword = !_showPassword;
-                  });
+  Widget _buildLoginCard(ColorScheme scheme, AppLocalizations? loc) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildTextField(
+                controller: _emailController,
+                label: loc?.email ?? 'Email',
+                hint: loc?.enterEmailOrUsername ?? 'Enter your email or username',
+                icon: Icons.email_outlined,
+                keyboardType: TextInputType.emailAddress,
+                validator: (v) {
+                  if (v == null || v.trim().isEmpty) {
+                    return loc?.pleaseEnterEmailOrUsername ??
+                        'Please enter email or username';
+                  }
+                  return null;
                 },
               ),
-              validator: (v) {
-                if (v == null || v.isEmpty) {
-                  return loc?.pleaseEnterPassword ?? 'Please enter password';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 40),
-
-            // Login Button
-            _buildLoginButton(),
-          ],
+              const SizedBox(height: 20),
+              _buildTextField(
+                controller: _passwordController,
+                label: loc?.password ?? 'Password',
+                hint: loc?.enterPassword ?? 'Enter your password',
+                icon: Icons.lock_outline_rounded,
+                obscureText: !_showPassword,
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _showPassword
+                        ? Icons.visibility_rounded
+                        : Icons.visibility_off_rounded,
+                  ),
+                  onPressed: () {
+                    setState(() => _showPassword = !_showPassword);
+                  },
+                ),
+                validator: (v) {
+                  if (v == null || v.isEmpty) {
+                    return loc?.pleaseEnterPassword ?? 'Please enter password';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 28),
+              _buildLoginButton(loc),
+            ],
+          ),
         ),
       ),
     );
@@ -532,128 +359,57 @@ class _LoginScreenState extends State<LoginScreen> {
     required String label,
     required String hint,
     required IconData icon,
-    required bool isDarkMode,
     TextInputType? keyboardType,
     bool obscureText = false,
     Widget? suffixIcon,
     String? Function(String?)? validator,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-            letterSpacing: 0.3,
+    if (Adaptive.isCupertino) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          CupertinoTextFormFieldRow(
+            controller: controller,
+            placeholder: hint,
+            keyboardType: keyboardType,
+            obscureText: obscureText,
+            prefix: Icon(icon, size: 20),
+            validator: validator,
+            padding: const EdgeInsets.symmetric(vertical: 12),
           ),
-        ),
-        const SizedBox(height: 12),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          obscureText: obscureText,
-          style: TextStyle(
-            fontSize: 16,
-            color: isDarkMode ? Colors.white : Colors.black87,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-              color: isDarkMode ? Colors.grey[500] : Colors.grey[400],
-              fontSize: 15,
-            ),
-            prefixIcon: Icon(
-              icon,
-              color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-              size: 22,
-            ),
-            suffixIcon: suffixIcon,
-            filled: true,
-            fillColor: isDarkMode ? const Color(0xFFe3f2fd) : Colors.grey[100],
-            contentPadding: const EdgeInsets.symmetric(
-              vertical: 18.0,
-              horizontal: 16.0,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16.0),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16.0),
-              borderSide: BorderSide(
-                color: isDarkMode
-                    ? Colors.transparent
-                    : Colors.grey.withAlpha(25),
-                width: 1,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16.0),
-              borderSide: BorderSide(color: const Color(0xFF2196f3), width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16.0),
-              borderSide: const BorderSide(color: Colors.redAccent, width: 1),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16.0),
-              borderSide: const BorderSide(color: Colors.redAccent, width: 2),
-            ),
-          ),
-          validator: validator,
-        ),
-      ],
+        ],
+      );
+    }
+
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon),
+        suffixIcon: suffixIcon,
+      ),
     );
   }
 
-  Widget _buildLoginButton() {
-    final loc = AppLocalizations.of(context);
-    return Container(
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF64b5f6), Color(0xFF2196f3)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF2196f3).withAlpha(46),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
+  Widget _buildLoginButton(AppLocalizations? loc) {
+    final child = _loading
+        ? SizedBox(height: 22, width: 22, child: Adaptive.progress())
+        : Text(loc?.signIn ?? 'Sign In');
+
+    if (Adaptive.isCupertino) {
+      return CupertinoButton.filled(
         onPressed: _loading ? null : _login,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-        ),
-        child: _loading
-            ? const SizedBox(
-                width: 24,
-                height: 24,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              )
-            : Text(
-                loc?.signIn ?? 'Sign In',
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  letterSpacing: 0.5,
-                ),
-              ),
-      ),
-    );
+        child: child,
+      );
+    }
+
+    return FilledButton(onPressed: _loading ? null : _login, child: child);
   }
 }
+
