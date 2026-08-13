@@ -1,26 +1,28 @@
-import 'package:flashbill/pages/profile/app_preferences/app_settings.dart';
-import 'package:flashbill/pages/profile/logged_in_devices.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/login/login.dart';
+import 'package:flashbill/pages/profile/app_preferences/app_settings.dart';
 import 'package:flashbill/pages/profile/customer/customers.dart';
+import 'package:flashbill/pages/profile/edit_profile.dart';
+import 'package:flashbill/pages/profile/logged_in_devices.dart';
+import 'package:flashbill/pages/profile/privacy_policy.dart';
 import 'package:flashbill/pages/profile/products/product.dart';
 import 'package:flashbill/pages/profile/supplier/suppliers.dart';
 import 'package:flashbill/pages/profile/units/units.dart';
-import 'package:flashbill/pages/profile/edit_profile.dart';
-import 'package:flashbill/pages/profile/privacy_policy.dart';
-import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/providers/language_provider.dart';
-import 'package:flashbill/widgets/language_selector.dart';
-import 'package:flashbill/l10n/app_localizations.dart';
-import 'package:provider/provider.dart';
-import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/services/notification_service.dart';
-import 'dart:async';
+import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
+import 'package:flashbill/widgets/language_selector.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:provider/provider.dart';
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -48,14 +50,12 @@ class _MyProfileState extends State<MyProfile> {
       if (user == null) return;
 
       _profileService.initialize(user.uid);
-
       _profileSubscription = _profileService.profileStream.listen(
         (profileData) {
-          if (mounted) {
-            final shopName = profileData['shopName'] as String?;
-            if (shopName != null && shopName.isNotEmpty) {
-              setState(() => _shopName = shopName);
-            }
+          if (!mounted) return;
+          final shopName = profileData['shopName'] as String?;
+          if (shopName != null && shopName.isNotEmpty) {
+            setState(() => _shopName = shopName);
           }
         },
         onError: (error) {
@@ -84,48 +84,180 @@ class _MyProfileState extends State<MyProfile> {
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
     } catch (e) {
-      if (mounted) {
-        final localizations = AppLocalizations.of(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${localizations?.logoutFailed ?? 'Logout failed'}: $e',
-            ),
+      if (!mounted) return;
+      final localizations = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${localizations?.logoutFailed ?? 'Logout failed'}: $e',
           ),
-        );
-      }
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isLoggingOut = false);
     }
   }
 
-  Future<void> _showChangePasswordDialog(BuildContext context) async {
+  @override
+  Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
+    final title = loc?.myProfile ?? 'My Profile';
+
+    if (Adaptive.isCupertino) {
+      return CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(middle: Text(title)),
+        child: SafeArea(child: _buildBody(loc)),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: _buildBody(loc),
+    );
+  }
+
+  Widget _buildBody(AppLocalizations? loc) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      children: [
+        _ProfileHeader(
+          shopName: _shopName,
+          subtitle: loc?.viewAndEditProfile ?? 'View and edit profile',
+          onTap: () => AppNavigator.push(context, const EditProfile()),
+        ),
+        const SizedBox(height: 24),
+        _sectionLabel(loc?.add ?? 'Add'),
+        _SettingsGroup(
+          children: [
+            _CountTile(
+              icon: Icons.local_shipping_outlined,
+              title: loc?.suppliers ?? 'Suppliers',
+              collection: 'suppliers',
+              onTap: () => AppNavigator.push(context, const Suppliers()),
+            ),
+            _CountTile(
+              icon: Icons.straighten_outlined,
+              title: loc?.units ?? 'Units',
+              collection: 'units',
+              onTap: () =>
+                  AppNavigator.push(context, const MeasurementUnitsScreen()),
+            ),
+            _CountTile(
+              icon: Icons.inventory_2_outlined,
+              title: loc?.productNames ?? 'Product Names',
+              collection: 'product-names',
+              onTap: () => AppNavigator.push(context, const ProductName()),
+            ),
+            _CountTile(
+              icon: Icons.people_outline,
+              title: loc?.customers ?? 'Customers',
+              collection: 'customers',
+              onTap: () => AppNavigator.push(context, const Customers()),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        _sectionLabel(loc?.privacy ?? 'Privacy'),
+        _SettingsGroup(
+          children: [
+            _DevicesTile(
+              title: loc?.loggedInDevices ?? 'Logged In Devices',
+              onTap: () =>
+                  AppNavigator.push(context, const LoggedInDevicesScreen()),
+            ),
+            _SettingsTile(
+              icon: Icons.lock_outline,
+              title: loc?.changePassword ?? 'Change Password',
+              onTap: () => _showChangePasswordDialog(),
+            ),
+            _SettingsTile(
+              icon: Icons.privacy_tip_outlined,
+              title: loc?.privacyPolicy ?? 'Privacy Policy',
+              onTap: () =>
+                  AppNavigator.push(context, const PrivacyPolicyPage()),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        _sectionLabel(loc?.general ?? 'General'),
+        _SettingsGroup(
+          children: [
+            _SettingsTile(
+              icon: Icons.tune_outlined,
+              title: loc?.appSettings ?? 'App Settings',
+              onTap: () => AppNavigator.push(context, const AppSettings()),
+            ),
+            Consumer<LanguageProvider>(
+              builder: (context, languageProvider, _) {
+                return _SettingsTile(
+                  icon: Icons.language_outlined,
+                  title: loc?.language ?? 'Language',
+                  value: languageProvider.getNativeLanguageName(
+                    languageProvider.currentLocale.languageCode,
+                  ),
+                  onTap: () =>
+                      AppNavigator.push(context, const LanguageSelector()),
+                );
+              },
+            ),
+            _ThemeTile(
+              title: loc?.theme ?? 'Theme',
+              lightLabel: loc?.light ?? 'Light',
+              darkLabel: loc?.dark ?? 'Dark',
+            ),
+          ],
+        ),
+        const SizedBox(height: 28),
+        _LogoutButton(
+          loading: _isLoggingOut,
+          label: _isLoggingOut
+              ? (loc?.loggingOut ?? 'Logging Out...')
+              : (loc?.logOut ?? 'Log Out'),
+          onPressed: _isLoggingOut ? null : _logout,
+        ),
+      ],
+    );
+  }
+
+  Widget _sectionLabel(String title) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showChangePasswordDialog() async {
     final currentPasswordController = TextEditingController();
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
     String? currentPasswordError;
     String? newPasswordError;
     String? confirmPasswordError;
-    bool showCurrentPassword = false;
-    bool showNewPassword = false;
-    bool showConfirmPassword = false;
+    var showCurrentPassword = false;
+    var showNewPassword = false;
+    var showConfirmPassword = false;
     final localizations = AppLocalizations.of(context);
 
-    showDialog(
+    await showDialog<void>(
       context: context,
-      builder: (BuildContext dialogContext) {
+      builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(
-                localizations?.changePassword ?? 'Change Password',
-                style: context.bodyLargeText,
-              ),
+              title: Text(localizations?.changePassword ?? 'Change Password'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Current Password Field
                     TextField(
                       controller: currentPasswordController,
                       obscureText: !showCurrentPassword,
@@ -133,34 +265,19 @@ class _MyProfileState extends State<MyProfile> {
                         labelText:
                             localizations?.currentPassword ??
                             'Current Password',
-                        hintText:
-                            localizations?.enterCurrentPassword ??
-                            'Enter your current password',
+                        errorText: currentPasswordError,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
                             showCurrentPassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Colors.grey,
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
                           onPressed: () {
                             setDialogState(() {
                               showCurrentPassword = !showCurrentPassword;
                             });
                           },
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: currentPasswordError != null
-                                ? Colors.red
-                                : Colors.blue,
-                            width: 2,
-                          ),
                         ),
                       ),
                       onChanged: (_) {
@@ -169,46 +286,22 @@ class _MyProfileState extends State<MyProfile> {
                         }
                       },
                     ),
-                    if (currentPasswordError != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              currentPasswordError!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    // New Password Field
+                    const SizedBox(height: 12),
                     TextField(
                       controller: newPasswordController,
                       obscureText: !showNewPassword,
                       decoration: InputDecoration(
                         labelText: localizations?.newPassword ?? 'New Password',
-                        hintText:
-                            localizations?.enterNewPassword ??
-                            'Enter your new password',
+                        helperText:
+                            localizations?.passwordMinLength ??
+                            'Password must be at least 6 characters',
+                        errorText: newPasswordError,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
                             showNewPassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Colors.grey,
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
                           onPressed: () {
                             setDialogState(() {
@@ -216,21 +309,6 @@ class _MyProfileState extends State<MyProfile> {
                             });
                           },
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: newPasswordError != null
-                                ? Colors.red
-                                : Colors.blue,
-                            width: 2,
-                          ),
-                        ),
-                        helperText:
-                            localizations?.passwordMinLength ??
-                            'Password must be at least 6 characters',
                       ),
                       onChanged: (_) {
                         if (newPasswordError != null) {
@@ -238,31 +316,7 @@ class _MyProfileState extends State<MyProfile> {
                         }
                       },
                     ),
-                    if (newPasswordError != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              newPasswordError!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    // Confirm Password Field
+                    const SizedBox(height: 12),
                     TextField(
                       controller: confirmPasswordController,
                       obscureText: !showConfirmPassword,
@@ -270,34 +324,19 @@ class _MyProfileState extends State<MyProfile> {
                         labelText:
                             localizations?.confirmNewPassword ??
                             'Confirm New Password',
-                        hintText:
-                            localizations?.reEnterNewPassword ??
-                            'Re-enter your new password',
+                        errorText: confirmPasswordError,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
                             showConfirmPassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: Colors.grey,
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
                           onPressed: () {
                             setDialogState(() {
                               showConfirmPassword = !showConfirmPassword;
                             });
                           },
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: confirmPasswordError != null
-                                ? Colors.red
-                                : Colors.blue,
-                            width: 2,
-                          ),
                         ),
                       ),
                       onChanged: (_) {
@@ -306,29 +345,6 @@ class _MyProfileState extends State<MyProfile> {
                         }
                       },
                     ),
-                    if (confirmPasswordError != null) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
-                            size: 18,
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              confirmPasswordError!,
-                              style: const TextStyle(
-                                color: Colors.red,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -337,10 +353,9 @@ class _MyProfileState extends State<MyProfile> {
                   onPressed: () => Navigator.pop(dialogContext),
                   child: Text(localizations?.cancel ?? 'Cancel'),
                 ),
-                ElevatedButton(
+                FilledButton(
                   onPressed: () async {
-                    // Validate inputs
-                    bool hasError = false;
+                    var hasError = false;
                     setDialogState(() {
                       currentPasswordError = null;
                       newPasswordError = null;
@@ -352,7 +367,6 @@ class _MyProfileState extends State<MyProfile> {
                             'Current password is required';
                         hasError = true;
                       }
-
                       if (newPasswordController.text.isEmpty) {
                         newPasswordError =
                             localizations?.newPasswordRequired ??
@@ -364,7 +378,6 @@ class _MyProfileState extends State<MyProfile> {
                             'Password must be at least 6 characters';
                         hasError = true;
                       }
-
                       if (confirmPasswordController.text.isEmpty) {
                         confirmPasswordError =
                             localizations?.confirmPasswordRequired ??
@@ -378,67 +391,58 @@ class _MyProfileState extends State<MyProfile> {
                         hasError = true;
                       }
                     });
-
                     if (hasError) return;
 
                     try {
-                      // Show loading dialog
-                      showDialog(
+                      showDialog<void>(
                         context: context,
                         barrierDismissible: false,
-                        builder: (BuildContext loadingContext) {
-                          return AlertDialog(
-                            content: SizedBox(
-                              height: 80,
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CircularProgressIndicator(),
-                                  SizedBox(height: 16),
-                                  Text(
-                                    localizations?.updatingPassword ??
-                                        'Updating password...',
-                                  ),
-                                ],
+                        builder: (_) => AlertDialog(
+                          content: Row(
+                            children: [
+                              SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Adaptive.progress(),
                               ),
-                            ),
-                          );
-                        },
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Text(
+                                  localizations?.updatingPassword ??
+                                      'Updating password...',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       );
 
                       final user = FirebaseAuth.instance.currentUser;
                       if (user == null) {
-                        Navigator.pop(context); // Close loading
-                        Navigator.pop(dialogContext); // Close dialog
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              localizations?.userNotAuthenticated ??
-                                  'User not authenticated',
+                        if (context.mounted) Navigator.pop(context);
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                        if (mounted) {
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                localizations?.userNotAuthenticated ??
+                                    'User not authenticated',
+                              ),
                             ),
-                          ),
-                        );
+                          );
+                        }
                         return;
                       }
 
-                      // Re-authenticate user with current password
                       final credential = EmailAuthProvider.credential(
                         email: user.email!,
                         password: currentPasswordController.text,
                       );
-
                       await user.reauthenticateWithCredential(credential);
-
-                      // Update password
                       await user.updatePassword(newPasswordController.text);
 
-                      if (context.mounted) {
-                        Navigator.pop(context); // Close loading
-                      }
-                      if (dialogContext.mounted) {
-                        Navigator.pop(dialogContext); // Close dialog
-                      }
-
+                      if (context.mounted) Navigator.pop(context);
+                      if (dialogContext.mounted) Navigator.pop(dialogContext);
                       if (mounted) {
                         ScaffoldMessenger.of(this.context).showSnackBar(
                           SnackBar(
@@ -446,16 +450,12 @@ class _MyProfileState extends State<MyProfile> {
                               localizations?.passwordChangedSuccessfully ??
                                   'Password changed successfully!',
                             ),
-                            backgroundColor: Colors.green,
                           ),
                         );
                       }
                     } catch (e) {
-                      if (context.mounted) {
-                        Navigator.pop(context); // Close loading
-                      }
-
-                      String errorMessage =
+                      if (context.mounted) Navigator.pop(context);
+                      var errorMessage =
                           localizations?.failedToChangePassword ??
                           'Failed to change password';
                       if (e.toString().contains('wrong-password')) {
@@ -473,25 +473,11 @@ class _MyProfileState extends State<MyProfile> {
                             localizations?.reauthenticateRequired ??
                             'Please log out and log in again for security';
                       }
-
-                      setDialogState(() {
-                        currentPasswordError = errorMessage;
-                      });
-
-                      if (mounted) {
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(errorMessage),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      }
+                      setDialogState(() => currentPasswordError = errorMessage);
                     }
                   },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
                   child: Text(
                     localizations?.changePassword ?? 'Change Password',
-                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ],
@@ -500,289 +486,224 @@ class _MyProfileState extends State<MyProfile> {
         );
       },
     );
+
+    currentPasswordController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
   }
+}
+
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({
+    required this.shopName,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final String shopName;
+  final String subtitle;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(title: Text(localizations?.myProfile ?? 'My Profile')),
-      body: Column(
+    final scheme = Theme.of(context).colorScheme;
+
+    final content = Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+      child: Row(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  // Profile Header
-                  Card(
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      leading: CircleAvatar(
-                        radius: 30,
-                        backgroundColor: const Color(0xFF2196F3),
-                        child: const Icon(
-                          Icons.person,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-                      ),
-                      title: Text(
-                        _shopName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      subtitle: Text(
-                        localizations?.viewAndEditProfile ??
-                            'View and edit profile',
-                        style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () {
-                        AppNavigator.push(context, const EditProfile());
-                      },
-                    ),
-                  ),
-
-                  // Add
-                  _buildSectionHeader(
-                    localizations?.add.toUpperCase() ?? 'ADD',
-                    context,
-                  ),
-                  _buildCountMenuItem(
-                    Icons.person_add_outlined,
-                    localizations?.suppliers ?? 'Suppliers',
-                    context,
-                    'suppliers',
-                    onTap: () {
-                      AppNavigator.push(context, const Suppliers());
-                    },
-                  ),
-                  _buildCountMenuItem(
-                    Icons.scale_outlined,
-                    localizations?.units ?? 'Units',
-                    context,
-                    'units',
-                    onTap: () {
-                      AppNavigator.push(
-                        context,
-                        const MeasurementUnitsScreen(),
-                      );
-                    },
-                  ),
-                  _buildCountMenuItem(
-                    Icons.shopping_bag_outlined,
-                    localizations?.productNames ?? 'Product Names',
-                    context,
-                    'product-names',
-                    onTap: () {
-                      AppNavigator.push(context, const ProductName());
-                    },
-                  ),
-                  _buildCountMenuItem(
-                    Icons.people_alt_outlined,
-                    localizations?.customers ?? 'Customers',
-                    context,
-                    'customers',
-                    onTap: () {
-                      AppNavigator.push(context, const Customers());
-                    },
-                  ),
-
-                  // Privacy Section
-                  _buildSectionHeader(
-                    localizations?.privacy.toUpperCase() ?? 'PRIVACY',
-                    context,
-                  ),
-                  _buildLoggedInDevicesMenuItem(context),
-                  _buildMenuItem(
-                    Icons.lock_outline,
-                    localizations?.changePassword ?? 'Change Password',
-                    context,
-                    onTap: () => _showChangePasswordDialog(context),
-                  ),
-                  _buildMenuItem(
-                    Icons.policy_outlined,
-                    localizations?.privacyPolicy ?? 'Privacy Policy',
-                    context,
-                    onTap: () {
-                      AppNavigator.push(context, const PrivacyPolicyPage());
-                    },
-                  ),
-
-                  // General Section
-                  _buildSectionHeader(
-                    localizations?.general.toUpperCase() ?? 'GENERAL',
-                    context,
-                  ),
-                  _buildMenuItem(
-                    Icons.settings,
-                    localizations?.appSettings ?? 'App Settings',
-                    context,
-                    onTap: () {
-                      AppNavigator.push(context, const AppSettings());
-                    },
-                  ),
-                  Consumer<LanguageProvider>(
-                    builder: (context, languageProvider, _) {
-                      return _buildMenuItem(
-                        Icons.language,
-                        localizations?.language ?? 'Language',
-                        context,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              languageProvider.getNativeLanguageName(
-                                languageProvider.currentLocale.languageCode,
-                              ),
-                              style: TextStyle(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: 0.6),
-                              ),
-                            ),
-                            const Icon(Icons.chevron_right, color: Colors.grey),
-                          ],
-                        ),
-                        onTap: () {
-                          AppNavigator.push(context, const LanguageSelector());
-                        },
-                      );
-                    },
-                  ),
-                  _buildMenuItem(
-                    Icons.brightness_6_outlined,
-                    localizations?.theme ?? 'Theme',
-                    context,
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          localizations?.dark ?? 'Dark',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Transform.scale(
-                          scale: 0.75,
-                          child: Consumer<ThemeProvider>(
-                            builder: (context, themeProvider, _) {
-                              return Switch(
-                                value: themeProvider.isLightTheme,
-                                onChanged: (value) {
-                                  themeProvider.toggleTheme();
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          localizations?.light ?? 'Light',
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoggingOut ? null : _logout,
-                      icon: _isLoggingOut
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.redAccent,
-                                ),
-                              ),
-                            )
-                          : const Icon(Icons.logout, color: Colors.redAccent),
-                      label: Text(
-                        _isLoggingOut
-                            ? (localizations?.loggingOut ?? 'Logging Out...')
-                            : (localizations?.logOut ?? 'Log Out'),
-                        style: const TextStyle(color: Colors.redAccent),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.redAccent.withValues(
-                          alpha: 0.1,
-                        ),
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 20,
-                        ),
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: scheme.primaryContainer,
+            child: Icon(
+              Icons.storefront_rounded,
+              color: scheme.onPrimaryContainer,
             ),
           ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  shopName,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+        ],
+      ),
+    );
 
-          // Logout Button (fixed at bottom)
+    if (Adaptive.isCupertino) {
+      return GestureDetector(
+        onTap: onTap,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: CupertinoColors.secondarySystemGroupedBackground.resolveFrom(
+              context,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: content,
+        ),
+      );
+    }
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(onTap: onTap, child: content),
+    );
+  }
+}
+
+class _SettingsGroup extends StatelessWidget {
+  const _SettingsGroup({required this.children});
+
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    if (Adaptive.isCupertino) {
+      return CupertinoListSection.insetGrouped(
+        margin: EdgeInsets.zero,
+        children: children,
+      );
+    }
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            children[i],
+            if (i != children.length - 1) const Divider(height: 1, indent: 56),
+          ],
         ],
       ),
     );
   }
+}
 
-  Widget _buildSectionHeader(String title, BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16.0, top: 20.0, bottom: 8.0),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.secondary,
-          fontWeight: FontWeight.bold,
-          fontSize: 13,
-        ),
-      ),
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    this.value,
+    this.trailing,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? value;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final leading = Icon(icon, color: scheme.primary, size: 22);
+
+    if (Adaptive.isCupertino) {
+      return CupertinoListTile(
+        leading: leading,
+        title: Text(title),
+        additionalInfo: value != null ? Text(value!) : null,
+        trailing: trailing ?? const CupertinoListTileChevron(),
+        onTap: onTap,
+      );
+    }
+
+    return ListTile(
+      leading: leading,
+      title: Text(title),
+      trailing:
+          trailing ??
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (value != null)
+                Text(
+                  value!,
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
+              Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+            ],
+          ),
+      onTap: onTap,
     );
   }
+}
 
-  Widget _buildLoggedInDevicesMenuItem(BuildContext context) {
+class _CountTile extends StatelessWidget {
+  const _CountTile({
+    required this.icon,
+    required this.title,
+    required this.collection,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String collection;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final localizations = AppLocalizations.of(context);
-
     if (user == null) {
-      return _buildMenuItem(
-        Icons.device_unknown,
-        localizations?.loggedInDevices ?? 'Logged In Devices',
-        context,
-        onTap: () {
-          AppNavigator.push(context, const LoggedInDevicesScreen());
-        },
+      return _SettingsTile(icon: icon, title: title, onTap: onTap);
+    }
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection(collection)
+          .doc(user.uid)
+          .collection('items')
+          .snapshots(),
+      builder: (context, snapshot) {
+        final count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+        final waiting = snapshot.connectionState == ConnectionState.waiting;
+        return _SettingsTile(
+          icon: icon,
+          title: title,
+          value: waiting ? null : '$count',
+          trailing: waiting
+              ? SizedBox(width: 16, height: 16, child: Adaptive.progress())
+              : null,
+          onTap: onTap,
+        );
+      },
+    );
+  }
+}
+
+class _DevicesTile extends StatelessWidget {
+  const _DevicesTile({required this.title, required this.onTap});
+
+  final String title;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return _SettingsTile(
+        icon: Icons.devices_outlined,
+        title: title,
+        onTap: onTap,
       );
     }
 
@@ -793,156 +714,111 @@ class _MyProfileState extends State<MyProfile> {
           .collection('devices')
           .snapshots(),
       builder: (context, snapshot) {
-        int deviceCount = 0;
-
+        var deviceCount = 0;
         if (snapshot.hasData) {
-          // Filter out revoked devices
           deviceCount = snapshot.data!.docs.where((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return data['revokedAt'] == null;
           }).length;
         }
+        final waiting = snapshot.connectionState == ConnectionState.waiting;
+        return _SettingsTile(
+          icon: Icons.devices_outlined,
+          title: title,
+          value: waiting ? null : '$deviceCount',
+          trailing: waiting
+              ? SizedBox(width: 16, height: 16, child: Adaptive.progress())
+              : null,
+          onTap: onTap,
+        );
+      },
+    );
+  }
+}
 
-        return _buildMenuItem(
-          Icons.device_unknown,
-          localizations?.loggedInDevices ?? 'Logged In Devices',
-          context,
-          onTap: () {
-            AppNavigator.push(context, const LoggedInDevicesScreen());
-          },
+class _ThemeTile extends StatelessWidget {
+  const _ThemeTile({
+    required this.title,
+    required this.lightLabel,
+    required this.darkLabel,
+  });
+
+  final String title;
+  final String lightLabel;
+  final String darkLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isLight = themeProvider.isLightTheme;
+        final scheme = Theme.of(context).colorScheme;
+        final switchWidget = Adaptive.isCupertino
+            ? CupertinoSwitch(
+                value: isLight,
+                onChanged: (_) => themeProvider.toggleTheme(),
+              )
+            : Switch(
+                value: isLight,
+                onChanged: (_) => themeProvider.toggleTheme(),
+              );
+
+        return _SettingsTile(
+          icon: Icons.contrast_outlined,
+          title: title,
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (snapshot.connectionState == ConnectionState.waiting)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$deviceCount',
-                    style: const TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
+              Text(
+                isLight ? lightLabel : darkLabel,
+                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
+              ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right, color: Colors.grey),
+              switchWidget,
             ],
           ),
         );
       },
     );
   }
+}
 
-  Widget _buildCountMenuItem(
-    IconData icon,
-    String title,
-    BuildContext context,
-    String collectionName, {
-    GestureTapCallback? onTap,
-  }) {
-    final user = FirebaseAuth.instance.currentUser;
+class _LogoutButton extends StatelessWidget {
+  const _LogoutButton({
+    required this.loading,
+    required this.label,
+    required this.onPressed,
+  });
 
-    if (user == null) {
-      return _buildMenuItem(icon, title, context, onTap: onTap);
+  final bool loading;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = loading
+        ? SizedBox(width: 18, height: 18, child: Adaptive.progress())
+        : Text(label);
+
+    if (Adaptive.isCupertino) {
+      return CupertinoButton(
+        onPressed: onPressed,
+        child: DefaultTextStyle.merge(
+          style: const TextStyle(color: CupertinoColors.destructiveRed),
+          child: child,
+        ),
+      );
     }
 
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection(collectionName)
-          .doc(user.uid)
-          .collection('items')
-          .snapshots(),
-      builder: (context, snapshot) {
-        int count = 0;
-
-        if (snapshot.hasData) {
-          count = snapshot.data!.docs.length;
-        }
-
-        return _buildMenuItem(
-          icon,
-          title,
-          context,
-          onTap: onTap,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (snapshot.connectionState == ConnectionState.waiting)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: const TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              const SizedBox(width: 8),
-              const Icon(Icons.chevron_right, color: Colors.grey),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildMenuItem(
-    IconData icon,
-    String title,
-    BuildContext context, {
-    Widget? trailing,
-    bool showChevron = true,
-    GestureTapCallback? onTap,
-  }) {
-    return Card(
-      child: ListTile(
-        leading: Container(
-          height: 35,
-          width: 35,
-          decoration: BoxDecoration(
-            color: const Color(0xFF2196F3),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: Colors.white),
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Theme.of(context).colorScheme.error,
+        side: BorderSide(
+          color: Theme.of(context).colorScheme.error.withValues(alpha: 0.35),
         ),
-        title: Text(
-          title,
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-        ),
-        trailing: showChevron
-            ? (trailing ?? const Icon(Icons.chevron_right, color: Colors.grey))
-            : trailing,
-        onTap: onTap,
       ),
+      child: child,
     );
   }
 }
