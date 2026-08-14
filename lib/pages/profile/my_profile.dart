@@ -15,15 +15,11 @@ import 'package:flashbill/pages/profile/privacy_policy.dart';
 import 'package:flashbill/pages/profile/products/product.dart';
 import 'package:flashbill/pages/profile/supplier/suppliers.dart';
 import 'package:flashbill/pages/profile/units/units.dart';
-import 'package:flashbill/providers/language_provider.dart';
-import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/services/notification_service.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
-import 'package:flashbill/widgets/language_selector.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:provider/provider.dart';
 
 class MyProfile extends StatefulWidget {
   const MyProfile({super.key});
@@ -189,24 +185,6 @@ class _MyProfileState extends State<MyProfile> {
               title: loc?.appSettings ?? 'App Settings',
               onTap: () => AppNavigator.push(context, const AppSettings()),
             ),
-            Consumer<LanguageProvider>(
-              builder: (context, languageProvider, _) {
-                return _SettingsTile(
-                  icon: Icons.language_outlined,
-                  title: loc?.language ?? 'Language',
-                  value: languageProvider.getNativeLanguageName(
-                    languageProvider.currentLocale.languageCode,
-                  ),
-                  onTap: () =>
-                      AppNavigator.push(context, const LanguageSelector()),
-                );
-              },
-            ),
-            _ThemeTile(
-              title: loc?.theme ?? 'Theme',
-              lightLabel: loc?.light ?? 'Light',
-              darkLabel: loc?.dark ?? 'Dark',
-            ),
           ],
         ),
         const SizedBox(height: 28),
@@ -363,6 +341,7 @@ class _SettingsTile extends StatelessWidget {
 
     if (Adaptive.isCupertino) {
       return CupertinoListTile(
+        padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
         leading: leading,
         title: Text(title),
         additionalInfo: value != null ? Text(value!) : null,
@@ -372,6 +351,7 @@ class _SettingsTile extends StatelessWidget {
     }
 
     return ListTile(
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -0.5),
       leading: leading,
       title: Text(title),
       trailing:
@@ -478,53 +458,6 @@ class _DevicesTile extends StatelessWidget {
   }
 }
 
-class _ThemeTile extends StatelessWidget {
-  const _ThemeTile({
-    required this.title,
-    required this.lightLabel,
-    required this.darkLabel,
-  });
-
-  final String title;
-  final String lightLabel;
-  final String darkLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, _) {
-        final isLight = themeProvider.isLightTheme;
-        final scheme = Theme.of(context).colorScheme;
-        final switchWidget = Adaptive.isCupertino
-            ? CupertinoSwitch(
-                value: isLight,
-                onChanged: (_) => themeProvider.toggleTheme(),
-              )
-            : Switch(
-                value: isLight,
-                onChanged: (_) => themeProvider.toggleTheme(),
-              );
-
-        return _SettingsTile(
-          icon: Icons.contrast_outlined,
-          title: title,
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                isLight ? lightLabel : darkLabel,
-                style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13),
-              ),
-              const SizedBox(width: 8),
-              switchWidget,
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
 class _LogoutButton extends StatelessWidget {
   const _LogoutButton({
     required this.loading,
@@ -543,11 +476,14 @@ class _LogoutButton extends StatelessWidget {
         : Text(label);
 
     if (Adaptive.isCupertino) {
-      return CupertinoButton(
-        onPressed: onPressed,
-        child: DefaultTextStyle.merge(
-          style: const TextStyle(color: CupertinoColors.destructiveRed),
-          child: child,
+      return SizedBox(
+        width: double.infinity,
+        child: CupertinoButton(
+          onPressed: onPressed,
+          child: DefaultTextStyle.merge(
+            style: const TextStyle(color: CupertinoColors.destructiveRed),
+            child: child,
+          ),
         ),
       );
     }
@@ -555,6 +491,7 @@ class _LogoutButton extends StatelessWidget {
     return OutlinedButton(
       onPressed: onPressed,
       style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(46),
         foregroundColor: Theme.of(context).colorScheme.error,
         side: BorderSide(
           color: Theme.of(context).colorScheme.error.withValues(alpha: 0.35),

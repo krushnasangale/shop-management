@@ -6,12 +6,12 @@ import 'package:material_ui/material_ui.dart';
 abstract final class Adaptive {
   static const compactFieldPadding = EdgeInsets.symmetric(
     horizontal: 16,
-    vertical: 12,
+    vertical: 11,
   );
   static const compactIconSize = 20.0;
   static const compactPrefixConstraints = BoxConstraints(
-    minWidth: 44,
-    minHeight: 44,
+    minWidth: 42,
+    minHeight: 42,
   );
 
   static bool get isCupertino {
@@ -60,17 +60,17 @@ abstract final class Adaptive {
   }
 
   static ButtonStyle get compactFilled => FilledButton.styleFrom(
-    minimumSize: const Size.fromHeight(48),
+    minimumSize: const Size.fromHeight(46),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
   );
 
   static ButtonStyle get compactOutlined => OutlinedButton.styleFrom(
-    minimumSize: const Size(0, 44),
+    minimumSize: const Size(0, 42),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
   );
 
   static ButtonStyle get compactIconButton => IconButton.styleFrom(
-    minimumSize: const Size(44, 44),
+    minimumSize: const Size(42, 42),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     iconSize: compactIconSize,
   );

@@ -822,7 +822,7 @@ class _SignaturePickerSheet extends StatelessWidget {
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16,
-                        vertical: 6,
+                        vertical: 5,
                       ),
                       leading: CircleAvatar(
                         backgroundColor: scheme.primaryContainer,
@@ -931,6 +931,7 @@ class _InfoRow extends StatelessWidget {
       }
 
       return ListTile(
+        visualDensity: const VisualDensity(horizontal: 0, vertical: -0.5),
         leading: leading,
         title: Text(label),
         subtitle: maxLines > 1
@@ -961,11 +962,12 @@ class _InfoRow extends StatelessWidget {
         keyboardType: keyboardType,
         maxLines: maxLines,
         validator: validator,
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 11),
       );
     }
 
     return ListTile(
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -0.5),
       leading: leading,
       title: Text(
         label,
@@ -986,7 +988,7 @@ class _InfoRow extends StatelessWidget {
           isDense: true,
           filled: false,
           fillColor: Colors.transparent,
-          contentPadding: const EdgeInsets.only(top: 4, bottom: 6),
+          contentPadding: const EdgeInsets.only(top: 3, bottom: 5),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
@@ -1044,6 +1046,7 @@ class _SignatureRow extends StatelessWidget {
     }
 
     return ListTile(
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -0.5),
       leading: leading,
       title: Text(label),
       subtitle: image ?? (hasSignature ? null : Text(emptyLabel)),

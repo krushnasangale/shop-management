@@ -336,7 +336,7 @@ class _PasswordField extends StatelessWidget {
                 obscureText: obscure,
                 placeholder: label,
                 decoration: const BoxDecoration(),
-                padding: const EdgeInsets.symmetric(vertical: 12),
+                padding: const EdgeInsets.symmetric(vertical: 11),
                 textInputAction: textInputAction,
                 autofillHints: autofillHints,
                 onChanged: (_) => onChanged(),
@@ -356,6 +356,7 @@ class _PasswordField extends StatelessWidget {
     }
 
     return ListTile(
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -0.5),
       leading: leading,
       title: Text(
         label,
@@ -380,7 +381,7 @@ class _PasswordField extends StatelessWidget {
           isDense: true,
           filled: false,
           fillColor: Colors.transparent,
-          contentPadding: const EdgeInsets.only(top: 4, bottom: 6),
+          contentPadding: const EdgeInsets.only(top: 3, bottom: 5),
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,

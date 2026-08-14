@@ -362,7 +362,7 @@ class _UnitTile extends StatelessWidget {
 
     if (Adaptive.isCupertino) {
       return CupertinoListTile(
-        padding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
+        padding: const EdgeInsets.fromLTRB(16, 5, 12, 5),
         leading: avatar,
         title: Text(
           unit.name,
@@ -382,8 +382,8 @@ class _UnitTile extends StatelessWidget {
     return ListTile(
       dense: true,
       visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
-      minVerticalPadding: 4,
+      contentPadding: const EdgeInsets.fromLTRB(16, 1, 12, 1),
+      minVerticalPadding: 3,
       leading: avatar,
       title: Text(
         unit.name,

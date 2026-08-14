@@ -176,6 +176,7 @@ class _LanguageTile extends StatelessWidget {
 
     if (Adaptive.isCupertino) {
       return CupertinoListTile(
+        padding: const EdgeInsets.fromLTRB(16, 11, 16, 11),
         title: Text(nativeName),
         subtitle: Text(name),
         trailing: selected
@@ -186,6 +187,7 @@ class _LanguageTile extends StatelessWidget {
     }
 
     return ListTile(
+      visualDensity: const VisualDensity(horizontal: 0, vertical: -0.5),
       title: Text(
         nativeName,
         style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),

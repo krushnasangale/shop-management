@@ -474,6 +474,7 @@ class _TransactionTile extends StatelessWidget {
 
     if (Adaptive.isCupertino) {
       return CupertinoListTile(
+        padding: const EdgeInsets.fromLTRB(16, 7, 12, 7),
         title: Text(
           date,
           style: TextStyle(
@@ -491,7 +492,7 @@ class _TransactionTile extends StatelessWidget {
     return ListTile(
       dense: true,
       visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
+      contentPadding: const EdgeInsets.fromLTRB(16, 3, 12, 3),
       title: Text(
         date,
         maxLines: 1,

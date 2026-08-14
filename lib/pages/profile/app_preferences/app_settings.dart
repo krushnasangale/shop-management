@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/providers/language_provider.dart';
+import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
+import 'package:flashbill/widgets/language_selector.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:provider/provider.dart';
 
 class AppSettings extends StatefulWidget {
   const AppSettings({super.key});
@@ -84,6 +89,11 @@ class _AppSettingsState extends State<AppSettings> {
     }
   }
 
+  void _toggle(String key, bool value, void Function(bool) apply) {
+    setState(() => apply(value));
+    _saveSetting(key, value);
+  }
+
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -107,74 +117,106 @@ class _AppSettingsState extends State<AppSettings> {
       return Center(child: Adaptive.progress());
     }
 
-    final rows = [
-      _SettingRowData(
-        icon: Icons.directions_car_outlined,
-        title: loc?.vehicleNumberInBills ?? 'Vehicle Number in Bills',
-        subtitle:
-            loc?.enableVehicleNumberOption ??
-            'Enable option to enter vehicle number when creating bills',
-        value: _vehicleNumberEnabled,
-        onChanged: (value) {
-          setState(() => _vehicleNumberEnabled = value);
-          _saveSetting('vehicleNumberEnabled', value);
-        },
-      ),
-      _SettingRowData(
-        icon: Icons.local_shipping_outlined,
-        title: loc?.deliveryCharges ?? 'Delivery Charges',
-        subtitle:
-            loc?.enableDeliveryChargesField ??
-            'Enable delivery charges field in bill creation',
-        value: _deliveryChargesEnabled,
-        onChanged: (value) {
-          setState(() => _deliveryChargesEnabled = value);
-          _saveSetting('deliveryChargesEnabled', value);
-        },
-      ),
-      _SettingRowData(
-        icon: Icons.account_balance_wallet_outlined,
-        title: loc?.previousDueAmount ?? 'Previous Due Amount',
-        subtitle:
-            loc?.enablePreviousDueField ??
-            'Enable previous due amount field in bill creation',
-        value: _previousDueEnabled,
-        onChanged: (value) {
-          setState(() => _previousDueEnabled = value);
-          _saveSetting('previousDueEnabled', value);
-        },
-      ),
-      _SettingRowData(
-        icon: Icons.event_outlined,
-        title: loc?.expiryDateInPurchases ?? 'Expiry Date in Purchases',
-        subtitle:
-            loc?.enableExpiryDateField ??
-            'Enable expiry date field when adding purchase entries',
-        value: _expiryDateEnabled,
-        onChanged: (value) {
-          setState(() => _expiryDateEnabled = value);
-          _saveSetting('expiryDateEnabled', value);
-        },
-      ),
-      _SettingRowData(
-        icon: Icons.payments_outlined,
-        title: loc?.expenses ?? 'Expenses',
-        subtitle: 'Enable or disable the expenses tracking feature in the app',
-        value: _expensesEnabled,
-        onChanged: (value) {
-          setState(() => _expensesEnabled = value);
-          _saveSetting('expensesEnabled', value);
-        },
-      ),
-    ];
-
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
       children: [
-        _sectionLabel(loc?.appSettings ?? 'App Settings'),
+        _sectionLabel(loc?.general ?? 'General'),
         _SettingsGroup(
-          children: [for (final row in rows) _SettingTile(row: row)],
+          children: [
+            Consumer<LanguageProvider>(
+              builder: (context, languageProvider, _) {
+                return _NavTile(
+                  icon: Icons.language_outlined,
+                  title: loc?.language ?? 'Language',
+                  value: languageProvider.getNativeLanguageName(
+                    languageProvider.currentLocale.languageCode,
+                  ),
+                  onTap: () =>
+                      AppNavigator.push(context, const LanguageSelector()),
+                );
+              },
+            ),
+            _ThemeTile(
+              title: loc?.theme ?? 'Theme',
+              lightLabel: loc?.light ?? 'Light',
+              darkLabel: loc?.dark ?? 'Dark',
+            ),
+          ],
         ),
+        const SizedBox(height: 20),
+        _sectionLabel(loc?.bills ?? 'Bills'),
+        _SettingsGroup(
+          children: [
+            _SettingTile(
+              icon: Icons.directions_car_outlined,
+              title: loc?.vehicleNumber ?? 'Vehicle Number',
+              value: _vehicleNumberEnabled,
+              onChanged: (value) => _toggle(
+                'vehicleNumberEnabled',
+                value,
+                (next) => _vehicleNumberEnabled = next,
+              ),
+            ),
+            _SettingTile(
+              icon: Icons.local_shipping_outlined,
+              title: loc?.deliveryCharges ?? 'Delivery Charges',
+              value: _deliveryChargesEnabled,
+              onChanged: (value) => _toggle(
+                'deliveryChargesEnabled',
+                value,
+                (next) => _deliveryChargesEnabled = next,
+              ),
+            ),
+            _SettingTile(
+              icon: Icons.account_balance_wallet_outlined,
+              title: loc?.previousDueAmount ?? 'Previous Due Amount',
+              value: _previousDueEnabled,
+              onChanged: (value) => _toggle(
+                'previousDueEnabled',
+                value,
+                (next) => _previousDueEnabled = next,
+              ),
+            ),
+          ],
+        ),
+        _sectionFooter('These fields appear when creating a bill.'),
+        const SizedBox(height: 20),
+        _sectionLabel(loc?.purchases ?? 'Purchases'),
+        _SettingsGroup(
+          children: [
+            _SettingTile(
+              icon: Icons.event_outlined,
+              title: loc?.expiryDate ?? 'Expiry Date',
+              value: _expiryDateEnabled,
+              onChanged: (value) => _toggle(
+                'expiryDateEnabled',
+                value,
+                (next) => _expiryDateEnabled = next,
+              ),
+            ),
+          ],
+        ),
+        _sectionFooter(
+          loc?.enableExpiryDateField ??
+              'Show expiry date when adding purchase entries.',
+        ),
+        const SizedBox(height: 20),
+        _sectionLabel('Features'),
+        _SettingsGroup(
+          children: [
+            _SettingTile(
+              icon: Icons.payments_outlined,
+              title: loc?.expenses ?? 'Expenses',
+              value: _expensesEnabled,
+              onChanged: (value) => _toggle(
+                'expensesEnabled',
+                value,
+                (next) => _expensesEnabled = next,
+              ),
+            ),
+          ],
+        ),
+        _sectionFooter('Turn the expenses tab on or off for this shop.'),
       ],
     );
   }
@@ -194,22 +236,21 @@ class _AppSettingsState extends State<AppSettings> {
       ),
     );
   }
-}
 
-class _SettingRowData {
-  const _SettingRowData({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
+  Widget _sectionFooter(String text) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, top: 8, right: 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          height: 1.35,
+          color: scheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
 }
 
 class _SettingsGroup extends StatelessWidget {
@@ -231,8 +272,14 @@ class _SettingsGroup extends StatelessWidget {
       child: Column(
         children: [
           for (var i = 0; i < children.length; i++) ...[
-            children[i],
-            if (i != children.length - 1) const Divider(height: 1, indent: 56),
+            Padding(
+              padding: EdgeInsets.only(
+                top: i == 0 ? 8 : 0,
+                bottom: i == children.length - 1 ? 8 : 0,
+              ),
+              child: children[i],
+            ),
+            if (i != children.length - 1) const Divider(height: 1, indent: 64),
           ],
         ],
       ),
@@ -241,37 +288,179 @@ class _SettingsGroup extends StatelessWidget {
 }
 
 class _SettingTile extends StatelessWidget {
-  const _SettingTile({required this.row});
+  const _SettingTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
 
-  final _SettingRowData row;
+  final IconData icon;
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final leading = _settingsLeading(context, icon);
+    final titleStyle = _settingsTitleStyle(context);
+    final switchWidget = CupertinoSwitch(
+      value: value,
+      onChanged: onChanged,
+    );
+
+    if (Adaptive.isCupertino) {
+      return CupertinoListTile(
+        padding: const EdgeInsets.fromLTRB(16, 7, 16, 7),
+        leading: leading,
+        title: Text(title, style: titleStyle),
+        trailing: switchWidget,
+        onTap: () => onChanged(!value),
+      );
+    }
+
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 3, 16, 3),
+      minVerticalPadding: 7,
+      leading: leading,
+      title: Text(title, style: titleStyle),
+      trailing: switchWidget,
+      onTap: () => onChanged(!value),
+    );
+  }
+}
+
+class _NavTile extends StatelessWidget {
+  const _NavTile({
+    required this.icon,
+    required this.title,
+    required this.value,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String value;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final leading = Icon(row.icon, color: scheme.primary, size: 22);
-    final switchWidget = Adaptive.isCupertino
-        ? CupertinoSwitch(value: row.value, onChanged: row.onChanged)
-        : Switch(value: row.value, onChanged: row.onChanged);
+    final leading = _settingsLeading(context, icon);
+    final titleStyle = _settingsTitleStyle(context);
+    final trailing = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          value,
+          style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+        ),
+        Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+      ],
+    );
 
     if (Adaptive.isCupertino) {
       return CupertinoListTile(
+        padding: const EdgeInsets.fromLTRB(16, 7, 12, 7),
         leading: leading,
-        title: Text(row.title),
-        subtitle: Text(row.subtitle),
-        trailing: switchWidget,
-        onTap: () => row.onChanged(!row.value),
+        title: Text(title, style: titleStyle),
+        additionalInfo: Text(value),
+        trailing: const CupertinoListTileChevron(),
+        onTap: onTap,
       );
     }
 
-    return SwitchListTile(
-      secondary: leading,
-      title: Text(
-        row.title,
-        style: TextStyle(fontWeight: FontWeight.w600, color: scheme.onSurface),
-      ),
-      subtitle: Text(row.subtitle),
-      value: row.value,
-      onChanged: row.onChanged,
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 3, 12, 3),
+      minVerticalPadding: 7,
+      leading: leading,
+      title: Text(title, style: titleStyle),
+      trailing: trailing,
+      onTap: onTap,
     );
   }
+}
+
+class _ThemeTile extends StatelessWidget {
+  const _ThemeTile({
+    required this.title,
+    required this.lightLabel,
+    required this.darkLabel,
+  });
+
+  final String title;
+  final String lightLabel;
+  final String darkLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        final isLight = themeProvider.isLightTheme;
+        final scheme = Theme.of(context).colorScheme;
+        final switchWidget = CupertinoSwitch(
+          value: isLight,
+          onChanged: (_) => themeProvider.toggleTheme(),
+        );
+        final trailing = Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              isLight ? lightLabel : darkLabel,
+              style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(width: 8),
+            switchWidget,
+          ],
+        );
+
+        if (Adaptive.isCupertino) {
+          return CupertinoListTile(
+            padding: const EdgeInsets.fromLTRB(16, 7, 12, 7),
+            leading: _settingsLeading(context, Icons.contrast_outlined),
+            title: Text(title, style: _settingsTitleStyle(context)),
+            trailing: trailing,
+            onTap: () => themeProvider.toggleTheme(),
+          );
+        }
+
+        return ListTile(
+          dense: true,
+          visualDensity: VisualDensity.compact,
+          contentPadding: const EdgeInsets.fromLTRB(16, 3, 12, 3),
+          minVerticalPadding: 7,
+          leading: _settingsLeading(context, Icons.contrast_outlined),
+          title: Text(title, style: _settingsTitleStyle(context)),
+          trailing: trailing,
+          onTap: () => themeProvider.toggleTheme(),
+        );
+      },
+    );
+  }
+}
+
+Widget _settingsLeading(BuildContext context, IconData icon) {
+  final scheme = Theme.of(context).colorScheme;
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: ColoredBox(
+      color: scheme.primaryContainer,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
+      ),
+    ),
+  );
+}
+
+TextStyle _settingsTitleStyle(BuildContext context) {
+  return TextStyle(
+    fontWeight: FontWeight.w700,
+    color: Theme.of(context).colorScheme.onSurface,
+  );
 }
