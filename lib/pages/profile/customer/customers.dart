@@ -214,30 +214,35 @@ class _CustomersState extends State<Customers> {
                       ? (loc?.noCustomersAddedYet ?? 'No customers added yet')
                       : (loc?.noCustomersFound ?? 'No customers found'),
                 )
-              : ListView.builder(
+              : ListView(
                   controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(0, 4, 8, 16),
-                  itemCount: visibleCount + (_isLoadingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index >= visibleCount) {
-                      return Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+                  children: [
+                    Adaptive.fullWidthGroup(
+                      context: context,
+                      children: [
+                        for (final customer in _filteredCustomers.take(
+                          visibleCount,
+                        ))
+                          _CustomerTile(
+                            customer: customer,
+                            noVehicleLabel: loc?.noVehicle ?? 'No vehicle',
+                            onOpen: () => _openHistory(customer),
+                            onHistory: () => _openHistory(customer),
+                            onEdit: () => _showForm(customer: customer),
+                            onDelete: () => _confirmDelete(customer),
+                            historyLabel: loc?.history ?? 'History',
+                            editLabel: loc?.edit ?? 'Edit',
+                            deleteLabel: loc?.delete ?? 'Delete',
+                          ),
+                      ],
+                    ),
+                    if (_isLoadingMore)
+                      Padding(
                         padding: const EdgeInsets.all(16),
                         child: Center(child: Adaptive.progress()),
-                      );
-                    }
-                    final customer = _filteredCustomers[index];
-                    return _CustomerTile(
-                      customer: customer,
-                      noVehicleLabel: loc?.noVehicle ?? 'No vehicle',
-                      onOpen: () => _openHistory(customer),
-                      onHistory: () => _openHistory(customer),
-                      onEdit: () => _showForm(customer: customer),
-                      onDelete: () => _confirmDelete(customer),
-                      historyLabel: loc?.history ?? 'History',
-                      editLabel: loc?.edit ?? 'Edit',
-                      deleteLabel: loc?.delete ?? 'Delete',
-                    );
-                  },
+                      ),
+                  ],
                 ),
         ),
       ],

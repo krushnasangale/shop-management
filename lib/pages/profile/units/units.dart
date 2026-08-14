@@ -187,19 +187,23 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
                             'No units yet. Add one to get started!')
                       : '${loc?.noUnitsFound ?? 'No units found for'} "$_searchQuery"',
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(0, 4, 8, 16),
-                  itemCount: _filteredUnits.length,
-                  itemBuilder: (context, index) {
-                    final unit = _filteredUnits[index];
-                    return _UnitTile(
-                      unit: unit,
-                      onEdit: () => _showEditUnit(unit),
-                      onDelete: () => _confirmDelete(unit),
-                      editLabel: loc?.edit ?? 'Edit',
-                      deleteLabel: loc?.delete ?? 'Delete',
-                    );
-                  },
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+                  children: [
+                    Adaptive.fullWidthGroup(
+                      context: context,
+                      children: [
+                        for (final unit in _filteredUnits)
+                          _UnitTile(
+                            unit: unit,
+                            onEdit: () => _showEditUnit(unit),
+                            onDelete: () => _confirmDelete(unit),
+                            editLabel: loc?.edit ?? 'Edit',
+                            deleteLabel: loc?.delete ?? 'Delete',
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
         ),
       ],
@@ -362,7 +366,7 @@ class _UnitTile extends StatelessWidget {
 
     if (Adaptive.isCupertino) {
       return CupertinoListTile(
-        padding: const EdgeInsets.fromLTRB(16, 5, 12, 5),
+        padding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
         leading: avatar,
         title: Text(
           unit.name,
@@ -382,8 +386,8 @@ class _UnitTile extends StatelessWidget {
     return ListTile(
       dense: true,
       visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.fromLTRB(16, 1, 12, 1),
-      minVerticalPadding: 3,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
+      minVerticalPadding: 4,
       leading: avatar,
       title: Text(
         unit.name,

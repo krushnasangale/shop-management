@@ -119,4 +119,32 @@ abstract final class Adaptive {
       ),
     );
   }
+
+  static Widget fullWidthGroup({
+    required BuildContext context,
+    required List<Widget> children,
+  }) {
+    if (isCupertino) {
+      return CupertinoListSection(margin: EdgeInsets.zero, children: children);
+    }
+
+    final isLight = Theme.of(context).brightness == Brightness.light;
+    return Material(
+      color: isLight ? Colors.white : const Color(0xFF171C22),
+      child: Column(
+        children: [
+          for (var i = 0; i < children.length; i++) ...[
+            Padding(
+              padding: EdgeInsets.only(
+                top: i == 0 ? 8 : 0,
+                bottom: i == children.length - 1 ? 8 : 0,
+              ),
+              child: children[i],
+            ),
+            if (i != children.length - 1) const Divider(height: 1, indent: 64),
+          ],
+        ],
+      ),
+    );
+  }
 }

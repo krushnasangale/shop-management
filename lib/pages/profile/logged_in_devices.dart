@@ -208,11 +208,15 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
         }
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
           children: [
             if (current.isNotEmpty) ...[
-              _sectionLabel('This device'),
-              _DevicesGroup(
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _sectionLabel('This device'),
+              ),
+              Adaptive.fullWidthGroup(
+                context: context,
                 children: [
                   for (final device in current)
                     _DeviceTile(
@@ -222,12 +226,19 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                     ),
                 ],
               ),
-              _sectionFooter('This is the device you are using now.'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _sectionFooter('This is the device you are using now.'),
+              ),
               const SizedBox(height: 20),
             ],
             if (others.isNotEmpty) ...[
-              _sectionLabel('Other devices'),
-              _DevicesGroup(
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _sectionLabel('Other devices'),
+              ),
+              Adaptive.fullWidthGroup(
+                context: context,
                 children: [
                   for (final device in others)
                     _DeviceTile(
@@ -244,8 +255,11 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                     ),
                 ],
               ),
-              _sectionFooter(
-                'Removing a device will sign it out of this account.',
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _sectionFooter(
+                  'Removing a device will sign it out of this account.',
+                ),
               ),
             ],
           ],
@@ -288,40 +302,6 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
           height: 1.35,
           color: scheme.onSurfaceVariant,
         ),
-      ),
-    );
-  }
-}
-
-class _DevicesGroup extends StatelessWidget {
-  const _DevicesGroup({required this.children});
-
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    if (Adaptive.isCupertino) {
-      return CupertinoListSection.insetGrouped(
-        margin: EdgeInsets.zero,
-        children: children,
-      );
-    }
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            Padding(
-              padding: EdgeInsets.only(
-                top: i == 0 ? 8 : 0,
-                bottom: i == children.length - 1 ? 8 : 0,
-              ),
-              child: children[i],
-            ),
-            if (i != children.length - 1) const Divider(height: 1, indent: 64),
-          ],
-        ],
       ),
     );
   }

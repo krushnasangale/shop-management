@@ -212,22 +212,26 @@ class _SuppliersState extends State<Suppliers> {
                             'No suppliers yet. Add one to get started!')
                       : '${loc?.noSuppliersFound ?? 'No suppliers found for'} "$_searchQuery"',
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(0, 4, 8, 16),
-                  itemCount: _filteredSuppliers.length,
-                  itemBuilder: (context, index) {
-                    final supplier = _filteredSuppliers[index];
-                    return _SupplierTile(
-                      supplier: supplier,
-                      onOpen: () => _showSupplierHistory(supplier),
-                      onHistory: () => _showSupplierHistory(supplier),
-                      onEdit: () => _showEditSupplier(supplier),
-                      onDelete: () => _confirmDelete(supplier),
-                      historyLabel: loc?.history ?? 'History',
-                      editLabel: loc?.edit ?? 'Edit',
-                      deleteLabel: loc?.delete ?? 'Delete',
-                    );
-                  },
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+                  children: [
+                    Adaptive.fullWidthGroup(
+                      context: context,
+                      children: [
+                        for (final supplier in _filteredSuppliers)
+                          _SupplierTile(
+                            supplier: supplier,
+                            onOpen: () => _showSupplierHistory(supplier),
+                            onHistory: () => _showSupplierHistory(supplier),
+                            onEdit: () => _showEditSupplier(supplier),
+                            onDelete: () => _confirmDelete(supplier),
+                            historyLabel: loc?.history ?? 'History',
+                            editLabel: loc?.edit ?? 'Edit',
+                            deleteLabel: loc?.delete ?? 'Delete',
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
         ),
       ],

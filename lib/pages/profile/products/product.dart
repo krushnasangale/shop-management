@@ -236,26 +236,31 @@ class _ProductNameState extends State<ProductName> {
                       ? 'No products yet. Add one to get started!'
                       : 'No products found for "$_searchQuery"',
                 )
-              : ListView.builder(
+              : ListView(
                   controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(0, 4, 8, 16),
-                  itemCount: _currentlyLoadedItems + (_isLoadingMore ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index >= _currentlyLoadedItems) {
-                      return Padding(
+                  padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+                  children: [
+                    Adaptive.fullWidthGroup(
+                      context: context,
+                      children: [
+                        for (final product in _filteredProducts.take(
+                          _currentlyLoadedItems,
+                        ))
+                          _ProductTile(
+                            product: product,
+                            onEdit: () => _showProductForm(product: product),
+                            onDelete: () => _confirmDelete(product),
+                            editLabel: loc?.edit ?? 'Edit',
+                            deleteLabel: loc?.delete ?? 'Delete',
+                          ),
+                      ],
+                    ),
+                    if (_isLoadingMore)
+                      Padding(
                         padding: const EdgeInsets.all(16),
                         child: Center(child: Adaptive.progress()),
-                      );
-                    }
-                    final product = _filteredProducts[index];
-                    return _ProductTile(
-                      product: product,
-                      onEdit: () => _showProductForm(product: product),
-                      onDelete: () => _confirmDelete(product),
-                      editLabel: loc?.edit ?? 'Edit',
-                      deleteLabel: loc?.delete ?? 'Delete',
-                    );
-                  },
+                      ),
+                  ],
                 ),
         ),
       ],
@@ -492,7 +497,7 @@ class _ProductTile extends StatelessWidget {
 
     if (Adaptive.isCupertino) {
       return CupertinoListTile(
-        padding: const EdgeInsets.fromLTRB(16, 5, 12, 5),
+        padding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
         leading: avatar,
         title: Text(
           product.name,
@@ -512,8 +517,8 @@ class _ProductTile extends StatelessWidget {
     return ListTile(
       dense: true,
       visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.fromLTRB(16, 1, 12, 1),
-      minVerticalPadding: 3,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
+      minVerticalPadding: 4,
       leading: avatar,
       title: Text(
         product.name,
