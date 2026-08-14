@@ -533,156 +533,171 @@ class _EditProfileState extends State<EditProfile> {
 
         return Form(
           key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-            children: [
-              _sectionLabel(loc?.basicInformation ?? 'Basic Information'),
-              _InfoGroup(
-                editing: _isEditMode,
-                children: [
-                  _InfoRow(
-                    controller: _shopNameController,
-                    label: loc?.shopName ?? 'Shop Name',
-                    hint: loc?.enterShopName ?? 'Enter your shop name',
-                    icon: Icons.storefront_outlined,
-                    editable: _isEditMode,
-                    validator: (value) {
-                      if (_isEditMode && (value == null || value.isEmpty)) {
-                        return loc?.pleaseEnterShopName ??
-                            'Please enter shop name';
-                      }
-                      return null;
-                    },
-                  ),
-                  _InfoRow(
-                    controller: _ownerNameController,
-                    label: loc?.ownerName ?? 'Owner Name',
-                    hint: loc?.enterOwnerName ?? 'Enter owner name',
-                    icon: Icons.person_outline,
-                    editable: _isEditMode,
-                    validator: (value) {
-                      if (_isEditMode && (value == null || value.isEmpty)) {
-                        return loc?.pleaseEnterOwnerName ??
-                            'Please enter owner name';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _sectionLabel(loc?.contactInformation ?? 'Contact Information'),
-              _InfoGroup(
-                editing: _isEditMode,
-                children: [
-                  _InfoRow(
-                    controller: _shopAddressController,
-                    label: loc?.shopAddress ?? 'Shop Address',
-                    hint:
-                        loc?.enterCompleteShopAddress ??
-                        'Enter complete shop address',
-                    icon: Icons.location_on_outlined,
-                    editable: _isEditMode,
-                    maxLines: 3,
-                    validator: (value) {
-                      if (_isEditMode && (value == null || value.isEmpty)) {
-                        return loc?.pleaseEnterShopAddress ??
-                            'Please enter shop address';
-                      }
-                      return null;
-                    },
-                  ),
-                  _InfoRow(
-                    controller: _shopPhoneController,
-                    label: 'Mobile Number',
-                    hint: 'Enter mobile number',
-                    icon: Icons.phone_outlined,
-                    editable: _isEditMode,
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (_isEditMode) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter mobile number';
-                        }
-                        if (value.length < 10) {
-                          return 'Please enter valid mobile number';
-                        }
-                      }
-                      return null;
-                    },
-                  ),
-                  _InfoRow(
-                    controller: _ownerPhoneController,
-                    label: 'Optional Mobile Number',
-                    hint: 'Enter mobile number (optional)',
-                    icon: Icons.phone_outlined,
-                    editable: _isEditMode,
-                    keyboardType: TextInputType.phone,
-                    validator: (value) {
-                      if (_isEditMode &&
-                          value != null &&
-                          value.isNotEmpty &&
-                          value.length < 10) {
-                        return 'Please enter valid mobile number';
-                      }
-                      return null;
-                    },
-                  ),
-                  _InfoRow(
-                    controller: _shopEmailController,
-                    label: loc?.shopEmail ?? 'Shop Email',
-                    hint: loc?.enterEmailAddress ?? 'Enter email address',
-                    icon: Icons.email_outlined,
-                    editable: _isEditMode,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (_isEditMode &&
-                          value != null &&
-                          value.isNotEmpty &&
-                          !RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
-                        return loc?.pleaseEnterValidEmail ??
-                            'Please enter valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              _sectionLabel(
-                loc?.additionalInformation ?? 'Additional Information',
-              ),
-              _InfoGroup(
-                editing: _isEditMode,
-                children: [
-                  _SignatureRow(
-                    label: loc?.ownerSignature ?? 'Owner Signature',
-                    hasSignature: _hasSignature,
-                    signatureBase64: _ownerSignatureBase64,
-                    isEditMode: _isEditMode,
-                    emptyLabel: loc?.noSignatureAdded ?? 'No signature added',
-                    actionLabel: _hasSignature
-                        ? (loc?.updateSignature ?? 'Update Signature')
-                        : (loc?.addSignature ?? 'Add Signature'),
-                    onEdit: _showSignaturePicker,
-                  ),
-                  _InfoRow(
-                    controller: _subscriptionExpiryController,
-                    label: loc?.subscriptionExpiry ?? 'Subscription Expiry',
-                    hint: loc?.notSet ?? 'Not set',
-                    icon: Icons.calendar_today_outlined,
-                    editable: false,
-                  ),
-                ],
-              ),
-              if (_isEditMode) ...[
-                const SizedBox(height: 28),
-                _SaveButton(
-                  loading: _isSaving,
-                  label: loc?.saveChanges ?? 'Save Changes',
-                  onPressed: _isSaving ? null : _saveShopDetails,
+          child: CustomScrollView(
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    _sectionLabel(loc?.basicInformation ?? 'Basic Information'),
+                    _InfoGroup(
+                      editing: _isEditMode,
+                      children: [
+                        _InfoRow(
+                          controller: _shopNameController,
+                          label: loc?.shopName ?? 'Shop Name',
+                          hint: loc?.enterShopName ?? 'Enter your shop name',
+                          icon: Icons.storefront_outlined,
+                          editable: _isEditMode,
+                          validator: (value) {
+                            if (_isEditMode &&
+                                (value == null || value.isEmpty)) {
+                              return loc?.pleaseEnterShopName ??
+                                  'Please enter shop name';
+                            }
+                            return null;
+                          },
+                        ),
+                        _InfoRow(
+                          controller: _ownerNameController,
+                          label: loc?.ownerName ?? 'Owner Name',
+                          hint: loc?.enterOwnerName ?? 'Enter owner name',
+                          icon: Icons.person_outline,
+                          editable: _isEditMode,
+                          validator: (value) {
+                            if (_isEditMode &&
+                                (value == null || value.isEmpty)) {
+                              return loc?.pleaseEnterOwnerName ??
+                                  'Please enter owner name';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _sectionLabel(
+                      loc?.contactInformation ?? 'Contact Information',
+                    ),
+                    _InfoGroup(
+                      editing: _isEditMode,
+                      children: [
+                        _InfoRow(
+                          controller: _shopAddressController,
+                          label: loc?.shopAddress ?? 'Shop Address',
+                          hint:
+                              loc?.enterCompleteShopAddress ??
+                              'Enter complete shop address',
+                          icon: Icons.location_on_outlined,
+                          editable: _isEditMode,
+                          maxLines: 3,
+                          validator: (value) {
+                            if (_isEditMode &&
+                                (value == null || value.isEmpty)) {
+                              return loc?.pleaseEnterShopAddress ??
+                                  'Please enter shop address';
+                            }
+                            return null;
+                          },
+                        ),
+                        _InfoRow(
+                          controller: _shopPhoneController,
+                          label: 'Mobile Number',
+                          hint: 'Enter mobile number',
+                          icon: Icons.phone_outlined,
+                          editable: _isEditMode,
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (_isEditMode) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter mobile number';
+                              }
+                              if (value.length < 10) {
+                                return 'Please enter valid mobile number';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                        _InfoRow(
+                          controller: _ownerPhoneController,
+                          label: 'Optional Mobile Number',
+                          hint: 'Enter mobile number (optional)',
+                          icon: Icons.phone_outlined,
+                          editable: _isEditMode,
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (_isEditMode &&
+                                value != null &&
+                                value.isNotEmpty &&
+                                value.length < 10) {
+                              return 'Please enter valid mobile number';
+                            }
+                            return null;
+                          },
+                        ),
+                        _InfoRow(
+                          controller: _shopEmailController,
+                          label: loc?.shopEmail ?? 'Shop Email',
+                          hint: loc?.enterEmailAddress ?? 'Enter email address',
+                          icon: Icons.email_outlined,
+                          editable: _isEditMode,
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (_isEditMode &&
+                                value != null &&
+                                value.isNotEmpty &&
+                                !RegExp(
+                                  r'^[^@]+@[^@]+\.[^@]+',
+                                ).hasMatch(value)) {
+                              return loc?.pleaseEnterValidEmail ??
+                                  'Please enter valid email';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _sectionLabel(
+                      loc?.additionalInformation ?? 'Additional Information',
+                    ),
+                    _InfoGroup(
+                      editing: _isEditMode,
+                      children: [
+                        _SignatureRow(
+                          label: loc?.ownerSignature ?? 'Owner Signature',
+                          hasSignature: _hasSignature,
+                          signatureBase64: _ownerSignatureBase64,
+                          isEditMode: _isEditMode,
+                          emptyLabel:
+                              loc?.noSignatureAdded ?? 'No signature added',
+                          actionLabel: _hasSignature
+                              ? (loc?.updateSignature ?? 'Update Signature')
+                              : (loc?.addSignature ?? 'Add Signature'),
+                          onEdit: _showSignaturePicker,
+                        ),
+                        _InfoRow(
+                          controller: _subscriptionExpiryController,
+                          label:
+                              loc?.subscriptionExpiry ?? 'Subscription Expiry',
+                          hint: loc?.notSet ?? 'Not set',
+                          icon: Icons.calendar_today_outlined,
+                          editable: false,
+                        ),
+                      ],
+                    ),
+                  ]),
                 ),
-              ],
+              ),
+              if (_isEditMode)
+                Adaptive.sliverBottomAction(
+                  child: _SaveButton(
+                    loading: _isSaving,
+                    label: loc?.saveChanges ?? 'Save Changes',
+                    onPressed: _isSaving ? null : _saveShopDetails,
+                  ),
+                ),
             ],
           ),
         );

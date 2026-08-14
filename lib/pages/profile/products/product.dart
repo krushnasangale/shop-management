@@ -173,12 +173,13 @@ class _ProductNameState extends State<ProductName> {
                 onPressed: _toggleSearch,
                 child: Icon(
                   _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
+                  size: 28,
                 ),
               ),
               CupertinoButton(
                 padding: const EdgeInsets.only(left: 8),
                 onPressed: () => _showProductForm(),
-                child: const Icon(CupertinoIcons.add),
+                child: const Icon(CupertinoIcons.add, size: 32),
               ),
             ],
           ),
@@ -193,14 +194,16 @@ class _ProductNameState extends State<ProductName> {
         actions: [
           IconButton(
             style: Adaptive.compactIconButton,
-            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            icon: Icon(
+              _showSearchBar ? Icons.close : Icons.search,
+              size: 28,
+            ),
             onPressed: _toggleSearch,
           ),
           Padding(
             padding: const EdgeInsets.only(left: 8, right: 8),
             child: IconButton(
-              style: Adaptive.compactIconButton,
-              icon: const Icon(Icons.add),
+              icon: const Icon(Icons.add_rounded, size: 32),
               tooltip: loc?.addProductName ?? 'Add Product Name',
               onPressed: () => _showProductForm(),
             ),

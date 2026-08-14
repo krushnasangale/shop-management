@@ -256,25 +256,12 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
               ]),
             ),
           ),
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: SafeArea(
-              top: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => _navigateToBillDetails(context),
-                      style: Adaptive.compactFilled,
-                      icon: const Icon(Icons.receipt_long, size: 20),
-                      label: Text(loc?.viewBillDetails ?? 'View Bill Details'),
-                    ),
-                  ],
-                ),
-              ),
+          Adaptive.sliverBottomAction(
+            child: FilledButton.icon(
+              onPressed: () => _navigateToBillDetails(context),
+              style: Adaptive.compactFilled,
+              icon: const Icon(Icons.receipt_long, size: 20),
+              label: Text(loc?.viewBillDetails ?? 'View Bill Details'),
             ),
           ),
         ],

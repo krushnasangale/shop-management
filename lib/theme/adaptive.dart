@@ -70,9 +70,9 @@ abstract final class Adaptive {
   );
 
   static ButtonStyle get compactIconButton => IconButton.styleFrom(
-    minimumSize: const Size(42, 42),
+    minimumSize: const Size(48, 48),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-    iconSize: compactIconSize,
+    iconSize: 32,
   );
 
   static Widget searchField({
@@ -118,6 +118,25 @@ abstract final class Adaptive {
             if (i != children.length - 1) const Divider(height: 1, indent: 64),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Sits at the bottom of the screen when content is short, and after the
+  /// preceding slivers when the page is taller than the viewport.
+  static Widget sliverBottomAction({required Widget child}) {
+    return SliverFillRemaining(
+      hasScrollBody: false,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [SizedBox(width: double.infinity, child: child)],
+          ),
+        ),
       ),
     );
   }

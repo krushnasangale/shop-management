@@ -241,6 +241,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
             style: Adaptive.compactIconButton,
             icon: Icon(
               _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
+              size: 28,
             ),
             tooltip: _showSearchBar
                 ? (loc?.closeSearch ?? 'Close Search')
@@ -590,7 +591,7 @@ class _PaymentTile extends StatelessWidget {
           const SizedBox(width: 4),
           Icon(
             CupertinoIcons.chevron_forward,
-            size: 18,
+            size: 24,
             color: scheme.onSurfaceVariant,
           ),
         ],

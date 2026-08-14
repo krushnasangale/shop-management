@@ -159,13 +159,13 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   }
 
   Widget _buildBody(AppLocalizations? loc) {
-    return Column(
-      children: [
-        Expanded(
-          child: AutofillGroup(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-              children: [
+    return AutofillGroup(
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
                 _sectionLabel(title: loc?.changePassword ?? 'Change Password'),
                 _PasswordGroup(
                   children: [
@@ -227,22 +227,18 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     ),
                   ],
                 ),
-              ],
+              ]),
             ),
           ),
-        ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          Adaptive.sliverBottomAction(
             child: _SaveButton(
               loading: _isSaving,
               label: loc?.changePassword ?? 'Change Password',
               onPressed: _isSaving ? null : _save,
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

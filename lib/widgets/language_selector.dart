@@ -49,12 +49,12 @@ class _LanguageSelectorState extends State<LanguageSelector> {
   Widget _buildBody(LanguageProvider languageProvider, AppLocalizations? loc) {
     final languages = languageProvider.supportedLanguages;
 
-    return Column(
-      children: [
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            children: [
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
               _sectionLabel(loc?.language ?? 'Language'),
               _LanguageGroup(
                 children: [
@@ -71,29 +71,22 @@ class _LanguageSelectorState extends State<LanguageSelector> {
                     ),
                 ],
               ),
-            ],
+            ]),
           ),
         ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: SizedBox(
-              width: double.infinity,
-              child: _isApplying
-                  ? Center(child: Adaptive.progress())
-                  : Adaptive.isCupertino
-                  ? CupertinoButton.filled(
-                      onPressed: _apply,
-                      child: Text(loc?.apply ?? 'Apply'),
-                    )
-                  : FilledButton(
-                      onPressed: _apply,
-                      style: Adaptive.compactFilled,
-                      child: Text(loc?.apply ?? 'Apply'),
-                    ),
-            ),
-          ),
+        Adaptive.sliverBottomAction(
+          child: _isApplying
+              ? Center(child: Adaptive.progress())
+              : Adaptive.isCupertino
+              ? CupertinoButton.filled(
+                  onPressed: _apply,
+                  child: Text(loc?.apply ?? 'Apply'),
+                )
+              : FilledButton(
+                  onPressed: _apply,
+                  style: Adaptive.compactFilled,
+                  child: Text(loc?.apply ?? 'Apply'),
+                ),
         ),
       ],
     );

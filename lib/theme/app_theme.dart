@@ -60,7 +60,7 @@ abstract final class AppTheme {
       actionIconTheme: ActionIconThemeData(
         backButtonIconBuilder: (context) => const Icon(
           CupertinoIcons.chevron_back,
-          size: 22,
+          size: 28,
         ),
       ),
       cardTheme: CardThemeData(

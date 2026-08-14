@@ -1,4 +1,3 @@
-import 'package:flashbill/pages/expenses/add_expense_entry.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
@@ -502,10 +501,7 @@ class _MyHomePageState extends State<MyHomePage> {
             )
           : null,
       body: IndexedStack(index: _selectedIndex, children: _screens),
-      floatingActionButton:
-          (_selectedIndex == 2 ||
-              _selectedIndex == 3 ||
-              (_expensesEnabled && _selectedIndex == 4))
+      floatingActionButton: (_selectedIndex == 2 || _selectedIndex == 3)
           ? FloatingActionButton(
               heroTag: 'fab_$_selectedIndex',
               onPressed: () {
@@ -513,8 +509,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   AppNavigator.push(context, const CreateNewBill());
                 } else if (_selectedIndex == 3) {
                   AppNavigator.push(context, const AddPurchaseEntry());
-                } else if (_expensesEnabled && _selectedIndex == 4) {
-                  AppNavigator.push(context, const AddExpenseEntry());
                 }
               },
               tooltip: localizations?.addItem ?? 'Add Item',

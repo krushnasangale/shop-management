@@ -82,6 +82,7 @@ class _OrderNowPageState extends State<OrderNowPage> {
             style: Adaptive.compactIconButton,
             icon: Icon(
               _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
+              size: 28,
             ),
             tooltip: _showSearchBar
                 ? (loc?.closeSearch ?? 'Close Search')

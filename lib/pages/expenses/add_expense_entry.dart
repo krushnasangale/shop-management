@@ -1,11 +1,13 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 
 class AddExpenseEntry extends StatefulWidget {
-  final Map<String, dynamic>? expense; // Optional expense for editing
+  final Map<String, dynamic>? expense;
 
   const AddExpenseEntry({super.key, this.expense});
 
@@ -17,6 +19,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _dateController;
   late TextEditingController _amountController;
+  late TextEditingController _categoryController;
   late TextEditingController _descriptionController;
   String _selectedCategory = 'Other';
   String _paymentMethod = 'cash';
@@ -31,16 +34,14 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
     'Other',
   ];
 
-  final List<String> _paymentMethods = ['cash', 'online', 'card'];
-
   @override
   void initState() {
     super.initState();
     _dateController = TextEditingController();
     _amountController = TextEditingController();
+    _categoryController = TextEditingController();
     _descriptionController = TextEditingController();
 
-    // Pre-populate fields if editing
     if (widget.expense != null) {
       final expense = widget.expense!;
       _dateController.text = expense['date'] ?? '';
@@ -49,23 +50,31 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
       _selectedCategory = expense['category'] ?? 'Other';
       _paymentMethod = expense['paymentMethod'] ?? 'cash';
     } else {
-      // Default values for new expense
       _dateController.text = DateFormat('dd/MM/yyyy').format(DateTime.now());
     }
+    _categoryController.text = _selectedCategory;
   }
 
   @override
   void dispose() {
     _dateController.dispose();
     _amountController.dispose();
+    _categoryController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    DateTime initialDate = DateTime.now();
+    try {
+      if (_dateController.text.isNotEmpty) {
+        initialDate = DateFormat('dd/MM/yyyy').parse(_dateController.text);
+      }
+    } catch (_) {}
+
+    final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: initialDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
@@ -76,12 +85,32 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
     }
   }
 
+  Future<void> _selectCategory() async {
+    final loc = AppLocalizations.of(context);
+    final categories = [
+      ..._categories,
+      if (!_categories.contains(_selectedCategory)) _selectedCategory,
+    ];
+    final selected = await Adaptive.showSheet<String>(
+      context: context,
+      builder: (context) => _CategoryPickerSheet(
+        title: loc?.category ?? 'Category',
+        cancelLabel: loc?.cancel ?? 'Cancel',
+        categories: categories,
+        selected: _selectedCategory,
+      ),
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _selectedCategory = selected;
+      _categoryController.text = selected;
+    });
+  }
+
   Future<void> _saveExpense() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final user = FirebaseAuth.instance.currentUser;
@@ -90,21 +119,19 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
       }
 
       final amount = double.parse(_amountController.text);
-      final date = _dateController.text;
+      final parsedDate = DateFormat('dd/MM/yyyy').parse(_dateController.text);
+      final date = DateFormat('dd/MM/yyyy').format(parsedDate);
+      final description = _descriptionController.text.trim();
 
-      // Parse date
-      final parsedDate = DateFormat('dd/MM/yyyy').parse(date);
-
-      final expenseData = {
-        'date': DateFormat('dd/MM/yyyy').format(parsedDate),
+      final expenseData = <String, dynamic>{
+        'date': date,
         'amount': amount,
         'category': _selectedCategory,
-        'description': _descriptionController.text.trim(),
+        'description': description,
         'paymentMethod': _paymentMethod,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      // If editing, don't include createdAt
       if (widget.expense == null) {
         expenseData['createdAt'] = FieldValue.serverTimestamp();
       }
@@ -115,465 +142,358 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
           .collection('entries');
 
       if (widget.expense != null) {
-        // Update existing expense
         await expensesRef.doc(widget.expense!['id']).update(expenseData);
       } else {
-        // Add new expense
         await expensesRef.add(expenseData);
       }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              widget.expense != null
-                  ? 'Expense updated successfully'
-                  : (AppLocalizations.of(context)?.expenseAddedSuccessfully ??
-                        'Expense added successfully'),
-            ),
-            backgroundColor: Colors.green,
+      if (!mounted) return;
+      final loc = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.expense != null
+                ? 'Expense updated successfully'
+                : (loc?.expenseAddedSuccessfully ??
+                      'Expense added successfully'),
           ),
-        );
-        Navigator.pop(context);
-      }
+        ),
+      );
+      Navigator.pop(context, {
+        if (widget.expense != null) 'id': widget.expense!['id'],
+        'date': date,
+        'amount': amount,
+        'category': _selectedCategory,
+        'description': description,
+        'paymentMethod': _paymentMethod,
+      });
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
+    final loc = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final isEditing = widget.expense != null;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.expense != null
-              ? 'Edit Expense'
-              : (localizations?.addExpense ?? 'Add Expense'),
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
-            letterSpacing: -0.5,
-            color: Colors.white,
-          ),
+          isEditing ? 'Edit Expense' : (loc?.addExpense ?? 'Add Expense'),
         ),
-        elevation: 0,
       ),
-      body: Container(
-        color: Colors.grey.shade50,
-        child: Form(
-          key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Form Card
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+      body: Form(
+        key: _formKey,
+        child: CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  TextFormField(
+                    controller: _dateController,
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
+                    decoration: Adaptive.compactField(
+                      label: loc?.date ?? 'Date',
+                      icon: Icons.calendar_today_outlined,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return loc?.pleaseSelectDate ?? 'Please select date';
+                      }
+                      return null;
+                    },
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.add_circle,
-                              color: Colors.blue,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            localizations?.addExpense ?? 'Add Expense',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Date Field
-                      TextFormField(
-                        controller: _dateController,
-                        decoration: InputDecoration(
-                          labelText: localizations?.date ?? 'Date',
-                          labelStyle: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.calendar_today,
-                            color: Colors.blue,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Colors.blue,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations?.pleaseSelectDate ??
-                                'Please select date';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Amount Field
-                      TextFormField(
-                        controller: _amountController,
-                        decoration: InputDecoration(
-                          labelText: localizations?.amount ?? 'Amount',
-                          labelStyle: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          prefixIcon: Container(
-                            margin: const EdgeInsets.all(12),
-                            child: const Text(
-                              '₹',
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Colors.blue,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations?.pleaseEnterAmount ??
-                                'Please enter amount';
-                          }
-                          final amount = double.tryParse(value);
-                          if (amount == null || amount <= 0) {
-                            return localizations?.pleaseEnterValidAmount ??
-                                'Please enter valid amount';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Category Dropdown
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedCategory,
-                        decoration: InputDecoration(
-                          labelText: localizations?.category ?? 'Category',
-                          labelStyle: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.category,
-                            color: Colors.purple,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Colors.blue,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black87,
-                        ),
-                        dropdownColor: Colors.white,
-                        items: _categories.map((category) {
-                          return DropdownMenuItem(
-                            value: category,
-                            child: Text(
-                              category,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedCategory = value!;
-                          });
-                        },
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return localizations?.pleaseSelectCategory ??
-                                'Please select category';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Description Field
-                      TextFormField(
-                        controller: _descriptionController,
-                        decoration: InputDecoration(
-                          labelText:
-                              localizations?.description ?? 'Description',
-                          labelStyle: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.description,
-                            color: Colors.orange,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Colors.blue,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 3,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return localizations?.pleaseEnterDescription ??
-                                'Please enter description';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Payment Method Section
-                      Text(
-                        localizations?.paymentMethod ?? 'Payment Method',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: _paymentMethods.map((method) {
-                            final isSelected = _paymentMethod == method;
-                            return GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _paymentMethod = method;
-                                });
-                              },
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Colors.blue
-                                      : Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? Colors.blue
-                                        : Colors.grey.shade300,
-                                    width: 1,
-                                  ),
-                                  boxShadow: isSelected
-                                      ? [
-                                          BoxShadow(
-                                            color: Colors.blue.withValues(
-                                              alpha: 0.2,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ]
-                                      : null,
-                                ),
-                                child: Text(
-                                  method.toUpperCase(),
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Save Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _saveExpense,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            elevation: 2,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            shadowColor: Colors.blue.withValues(alpha: 0.3),
-                          ),
-                          child: _isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : Text(
-                                  localizations?.save ?? 'Save',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: Adaptive.compactField(
+                      label: loc?.amount ?? 'Amount',
+                      hint: '0',
+                      icon: Icons.currency_rupee,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return loc?.pleaseEnterAmount ?? 'Please enter amount';
+                      }
+                      final amount = double.tryParse(value);
+                      if (amount == null || amount <= 0) {
+                        return loc?.pleaseEnterValidAmount ??
+                            'Please enter valid amount';
+                      }
+                      return null;
+                    },
                   ),
-                ),
-              ],
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _categoryController,
+                    readOnly: true,
+                    onTap: _selectCategory,
+                    decoration:
+                        Adaptive.compactField(
+                          label: loc?.category ?? 'Category',
+                          icon: Icons.category_outlined,
+                        ).copyWith(
+                          suffixIcon: Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            size: Adaptive.compactIconSize,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                          suffixIconConstraints:
+                              Adaptive.compactPrefixConstraints,
+                        ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return loc?.pleaseSelectCategory ??
+                            'Please select category';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _descriptionController,
+                    maxLines: 3,
+                    decoration: Adaptive.compactField(
+                      label: loc?.description ?? 'Description',
+                      icon: Icons.notes_outlined,
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return loc?.pleaseEnterDescription ??
+                            'Please enter description';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    (loc?.paymentMethod ?? 'Payment Method').toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<String>(
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(
+                          value: 'cash',
+                          label: Text(loc?.cash ?? 'Cash'),
+                        ),
+                        ButtonSegment(
+                          value: 'online',
+                          label: Text(loc?.online ?? 'Online'),
+                        ),
+                        const ButtonSegment(value: 'card', label: Text('Card')),
+                      ],
+                      selected: {_paymentMethod},
+                      onSelectionChanged: (value) {
+                        setState(() => _paymentMethod = value.first);
+                      },
+                    ),
+                  ),
+                ]),
+              ),
             ),
-          ),
+            Adaptive.sliverBottomAction(
+              child: FilledButton(
+                style: Adaptive.compactFilled,
+                onPressed: _isLoading ? null : _saveExpense,
+                child: _isLoading
+                    ? SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: Adaptive.progress(color: scheme.onPrimary),
+                      )
+                    : Text(loc?.save ?? 'Save'),
+              ),
+            ),
+          ],
         ),
       ),
     );
+  }
+}
+
+class _CategoryPickerSheet extends StatelessWidget {
+  const _CategoryPickerSheet({
+    required this.title,
+    required this.cancelLabel,
+    required this.categories,
+    required this.selected,
+  });
+
+  final String title;
+  final String cancelLabel;
+  final List<String> categories;
+  final String selected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (Adaptive.isCupertino) {
+      return CupertinoActionSheet(
+        title: Text(title),
+        actions: [
+          for (final category in categories)
+            CupertinoActionSheetAction(
+              isDefaultAction: category == selected,
+              onPressed: () => Navigator.pop(context, category),
+              child: Text(category),
+            ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () => Navigator.pop(context),
+          child: Text(cancelLabel),
+        ),
+      );
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Choose a category',
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < categories.length; i++) ...[
+                      _CategoryTile(
+                        category: categories[i],
+                        selected: categories[i] == selected,
+                        scheme: scheme,
+                        onTap: () => Navigator.pop(context, categories[i]),
+                      ),
+                      if (i != categories.length - 1)
+                        const Divider(height: 1, indent: 64),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                style: Adaptive.compactOutlined.copyWith(
+                  minimumSize: const WidgetStatePropertyAll(
+                    Size.fromHeight(46),
+                  ),
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: Text(cancelLabel),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryTile extends StatelessWidget {
+  const _CategoryTile({
+    required this.category,
+    required this.selected,
+    required this.scheme,
+    required this.onTap,
+  });
+
+  final String category;
+  final bool selected;
+  final ColorScheme scheme;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      selected: selected,
+      selectedTileColor: scheme.primaryContainer.withValues(alpha: 0.45),
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 4, 12, 4),
+      minVerticalPadding: 4,
+      leading: _squareIcon(_categoryIcon(category), scheme),
+      title: Text(
+        category,
+        style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
+      ),
+      trailing: Icon(
+        Icons.check,
+        size: 22,
+        color: selected ? scheme.primary : Colors.transparent,
+      ),
+      onTap: onTap,
+    );
+  }
+}
+
+Widget _squareIcon(IconData icon, ColorScheme scheme) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: ColoredBox(
+      color: scheme.primaryContainer,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
+      ),
+    ),
+  );
+}
+
+IconData _categoryIcon(String category) {
+  switch (category) {
+    case 'Office':
+      return Icons.business_outlined;
+    case 'Travel':
+      return Icons.directions_car_outlined;
+    case 'Utilities':
+      return Icons.electrical_services_outlined;
+    case 'Food':
+      return Icons.restaurant_outlined;
+    case 'Hospital':
+      return Icons.local_hospital_outlined;
+    default:
+      return Icons.category_outlined;
   }
 }

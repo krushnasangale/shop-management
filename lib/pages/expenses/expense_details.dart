@@ -1,9 +1,13 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:intl/intl.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/expenses/add_expense_entry.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
+import 'package:intl/intl.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ExpenseDetails extends StatefulWidget {
   final Map<String, dynamic> expense;
@@ -24,285 +28,235 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
   }
 
   Future<void> _deleteExpense() async {
-    final localizations = AppLocalizations.of(context);
+    final loc = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(localizations?.deleteExpense ?? 'Delete Expense'),
+        title: Text(loc?.deleteExpense ?? 'Delete Expense'),
         content: Text(
-          localizations?.deleteExpenseConfirmation ??
+          loc?.deleteExpenseConfirmation ??
               'Are you sure you want to delete this expense?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(localizations?.cancel ?? 'Cancel'),
+            child: Text(loc?.cancel ?? 'Cancel'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text(localizations?.delete ?? 'Delete'),
+            style: TextButton.styleFrom(foregroundColor: scheme.error),
+            child: Text(loc?.delete ?? 'Delete'),
           ),
         ],
       ),
     );
 
-    if (confirmed == true) {
-      try {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null) {
-          await FirebaseFirestore.instance
-              .collection('expenses')
-              .doc(user.uid)
-              .collection('entries')
-              .doc(_expense['id'])
-              .delete();
+    if (confirmed != true) return;
 
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  localizations?.expenseDeleted ?? 'Expense deleted',
-                ),
-                backgroundColor: Colors.green,
-              ),
-            );
-            Navigator.pop(context);
-          }
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-          );
-        }
-      }
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      await FirebaseFirestore.instance
+          .collection('expenses')
+          .doc(user.uid)
+          .collection('entries')
+          .doc(_expense['id'])
+          .delete();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(loc?.expenseDeleted ?? 'Expense deleted')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
-  void _editExpense() {
-    Navigator.push(
+  Future<void> _editExpense() async {
+    final updated = await AppNavigator.push<Map<String, dynamic>>(
       context,
-      MaterialPageRoute(
-        builder: (context) => AddExpenseEntry(expense: _expense),
-      ),
-    ).then((_) {
-      // Refresh data if needed
-      setState(() {});
-    });
+      AddExpenseEntry(expense: _expense),
+    );
+    if (updated != null && mounted) {
+      setState(() => _expense = {..._expense, ...updated});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
-    final date = _expense['date'] ?? 'N/A';
-    final amount = _expense['amount'] ?? 0.0;
-    final category = _expense['category'] ?? 'Other';
-    final description = _expense['description'] ?? '';
-    final paymentMethod = _expense['paymentMethod'] ?? 'cash';
+    final loc = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    final date = (_expense['date'] ?? 'N/A').toString();
+    final amount = (_expense['amount'] ?? 0) as num;
+    final category = (_expense['category'] ?? 'Other').toString();
+    final description = (_expense['description'] ?? '').toString();
+    final paymentMethod = (_expense['paymentMethod'] ?? 'cash').toString();
+    final createdAt = _formatTimestamp(_expense['createdAt']);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          localizations?.expenseDetails ?? 'Expense Details',
-          style: const TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: 20,
-            letterSpacing: -0.5,
-            color: Colors.white,
-          ),
-        ),
-        elevation: 0,
+        title: Text(loc?.expenseDetails ?? 'Expense Details'),
         actions: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            child: IconButton(
-              icon: const Icon(Icons.edit, color: Colors.white),
-              onPressed: _editExpense,
-              tooltip: localizations?.edit ?? 'Edit',
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+          AppContextMenu.iconButton(
+            style: Adaptive.compactIconButton,
+            width: 168,
+            items: () => [
+              AppContextMenuItem(
+                label: loc?.edit ?? 'Edit',
+                icon: CupertinoIcons.pencil,
+                onPressed: _editExpense,
               ),
+              AppContextMenuItem(
+                label: loc?.delete ?? 'Delete',
+                icon: CupertinoIcons.delete,
+                onPressed: _deleteExpense,
+                destructive: true,
+              ),
+            ],
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                _SummaryTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: loc?.amount ?? 'Amount',
+                  value: '₹${_formatAmount(amount)}',
+                  valueColor: scheme.error,
+                ),
+                const SizedBox(width: 8),
+                _SummaryTile(
+                  icon: Icons.category_outlined,
+                  label: loc?.category ?? 'Category',
+                  value: category,
+                ),
+                const SizedBox(width: 8),
+                _SummaryTile(
+                  icon: _paymentIcon(paymentMethod),
+                  label: loc?.paymentMethod ?? 'Payment',
+                  value: _paymentLabel(paymentMethod, loc),
+                ),
+              ],
             ),
           ),
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-            child: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.white),
-              onPressed: _deleteExpense,
-              tooltip: localizations?.delete ?? 'Delete',
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.2),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _sectionLabel(context, loc?.details ?? 'Details'),
+          ),
+          Adaptive.fullWidthGroup(
+            context: context,
+            children: [
+              _infoTile(
+                icon: Icons.calendar_today_outlined,
+                label: loc?.date ?? 'Date',
+                value: date,
               ),
-            ),
+              if (description.isNotEmpty)
+                _infoTile(
+                  icon: Icons.notes_outlined,
+                  label: loc?.description ?? 'Description',
+                  value: description,
+                ),
+              if (createdAt != null)
+                _infoTile(
+                  icon: Icons.schedule_outlined,
+                  label: loc?.createdAt ?? 'Created At',
+                  value: createdAt,
+                ),
+            ],
           ),
         ],
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.grey.shade50, Colors.white],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SingleChildScrollView(
+    );
+  }
+
+  Widget _infoTile({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+      minVerticalPadding: 4,
+      leading: _squareIcon(icon, scheme),
+      title: Text(
+        value,
+        style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
+      ),
+      subtitle: Text(label),
+    );
+  }
+
+  String? _formatTimestamp(dynamic timestamp) {
+    if (timestamp is Timestamp) {
+      return DateFormat('dd/MM/yyyy HH:mm').format(timestamp.toDate());
+    }
+    return null;
+  }
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Amount Card
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.red, Colors.redAccent],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.red.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      '₹${amount == amount.toInt() ? amount.toInt() : amount.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: -1,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        category.toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                    ),
-                  ],
+              _squareIcon(icon, scheme),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                  color: scheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // Details Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Section Header
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.info_outline,
-                            color: Colors.blue,
-                            size: 20,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          localizations?.details ?? 'Details',
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.black87,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Detail Rows
-                    _buildModernDetailRow(
-                      icon: Icons.calendar_today,
-                      iconColor: Colors.blue,
-                      label: localizations?.date ?? 'Date',
-                      value: date,
-                    ),
-                    const SizedBox(height: 8),
-
-                    _buildModernDetailRow(
-                      icon: Icons.category,
-                      iconColor: Colors.purple,
-                      label: localizations?.category ?? 'Category',
-                      value: category,
-                    ),
-                    const SizedBox(height: 8),
-
-                    _buildModernDetailRow(
-                      icon: Icons.payment,
-                      iconColor: Colors.green,
-                      label: localizations?.paymentMethod ?? 'Payment Method',
-                      value: paymentMethod.toUpperCase(),
-                    ),
-                    const SizedBox(height: 8),
-
-                    if (description.isNotEmpty) ...[
-                      _buildModernDetailRow(
-                        icon: Icons.description,
-                        iconColor: Colors.orange,
-                        label: localizations?.description ?? 'Description',
-                        value: description,
-                      ),
-                      const SizedBox(height: 8),
-                    ],
-
-                    // Created At
-                    if (_expense['createdAt'] != null) ...[
-                      _buildModernDetailRow(
-                        icon: Icons.access_time,
-                        iconColor: Colors.teal,
-                        label: localizations?.createdAt ?? 'Created At',
-                        value: _formatTimestamp(_expense['createdAt']),
-                      ),
-                    ],
-                  ],
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor ?? scheme.onSurface,
                 ),
               ),
             ],
@@ -311,65 +265,61 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
       ),
     );
   }
+}
 
-  Widget _buildModernDetailRow({
-    required IconData icon,
-    required Color iconColor,
-    required String label,
-    required String value,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+Widget _sectionLabel(BuildContext context, String title) {
+  final scheme = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 8),
+    child: Text(
+      title.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+        color: scheme.onSurfaceVariant,
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade600,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    ),
+  );
+}
+
+Widget _squareIcon(IconData icon, ColorScheme scheme) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: ColoredBox(
+      color: scheme.primaryContainer,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
       ),
-    );
+    ),
+  );
+}
+
+String _formatAmount(num amount) {
+  if (amount == amount.roundToDouble()) return amount.toInt().toString();
+  return amount.toStringAsFixed(2);
+}
+
+IconData _paymentIcon(String method) {
+  switch (method.toLowerCase()) {
+    case 'online':
+      return Icons.qr_code_outlined;
+    case 'card':
+      return Icons.credit_card_outlined;
+    default:
+      return Icons.payments_outlined;
   }
+}
 
-  String _formatTimestamp(dynamic timestamp) {
-    if (timestamp is Timestamp) {
-      return DateFormat('dd/MM/yyyy HH:mm').format(timestamp.toDate());
-    }
-    return 'N/A';
+String _paymentLabel(String method, AppLocalizations? loc) {
+  switch (method.toLowerCase()) {
+    case 'online':
+      return loc?.online ?? 'Online';
+    case 'card':
+      return 'Card';
+    default:
+      return loc?.cash ?? 'Cash';
   }
 }
