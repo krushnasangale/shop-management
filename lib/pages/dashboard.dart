@@ -1190,43 +1190,55 @@ class _DashboardState extends State<Dashboard>
                           // Section 1 Title: Inventory & Payments
                           Padding(
                             padding: const EdgeInsets.only(bottom: 12),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.store_outlined,
-                                  color: isDark
-                                      ? Colors.green[300]
-                                      : Colors.green[700],
-                                  size: 22,
-                                ),
-                                const SizedBox(width: 8),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      loc?.inventoryPayments ??
-                                          'Inventory & Payments',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w700,
+                            child: IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  AspectRatio(
+                                    aspectRatio: 1,
+                                    child: FittedBox(
+                                      fit: BoxFit.contain,
+                                      child: Icon(
+                                        Icons.store_outlined,
                                         color: isDark
-                                            ? Colors.grey[100]
-                                            : Colors.grey[800],
+                                            ? Colors.green[300]
+                                            : Colors.green[700],
                                       ),
                                     ),
-                                    Text(
-                                      loc?.liveStatus ?? 'Live status',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w500,
-                                        color: isDark
-                                            ? Colors.grey[400]
-                                            : Colors.grey[600],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        loc?.inventoryPayments ??
+                                            'Inventory & Payments',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w700,
+                                          height: 1.2,
+                                          color: isDark
+                                              ? Colors.grey[100]
+                                              : Colors.grey[800],
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                      Text(
+                                        loc?.liveStatus ?? 'Live status',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w500,
+                                          height: 1.2,
+                                          color: isDark
+                                              ? Colors.grey[400]
+                                              : Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
 
