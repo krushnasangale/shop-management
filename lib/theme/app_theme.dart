@@ -59,8 +59,8 @@ abstract final class AppTheme {
       ),
       actionIconTheme: ActionIconThemeData(
         backButtonIconBuilder: (context) => const Icon(
-          Icons.arrow_back_ios_new,
-          size: 20,
+          CupertinoIcons.chevron_back,
+          size: 22,
         ),
       ),
       cardTheme: CardThemeData(

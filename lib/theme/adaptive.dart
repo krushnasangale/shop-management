@@ -80,42 +80,16 @@ abstract final class Adaptive {
     required String hint,
     required String query,
   }) {
-    if (isCupertino) {
-      return Padding(
-        padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-        child: CupertinoSearchTextField(
-          controller: controller,
-          placeholder: hint,
-          padding: compactFieldPadding,
-          itemSize: compactIconSize,
-        ),
-      );
-    }
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 6, 16, 6),
-      child: TextField(
+      child: CupertinoSearchTextField(
         controller: controller,
+        placeholder: hint,
+        padding: compactFieldPadding,
+        itemSize: compactIconSize,
         autofocus: true,
-        decoration: InputDecoration(
-          isDense: true,
-          hintText: hint,
-          contentPadding: compactFieldPadding,
-          prefixIcon: const Icon(Icons.search, size: compactIconSize),
-          prefixIconConstraints: compactPrefixConstraints,
-          suffixIcon: query.isNotEmpty
-              ? IconButton(
-                  icon: const Icon(Icons.clear, size: 18),
-                  visualDensity: VisualDensity.compact,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
-                  onPressed: controller.clear,
-                )
-              : null,
-        ),
+        prefixIcon: const Icon(CupertinoIcons.search),
+        suffixIcon: const Icon(CupertinoIcons.xmark_circle_fill),
       ),
     );
   }

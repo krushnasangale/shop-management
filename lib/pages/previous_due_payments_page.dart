@@ -1,12 +1,15 @@
 import 'dart:async';
-import 'package:flashbill/pages/previous_due_details_page.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/services/bills_data_service.dart';
+
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
-import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/previous_due_details_page.dart';
+import 'package:flashbill/services/bills_data_service.dart';
+import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
+import 'package:flashbill/utils/search_utils.dart';
+import 'package:material_ui/material_ui.dart';
 
 class PreviousDuePaymentsPage extends StatefulWidget {
   const PreviousDuePaymentsPage({super.key});
@@ -23,10 +26,9 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
   double _totalPreviousDueAmount = 0.0;
   double _totalCollectedAmount = 0.0;
   double _totalPendingAmount = 0.0;
-  String _sortBy = 'amount'; // 'amount', 'date', 'name'
-  String _statusFilter = 'all'; // 'all', 'paid', 'partial', 'unpaid'
+  String _sortBy = 'amount';
+  String _statusFilter = 'all';
   final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
   bool _showSearchBar = false;
   late BillsDataService _billsDataService;
   StreamSubscription? _billsDataServiceSubscription;
@@ -60,7 +62,6 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
 
   Future<void> _loadPreviousDuePayments() async {
     try {
-      // Get cached bills from BillsDataService
       final cachedBills = _billsDataService.getCachedBills();
 
       final payments = <Map<String, dynamic>>[];
@@ -97,7 +98,6 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
         }
       }
 
-      // Sort by date (newest first)
       payments.sort(
         (a, b) => (b['billDate'] as String).compareTo(a['billDate'] as String),
       );
@@ -111,6 +111,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
           _totalPendingAmount = totalPending;
           _isLoading = false;
         });
+        _filterPayments();
       }
     } catch (e) {
       appLog('Error loading previous due payments: $e');
@@ -130,7 +131,6 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
           query,
         );
 
-        // Apply status filter
         final status = _getPreviousDueStatus(payment);
         final matchesStatus =
             _statusFilter == 'all' ||
@@ -141,7 +141,6 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
         return matchesSearch && matchesStatus;
       }).toList();
 
-      // Apply sorting
       switch (_sortBy) {
         case 'amount':
           _filteredPayments.sort(
@@ -167,76 +166,56 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
     });
   }
 
-  Widget _buildFilterChip(String label, String filterValue, Color color) {
-    final isSelected = _statusFilter == filterValue;
-    return FilterChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : color,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          fontSize: 12,
-        ),
-      ),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          _statusFilter = selected ? filterValue : 'all';
-          _filterPayments();
-        });
-      },
-      backgroundColor: Colors.grey[100],
-      selectedColor: color,
-      checkmarkColor: Colors.white,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isSelected ? color : Colors.grey[300]!,
-          width: 1,
-        ),
-      ),
-    );
-  }
-
   void _navigateToBillDetails(Map<String, dynamic> payment) async {
     await AppNavigator.push(context, PreviousDueDetailsPage(payment: payment));
-    // Refresh data when returning from details page
     _loadPreviousDuePayments();
+  }
+
+  PopupMenuItem<String> _sortItem({
+    required String value,
+    required IconData icon,
+    required String label,
+  }) {
+    final selected = _sortBy == value;
+    final scheme = Theme.of(context).colorScheme;
+    return PopupMenuItem(
+      value: value,
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: selected ? scheme.primary : null),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
+                color: selected ? scheme.primary : null,
+              ),
+            ),
+          ),
+          if (selected) Icon(Icons.check, size: 18, color: scheme.primary),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          loc?.previousDuePayments ?? 'Previous Due Payments',
-          style: const TextStyle(
-            fontWeight: FontWeight.w700,
-            fontSize: 20,
-            letterSpacing: -0.5,
-          ),
-        ),
-        backgroundColor: Colors.purple[600],
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shadowColor: Colors.purple.withValues(alpha: 0.3),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.purple[600]!, Colors.purple[700]!],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        title: Text(loc?.previousDuePayments ?? 'Previous Due Payments'),
         actions: [
           IconButton(
-            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            style: Adaptive.compactIconButton,
+            icon: Icon(
+              _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
+            ),
+            tooltip: _showSearchBar
+                ? (loc?.closeSearch ?? 'Close Search')
+                : (loc?.search ?? 'Search'),
             onPressed: () {
               setState(() {
                 _showSearchBar = !_showSearchBar;
@@ -246,427 +225,189 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                 }
               });
             },
-            tooltip: _showSearchBar
-                ? (loc?.closeSearch ?? 'Close Search')
-                : (loc?.search ?? 'Search'),
           ),
           PopupMenuButton<String>(
-            onSelected: (value) {
-              setState(() {
-                _sortBy = value;
-                _filterPayments();
-              });
-            },
             icon: const Icon(Icons.sort),
             tooltip: loc?.sort ?? 'Sort',
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            style: Adaptive.compactIconButton,
+            onSelected: (value) {
+              setState(() => _sortBy = value);
+              _filterPayments();
+            },
             itemBuilder: (context) => [
-              PopupMenuItem(
+              _sortItem(
                 value: 'amount',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.currency_rupee,
-                      size: 18,
-                      color: Colors.purple[600],
-                    ),
-                    const SizedBox(width: 8),
-                    Text(loc?.sortByAmount ?? 'Sort by Amount'),
-                  ],
-                ),
+                icon: Icons.currency_rupee,
+                label: loc?.sortByAmount ?? 'Sort by Amount',
               ),
-              PopupMenuItem(
+              _sortItem(
                 value: 'date',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 18,
-                      color: Colors.purple[600],
-                    ),
-                    const SizedBox(width: 8),
-                    Text(loc?.sortByDate ?? 'Sort by Date'),
-                  ],
-                ),
+                icon: Icons.calendar_today,
+                label: loc?.sortByDate ?? 'Sort by Date',
               ),
-              PopupMenuItem(
+              _sortItem(
                 value: 'name',
-                child: Row(
-                  children: [
-                    Icon(Icons.person, size: 18, color: Colors.purple[600]),
-                    const SizedBox(width: 8),
-                    Text(loc?.sortByName ?? 'Sort by Name'),
-                  ],
-                ),
+                icon: Icons.person_outline,
+                label: loc?.sortByName ?? 'Sort by Name',
               ),
             ],
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
-          // Summary Cards
-          Container(
-            padding: const EdgeInsets.all(12),
-            color: isDark ? Colors.grey[900] : Colors.grey[50],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
-                Expanded(
-                  child: _buildSummaryCard(
-                    loc?.total ?? 'Total',
-                    '₹${_formatCurrency(_totalPreviousDueAmount.toInt())}',
-                    Colors.blue,
-                    isDark,
-                  ),
+                _SummaryTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: loc?.total ?? 'Total',
+                  value:
+                      '₹${_formatCurrency(_totalPreviousDueAmount.toInt())}',
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: _buildSummaryCard(
-                    loc?.collected ?? 'Collected',
-                    '₹${_formatCurrency(_totalCollectedAmount.toInt())}',
-                    Colors.green,
-                    isDark,
-                  ),
+                const SizedBox(width: 8),
+                _SummaryTile(
+                  icon: Icons.check_circle_outline,
+                  label: loc?.collected ?? 'Collected',
+                  value: '₹${_formatCurrency(_totalCollectedAmount.toInt())}',
+                  valueColor: scheme.primary,
                 ),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: _buildSummaryCard(
-                    loc?.pending ?? 'Pending',
-                    '₹${_formatCurrency(_totalPendingAmount.toInt())}',
-                    Colors.orange,
-                    isDark,
-                  ),
+                const SizedBox(width: 8),
+                _SummaryTile(
+                  icon: Icons.schedule_outlined,
+                  label: loc?.pending ?? 'Pending',
+                  value: '₹${_formatCurrency(_totalPendingAmount.toInt())}',
+                  valueColor: scheme.error,
                 ),
               ],
             ),
           ),
-
-          // Search Bar
           if (_showSearchBar)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Card(
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  decoration: InputDecoration(
-                    filled: false,
-                    hintText: loc?.searchCustomers ?? 'Search customers...',
-                    hintStyle: TextStyle(
-                      color: isDark ? Colors.grey[400] : Colors.grey[500],
-                      fontSize: 16,
-                    ),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: Colors.purple[600],
-                      size: 20,
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear,
-                              color: Colors.grey[500],
-                              size: 18,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              _filterPayments();
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                  ),
-                  style: TextStyle(
-                    color: isDark ? Colors.white : Colors.black,
-                    fontSize: 16,
-                  ),
-                  onChanged: (_) => _filterPayments(),
-                ),
-              ),
+            Adaptive.searchField(
+              controller: _searchController,
+              query: _searchController.text,
+              hint: loc?.searchCustomers ?? 'Search customers...',
             ),
-
-          // Filter Chips
-          const SizedBox(height: 8),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          Align(
+            alignment: Alignment.centerLeft,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildFilterChip('All', 'all', Colors.blue),
+                  _statusChip(loc?.all ?? 'All', 'all'),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Paid', 'paid', Colors.green),
+                  _statusChip(loc?.paid ?? 'Paid', 'paid'),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Partial', 'partial', Colors.orange),
+                  _statusChip(loc?.partial ?? 'Partial', 'partial'),
                   const SizedBox(width: 8),
-                  _buildFilterChip('Unpaid', 'unpaid', Colors.red),
+                  _statusChip(loc?.unpaid ?? 'Unpaid', 'unpaid'),
                 ],
               ),
             ),
           ),
-
-          // Payments List
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredPayments.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            Icons.account_balance_wallet,
-                            size: 40,
-                            color: Colors.purple[600],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          loc?.noPreviousDuePayments ??
-                              'No previous due payments found',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? Colors.grey[300] : Colors.grey[700],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'All payments are up to date!',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isDark ? Colors.grey[400] : Colors.grey[500],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    itemCount: _filteredPayments.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 6),
-                    itemBuilder: (context, index) {
-                      final payment = _filteredPayments[index];
-                      final status = _getPreviousDueStatus(payment);
-                      final statusColor = _getStatusColor(status);
-
-                      return Container(
-                        margin: const EdgeInsets.symmetric(vertical: 2),
-                        child: Card(
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: isDark
-                                    ? [Colors.grey[850]!, Colors.grey[800]!]
-                                    : [Colors.white, Colors.grey[50]!],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: statusColor.withValues(alpha: 0.2),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: statusColor.withValues(alpha: 0.08),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: InkWell(
-                              onTap: () => _navigateToBillDetails(payment),
-                              borderRadius: BorderRadius.circular(16),
-                              splashColor: statusColor.withValues(alpha: 0.1),
-                              highlightColor: statusColor.withValues(
-                                alpha: 0.05,
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(12),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            payment['customerName'],
-                                            style: TextStyle(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                              color: isDark
-                                                  ? Colors.grey[100]
-                                                  : Colors.grey[900],
-                                              letterSpacing: -0.5,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                        Icon(
-                                          Icons.arrow_forward_ios,
-                                          size: 14,
-                                          color: Colors.grey[400],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.calendar_today,
-                                              size: 12,
-                                              color: isDark
-                                                  ? Colors.grey[400]
-                                                  : Colors.grey[600],
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              payment['billDate'],
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: isDark
-                                                    ? Colors.grey[300]
-                                                    : Colors.grey[700],
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 6,
-                                            vertical: 2,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: statusColor.withValues(
-                                              alpha: 0.15,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            _getStatusText(status, loc),
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w600,
-                                              color: statusColor,
-                                              letterSpacing: 0.3,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          '₹ ${payment['previousDueAmount']}',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark
-                                                ? Colors.grey[300]
-                                                : Colors.grey[700],
-                                          ),
-                                        ),
-                                        Row(
-                                          children: [
-                                            const SizedBox(width: 8),
-                                            Icon(
-                                              Icons.payment,
-                                              size: 12,
-                                              color: Colors.green[600],
-                                            ),
-                                            const SizedBox(width: 2),
-                                            Text(
-                                              '₹${payment['previousPaidAmount']}',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w500,
-                                                color: Colors.green[600],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        if ((payment['previousDueAmount']
-                                                as double) >
-                                            (payment['previousPaidAmount']
-                                                as double))
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 6,
-                                              vertical: 3,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange.withValues(
-                                                alpha: 0.1,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              border: Border.all(
-                                                color: Colors.orange.withValues(
-                                                  alpha: 0.3,
-                                                ),
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: Text(
-                                              'Pending: ₹${((payment['previousDueAmount'] as double) - (payment['previousPaidAmount'] as double)).toStringAsFixed(0)}',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.orange[600],
-                                              ),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
+          Expanded(child: _buildList(loc, scheme)),
         ],
       ),
     );
   }
 
-  // Determine payment status for previous due
+  Widget _statusChip(String label, String value) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _statusFilter == value,
+      onSelected: (_) => _setFilter(value),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+    );
+  }
+
+  void _setFilter(String value) {
+    setState(() {
+      _statusFilter = _statusFilter == value && value != 'all' ? 'all' : value;
+    });
+    _filterPayments();
+  }
+
+  Widget _buildList(AppLocalizations? loc, ColorScheme scheme) {
+    if (_isLoading) {
+      return Center(child: Adaptive.progress());
+    }
+
+    if (_filteredPayments.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: ColoredBox(
+                  color: scheme.primaryContainer,
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(
+                      Icons.account_balance_wallet_outlined,
+                      size: 20,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                loc?.noPreviousDuePayments ?? 'No previous due payments found',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                loc?.upToDate ?? 'All payments are up to date!',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 32),
+      children: [
+        Adaptive.fullWidthGroup(
+          context: context,
+          children: [
+            for (final payment in _filteredPayments)
+              _PaymentTile(
+                payment: payment,
+                status: _getPreviousDueStatus(payment),
+                statusLabel: _getStatusText(
+                  _getPreviousDueStatus(payment),
+                  loc,
+                ),
+                pendingLabel: loc?.pending ?? 'Pending',
+                collectedLabel: loc?.collected ?? 'Collected',
+                onTap: () => _navigateToBillDetails(payment),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
   String _getPreviousDueStatus(Map<String, dynamic> payment) {
     final previousDueAmount = payment['previousDueAmount'] as double;
     final previousPaidAmount = payment['previousPaidAmount'] as double;
@@ -680,21 +421,6 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
     }
   }
 
-  // Get color for status
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'paid':
-        return Colors.green;
-      case 'partial':
-        return Colors.orange;
-      case 'unpaid':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  // Get status text
   String _getStatusText(String status, AppLocalizations? loc) {
     switch (status) {
       case 'paid':
@@ -704,80 +430,8 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
       case 'unpaid':
         return loc?.unpaid ?? 'Unpaid';
       default:
-        return 'Unknown';
+        return loc?.unknown ?? 'Unknown';
     }
-  }
-
-  Widget _buildSummaryCard(
-    String title,
-    String value,
-    Color color,
-    bool isDark,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color.withValues(alpha: 0.1), color.withValues(alpha: 0.05)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(_getSummaryIcon(title), color: color, size: 16),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: isDark ? Colors.grey[300] : Colors.grey[700],
-              letterSpacing: 0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: color,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData _getSummaryIcon(String title) {
-    final loc = AppLocalizations.of(context);
-    if (title == (loc?.totalDue ?? 'Total Due')) {
-      return Icons.account_balance_wallet;
-    } else if (title == (loc?.collected ?? 'Collected')) {
-      return Icons.check_circle;
-    } else if (title == (loc?.pending ?? 'Pending')) {
-      return Icons.schedule;
-    }
-    return Icons.info;
   }
 
   String _formatCurrency(int amount) {
@@ -790,5 +444,169 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
     } else {
       return amount.toString();
     }
+  }
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: ColoredBox(
+                  color: scheme.primaryContainer,
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(
+                      icon,
+                      size: 20,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor ?? scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentTile extends StatelessWidget {
+  const _PaymentTile({
+    required this.payment,
+    required this.status,
+    required this.statusLabel,
+    required this.pendingLabel,
+    required this.collectedLabel,
+    required this.onTap,
+  });
+
+  final Map<String, dynamic> payment;
+  final String status;
+  final String statusLabel;
+  final String pendingLabel;
+  final String collectedLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final due = payment['previousDueAmount'] as double;
+    final paid = payment['previousPaidAmount'] as double;
+    final pending = due - paid;
+    final statusColor = status == 'paid'
+        ? scheme.primary
+        : status == 'unpaid'
+        ? scheme.error
+        : scheme.onSurfaceVariant;
+
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
+      minVerticalPadding: 4,
+      onTap: onTap,
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ColoredBox(
+          color: scheme.primaryContainer,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: Icon(
+              Icons.person_outline,
+              size: 20,
+              color: scheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+      ),
+      title: Text(
+        payment['customerName'],
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
+      ),
+      subtitle: Text(
+        '${payment['billDate']}  ·  ₹${due.toStringAsFixed(0)}  ·  $collectedLabel ₹${paid.toStringAsFixed(0)}',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                statusLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: statusColor,
+                ),
+              ),
+              if (pending > 0)
+                Text(
+                  '$pendingLabel ₹${pending.toStringAsFixed(0)}',
+                  style: TextStyle(fontSize: 11, color: scheme.error),
+                ),
+            ],
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 18,
+            color: scheme.onSurfaceVariant,
+          ),
+        ],
+      ),
+    );
   }
 }
