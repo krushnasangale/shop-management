@@ -566,7 +566,9 @@ class _ProductTile extends StatelessWidget {
           ],
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.pop(sheetContext),
-            child: const Text('Cancel'),
+            child: Text(
+              AppLocalizations.of(sheetContext)?.cancel ?? 'Cancel',
+            ),
           ),
         );
       },
@@ -643,22 +645,31 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
         context: context,
         builder: (sheetContext) {
           return CupertinoActionSheet(
-            title: const Text('Choose Image Source'),
+            title: Text(
+              AppLocalizations.of(sheetContext)?.chooseImageSource ??
+                  'Choose Image Source',
+            ),
             actions: [
               CupertinoActionSheetAction(
                 onPressed: () =>
                     Navigator.pop(sheetContext, ImageSource.camera),
-                child: const Text('Camera'),
+                child: Text(
+                  AppLocalizations.of(sheetContext)?.camera ?? 'Camera',
+                ),
               ),
               CupertinoActionSheetAction(
                 onPressed: () =>
                     Navigator.pop(sheetContext, ImageSource.gallery),
-                child: const Text('Gallery'),
+                child: Text(
+                  AppLocalizations.of(sheetContext)?.gallery ?? 'Gallery',
+                ),
               ),
             ],
             cancelButton: CupertinoActionSheetAction(
               onPressed: () => Navigator.pop(sheetContext),
-              child: const Text('Cancel'),
+              child: Text(
+                AppLocalizations.of(sheetContext)?.cancel ?? 'Cancel',
+              ),
             ),
           );
         },
@@ -699,7 +710,10 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                           foregroundColor: scheme.onPrimaryContainer,
                           child: const Icon(Icons.camera_alt_outlined),
                         ),
-                        title: const Text('Camera'),
+                        title: Text(
+                          AppLocalizations.of(sheetContext)?.camera ??
+                              'Camera',
+                        ),
                         subtitle: const Text('Take a photo'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () =>
@@ -712,7 +726,10 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                           foregroundColor: scheme.onPrimaryContainer,
                           child: const Icon(Icons.image_outlined),
                         ),
-                        title: const Text('Gallery'),
+                        title: Text(
+                          AppLocalizations.of(sheetContext)?.gallery ??
+                              'Gallery',
+                        ),
                         subtitle: const Text('Choose an existing photo'),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () =>

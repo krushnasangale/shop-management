@@ -107,7 +107,9 @@ Future<void> _shareWithLoadingDialog({
       if (!result.success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to share: ${result.errorMessage}'),
+            content: Text(
+              '${AppLocalizations.of(context)?.failedToShare ?? 'Failed to share'}: ${result.errorMessage}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -154,7 +156,7 @@ class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
   Future<void> _shareBill(BuildContext context) async {
     await _shareWithLoadingDialog(
       context: context,
-      loadingMessage: 'Sharing PDF...',
+      loadingMessage: AppLocalizations.of(context)?.sharingPdf ?? 'Sharing PDF...',
       shareFunction: () async {
         // Fetch shop name from profile
         String shopName = 'Shop';
@@ -180,7 +182,9 @@ class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bill Preview - ${widget.customerName}'),
+        title: Text(
+          '${AppLocalizations.of(context)?.billPreview ?? 'Bill Preview'} - ${widget.customerName}',
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.share),
@@ -675,9 +679,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Delete Bill', style: TextStyle(color: Colors.red)),
+          title: Text(localizations.deleteBill, style: TextStyle(color: Colors.red)),
           content: Text(
-            'Are you sure you want to delete this bill? This action cannot be undone.',
+            localizations.confirmDeleteBill,
           ),
           actions: [
             TextButton(
@@ -705,12 +709,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         context: context,
         barrierDismissible: false,
         builder: (BuildContext context) {
-          return const AlertDialog(
+          return AlertDialog(
             content: Row(
               children: [
-                CircularProgressIndicator(),
-                SizedBox(width: 16),
-                Text('Deleting bill...'),
+                const CircularProgressIndicator(),
+                const SizedBox(width: 16),
+                Text(localizations.deletingBill),
               ],
             ),
           );
@@ -799,7 +803,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
           ScaffoldMessenger.of(
             context,
-          ).showSnackBar(SnackBar(content: Text('Bill deleted successfully')));
+          ).showSnackBar(SnackBar(content: Text(localizations.billDeletedSuccessfully)));
           // Navigate back to bills list
           Navigator.of(
             context,
@@ -818,7 +822,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error deleting bill: $e'),
+              content: Text('${localizations.errorDeletingBill}: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -1112,7 +1116,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   children: [
                     const Icon(Icons.visibility, size: 20, color: Colors.green),
                     const SizedBox(width: 8),
-                    Text('Preview Bill'),
+                    Text(localizations.previewBill),
                   ],
                 ),
               ),

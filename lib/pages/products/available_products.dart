@@ -341,7 +341,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                 width: double.maxFinite,
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.photo_library),
-                  label: const Text('Share Products Catalogue'),
+                  label: Text(localizations!.shareProductsCatalogue),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
                     foregroundColor: Colors.white,
@@ -407,16 +407,22 @@ class _AvailableProductsState extends State<AvailableProducts> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(
-                'Catalogue Options',
+                localizations?.catalogueOptions ?? 'Catalogue Options',
                 style: TextStyle(color: context.bodyLargeText!.color),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('Choose what to include in your catalogue:'),
+                  Text(
+                    localizations?.chooseCatalogueContents ??
+                        'Choose what to include in your catalogue:',
+                  ),
                   const SizedBox(height: 16),
                   CheckboxListTile(
-                    title: const Text('Include Product Prices'),
+                    title: Text(
+                      localizations?.includeProductPrices ??
+                          'Include Product Prices',
+                    ),
                     value: includePrices,
                     onChanged: (bool? value) {
                       setState(() {
@@ -430,14 +436,16 @@ class _AvailableProductsState extends State<AvailableProducts> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(localizations?.cancel ?? 'Cancel'),
                 ),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
                     _generateAndShareCatalogue(includePrices);
                   },
-                  child: const Text('Generate Catalogue'),
+                  child: Text(
+                    localizations?.generateCatalogue ?? 'Generate Catalogue',
+                  ),
                 ),
               ],
             );
@@ -796,17 +804,22 @@ class _AvailableProductsState extends State<AvailableProducts> {
         // Show cancellation message
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('PDF generation cancelled'),
+          SnackBar(
+            content: Text(
+              localizations?.pdfGenerationCancelled ??
+                  'PDF generation cancelled',
+            ),
             backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Error generating PDF'),
+          SnackBar(
+            content: Text(
+              localizations?.errorGeneratingPdf ?? 'Error generating PDF',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -860,17 +873,22 @@ class _AvailableProductsState extends State<AvailableProducts> {
         // Show cancellation message
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Catalogue generation cancelled'),
+          SnackBar(
+            content: Text(
+              localizations?.catalogueGenerationCancelled ??
+                  'Catalogue generation cancelled',
+            ),
             backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
+            duration: const Duration(seconds: 2),
           ),
         );
       } else {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating catalogue: ${e.toString()}'),
+            content: Text(
+              '${localizations?.errorGeneratingCatalogue ?? 'Error generating catalogue'}: ${e.toString()}',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -918,7 +936,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating CSV: ${e.toString()}'),
+            content: Text(
+              (localizations?.errorGeneratingCsv ??
+                      'Error generating CSV: {error}')
+                  .replaceAll('{error}', e.toString()),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -1172,7 +1194,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Available Products'),
+          title: Text(localizations?.availableProducts ?? 'Available Products'),
           centerTitle: false,
           automaticallyImplyLeading: false,
         ),
@@ -1429,15 +1451,18 @@ class _AvailableProductsState extends State<AvailableProducts> {
                             });
                             // Show cancellation message
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Catalogue generation cancelled'),
+                              SnackBar(
+                                content: Text(
+                                  localizations?.catalogueGenerationCancelled ??
+                                      'Catalogue generation cancelled',
+                                ),
                                 backgroundColor: Colors.orange,
-                                duration: Duration(seconds: 2),
+                                duration: const Duration(seconds: 2),
                               ),
                             );
                           },
                           icon: const Icon(Icons.cancel, size: 18),
-                          label: const Text('Cancel'),
+                          label: Text(localizations?.cancel ?? 'Cancel'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red.shade50,
                             foregroundColor: Colors.red.shade700,

@@ -201,7 +201,7 @@ class _AppSettingsState extends State<AppSettings> {
               'Show expiry date when adding purchase entries.',
         ),
         const SizedBox(height: 20),
-        _sectionLabel('Features'),
+        _sectionLabel(loc?.features ?? 'Features'),
         _SettingsGroup(
           children: [
             _SettingTile(
@@ -216,7 +216,10 @@ class _AppSettingsState extends State<AppSettings> {
             ),
           ],
         ),
-        _sectionFooter('Turn the expenses tab on or off for this shop.'),
+        _sectionFooter(
+          loc?.expensesTabFooter ??
+              'Turn the expenses tab on or off for this shop.',
+        ),
       ],
     );
   }

@@ -408,36 +408,39 @@ class _AvailableProductDetailScreenState
   ) async {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Choose Image Source', style: context.bodyLargeText),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Icon(Icons.camera),
-              title: Text('Camera'),
-              onTap: () {
-                Navigator.pop(context);
-                onSourceSelected(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.photo_library),
-              title: Text('Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                onSourceSelected(ImageSource.gallery);
-              },
+      builder: (context) {
+        final loc = AppLocalizations.of(context)!;
+        return AlertDialog(
+          title: Text(loc.chooseImageSource, style: context.bodyLargeText),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.camera),
+                title: Text(loc.camera),
+                onTap: () {
+                  Navigator.pop(context);
+                  onSourceSelected(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.photo_library),
+                title: Text(loc.gallery),
+                onTap: () {
+                  Navigator.pop(context);
+                  onSourceSelected(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(loc.cancel),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -535,7 +538,9 @@ class _AvailableProductDetailScreenState
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Product image updated successfully!'),
+                  content: Text(
+                    AppLocalizations.of(context)!.productImageUpdated,
+                  ),
                   backgroundColor: Colors.green,
                   duration: Duration(seconds: 2),
                 ),
@@ -551,7 +556,9 @@ class _AvailableProductDetailScreenState
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Failed to upload image. Please try again.'),
+                  content: Text(
+                    AppLocalizations.of(context)!.failedToUploadImage,
+                  ),
                   backgroundColor: Colors.red,
                 ),
               );
@@ -567,7 +574,9 @@ class _AvailableProductDetailScreenState
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Error updating image: $e'),
+                content: Text(
+                  '${AppLocalizations.of(context)!.error}: $e',
+                ),
                 backgroundColor: Colors.red,
               ),
             );
@@ -585,7 +594,10 @@ class _AvailableProductDetailScreenState
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text('Select Batch to Share', style: context.bodyLargeText),
+            title: Text(
+              AppLocalizations.of(context)!.selectBatchToShare,
+              style: context.bodyLargeText,
+            ),
             content: SizedBox(
               width: double.maxFinite,
               child: ListView.builder(
@@ -615,7 +627,7 @@ class _AvailableProductDetailScreenState
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
             ],
           );
@@ -634,7 +646,9 @@ class _AvailableProductDetailScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('No batches available to share'),
+            content: Text(
+              AppLocalizations.of(context)!.noBatchesToShare,
+            ),
             backgroundColor: Colors.orange,
           ),
         );
@@ -739,7 +753,9 @@ class _AvailableProductDetailScreenState
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to share product: ${e.toString()}'),
+              content: Text(
+                '${AppLocalizations.of(context)!.failedToShareProduct}: ${e.toString()}',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -1724,7 +1740,7 @@ class _AvailableProductDetailScreenState
                               _currentImageUrl,
                             ),
                             icon: const Icon(Icons.share, size: 16),
-                            label: const Text('Share'),
+                            label: Text(AppLocalizations.of(context)!.share),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue.shade50,
                               foregroundColor: Colors.blue.shade700,
@@ -1746,7 +1762,7 @@ class _AvailableProductDetailScreenState
                           child: ElevatedButton.icon(
                             onPressed: _selectImage,
                             icon: const Icon(Icons.camera_alt, size: 16),
-                            label: const Text('Edit Image'),
+                            label: Text(AppLocalizations.of(context)!.editImage),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange.shade50,
                               foregroundColor: Colors.orange.shade700,

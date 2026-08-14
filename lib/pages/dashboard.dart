@@ -1589,7 +1589,7 @@ class _DashboardState extends State<Dashboard>
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Business Insights',
+                                  loc?.businessInsights ?? 'Business Insights',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700,
@@ -2024,9 +2024,14 @@ class _DashboardState extends State<Dashboard>
       );
     } catch (e) {
       appLog('Error navigating to bill details: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error opening bill details: $e')));
+      final loc = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${loc?.errorOpeningBillDetails ?? 'Error opening bill details'}: $e',
+          ),
+        ),
+      );
     }
   }
 }

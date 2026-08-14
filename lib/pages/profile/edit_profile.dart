@@ -536,7 +536,7 @@ class _EditProfileState extends State<EditProfile> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
             children: [
-              _sectionLabel('Basic Information'),
+              _sectionLabel(loc?.basicInformation ?? 'Basic Information'),
               _InfoGroup(
                 editing: _isEditMode,
                 children: [
@@ -571,7 +571,7 @@ class _EditProfileState extends State<EditProfile> {
                 ],
               ),
               const SizedBox(height: 24),
-              _sectionLabel('Contact Information'),
+              _sectionLabel(loc?.contactInformation ?? 'Contact Information'),
               _InfoGroup(
                 editing: _isEditMode,
                 children: [
@@ -649,7 +649,9 @@ class _EditProfileState extends State<EditProfile> {
                 ],
               ),
               const SizedBox(height: 24),
-              _sectionLabel('Additional Information'),
+              _sectionLabel(
+                loc?.additionalInformation ?? 'Additional Information',
+              ),
               _InfoGroup(
                 editing: _isEditMode,
                 children: [

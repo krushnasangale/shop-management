@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
@@ -6,15 +7,22 @@ class PrivacyPolicyPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Privacy Policy'), centerTitle: false),
+      appBar: AppBar(
+        title: Text(loc?.privacyPolicy ?? 'Privacy Policy'),
+        centerTitle: false,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
-            Text('Privacy Policy', style: context.headingLarge),
+            Text(
+              loc?.privacyPolicy ?? 'Privacy Policy',
+              style: context.headingLarge,
+            ),
             const SizedBox(height: 8),
             Text(
               'Last Updated: December 29, 2025',

@@ -213,7 +213,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
             if (current.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _sectionLabel('This device'),
+                child: _sectionLabel(loc?.thisDevice ?? 'This device'),
               ),
               Adaptive.fullWidthGroup(
                 context: context,
@@ -235,7 +235,7 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
             if (others.isNotEmpty) ...[
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _sectionLabel('Other devices'),
+                child: _sectionLabel(loc?.otherDevices ?? 'Other devices'),
               ),
               Adaptive.fullWidthGroup(
                 context: context,

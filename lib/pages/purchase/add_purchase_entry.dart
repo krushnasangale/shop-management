@@ -498,13 +498,16 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Choose Image Source', style: context.bodyLargeText),
+        title: Text(
+          appLocalizations.chooseImageSource,
+          style: context.bodyLargeText,
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: Icon(Icons.camera),
-              title: Text('Camera'),
+              title: Text(appLocalizations.camera),
               onTap: () {
                 Navigator.pop(context);
                 onSourceSelected(ImageSource.camera);
@@ -512,7 +515,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
             ),
             ListTile(
               leading: Icon(Icons.photo_library),
-              title: Text('Gallery'),
+              title: Text(appLocalizations.gallery),
               onTap: () {
                 Navigator.pop(context);
                 onSourceSelected(ImageSource.gallery);
@@ -523,7 +526,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: Text(appLocalizations.cancel),
           ),
         ],
       ),
@@ -1315,7 +1318,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 });
                               },
                               icon: const Icon(Icons.clear, size: 16),
-                              label: const Text('Remove Image'),
+                              label: Text(appLocalizations.removeImage),
                               style: TextButton.styleFrom(
                                 foregroundColor: Colors.red,
                                 padding: EdgeInsets.zero,

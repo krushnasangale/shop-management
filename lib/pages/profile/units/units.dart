@@ -435,7 +435,9 @@ class _UnitTile extends StatelessWidget {
           ],
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.pop(sheetContext),
-            child: const Text('Cancel'),
+            child: Text(
+              AppLocalizations.of(sheetContext)?.cancel ?? 'Cancel',
+            ),
           ),
         );
       },

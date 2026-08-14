@@ -808,6 +808,45 @@ class AppLocalizations {
   String get errorProcessingPDF => translate('error_processing_pdf');
   String get appSettings => translate('app_settings');
 
+  String get businessInsights => translate('business_insights');
+  String get features => translate('features');
+  String get basicInformation => translate('basic_information');
+  String get contactInformation => translate('contact_information');
+  String get additionalInformation => translate('additional_information');
+  String get thisDevice => translate('this_device');
+  String get otherDevices => translate('other_devices');
+  String get gallery => translate('gallery');
+  String get chooseImageSource => translate('choose_image_source');
+  String get previewBill => translate('preview_bill');
+  String get billPreview => translate('bill_preview');
+  String get deletingBill => translate('deleting_bill');
+  String get share => translate('share');
+  String get editImage => translate('edit_image');
+  String get removeImage => translate('remove_image');
+  String get shareProductsCatalogue => translate('share_products_catalogue');
+  String get catalogueOptions => translate('catalogue_options');
+  String get chooseCatalogueContents => translate('choose_catalogue_contents');
+  String get includeProductPrices => translate('include_product_prices');
+  String get generateCatalogue => translate('generate_catalogue');
+  String get pdfGenerationCancelled => translate('pdf_generation_cancelled');
+  String get catalogueGenerationCancelled =>
+      translate('catalogue_generation_cancelled');
+  String get errorGeneratingCatalogue =>
+      translate('error_generating_catalogue');
+  String get failedToShare => translate('failed_to_share');
+  String get productImageUpdated => translate('product_image_updated');
+  String get failedToUploadImage => translate('failed_to_upload_image');
+  String get selectBatchToShare => translate('select_batch_to_share');
+  String get noBatchesToShare => translate('no_batches_to_share');
+  String get failedToShareProduct => translate('failed_to_share_product');
+  String get errorOpeningBillDetails => translate('error_opening_bill_details');
+  String get expensesTabFooter => translate('expenses_tab_footer');
+  String get sharingPdf => translate('sharing_pdf');
+  String get deleteBill => translate('delete_bill');
+  String get confirmDeleteBill => translate('confirm_delete_bill');
+  String get billDeletedSuccessfully => translate('bill_deleted_successfully');
+  String get errorDeletingBill => translate('error_deleting_bill');
+
   // Helper method to get localized full month name
   String getFullMonthName(int monthIndex) {
     switch (monthIndex) {
