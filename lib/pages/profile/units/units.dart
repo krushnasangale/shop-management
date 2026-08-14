@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:material_ui/material_ui.dart';
 
 class UnitOfMeasure {
@@ -374,11 +375,7 @@ class _UnitTile extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: nameStyle,
         ),
-        trailing: CupertinoButton(
-          padding: const EdgeInsets.only(right: 4),
-          onPressed: () => _showCupertinoActions(context),
-          child: const Icon(CupertinoIcons.ellipsis),
-        ),
+        trailing: _menuButton(),
         onTap: onEdit,
       );
     }
@@ -395,52 +392,27 @@ class _UnitTile extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: nameStyle,
       ),
-      trailing: PopupMenuButton<String>(
-        padding: const EdgeInsets.all(8),
-        onSelected: (value) {
-          if (value == 'edit') onEdit();
-          if (value == 'delete') onDelete();
-        },
-        itemBuilder: (context) => [
-          PopupMenuItem(value: 'edit', child: Text(editLabel)),
-          PopupMenuItem(value: 'delete', child: Text(deleteLabel)),
-        ],
-      ),
+      trailing: _menuButton(),
       onTap: onEdit,
     );
   }
 
-  Future<void> _showCupertinoActions(BuildContext context) async {
-    await showCupertinoModalPopup<void>(
-      context: context,
-      builder: (sheetContext) {
-        return CupertinoActionSheet(
-          title: Text(unit.name),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                onEdit();
-              },
-              child: Text(editLabel),
-            ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                onDelete();
-              },
-              child: Text(deleteLabel),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(sheetContext),
-            child: Text(
-              AppLocalizations.of(sheetContext)?.cancel ?? 'Cancel',
-            ),
-          ),
-        );
-      },
+  Widget _menuButton() {
+    return AppContextMenu.iconButton(
+      width: 168,
+      items: () => [
+        AppContextMenuItem(
+          label: editLabel,
+          icon: CupertinoIcons.pencil,
+          onPressed: onEdit,
+        ),
+        AppContextMenuItem(
+          label: deleteLabel,
+          icon: CupertinoIcons.delete,
+          onPressed: onDelete,
+          destructive: true,
+        ),
+      ],
     );
   }
 }

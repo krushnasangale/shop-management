@@ -4,6 +4,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -167,11 +168,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
       return CupertinoPageScaffold(
         navigationBar: CupertinoNavigationBar(
           middle: Text(widget.supplierName, overflow: TextOverflow.ellipsis),
-          trailing: CupertinoButton(
-            padding: EdgeInsets.zero,
-            onPressed: () => _showSortSheet(loc),
-            child: const Icon(CupertinoIcons.sort_down),
-          ),
+          trailing: _sortButton(loc),
         ),
         child: SafeArea(child: _buildBody(loc)),
       );
@@ -180,62 +177,37 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.supplierName),
-        actions: [
-          PopupMenuButton<int>(
-            icon: const Icon(Icons.sort),
-            tooltip: loc?.sortBy ?? 'Sort by',
-            onSelected: (value) {
-              setState(() => _sortByIndex = value);
-              _sortHistory();
-            },
-            itemBuilder: (context) {
-              final options = _sortOptions(loc);
-              return [
-                for (var i = 0; i < options.length; i++)
-                  PopupMenuItem<int>(
-                    value: i,
-                    child: Text(
-                      options[i],
-                      style: TextStyle(
-                        fontWeight: _sortByIndex == i
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                      ),
-                    ),
-                  ),
-              ];
-            },
-          ),
-        ],
+        actions: [_sortButton(loc)],
       ),
       body: _buildBody(loc),
     );
   }
 
-  Future<void> _showSortSheet(AppLocalizations? loc) async {
+  Widget _sortButton(AppLocalizations? loc) {
+    const icons = [
+      CupertinoIcons.clock,
+      CupertinoIcons.clock,
+      Icons.currency_rupee,
+      Icons.currency_rupee,
+    ];
     final options = _sortOptions(loc);
-    final selected = await showCupertinoModalPopup<int>(
-      context: context,
-      builder: (sheetContext) {
-        return CupertinoActionSheet(
-          title: Text(loc?.sortBy ?? 'Sort by'),
-          actions: [
-            for (var i = 0; i < options.length; i++)
-              CupertinoActionSheetAction(
-                onPressed: () => Navigator.pop(sheetContext, i),
-                child: Text(options[i]),
-              ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(sheetContext),
-            child: Text(loc?.cancel ?? 'Cancel'),
+    return AppContextMenu.iconButton(
+      icon: Icons.sort,
+      tooltip: loc?.sortBy ?? 'Sort by',
+      width: 200,
+      items: () => [
+        for (var i = 0; i < options.length; i++)
+          AppContextMenuItem(
+            label: options[i],
+            icon: icons[i],
+            selected: _sortByIndex == i,
+            onPressed: () {
+              setState(() => _sortByIndex = i);
+              _sortHistory();
+            },
           ),
-        );
-      },
+      ],
     );
-    if (selected == null) return;
-    setState(() => _sortByIndex = selected);
-    _sortHistory();
   }
 
   Widget _buildBody(AppLocalizations? loc) {
@@ -262,8 +234,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
             title: monthYear,
             total: _groupedHistory[monthYear]!.fold<double>(
               0,
-              (total, t) =>
-                  total + ((t['totalAmount'] ?? 0) as num).toDouble(),
+              (total, t) => total + ((t['totalAmount'] ?? 0) as num).toDouble(),
             ),
             count: _groupedHistory[monthYear]!.length,
           ),
@@ -347,7 +318,11 @@ class _SummaryCard extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          row('Total Invested', '₹${totalSpent.toStringAsFixed(2)}', emphasize: true),
+          row(
+            'Total Invested',
+            '₹${totalSpent.toStringAsFixed(2)}',
+            emphasize: true,
+          ),
           const Divider(height: 1, indent: 16),
           row(purchasesLabel, '$purchases'),
           const Divider(height: 1, indent: 16),
@@ -497,18 +472,12 @@ class _TransactionTile extends StatelessWidget {
         date,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          fontWeight: FontWeight.w700,
-          color: scheme.onSurface,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
       ),
       subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
       trailing: Text(
         amountText,
-        style: TextStyle(
-          fontWeight: FontWeight.w700,
-          color: scheme.onSurface,
-        ),
+        style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
       ),
       onTap: onOpen,
     );

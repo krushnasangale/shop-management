@@ -13,6 +13,7 @@ import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:printing/printing.dart';
 import 'package:flashbill/utils/app_logger.dart';
@@ -156,7 +157,8 @@ class _BillPdfPreviewPageState extends State<BillPdfPreviewPage> {
   Future<void> _shareBill(BuildContext context) async {
     await _shareWithLoadingDialog(
       context: context,
-      loadingMessage: AppLocalizations.of(context)?.sharingPdf ?? 'Sharing PDF...',
+      loadingMessage:
+          AppLocalizations.of(context)?.sharingPdf ?? 'Sharing PDF...',
       shareFunction: () async {
         // Fetch shop name from profile
         String shopName = 'Shop';
@@ -679,10 +681,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(localizations.deleteBill, style: TextStyle(color: Colors.red)),
-          content: Text(
-            localizations.confirmDeleteBill,
+          title: Text(
+            localizations.deleteBill,
+            style: TextStyle(color: Colors.red),
           ),
+          content: Text(localizations.confirmDeleteBill),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -801,9 +804,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             _isDeleting = false;
           });
 
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(localizations.billDeletedSuccessfully)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(localizations.billDeletedSuccessfully)),
+          );
           // Navigate back to bills list
           Navigator.of(
             context,
@@ -1093,62 +1096,32 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               },
               icon: const Icon(Icons.print),
             ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (_isDeleting) return; // Prevent actions while deleting
-
-              switch (value) {
-                case 'preview':
+          AppContextMenu.iconButton(
+            items: () => [
+              AppContextMenuItem(
+                label: localizations.previewBill,
+                icon: Icons.visibility_outlined,
+                onPressed: () {
+                  if (_isDeleting) return;
                   _previewBill();
-                  break;
-                case 'delete':
-                  _deleteBill();
-                  break;
-                case 'edit':
+                },
+              ),
+              AppContextMenuItem(
+                label: localizations.editBill,
+                icon: Icons.edit_outlined,
+                onPressed: () {
+                  if (_isDeleting) return;
                   _editBill();
-                  break;
-              }
-            },
-            itemBuilder: (BuildContext context) => [
-              PopupMenuItem<String>(
-                value: 'preview',
-                child: Row(
-                  children: [
-                    const Icon(Icons.visibility, size: 20, color: Colors.green),
-                    const SizedBox(width: 8),
-                    Text(localizations.previewBill),
-                  ],
-                ),
+                },
               ),
-              PopupMenuItem<String>(
-                value: 'edit',
-                child: Row(
-                  children: [
-                    const Icon(Icons.edit, size: 20, color: Colors.blue),
-                    const SizedBox(width: 8),
-                    Text(localizations.editBill),
-                  ],
-                ),
-              ),
-              PopupMenuItem<String>(
-                value: 'delete',
-                enabled: !_isDeleting,
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.delete,
-                      color: _isDeleting ? Colors.grey : Colors.red,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _isDeleting ? 'Deleting...' : 'Delete Bill',
-                      style: TextStyle(
-                        color: _isDeleting ? Colors.grey : Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
+              AppContextMenuItem(
+                label: _isDeleting ? 'Deleting...' : 'Delete Bill',
+                icon: Icons.delete_outline,
+                destructive: true,
+                onPressed: () {
+                  if (_isDeleting) return;
+                  _deleteBill();
+                },
               ),
             ],
           ),

@@ -10,6 +10,7 @@ import 'package:flashbill/pages/order_now_page.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flashbill/services/dashboard_service.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:flashbill/widgets/dashboard_widgets.dart';
 import 'package:flashbill/services/notification_service.dart';
 import 'package:flashbill/utils/app_logger.dart';
@@ -1319,213 +1320,104 @@ class _DashboardState extends State<Dashboard>
                                         width: isDark ? 1 : 0,
                                       ),
                                     ),
-                                    child: PopupMenuButton<String>(
-                                      offset: const Offset(0, 40),
-                                      itemBuilder: (BuildContext context) => [
-                                        PopupMenuItem(
-                                          value: 'all',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.all_inclusive,
-                                                size: 18,
-                                                color: filterType == 'all'
-                                                    ? Colors.blue[600]
-                                                    : null,
+                                    child: Builder(
+                                      builder: (buttonContext) {
+                                        return InkWell(
+                                          onTap: () => AppContextMenu.show(
+                                            buttonContext: buttonContext,
+                                            items: [
+                                              AppContextMenuItem(
+                                                label:
+                                                    loc?.allData ?? 'All Data',
+                                                icon: Icons.all_inclusive,
+                                                selected: filterType == 'all',
+                                                onPressed: () {
+                                                  setState(
+                                                    () => filterType = 'all',
+                                                  );
+                                                  _saveFilterPreference('all');
+                                                  _updateDashboardSubscription();
+                                                },
                                               ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                loc?.allData ?? 'All Data',
-                                                style: TextStyle(
-                                                  fontWeight:
-                                                      filterType == 'all'
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                                  color: filterType == 'all'
-                                                      ? Colors.blue[600]
-                                                      : null,
-                                                ),
+                                              AppContextMenuItem(
+                                                label:
+                                                    loc?.dateRange ??
+                                                    'Date Range',
+                                                icon: Icons.date_range,
+                                                selected: filterType == 'range',
+                                                onPressed: () {
+                                                  setState(
+                                                    () => filterType = 'range',
+                                                  );
+                                                  _saveFilterPreference(
+                                                    'range',
+                                                  );
+                                                  _updateDashboardSubscription();
+                                                },
                                               ),
-                                              if (filterType == 'all') ...[
-                                                const SizedBox(width: 8),
-                                                Icon(
-                                                  Icons.check,
-                                                  size: 18,
-                                                  color: Colors.blue[600],
-                                                ),
-                                              ],
+                                              AppContextMenuItem(
+                                                label: loc?.day ?? 'Day',
+                                                icon: Icons.calendar_today,
+                                                selected: filterType == 'day',
+                                                onPressed: () {
+                                                  setState(
+                                                    () => filterType = 'day',
+                                                  );
+                                                  _saveFilterPreference('day');
+                                                  _updateDashboardSubscription();
+                                                },
+                                              ),
+                                              AppContextMenuItem(
+                                                label: loc?.month ?? 'Month',
+                                                icon: Icons.calendar_month,
+                                                selected: filterType == 'month',
+                                                onPressed: () {
+                                                  setState(
+                                                    () => filterType = 'month',
+                                                  );
+                                                  _saveFilterPreference(
+                                                    'month',
+                                                  );
+                                                  _updateDashboardSubscription();
+                                                },
+                                              ),
+                                              AppContextMenuItem(
+                                                label: loc?.year ?? 'Year',
+                                                icon: Icons.calendar_view_month,
+                                                selected: filterType == 'year',
+                                                onPressed: () {
+                                                  setState(
+                                                    () => filterType = 'year',
+                                                  );
+                                                  _saveFilterPreference('year');
+                                                  _updateDashboardSubscription();
+                                                },
+                                              ),
                                             ],
                                           ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'range',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.date_range,
-                                                size: 18,
-                                                color: filterType == 'range'
-                                                    ? Colors.blue[600]
-                                                    : null,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                loc?.dateRange ?? 'Date Range',
-                                                style: TextStyle(
-                                                  fontWeight:
-                                                      filterType == 'range'
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                                  color: filterType == 'range'
-                                                      ? Colors.blue[600]
-                                                      : null,
-                                                ),
-                                              ),
-                                              if (filterType == 'range') ...[
-                                                const SizedBox(width: 8),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 8,
+                                            ),
+                                            child: Row(
+                                              children: [
                                                 Icon(
-                                                  Icons.check,
-                                                  size: 18,
+                                                  Icons.filter_list,
                                                   color: Colors.blue[600],
+                                                  size: 20,
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Icon(
+                                                  Icons.arrow_drop_down,
+                                                  color: Colors.blue[600],
+                                                  size: 18,
                                                 ),
                                               ],
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'day',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.calendar_today,
-                                                size: 18,
-                                                color: filterType == 'day'
-                                                    ? Colors.blue[600]
-                                                    : null,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                loc?.day ?? 'Day',
-                                                style: TextStyle(
-                                                  fontWeight:
-                                                      filterType == 'day'
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                                  color: filterType == 'day'
-                                                      ? Colors.blue[600]
-                                                      : null,
-                                                ),
-                                              ),
-                                              if (filterType == 'day') ...[
-                                                const SizedBox(width: 8),
-                                                Icon(
-                                                  Icons.check,
-                                                  size: 18,
-                                                  color: Colors.blue[600],
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'month',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.calendar_month,
-                                                size: 18,
-                                                color: filterType == 'month'
-                                                    ? Colors.blue[600]
-                                                    : null,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                loc?.month ?? 'Month',
-                                                style: TextStyle(
-                                                  fontWeight:
-                                                      filterType == 'month'
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                                  color: filterType == 'month'
-                                                      ? Colors.blue[600]
-                                                      : null,
-                                                ),
-                                              ),
-                                              if (filterType == 'month') ...[
-                                                const SizedBox(width: 8),
-                                                Icon(
-                                                  Icons.check,
-                                                  size: 18,
-                                                  color: Colors.blue[600],
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
-                                        PopupMenuItem(
-                                          value: 'year',
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.calendar_month,
-                                                size: 18,
-                                                color: filterType == 'year'
-                                                    ? Colors.blue[600]
-                                                    : null,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                loc?.year ?? 'Year',
-                                                style: TextStyle(
-                                                  fontWeight:
-                                                      filterType == 'year'
-                                                      ? FontWeight.bold
-                                                      : FontWeight.normal,
-                                                  color: filterType == 'year'
-                                                      ? Colors.blue[600]
-                                                      : null,
-                                                ),
-                                              ),
-                                              if (filterType == 'year') ...[
-                                                const SizedBox(width: 8),
-                                                Icon(
-                                                  Icons.check,
-                                                  size: 18,
-                                                  color: Colors.blue[600],
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                      onSelected: (String newValue) {
-                                        setState(() {
-                                          filterType = newValue;
-                                        });
-                                        _saveFilterPreference(newValue);
-                                        _updateDashboardSubscription();
+                                        );
                                       },
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 8,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.filter_list,
-                                              color: Colors.blue[600],
-                                              size: 20,
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Icon(
-                                              Icons.arrow_drop_down,
-                                              color: Colors.blue[600],
-                                              size: 18,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 8),

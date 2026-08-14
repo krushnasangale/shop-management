@@ -8,6 +8,7 @@ import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/profile/customer/customer_history.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -532,11 +533,7 @@ class _CustomerTile extends StatelessWidget {
           style: nameStyle,
         ),
         subtitle: Text(details, maxLines: 1, overflow: TextOverflow.ellipsis),
-        trailing: CupertinoButton(
-          padding: const EdgeInsets.only(right: 4),
-          onPressed: () => _showCupertinoActions(context),
-          child: const Icon(CupertinoIcons.ellipsis),
-        ),
+        trailing: _menuButton(),
         onTap: onOpen,
       );
     }
@@ -554,66 +551,31 @@ class _CustomerTile extends StatelessWidget {
         style: nameStyle,
       ),
       subtitle: Text(details, maxLines: 1, overflow: TextOverflow.ellipsis),
-      trailing: PopupMenuButton<String>(
-        padding: const EdgeInsets.all(8),
-        onSelected: (value) {
-          switch (value) {
-            case 'history':
-              onHistory();
-            case 'edit':
-              onEdit();
-            case 'delete':
-              onDelete();
-          }
-        },
-        itemBuilder: (context) => [
-          PopupMenuItem(value: 'history', child: Text(historyLabel)),
-          PopupMenuItem(value: 'edit', child: Text(editLabel)),
-          PopupMenuItem(value: 'delete', child: Text(deleteLabel)),
-        ],
-      ),
+      trailing: _menuButton(),
       onTap: onOpen,
     );
   }
 
-  Future<void> _showCupertinoActions(BuildContext context) async {
-    await showCupertinoModalPopup<void>(
-      context: context,
-      builder: (sheetContext) {
-        return CupertinoActionSheet(
-          title: Text(customer['name'] as String),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                onHistory();
-              },
-              child: Text(historyLabel),
-            ),
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                onEdit();
-              },
-              child: Text(editLabel),
-            ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                onDelete();
-              },
-              child: Text(deleteLabel),
-            ),
-          ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(sheetContext),
-            child: Text(
-              AppLocalizations.of(sheetContext)?.cancel ?? 'Cancel',
-            ),
-          ),
-        );
-      },
+  Widget _menuButton() {
+    return AppContextMenu.iconButton(
+      items: () => [
+        AppContextMenuItem(
+          label: historyLabel,
+          icon: CupertinoIcons.clock,
+          onPressed: onHistory,
+        ),
+        AppContextMenuItem(
+          label: editLabel,
+          icon: CupertinoIcons.pencil,
+          onPressed: onEdit,
+        ),
+        AppContextMenuItem(
+          label: deleteLabel,
+          icon: CupertinoIcons.delete,
+          onPressed: onDelete,
+          destructive: true,
+        ),
+      ],
     );
   }
 }

@@ -426,11 +426,31 @@ class DashboardService {
 
   Future<ProductsData> _loadProductsData(String userId) async {
     try {
-      final productsSnapshot = await FirebaseFirestore.instance
-          .collection('purchased-products')
-          .doc(userId)
-          .collection('items')
-          .get();
+      final firestore = FirebaseFirestore.instance;
+      final snapshots = await Future.wait([
+        firestore
+            .collection('purchased-products')
+            .doc(userId)
+            .collection('items')
+            .get(),
+        firestore
+            .collection('product-names')
+            .doc(userId)
+            .collection('items')
+            .get(),
+      ]);
+      final productsSnapshot = snapshots[0];
+      final namesSnapshot = snapshots[1];
+
+      final catalogImages = <String, String>{};
+      for (final doc in namesSnapshot.docs) {
+        final data = doc.data();
+        final name = (data['name'] as String? ?? '').trim().toLowerCase();
+        final url = data['imageUrl'] as String?;
+        if (name.isNotEmpty && url != null && url.isNotEmpty) {
+          catalogImages[name] = url;
+        }
+      }
 
       final orderNowList = <Map<String, dynamic>>[];
       int totalQty = 0;
@@ -457,16 +477,25 @@ class DashboardService {
         final supplierName =
             productData['supplierName'] as String? ?? 'Unknown Supplier';
         final unit = productData['unit'] as String? ?? 'N/A';
+        final imageUrl = (productData['imageUrl'] as String?)?.trim();
+        final resolvedImage = (imageUrl != null && imageUrl.isNotEmpty)
+            ? imageUrl
+            : null;
 
         // Track total quantity across all batches for this product
         if (productSummary.containsKey(productName)) {
           productSummary[productName]!['totalQuantity'] += quantity;
+          if (productSummary[productName]!['imageUrl'] == null &&
+              resolvedImage != null) {
+            productSummary[productName]!['imageUrl'] = resolvedImage;
+          }
         } else {
           productSummary[productName] = {
             'productName': productName.isEmpty ? 'Unknown' : productName,
             'supplierName': supplierName,
             'unit': unit,
             'totalQuantity': quantity,
+            'imageUrl': resolvedImage,
           };
         }
 
@@ -482,11 +511,14 @@ class DashboardService {
       // Add products to orderNow list only if total quantity across all batches is 0
       for (final productData in productSummary.values) {
         if (productData['totalQuantity'] == 0) {
+          final name = productData['productName'] as String;
           orderNowList.add({
-            'productName': productData['productName'],
+            'productName': name,
             'supplierName': productData['supplierName'],
             'unit': productData['unit'],
             'quantity': 0,
+            'imageUrl':
+                productData['imageUrl'] ?? catalogImages[name.toLowerCase()],
           });
         }
       }

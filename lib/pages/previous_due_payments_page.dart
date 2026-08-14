@@ -9,6 +9,7 @@ import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:material_ui/material_ui.dart';
 
 class PreviousDuePaymentsPage extends StatefulWidget {
@@ -171,34 +172,6 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
     _loadPreviousDuePayments();
   }
 
-  PopupMenuItem<String> _sortItem({
-    required String value,
-    required IconData icon,
-    required String label,
-  }) {
-    final selected = _sortBy == value;
-    final scheme = Theme.of(context).colorScheme;
-    return PopupMenuItem(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: selected ? scheme.primary : null),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                color: selected ? scheme.primary : null,
-              ),
-            ),
-          ),
-          if (selected) Icon(Icons.check, size: 18, color: scheme.primary),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
@@ -226,29 +199,37 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
               });
             },
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
+          AppContextMenu.iconButton(
+            icon: Icons.sort,
             tooltip: loc?.sort ?? 'Sort',
             style: Adaptive.compactIconButton,
-            onSelected: (value) {
-              setState(() => _sortBy = value);
-              _filterPayments();
-            },
-            itemBuilder: (context) => [
-              _sortItem(
-                value: 'amount',
-                icon: Icons.currency_rupee,
+            items: () => [
+              AppContextMenuItem(
                 label: loc?.sortByAmount ?? 'Sort by Amount',
+                icon: Icons.currency_rupee,
+                selected: _sortBy == 'amount',
+                onPressed: () {
+                  setState(() => _sortBy = 'amount');
+                  _filterPayments();
+                },
               ),
-              _sortItem(
-                value: 'date',
-                icon: Icons.calendar_today,
+              AppContextMenuItem(
                 label: loc?.sortByDate ?? 'Sort by Date',
+                icon: Icons.calendar_today,
+                selected: _sortBy == 'date',
+                onPressed: () {
+                  setState(() => _sortBy = 'date');
+                  _filterPayments();
+                },
               ),
-              _sortItem(
-                value: 'name',
-                icon: Icons.person_outline,
+              AppContextMenuItem(
                 label: loc?.sortByName ?? 'Sort by Name',
+                icon: Icons.person_outline,
+                selected: _sortBy == 'name',
+                onPressed: () {
+                  setState(() => _sortBy = 'name');
+                  _filterPayments();
+                },
               ),
             ],
           ),
@@ -264,8 +245,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                 _SummaryTile(
                   icon: Icons.account_balance_wallet_outlined,
                   label: loc?.total ?? 'Total',
-                  value:
-                      '₹${_formatCurrency(_totalPreviousDueAmount.toInt())}',
+                  value: '₹${_formatCurrency(_totalPreviousDueAmount.toInt())}',
                 ),
                 const SizedBox(width: 8),
                 _SummaryTile(

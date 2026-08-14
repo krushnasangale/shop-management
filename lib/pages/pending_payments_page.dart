@@ -1,13 +1,16 @@
 import 'dart:async';
-import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/services/bills_data_service.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
+
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
-import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
+import 'package:flashbill/services/bills_data_service.dart';
+import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
+import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
+import 'package:material_ui/material_ui.dart';
 
 class PendingPaymentsPage extends StatefulWidget {
   const PendingPaymentsPage({super.key});
@@ -20,9 +23,11 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
   List<Map<String, dynamic>> _pendingPayments = [];
   List<Map<String, dynamic>> _filteredPayments = [];
   bool _isLoading = true;
+  int _totalAmount = 0;
+  int _totalCollectedAmount = 0;
   int _totalPendingAmount = 0;
-  String _searchQuery = '';
-  String _sortBy = 'amount'; // 'amount', 'date', 'name'
+  String _sortBy = 'amount';
+  String _statusFilter = 'all';
   final TextEditingController _searchController = TextEditingController();
   late BillsDataService _billsDataService;
   StreamSubscription? _billsDataServiceSubscription;
@@ -57,13 +62,14 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
 
   Future<void> _loadPendingPayments() async {
     try {
-      // Get cached bills from BillsDataService
       final cachedBills = _billsDataService.getCachedBills();
 
       final pendingBills = <Map<String, dynamic>>[];
-      int totalPending = 0;
+      var totalAmount = 0;
+      var totalCollected = 0;
+      var totalPending = 0;
 
-      for (var billData in cachedBills) {
+      for (final billData in cachedBills) {
         final totalAmountPaid = billData['totalAmountPaid'] as bool? ?? false;
 
         if (!totalAmountPaid) {
@@ -71,6 +77,9 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
               (billData['amountRemaining'] as num?)?.toInt() ?? 0;
 
           if (amountRemaining > 0) {
+            final billTotal = (billData['totalAmount'] as num?)?.toInt() ?? 0;
+            final amountPaid = (billData['amountPaid'] as num?)?.toInt() ?? 0;
+
             pendingBills.add({
               'id': billData['id'],
               'customerName': billData['customerName'] ?? 'Unknown',
@@ -78,12 +87,17 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
               'customerVehicle': billData['customerVehicle'],
               'billDate': billData['billDate'] ?? 'N/A',
               'amountRemaining': amountRemaining,
-              'totalAmount': billData['totalAmount'] ?? 0,
+              'totalAmount': billTotal,
               'totalAmountPaid': false,
-              'amountPaid': billData['amountPaid'] ?? 0,
+              'amountPaid': amountPaid,
               'products': billData['products'],
               'paymentMethod': billData['paymentMethod'] ?? 'cash',
+              'previousDueAmount': billData['previousDueAmount'] ?? 0,
+              'previousDueDescription':
+                  billData['previousDueDescription'] ?? '',
             });
+            totalAmount += billTotal;
+            totalCollected += amountPaid;
             totalPending += amountRemaining;
           }
         }
@@ -93,10 +107,12 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
         setState(() {
           _pendingPayments = pendingBills;
           _filteredPayments = pendingBills;
+          _totalAmount = totalAmount;
+          _totalCollectedAmount = totalCollected;
           _totalPendingAmount = totalPending;
           _isLoading = false;
         });
-        _sortPayments();
+        _filterPayments();
       }
     } catch (e) {
       appLog('Error loading pending payments: $e');
@@ -107,48 +123,52 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
   }
 
   void _filterPayments() {
+    final query = _searchController.text;
     setState(() {
-      _searchQuery = _searchController.text;
-      if (_searchQuery.isEmpty) {
-        _filteredPayments = _pendingPayments;
-      } else {
-        _filteredPayments = _pendingPayments.where((payment) {
-          final name = payment['customerName'].toString();
-          final mobile = payment['customerMobile'].toString();
-          final vehicle = (payment['customerVehicle'] ?? '').toString();
-          return SearchUtils.matchesSubsequence(name, _searchQuery) ||
-              SearchUtils.matchesSubsequence(mobile, _searchQuery) ||
-              SearchUtils.matchesSubsequence(vehicle, _searchQuery);
-        }).toList();
-      }
-      _sortPayments();
-    });
-  }
+      _filteredPayments = _pendingPayments.where((payment) {
+        final name = payment['customerName'].toString();
+        final mobile = payment['customerMobile'].toString();
+        final vehicle = (payment['customerVehicle'] ?? '').toString();
+        final matchesSearch =
+            SearchUtils.matchesSubsequence(name, query) ||
+            SearchUtils.matchesSubsequence(mobile, query) ||
+            SearchUtils.matchesSubsequence(vehicle, query);
 
-  void _sortPayments() {
-    setState(() {
-      if (_sortBy == 'amount') {
-        _filteredPayments.sort(
-          (a, b) => (b['amountRemaining'] as int).compareTo(
-            a['amountRemaining'] as int,
-          ),
-        );
-      } else if (_sortBy == 'date') {
-        _filteredPayments.sort((a, b) {
-          try {
-            final dateA = _parseDate(a['billDate']);
-            final dateB = _parseDate(b['billDate']);
-            return dateB.compareTo(dateA);
-          } catch (e) {
-            return 0;
-          }
-        });
-      } else if (_sortBy == 'name') {
-        _filteredPayments.sort(
-          (a, b) => a['customerName'].toString().compareTo(
-            b['customerName'].toString(),
-          ),
-        );
+        final paid = payment['amountPaid'] as int;
+        final matchesStatus =
+            _statusFilter == 'all' ||
+            (_statusFilter == 'partial' && paid > 0) ||
+            (_statusFilter == 'unpaid' && paid == 0);
+
+        return matchesSearch && matchesStatus;
+      }).toList();
+
+      switch (_sortBy) {
+        case 'amount':
+          _filteredPayments.sort(
+            (a, b) => (b['amountRemaining'] as int).compareTo(
+              a['amountRemaining'] as int,
+            ),
+          );
+          break;
+        case 'date':
+          _filteredPayments.sort((a, b) {
+            try {
+              return _parseDate(
+                b['billDate'],
+              ).compareTo(_parseDate(a['billDate']));
+            } catch (e) {
+              return 0;
+            }
+          });
+          break;
+        case 'name':
+          _filteredPayments.sort(
+            (a, b) => a['customerName'].toString().compareTo(
+              b['customerName'].toString(),
+            ),
+          );
+          break;
       }
     });
   }
@@ -170,7 +190,6 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
   }
 
   void _navigateToBillDetails(Map<String, dynamic> payment) {
-    // Convert products Map to List
     final productsMap = payment['products'] as Map<String, dynamic>?;
     final productsList = productsMap?.entries.map((entry) {
       final product = entry.value as Map<String, dynamic>;
@@ -198,500 +217,381 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
   }
 
   String _formatCurrency(int amount) {
-    // Format with commas for thousands separator
-    final formatted = amount.toString().replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]},',
-    );
-    return formatted;
+    if (amount >= 10000000) {
+      return '${(amount / 10000000).toStringAsFixed(1)}Cr';
+    } else if (amount >= 100000) {
+      return '${(amount / 100000).toStringAsFixed(1)}L';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}K';
+    } else {
+      return amount.toString();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final loc = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(localizations?.pendingPayments ?? 'Pending Payments'),
-        centerTitle: false,
+        title: Text(loc?.pendingPayments ?? 'Pending Payments'),
         actions: [
           IconButton(
-            icon: Icon(_showSearchBar ? Icons.close : Icons.search),
+            style: Adaptive.compactIconButton,
+            icon: Icon(
+              _showSearchBar ? CupertinoIcons.xmark : CupertinoIcons.search,
+            ),
+            tooltip: _showSearchBar
+                ? (loc?.closeSearch ?? 'Close Search')
+                : (loc?.search ?? 'Search'),
             onPressed: () {
               setState(() {
                 _showSearchBar = !_showSearchBar;
                 if (!_showSearchBar) {
                   _searchController.clear();
+                  _filterPayments();
                 }
               });
             },
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.sort),
-            onSelected: (value) {
-              setState(() {
-                _sortBy = value;
-              });
-              _sortPayments();
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'amount',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.currency_rupee,
-                      size: 18,
-                      color: _sortBy == 'amount'
-                          ? Colors.blue
-                          : Theme.of(context).iconTheme.color,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      localizations?.sortByAmount ?? 'Sort by Amount',
-                      style: TextStyle(
-                        color: _sortBy == 'amount'
-                            ? Colors.blue
-                            : Theme.of(context).colorScheme.onSurface,
-                        fontWeight: _sortBy == 'amount'
-                            ? FontWeight.bold
-                            : null,
-                      ),
-                    ),
-                  ],
-                ),
+          AppContextMenu.iconButton(
+            icon: Icons.sort,
+            tooltip: loc?.sort ?? 'Sort',
+            style: Adaptive.compactIconButton,
+            items: () => [
+              AppContextMenuItem(
+                label: loc?.sortByAmount ?? 'Sort by Amount',
+                icon: Icons.currency_rupee,
+                selected: _sortBy == 'amount',
+                onPressed: () {
+                  setState(() => _sortBy = 'amount');
+                  _filterPayments();
+                },
               ),
-              PopupMenuItem(
-                value: 'date',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.calendar_today,
-                      size: 18,
-                      color: _sortBy == 'date'
-                          ? Colors.blue
-                          : Theme.of(context).iconTheme.color,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      localizations?.sortByDate ?? 'Sort by Date',
-                      style: TextStyle(
-                        color: _sortBy == 'date'
-                            ? Colors.blue
-                            : Theme.of(context).colorScheme.onSurface,
-                        fontWeight: _sortBy == 'date' ? FontWeight.bold : null,
-                      ),
-                    ),
-                  ],
-                ),
+              AppContextMenuItem(
+                label: loc?.sortByDate ?? 'Sort by Date',
+                icon: Icons.calendar_today,
+                selected: _sortBy == 'date',
+                onPressed: () {
+                  setState(() => _sortBy = 'date');
+                  _filterPayments();
+                },
               ),
-              PopupMenuItem(
-                value: 'name',
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.person,
-                      size: 18,
-                      color: _sortBy == 'name'
-                          ? Colors.blue
-                          : Theme.of(context).iconTheme.color,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      localizations?.sortByName ?? 'Sort by Name',
-                      style: TextStyle(
-                        color: _sortBy == 'name'
-                            ? Colors.blue
-                            : Theme.of(context).colorScheme.onSurface,
-                        fontWeight: _sortBy == 'name' ? FontWeight.bold : null,
-                      ),
-                    ),
-                  ],
-                ),
+              AppContextMenuItem(
+                label: loc?.sortByName ?? 'Sort by Name',
+                icon: Icons.person_outline,
+                selected: _sortBy == 'name',
+                onPressed: () {
+                  setState(() => _sortBy = 'name');
+                  _filterPayments();
+                },
               ),
             ],
           ),
+          const SizedBox(width: 4),
         ],
       ),
       body: Column(
         children: [
-          // Summary Card
-          Container(
-            margin: const EdgeInsets.all(10),
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.orange.shade400, Colors.orange.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.orange.withValues(alpha: 0.3),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      localizations?.totalPending ?? 'Total Pending',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '₹${_formatCurrency(_totalPendingAmount)}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
+                _SummaryTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: loc?.total ?? 'Total',
+                  value: '₹${_formatCurrency(_totalAmount)}',
                 ),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.receipt_long,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${_filteredPayments.length} ${localizations?.bills ?? 'Bills'}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(width: 8),
+                _SummaryTile(
+                  icon: Icons.check_circle_outline,
+                  label: loc?.collected ?? 'Collected',
+                  value: '₹${_formatCurrency(_totalCollectedAmount)}',
+                  valueColor: scheme.primary,
+                ),
+                const SizedBox(width: 8),
+                _SummaryTile(
+                  icon: Icons.schedule_outlined,
+                  label: loc?.pending ?? 'Pending',
+                  value: '₹${_formatCurrency(_totalPendingAmount)}',
+                  valueColor: scheme.error,
                 ),
               ],
             ),
           ),
-
-          // --- Search Bar (Toggle Visibility) ---
           if (_showSearchBar)
-            Padding(
-              padding: const EdgeInsets.only(
-                left: 12.0,
-                right: 12.0,
-                bottom: 5.0,
+            Adaptive.searchField(
+              controller: _searchController,
+              query: _searchController.text,
+              hint: loc?.searchByNameMobile ?? 'Search by name, mobile...',
+            ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _statusChip(loc?.all ?? 'All', 'all'),
+                  const SizedBox(width: 8),
+                  _statusChip(loc?.partial ?? 'Partial', 'partial'),
+                  const SizedBox(width: 8),
+                  _statusChip(loc?.unpaid ?? 'Unpaid', 'unpaid'),
+                ],
               ),
-              child: Card(
-                child: TextField(
-                  controller: _searchController,
-                  style: context.bodyLargeText,
-                  decoration: InputDecoration(
-                    hintText:
-                        localizations?.searchByNameMobile ??
-                        'Search by name, mobile...',
-                    prefixIcon: const Icon(Icons.search),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear),
-                            onPressed: () {
-                              _searchController.clear();
-                            },
-                          )
-                        : null,
-                    filled: false,
-                    fillColor: Theme.of(context).inputDecorationTheme.fillColor,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12.0),
-                      borderSide: BorderSide.none,
+            ),
+          ),
+          Expanded(child: _buildList(loc, scheme)),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusChip(String label, String value) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: _statusFilter == value,
+      onSelected: (_) => _setFilter(value),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+    );
+  }
+
+  void _setFilter(String value) {
+    setState(() {
+      _statusFilter = _statusFilter == value && value != 'all' ? 'all' : value;
+    });
+    _filterPayments();
+  }
+
+  Widget _buildList(AppLocalizations? loc, ColorScheme scheme) {
+    if (_isLoading) {
+      return Center(child: Adaptive.progress());
+    }
+
+    if (_filteredPayments.isEmpty) {
+      final searching = _searchController.text.isNotEmpty;
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: ColoredBox(
+                  color: scheme.primaryContainer,
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(
+                      searching ? Icons.search_off : Icons.check_circle_outline,
+                      size: 20,
+                      color: scheme.onPrimaryContainer,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
               ),
-            ),
+              const SizedBox(height: 12),
+              Text(
+                searching
+                    ? (loc?.noResultsFound ?? 'No results found')
+                    : (loc?.noPendingPayments ?? 'No pending payments'),
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
-          // Pending Payments List
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredPayments.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 80,
-                          color: Colors.green.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _searchQuery.isEmpty
-                              ? (localizations?.noPendingPayments ??
-                                    'No pending payments')
-                              : (localizations?.noResultsFound ??
-                                    'No results found'),
-                          style: context.subtitleMedium?.copyWith(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 32),
+      children: [
+        Adaptive.fullWidthGroup(
+          context: context,
+          children: [
+            for (final payment in _filteredPayments)
+              _PaymentTile(
+                payment: payment,
+                pendingLabel: loc?.pending ?? 'Pending',
+                paidLabel: loc?.paid ?? 'Paid',
+                onTap: () => _navigateToBillDetails(payment),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: ColoredBox(
+                  color: scheme.primaryContainer,
+                  child: SizedBox(
+                    width: 36,
+                    height: 36,
+                    child: Icon(
+                      icon,
+                      size: 20,
+                      color: scheme.onPrimaryContainer,
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    itemCount: _filteredPayments.length,
-                    itemBuilder: (context, index) {
-                      final payment = _filteredPayments[index];
-                      final amountRemaining = payment['amountRemaining'] as int;
-                      final totalAmount = payment['totalAmount'] as int;
-                      final amountPaid = payment['amountPaid'] as int;
-                      final percentage = totalAmount > 0
-                          ? (amountPaid / totalAmount * 100).toInt()
-                          : 0;
-
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: Colors.orange.withValues(alpha: 0.3),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: InkWell(
-                          onTap: () => _navigateToBillDetails(payment),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            payment['customerName'],
-                                            style: context.titleLarge,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              if (payment['customerMobile'] !=
-                                                      null &&
-                                                  payment['customerMobile']
-                                                      .toString()
-                                                      .isNotEmpty) ...[
-                                                Icon(
-                                                  Icons.phone,
-                                                  size: 12,
-                                                  color: context
-                                                      .secondaryTextColor,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  payment['customerMobile'],
-                                                  style: context.subtitleMedium
-                                                      ?.copyWith(fontSize: 12),
-                                                ),
-                                              ],
-                                              if (payment['customerVehicle'] !=
-                                                      null &&
-                                                  payment['customerVehicle']
-                                                      .toString()
-                                                      .isNotEmpty) ...[
-                                                const SizedBox(width: 12),
-                                                Icon(
-                                                  Icons.directions_car,
-                                                  size: 12,
-                                                  color: context
-                                                      .secondaryTextColor,
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  payment['customerVehicle'],
-                                                  style: context.subtitleMedium
-                                                      ?.copyWith(fontSize: 12),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: Colors.orange,
-                                          width: 1.5,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        '₹${_formatCurrency(amountRemaining)}',
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.orange,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          localizations?.billDate ??
-                                              'Bill Date',
-                                          style: context.subtitleMedium
-                                              ?.copyWith(fontSize: 11),
-                                        ),
-                                        Text(
-                                          payment['billDate'],
-                                          style: context.bodySmallText
-                                              ?.copyWith(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          localizations?.totalAmount ??
-                                              'Total Amount',
-                                          style: context.subtitleSmall
-                                              ?.copyWith(fontSize: 11),
-                                        ),
-                                        Text(
-                                          '₹$totalAmount',
-                                          style: context.bodySmallText
-                                              ?.copyWith(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          localizations?.paid ?? 'Paid',
-                                          style: context.subtitleMedium
-                                              ?.copyWith(fontSize: 11),
-                                        ),
-                                        Text(
-                                          '₹$amountPaid',
-                                          style: const TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.green,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                                // Payment Progress Bar
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          localizations?.paymentProgress ??
-                                              'Payment Progress',
-                                          style: context.subtitleMedium
-                                              ?.copyWith(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                        ),
-                                        Text(
-                                          '$percentage%',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.blue[700],
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 6),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: LinearProgressIndicator(
-                                        value: percentage / 100,
-                                        backgroundColor: isDark
-                                            ? Colors.grey[700]
-                                            : Colors.grey[300],
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              percentage < 30
-                                                  ? Colors.red
-                                                  : percentage < 70
-                                                  ? Colors.orange
-                                                  : Colors.green,
-                                            ),
-                                        minHeight: 6,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    },
                   ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor ?? scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentTile extends StatelessWidget {
+  const _PaymentTile({
+    required this.payment,
+    required this.pendingLabel,
+    required this.paidLabel,
+    required this.onTap,
+  });
+
+  final Map<String, dynamic> payment;
+  final String pendingLabel;
+  final String paidLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final remaining = payment['amountRemaining'] as int;
+    final total = payment['totalAmount'] as int;
+    final paid = payment['amountPaid'] as int;
+    final mobile = payment['customerMobile']?.toString() ?? '';
+    final vehicle = payment['customerVehicle']?.toString() ?? '';
+
+    final details = <String>[
+      payment['billDate']?.toString() ?? '',
+      '₹$total',
+      '$paidLabel ₹$paid',
+      if (mobile.isNotEmpty && mobile != 'N/A') mobile,
+      if (vehicle.isNotEmpty) vehicle,
+    ];
+
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
+      minVerticalPadding: 4,
+      onTap: onTap,
+      leading: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: ColoredBox(
+          color: scheme.primaryContainer,
+          child: SizedBox(
+            width: 36,
+            height: 36,
+            child: Icon(
+              Icons.person_outline,
+              size: 20,
+              color: scheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+      ),
+      title: Text(
+        payment['customerName'],
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
+      ),
+      subtitle: Text(
+        details.join('  ·  '),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                pendingLabel,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: scheme.error,
+                ),
+              ),
+              Text(
+                '₹$remaining',
+                style: TextStyle(fontSize: 11, color: scheme.error),
+              ),
+            ],
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 18,
+            color: scheme.onSurfaceVariant,
           ),
         ],
       ),

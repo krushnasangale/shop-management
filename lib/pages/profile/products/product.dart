@@ -6,9 +6,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/product_image_preview_page.dart';
 import 'package:flashbill/services/image_upload_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -474,12 +477,13 @@ class _ProductTile extends StatelessWidget {
         color: scheme.onPrimaryContainer,
       ),
     );
+    final hasImage = product.imageUrl != null && product.imageUrl!.isNotEmpty;
     final avatar = ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: SizedBox(
         width: 36,
         height: 36,
-        child: product.imageUrl != null
+        child: hasImage
             ? CachedNetworkImage(
                 imageUrl: product.imageUrl!,
                 fit: BoxFit.cover,
@@ -495,83 +499,106 @@ class _ProductTile extends StatelessWidget {
       ),
     );
 
-    if (Adaptive.isCupertino) {
-      return CupertinoListTile(
-        padding: const EdgeInsets.fromLTRB(16, 6, 12, 6),
-        leading: avatar,
-        title: Text(
-          product.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: nameStyle,
+    void openPreview() {
+      AppNavigator.push(
+        context,
+        ProductImagePreviewPage(
+          imageUrl: product.imageUrl!,
+          productName: product.name,
         ),
-        trailing: CupertinoButton(
-          padding: const EdgeInsets.only(right: 4),
-          onPressed: () => _showCupertinoActions(context),
-          child: const Icon(CupertinoIcons.ellipsis),
-        ),
-        onTap: onEdit,
       );
     }
 
-    return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
-      minVerticalPadding: 4,
-      leading: avatar,
-      title: Text(
-        product.name,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: nameStyle,
+    final imageButton = Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: hasImage ? openPreview : onEdit,
+        borderRadius: BorderRadius.circular(8),
+        child: avatar,
       ),
-      trailing: PopupMenuButton<String>(
-        padding: const EdgeInsets.all(8),
-        onSelected: (value) {
-          if (value == 'edit') onEdit();
-          if (value == 'delete') onDelete();
-        },
-        itemBuilder: (context) => [
-          PopupMenuItem(value: 'edit', child: Text(editLabel)),
-          PopupMenuItem(value: 'delete', child: Text(deleteLabel)),
-        ],
-      ),
-      onTap: onEdit,
     );
-  }
 
-  Future<void> _showCupertinoActions(BuildContext context) async {
-    await showCupertinoModalPopup<void>(
-      context: context,
-      builder: (sheetContext) {
-        return CupertinoActionSheet(
-          title: Text(product.name),
-          actions: [
-            CupertinoActionSheetAction(
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                onEdit();
-              },
-              child: Text(editLabel),
+    final name = Text(
+      product.name,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: nameStyle,
+    );
+
+    if (Adaptive.isCupertino) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 6, 4, 6),
+        child: Row(
+          children: [
+            GestureDetector(
+              onTap: hasImage ? openPreview : onEdit,
+              child: avatar,
             ),
-            CupertinoActionSheetAction(
-              isDestructiveAction: true,
-              onPressed: () {
-                Navigator.pop(sheetContext);
-                onDelete();
-              },
-              child: Text(deleteLabel),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: onEdit,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: name,
+                ),
+              ),
+            ),
+            AppContextMenu.iconButton(
+              width: 168,
+              items: () => [
+                AppContextMenuItem(
+                  label: editLabel,
+                  icon: CupertinoIcons.pencil,
+                  onPressed: onEdit,
+                ),
+                AppContextMenuItem(
+                  label: deleteLabel,
+                  icon: CupertinoIcons.delete,
+                  onPressed: onDelete,
+                  destructive: true,
+                ),
+              ],
             ),
           ],
-          cancelButton: CupertinoActionSheetAction(
-            onPressed: () => Navigator.pop(sheetContext),
-            child: Text(
-              AppLocalizations.of(sheetContext)?.cancel ?? 'Cancel',
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 4, 2),
+      child: Row(
+        children: [
+          imageButton,
+          Expanded(
+            child: ListTile(
+              dense: true,
+              visualDensity: VisualDensity.compact,
+              contentPadding: const EdgeInsets.fromLTRB(12, 0, 0, 0),
+              minVerticalPadding: 4,
+              title: name,
+              onTap: onEdit,
+              trailing: AppContextMenu.iconButton(
+                width: 168,
+                items: () => [
+                  AppContextMenuItem(
+                    label: editLabel,
+                    icon: CupertinoIcons.pencil,
+                    onPressed: onEdit,
+                  ),
+                  AppContextMenuItem(
+                    label: deleteLabel,
+                    icon: CupertinoIcons.delete,
+                    onPressed: onDelete,
+                    destructive: true,
+                  ),
+                ],
+              ),
             ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
@@ -711,8 +738,7 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                           child: const Icon(Icons.camera_alt_outlined),
                         ),
                         title: Text(
-                          AppLocalizations.of(sheetContext)?.camera ??
-                              'Camera',
+                          AppLocalizations.of(sheetContext)?.camera ?? 'Camera',
                         ),
                         subtitle: const Text('Take a photo'),
                         trailing: const Icon(Icons.chevron_right),
