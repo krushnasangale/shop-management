@@ -14,6 +14,9 @@ import 'package:flashbill/pages/products/tabs/purchase_history_tab.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/image_upload_service.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/pages/product_image_preview_page.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
 
 class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
@@ -175,9 +178,14 @@ class _AvailableProductDetailScreenState
           final buyingPrice = (item['buyingPrice'] as num?)?.toDouble() ?? 0.0;
           final total = quantity * buyingPrice;
 
-          // Add with all required fields for display
+          // Add with all required fields for display.
+          // `id` / `purchaseId` point at the parent purchase entry so the
+          // history row can open PurchaseEntryDetails.
+          final purchaseId = (item['purchaseId'] ?? '').toString();
           history.add({
-            'id': doc.id,
+            'id': purchaseId.isNotEmpty ? purchaseId : doc.id,
+            'purchaseId': purchaseId,
+            'productItemId': doc.id,
             'productName': item['productName'],
             'supplierName': item['supplierName'] ?? 'Unknown',
             'date': item['date'] ?? item['purchaseDate'] ?? '',
@@ -186,6 +194,7 @@ class _AvailableProductDetailScreenState
             'sellingPrice': (item['sellingPrice'] as num?)?.toDouble() ?? 0.0,
             'unit': item['unit'] ?? 'units',
             'total': total,
+            'paymentMethod': item['paymentMethod'] ?? 'N/A',
             'minLimit': item['minLimit'] ?? 0,
             'batchId': item['batchId'] ?? doc.id,
           });
@@ -298,15 +307,30 @@ class _AvailableProductDetailScreenState
           for (var productEntry in productsMap.entries) {
             final product = productEntry.value as Map<String, dynamic>;
 
-            // Match by product name
+            // Match by product name. Keep full bill fields so the row can
+            // open ViewBillDetailsScreen without a second fetch.
             if (product['productName'] == widget.product.productName) {
               history.add({
                 'id': billDoc.id,
                 'billId': billDoc.id,
                 'date': billData['billDate'] ?? 'N/A',
+                'billDate': billData['billDate'] ?? 'N/A',
                 'timestamp': billData['timestamp'] ?? '',
                 'customerName': billData['customerName'] ?? 'Unknown',
-                'customerMobile': billData['customerMobile'] ?? '',
+                'customerMobile': billData['customerMobile'] ?? 'N/A',
+                'customerVehicle': billData['customerVehicle'],
+                'totalAmount': billData['totalAmount'] ?? 0,
+                'totalAmountPaid': billData['totalAmountPaid'] ?? false,
+                'amountPaid': billData['amountPaid'] ?? 0,
+                'amountRemaining':
+                    billData['amountRemaining'] ?? billData['totalAmount'] ?? 0,
+                'products': billData['products'],
+                'paymentMethod': billData['paymentMethod'] ?? 'cash',
+                'nextPaymentDate': billData['nextPaymentDate'],
+                'previousDueAmount': billData['previousDueAmount'] ?? 0,
+                'previousPaidAmount': billData['previousPaidAmount'] ?? 0,
+                'previousDueDescription':
+                    billData['previousDueDescription'] ?? '',
                 'quantity': product['quantity'] ?? 0,
                 'sellingPrice': product['price'] ?? 0,
                 'total': product['total'] ?? 0,
@@ -574,9 +598,7 @@ class _AvailableProductDetailScreenState
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(
-                  '${AppLocalizations.of(context)!.error}: $e',
-                ),
+                content: Text('${AppLocalizations.of(context)!.error}: $e'),
                 backgroundColor: Colors.red,
               ),
             );
@@ -646,9 +668,7 @@ class _AvailableProductDetailScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              AppLocalizations.of(context)!.noBatchesToShare,
-            ),
+            content: Text(AppLocalizations.of(context)!.noBatchesToShare),
             backgroundColor: Colors.orange,
           ),
         );
@@ -1079,6 +1099,21 @@ class _AvailableProductDetailScreenState
   }
 
   // --- UI BUILDERS ---
+  /// Section headings across the info tab: small, uppercase-weight labels
+  /// matching the purchases and bills screens.
+  TextStyle _sectionLabelStyle(BuildContext context) => TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.6,
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
+  );
+
+  ButtonStyle get _denseIconButtonStyle => IconButton.styleFrom(
+    minimumSize: const Size(32, 32),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    iconSize: 18,
+  );
+
   Widget _buildDetailRow(
     BuildContext context,
     String title,
@@ -1086,14 +1121,14 @@ class _AvailableProductDetailScreenState
     IconData? icon,
     Color? valueColor,
   }) {
-    // ... (implementation remains the same) ...
+    final scheme = Theme.of(context).colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
           if (icon != null) ...[
-            Icon(icon, color: context.secondaryTextColor, size: 20),
+            Icon(icon, color: scheme.onSurfaceVariant, size: 18),
             const SizedBox(width: 8),
           ],
           Expanded(
@@ -1103,17 +1138,17 @@ class _AvailableProductDetailScreenState
                 Text(
                   title,
                   style: TextStyle(
-                    color: context.secondaryTextColor,
-                    fontSize: 13,
+                    color: scheme.onSurfaceVariant,
+                    fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
                   style: TextStyle(
-                    color: valueColor ?? context.primaryTextColor,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
+                    color: valueColor ?? scheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
                   ),
                 ),
               ],
@@ -1128,7 +1163,8 @@ class _AvailableProductDetailScreenState
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
-    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF171C22) : Colors.white;
     final totalPotentialRevenue = this.totalPotentialRevenue;
     final totalPotentialProfit = this.totalPotentialProfit;
     final profitMargin = this.profitMargin;
@@ -1157,127 +1193,48 @@ class _AvailableProductDetailScreenState
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
         title: Text(displayedProductName),
         centerTitle: false,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(68),
-          child: Container(
-            color: Theme.of(context).scaffoldBackgroundColor,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: Theme.of(context).brightness == Brightness.dark
-                      ? [Colors.grey[850]!, Colors.grey[800]!]
-                      : [Colors.white, Colors.grey[50]!],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-                border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey[700]!
-                      : Colors.grey[200]!,
-                  width: 1.5,
-                ),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                padding: const EdgeInsets.all(4),
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  gradient: LinearGradient(
-                    colors: [Colors.blue.shade500, Colors.blue.shade600],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withValues(alpha: 0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                labelColor: Colors.white,
-                unselectedLabelColor:
-                    Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey[400]
-                    : Colors.grey[600],
-                labelStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                tabs: [
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.info_outline, size: 18),
-                        const SizedBox(width: 3),
-                        Text(localizations.info),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.history, size: 16),
-                        const SizedBox(width: 2),
-                        Flexible(
-                          child: Text(
-                            localizations.purchases,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.receipt_long, size: 16),
-                        const SizedBox(width: 2),
-                        Flexible(
-                          child: Text(
-                            localizations.sales,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.info_outline, size: 18),
+                  const SizedBox(width: 4),
+                  Text(localizations.info),
                 ],
               ),
             ),
-          ),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.shopping_cart_outlined, size: 18),
+                  const SizedBox(width: 4),
+                  Text(localizations.purchases),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.point_of_sale_outlined, size: 18),
+                  const SizedBox(width: 4),
+                  Text(localizations.sales),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete),
+            icon: const Icon(Icons.delete_outline),
             onPressed: () {
               bool isDeleting = false;
               // Confirm deletion
@@ -1495,13 +1452,12 @@ class _AvailableProductDetailScreenState
     Map<String, int> totalQuantityByUnit,
   ) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.only(right: 12, left: 12, top: 0, bottom: 12),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         children: [
           // Product Header Card
-          Card(
+          Material(
             color: cardColor,
-            margin: const EdgeInsets.only(bottom: 12.0),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -1512,16 +1468,10 @@ class _AvailableProductDetailScreenState
                     width: 160,
                     height: 160,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                      border: Border.all(color: Colors.grey.shade200, width: 1),
                     ),
                     child: Stack(
                       children: [
@@ -1529,62 +1479,16 @@ class _AvailableProductDetailScreenState
                         Positioned.fill(
                           child: InkWell(
                             onTap: () {
-                              showDialog(
-                                context: context,
-                                builder: (BuildContext context) {
-                                  return Dialog(
-                                    backgroundColor: Colors.transparent,
-                                    insetPadding: const EdgeInsets.all(10),
-                                    child: InteractiveViewer(
-                                      panEnabled: true,
-                                      minScale: 0.5,
-                                      maxScale: 4.0,
-                                      child:
-                                          _currentImageUrl != null &&
-                                              _currentImageUrl!.isNotEmpty
-                                          ? CachedNetworkImage(
-                                              imageUrl: _currentImageUrl!,
-                                              fit: BoxFit.contain,
-                                              placeholder: (context, url) =>
-                                                  Container(
-                                                    height: 300,
-                                                    width: 300,
-                                                    color: Colors.grey.shade100,
-                                                    child: const Center(
-                                                      child:
-                                                          CircularProgressIndicator(),
-                                                    ),
-                                                  ),
-                                              errorWidget:
-                                                  (
-                                                    context,
-                                                    url,
-                                                    error,
-                                                  ) => Container(
-                                                    height: 300,
-                                                    width: 300,
-                                                    color: Colors.grey.shade100,
-                                                    child: const Icon(
-                                                      Icons.inventory_2,
-                                                      size: 100,
-                                                      color: Colors.grey,
-                                                    ),
-                                                  ),
-                                            )
-                                          : Container(
-                                              height: 300,
-                                              width: 300,
-                                              color: Colors.grey.shade100,
-                                              child: const Icon(
-                                                Icons.inventory_2,
-                                                size: 100,
-                                                color: Colors.grey,
-                                              ),
-                                            ),
-                                    ),
-                                  );
-                                },
-                              );
+                              if (_currentImageUrl != null &&
+                                  _currentImageUrl!.isNotEmpty) {
+                                AppNavigator.push(
+                                  context,
+                                  ProductImagePreviewPage(
+                                    imageUrl: _currentImageUrl!,
+                                    productName: widget.product.productName,
+                                  ),
+                                );
+                              }
                             },
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(11),
@@ -1645,62 +1549,16 @@ class _AvailableProductDetailScreenState
                                 color: Colors.white,
                               ),
                               onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return Dialog(
-                                      backgroundColor: Colors.transparent,
-                                      insetPadding: const EdgeInsets.all(10),
-                                      child: InteractiveViewer(
-                                        panEnabled: true,
-                                        minScale: 0.5,
-                                        maxScale: 4.0,
-                                        child:
-                                            _currentImageUrl != null &&
-                                                _currentImageUrl!.isNotEmpty
-                                            ? CachedNetworkImage(
-                                                imageUrl: _currentImageUrl!,
-                                                fit: BoxFit.contain,
-                                                placeholder: (context, url) =>
-                                                    Container(
-                                                      height: 300,
-                                                      width: 300,
-                                                      color:
-                                                          Colors.grey.shade100,
-                                                      child: const Center(
-                                                        child:
-                                                            CircularProgressIndicator(),
-                                                      ),
-                                                    ),
-                                                errorWidget:
-                                                    (context, url, error) =>
-                                                        Container(
-                                                          height: 300,
-                                                          width: 300,
-                                                          color: Colors
-                                                              .grey
-                                                              .shade100,
-                                                          child: const Icon(
-                                                            Icons.inventory_2,
-                                                            size: 100,
-                                                            color: Colors.grey,
-                                                          ),
-                                                        ),
-                                              )
-                                            : Container(
-                                                height: 300,
-                                                width: 300,
-                                                color: Colors.grey.shade100,
-                                                child: const Icon(
-                                                  Icons.inventory_2,
-                                                  size: 100,
-                                                  color: Colors.grey,
-                                                ),
-                                              ),
-                                      ),
-                                    );
-                                  },
-                                );
+                                if (_currentImageUrl != null &&
+                                    _currentImageUrl!.isNotEmpty) {
+                                  AppNavigator.push(
+                                    context,
+                                    ProductImagePreviewPage(
+                                      imageUrl: _currentImageUrl!,
+                                      productName: widget.product.productName,
+                                    ),
+                                  );
+                                }
                               },
                               tooltip: 'View full image',
                             ),
@@ -1721,12 +1579,20 @@ class _AvailableProductDetailScreenState
                         Text(
                           widget.product.productName[0].toUpperCase() +
                               widget.product.productName.substring(1),
-                          style: context.headingMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium
+                              ?.copyWith(fontWeight: FontWeight.w700),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${localizations.totalQuantity}: $totalStockQty',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
 
                         const SizedBox(height: 16),
@@ -1734,23 +1600,14 @@ class _AvailableProductDetailScreenState
                         // Action Buttons
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton.icon(
+                          child: OutlinedButton.icon(
+                            style: Adaptive.compactOutlined,
                             onPressed: () => _shareProduct(
                               widget.product.productName,
                               _currentImageUrl,
                             ),
                             icon: const Icon(Icons.share, size: 16),
                             label: Text(AppLocalizations.of(context)!.share),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade50,
-                              foregroundColor: Colors.blue.shade700,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: BorderSide(color: Colors.blue.shade200),
-                              ),
-                            ),
                           ),
                         ),
 
@@ -1759,19 +1616,16 @@ class _AvailableProductDetailScreenState
                         // Edit Image Button
                         SizedBox(
                           width: double.infinity,
-                          child: ElevatedButton.icon(
+                          child: FilledButton.icon(
+                            style: Adaptive.compactFilled.copyWith(
+                              minimumSize: const WidgetStatePropertyAll(
+                                Size.fromHeight(42),
+                              ),
+                            ),
                             onPressed: _selectImage,
                             icon: const Icon(Icons.camera_alt, size: 16),
-                            label: Text(AppLocalizations.of(context)!.editImage),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade50,
-                              foregroundColor: Colors.orange.shade700,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                side: BorderSide(color: Colors.orange.shade200),
-                              ),
+                            label: Text(
+                              AppLocalizations.of(context)!.editImage,
                             ),
                           ),
                         ),
@@ -1782,10 +1636,11 @@ class _AvailableProductDetailScreenState
               ),
             ),
           ),
+          const SizedBox(height: 8),
 
           // --- Total Quantity By Unit ---
           if (_allBatches.isNotEmpty)
-            Card(
+            Material(
               color: cardColor,
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
@@ -1795,49 +1650,23 @@ class _AvailableProductDetailScreenState
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.inventory_outlined,
-                              color: Colors.indigo,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              localizations.totalQuantity,
-                              style: context.bodyLargeText?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
+                        Text(
+                          localizations.totalQuantity,
+                          style: _sectionLabelStyle(context),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.purple.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Text(
-                            _allBatches
-                                .fold(
-                                  0,
-                                  (int sum, batch) => sum + batch.quantity,
-                                )
-                                .toString(),
-                            style: TextStyle(
-                              color: Colors.purple[700],
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
+                        Text(
+                          _allBatches
+                              .fold(0, (int sum, batch) => sum + batch.quantity)
+                              .toString(),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.primary,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
 
                     // Group by unit and show individual totals
                     ..._allBatches
@@ -1849,33 +1678,27 @@ class _AvailableProductDetailScreenState
                         .entries
                         .map(
                           (entry) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6.0),
+                            padding: const EdgeInsets.symmetric(vertical: 5.0),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   entry.key,
                                   style: TextStyle(
-                                    color: Colors.grey[600],
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                     fontSize: 13,
                                   ),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: Text(
-                                    entry.value.toString(),
-                                    style: TextStyle(
-                                      color: Colors.blue[700],
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
+                                Text(
+                                  entry.value.toString(),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 13,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                   ),
                                 ),
                               ],
@@ -1883,12 +1706,7 @@ class _AvailableProductDetailScreenState
                           ),
                         ),
 
-                    Divider(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[700]
-                          : Colors.grey[300],
-                      height: 12,
-                    ),
+                    const Divider(height: 20),
 
                     // Minimum Limit Section
                     Row(
@@ -1900,7 +1718,9 @@ class _AvailableProductDetailScreenState
                             Text(
                               localizations.minimumLimit,
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                                 fontSize: 12,
                               ),
                             ),
@@ -1930,24 +1750,14 @@ class _AvailableProductDetailScreenState
                                       ),
                                     ),
                                   )
-                                : Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Text(
-                                      _minLimitController.text,
-                                      style: TextStyle(
-                                        color: Colors.green[700],
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
+                                : Text(
+                                    _minLimitController.text,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurface,
                                     ),
                                   ),
                           ],
@@ -1955,8 +1765,10 @@ class _AvailableProductDetailScreenState
                         Row(
                           children: [
                             if (_editingMinLimit)
-                              GestureDetector(
-                                onTap: () {
+                              IconButton(
+                                style: _denseIconButtonStyle,
+                                icon: const Icon(Icons.close),
+                                onPressed: () {
                                   // Reload the original min limit
                                   int minLimit = 0;
                                   for (var batch in _allBatches) {
@@ -1971,22 +1783,16 @@ class _AvailableProductDetailScreenState
                                     _editingMinLimit = false;
                                   });
                                 },
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Icon(
-                                    Icons.close,
-                                    color: Colors.red[600],
-                                    size: 18,
-                                  ),
-                                ),
                               ),
-                            const SizedBox(width: 8),
-                            GestureDetector(
-                              onTap: () {
+                            const SizedBox(width: 4),
+                            IconButton(
+                              style: _denseIconButtonStyle,
+                              icon: Icon(
+                                _editingMinLimit
+                                    ? Icons.check
+                                    : Icons.edit_outlined,
+                              ),
+                              onPressed: () {
                                 if (_editingMinLimit) {
                                   // Save the new min limit
                                   final newMinLimit =
@@ -2064,18 +1870,6 @@ class _AvailableProductDetailScreenState
                                   });
                                 }
                               },
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Icon(
-                                  _editingMinLimit ? Icons.check : Icons.edit,
-                                  color: Colors.blue[600],
-                                  size: 18,
-                                ),
-                              ),
                             ),
                           ],
                         ),
@@ -2088,33 +1882,24 @@ class _AvailableProductDetailScreenState
           const SizedBox(height: 10),
 
           // --- 2. All Batches Card (Always show) ---
-          Card(
+          Material(
             color: cardColor,
             child: Padding(
               padding: const EdgeInsets.only(
-                right: 12.0,
-                left: 12.0,
+                right: 16.0,
+                left: 16.0,
                 top: 12.0,
                 bottom: 0,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header with title
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _allBatches.length > 1
-                            ? localizations.allBatchesFifo
-                            : localizations.batchDetails,
-                        style: context.headingMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    _allBatches.length > 1
+                        ? localizations.allBatchesFifo
+                        : localizations.batchDetails,
+                    style: _sectionLabelStyle(context),
                   ),
-                  const SizedBox(height: 6),
 
                   if (_isLoadingBatches)
                     const Center(child: CircularProgressIndicator())
@@ -2130,474 +1915,336 @@ class _AvailableProductDetailScreenState
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _allBatches.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 6),
+                      separatorBuilder: (_, _) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final batch = _allBatches[index];
                         final isFirstBatch = index == 0;
                         final isLastBatch = index == _allBatches.length - 1;
                         final isExpanded = _expandedBatches[index] ?? false;
-                        final isDark =
-                            Theme.of(context).brightness == Brightness.dark;
+                        final scheme = Theme.of(context).colorScheme;
 
-                        return Container(
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.grey[800] : Colors.grey[50],
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                              color: isDark
-                                  ? Colors.grey[700]!
-                                  : Colors.grey[200]!,
-                              width: 0.5,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              // Batch Tile (Always visible)
-                              InkWell(
-                                onTap: () => setState(() {
-                                  _expandedBatches[index] = !isExpanded;
-                                }),
-                                borderRadius: const BorderRadius.vertical(
-                                  top: Radius.circular(10),
+                        return Column(
+                          children: [
+                            // Batch Tile (Always visible)
+                            InkWell(
+                              onTap: () => setState(() {
+                                _expandedBatches[index] = !isExpanded;
+                              }),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10.0,
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            // Batch label with FIFO indicator
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: isFirstBatch
-                                                        ? Colors.orange
-                                                              .withValues(
-                                                                alpha: 0.15,
-                                                              )
-                                                        : Colors.blue
-                                                              .withValues(
-                                                                alpha: 0.15,
-                                                              ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          6,
-                                                        ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          // Supplier name with FIFO indicator
+                                          Row(
+                                            children: [
+                                              Flexible(
+                                                child: Text(
+                                                  batch.supplierName,
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: scheme.onSurface,
                                                   ),
-                                                  child: Text(
-                                                    isFirstBatch
-                                                        ? localizations
-                                                              .oldestSellFirst
-                                                        : isLastBatch
-                                                        ? localizations.newest
-                                                        : '${localizations.batchNumber} ${index + 1}',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: isFirstBatch
-                                                          ? Colors.orange[700]
-                                                          : Colors.blue[700],
-                                                    ),
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                isFirstBatch
+                                                    ? localizations
+                                                          .oldestSellFirst
+                                                    : isLastBatch
+                                                    ? localizations.newest
+                                                    : '${localizations.batchNumber} ${index + 1}',
+                                                style: TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isFirstBatch
+                                                      ? Colors.orange[700]
+                                                      : scheme.onSurfaceVariant,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
+
+                                          // Quick info: Date and Quantity
+                                          Text(
+                                            '${batch.purchaseDate}  ·  ${batch.quantity} ${batch.unit}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Text(
+                                      '₹${batch.sellingPrice.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: scheme.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      isExpanded
+                                          ? Icons.expand_less
+                                          : Icons.expand_more,
+                                      size: 20,
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                            // Expanded content
+                            if (isExpanded) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Row 1: Quantity and Profit/Unit
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Quantity
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        localizations.quantity,
+                                                        style: TextStyle(
+                                                          color: scheme
+                                                              .onSurfaceVariant,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              '${batch.quantity} ${batch.unit}',
+                                                              style: TextStyle(
+                                                                color: scheme
+                                                                    .onSurface,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                fontSize: 14,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          IconButton(
+                                                            style:
+                                                                _denseIconButtonStyle,
+                                                            icon: const Icon(
+                                                              Icons
+                                                                  .edit_outlined,
+                                                            ),
+                                                            onPressed: () =>
+                                                                _showEditQuantityDialog(
+                                                                  batch,
+                                                                ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
                                                   ),
                                                 ),
                                               ],
                                             ),
-                                            const SizedBox(height: 8),
-
-                                            // Supplier name
-                                            Text(
-                                              batch.supplierName,
-                                              style: context.bodyLargeText
-                                                  ?.copyWith(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 13,
-                                                  ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            const SizedBox(height: 2),
-
-                                            // Quick info: Date and Quantity
-                                            Text(
-                                              '${batch.purchaseDate} • ${batch.quantity} ${batch.unit}',
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.grey[500],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.end,
-                                        children: [
-                                          Text(
-                                            '₹${batch.sellingPrice.toStringAsFixed(0)}',
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.green[600],
-                                            ),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Icon(
-                                            isExpanded
-                                                ? Icons.expand_less
-                                                : Icons.expand_more,
-                                            color: Colors.blue[600],
+                                          const SizedBox(width: 12),
+                                          // Profit/Unit
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        localizations
+                                                            .profitPerUnit,
+                                                        style: TextStyle(
+                                                          color: scheme
+                                                              .onSurfaceVariant,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        '₹${batch.profitMargin.toStringAsFixed(2)}',
+                                                        style: TextStyle(
+                                                          color:
+                                                              batch.profitMargin >=
+                                                                  0
+                                                              ? Colors
+                                                                    .green[400]
+                                                              : Colors.red[400],
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ],
                                       ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    // Row 2: Buying Price and Selling Price
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Buying Price
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        localizations
+                                                            .buyingPrice,
+                                                        style: TextStyle(
+                                                          color: scheme
+                                                              .onSurfaceVariant,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        '₹${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                        style: TextStyle(
+                                                          color:
+                                                              Colors.red[400],
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                          fontSize: 14,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          // Selling Price
+                                          Expanded(
+                                            child: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        localizations
+                                                            .sellingPrice,
+                                                        style: TextStyle(
+                                                          color: scheme
+                                                              .onSurfaceVariant,
+                                                          fontSize: 11,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: Text(
+                                                              '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                              style: TextStyle(
+                                                                color: Colors
+                                                                    .green[600],
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w700,
+                                                                fontSize: 14,
+                                                              ),
+                                                              overflow:
+                                                                  TextOverflow
+                                                                      .ellipsis,
+                                                            ),
+                                                          ),
+                                                          IconButton(
+                                                            style:
+                                                                _denseIconButtonStyle,
+                                                            icon: const Icon(
+                                                              Icons
+                                                                  .edit_outlined,
+                                                            ),
+                                                            onPressed: () =>
+                                                                _showEditSellingPriceDialog(
+                                                                  batch,
+                                                                ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (batch.expiryDate != null &&
+                                        batch.expiryDate!.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      _buildDetailRow(
+                                        context,
+                                        localizations.expiryDate,
+                                        batch.expiryDate!,
+                                        icon: Icons.calendar_today,
+                                        valueColor: Colors.orange[700],
+                                      ),
                                     ],
-                                  ),
+                                  ],
                                 ),
                               ),
-
-                              // Expanded content
-                              if (isExpanded) ...[
-                                Divider(
-                                  color: isDark
-                                      ? Colors.grey[700]
-                                      : Colors.grey[300],
-                                  height: 1,
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Row 1: Quantity and Profit/Unit
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 4.0,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            // Quantity
-                                            Expanded(
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.inventory_2_outlined,
-                                                    color: Colors.grey,
-                                                    size: 20,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          localizations
-                                                              .quantity,
-                                                          style: TextStyle(
-                                                            color: Colors.grey,
-                                                            fontSize: 13,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 2,
-                                                        ),
-                                                        GestureDetector(
-                                                          onTap: () =>
-                                                              _showEditQuantityDialog(
-                                                                batch,
-                                                              ),
-                                                          child: Container(
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      12,
-                                                                  vertical: 4,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.blue
-                                                                  .withValues(
-                                                                    alpha: 0.1,
-                                                                  ),
-                                                              border: Border.all(
-                                                                color:
-                                                                    Colors.blue,
-                                                                width: 1.5,
-                                                              ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    6,
-                                                                  ),
-                                                            ),
-                                                            child: Row(
-                                                              mainAxisSize:
-                                                                  MainAxisSize
-                                                                      .min,
-                                                              children: [
-                                                                Expanded(
-                                                                  child: Text(
-                                                                    '${batch.quantity} ${batch.unit}',
-                                                                    style: TextStyle(
-                                                                      color: Colors
-                                                                          .blue[400],
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                      fontSize:
-                                                                          16,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 8,
-                                                                ),
-                                                                Icon(
-                                                                  Icons.edit,
-                                                                  color: Colors
-                                                                      .blue,
-                                                                  size: 20,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            // Profit/Unit
-                                            Expanded(
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.trending_up,
-                                                    color: Colors.grey,
-                                                    size: 20,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          localizations
-                                                              .profitPerUnit,
-                                                          style: TextStyle(
-                                                            color: Colors.grey,
-                                                            fontSize: 13,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 2,
-                                                        ),
-                                                        Text(
-                                                          '₹${batch.profitMargin.toStringAsFixed(2)}',
-                                                          style: TextStyle(
-                                                            color:
-                                                                batch.profitMargin >=
-                                                                    0
-                                                                ? Colors
-                                                                      .green[400]
-                                                                : Colors
-                                                                      .red[400],
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      // Row 2: Buying Price and Selling Price
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 4.0,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            // Buying Price
-                                            Expanded(
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.shopping_cart,
-                                                    color: Colors.grey,
-                                                    size: 20,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          localizations
-                                                              .buyingPrice,
-                                                          style: TextStyle(
-                                                            color: Colors.grey,
-                                                            fontSize: 13,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 2,
-                                                        ),
-                                                        Text(
-                                                          '₹${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
-                                                          style: TextStyle(
-                                                            color:
-                                                                Colors.red[400],
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            fontSize: 14,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            // Selling Price
-                                            Expanded(
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.sell_outlined,
-                                                    color: Colors.grey,
-                                                    size: 20,
-                                                  ),
-                                                  const SizedBox(width: 8),
-                                                  Expanded(
-                                                    child: Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Text(
-                                                          localizations
-                                                              .sellingPrice,
-                                                          style: TextStyle(
-                                                            color: Colors.grey,
-                                                            fontSize: 13,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(
-                                                          height: 2,
-                                                        ),
-                                                        GestureDetector(
-                                                          onTap: () =>
-                                                              _showEditSellingPriceDialog(
-                                                                batch,
-                                                              ),
-                                                          child: Container(
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      12,
-                                                                  vertical: 4,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color: Colors.blue
-                                                                  .withValues(
-                                                                    alpha: 0.1,
-                                                                  ),
-                                                              border: Border.all(
-                                                                color:
-                                                                    Colors.blue,
-                                                                width: 1.5,
-                                                              ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    6,
-                                                                  ),
-                                                            ),
-                                                            child: Row(
-                                                              mainAxisSize:
-                                                                  MainAxisSize
-                                                                      .min,
-                                                              children: [
-                                                                Flexible(
-                                                                  child: Text(
-                                                                    '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
-                                                                    style: TextStyle(
-                                                                      color: Colors
-                                                                          .green[400],
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                      fontSize:
-                                                                          14,
-                                                                    ),
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                  ),
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 8,
-                                                                ),
-                                                                Icon(
-                                                                  Icons.edit,
-                                                                  color: Colors
-                                                                      .blue,
-                                                                  size: 18,
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      if (batch.expiryDate != null &&
-                                          batch.expiryDate!.isNotEmpty) ...[
-                                        const SizedBox(height: 4),
-                                        _buildDetailRow(
-                                          context,
-                                          localizations.expiryDate,
-                                          batch.expiryDate!,
-                                          icon: Icons.calendar_today,
-                                          valueColor: Colors.orange[700],
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
                             ],
-                          ),
+                          ],
                         );
                       },
                     ),
@@ -2608,45 +2255,69 @@ class _AvailableProductDetailScreenState
           const SizedBox(height: 16),
 
           // --- 3. Financial Metrics Card (Current Stock) ---
-          Card(
+          Material(
             color: cardColor,
             child: Padding(
-              padding: const EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     localizations.financialMetricsCurrentStock,
-                    style: context.headingMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: _sectionLabelStyle(context),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 4),
 
                   _buildDetailRow(
                     context,
                     localizations.totalPotentialRevenue,
                     '₹${totalPotentialRevenue.toStringAsFixed(2)}',
-                    icon: Icons.trending_up,
-                    valueColor: Colors.green,
+                    valueColor: Colors.green[600],
                   ),
-                  Divider(),
+                  const Divider(height: 16),
 
                   _buildDetailRow(
                     context,
                     localizations.totalPotentialProfit,
                     '₹${totalPotentialProfit.toStringAsFixed(2)}',
-                    icon: Icons.paid_outlined,
-                    valueColor: Colors.blue,
+                    valueColor: Theme.of(context).colorScheme.primary,
                   ),
-                  Divider(),
+                  const Divider(height: 16),
 
                   _buildDetailRow(
                     context,
                     localizations.profitMarginPerUnit,
                     '${profitMargin.toStringAsFixed(1)}%',
-                    icon: Icons.percent,
-                    valueColor: profitMargin >= 0 ? Colors.green : Colors.red,
+                    valueColor: profitMargin >= 0
+                        ? Colors.green[600]
+                        : Colors.red,
+                  ),
+                  const Divider(height: 16),
+
+                  _buildDetailRow(
+                    context,
+                    localizations.totalAmount,
+                    '₹${totalInvestedAmount.toStringAsFixed(2)}',
+                  ),
+                  const Divider(height: 16),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildDetailRow(
+                          context,
+                          localizations.buyingPrice,
+                          '₹${avgBuyingPrice.toStringAsFixed(2)}',
+                        ),
+                      ),
+                      Expanded(
+                        child: _buildDetailRow(
+                          context,
+                          localizations.sellingPrice,
+                          '₹${avgSellingPrice.toStringAsFixed(2)}',
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

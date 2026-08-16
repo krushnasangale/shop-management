@@ -20,6 +20,8 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart'
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:image/image.dart' as img;
 import 'package:flashbill/utils/app_logger.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/pages/product_image_preview_page.dart';
 
 class AvailableProducts extends StatefulWidget {
   const AvailableProducts({super.key});
@@ -1246,72 +1248,12 @@ class _AvailableProductsState extends State<AvailableProducts> {
         children: [
           Column(
             children: [
-              // --- Search Bar (Toggle Visibility) ---
               if (_showSearchBar)
-                Padding(
-                  padding: const EdgeInsets.only(
-                    left: 12.0,
-                    right: 12.0,
-                    top: 5,
-                    bottom: 5.0,
-                  ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                          spreadRadius: 1,
-                        ),
-                        BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          blurRadius: 0,
-                          offset: const Offset(0, 0),
-                          spreadRadius: 1,
-                        ),
-                      ],
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.white,
-                          Colors.white.withValues(alpha: 0.95),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      style: context.bodyLargeText,
-                      decoration: InputDecoration(
-                        hintText: localizations!.searchProductOrSupplier,
-                        prefixIcon: const Icon(Icons.search),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear),
-                                onPressed: () {
-                                  _searchController.clear();
-                                },
-                              )
-                            : null,
-                        filled: false,
-                        fillColor: Theme.of(
-                          context,
-                        ).inputDecorationTheme.fillColor,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12.0),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                        ),
-                      ),
-                    ),
-                  ),
+                Adaptive.searchField(
+                  controller: _searchController,
+                  hint: localizations!.searchProductOrSupplier,
+                  query: _searchQuery,
                 ),
-
-              // --- Filter Chips ---
               if (!_showSearchBar) const SizedBox(height: 5),
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
@@ -1331,9 +1273,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
                   }).toList(),
                 ),
               ),
-
-              // --- Product List (Grouped by Name with Batch Details) ---
-              const SizedBox(height: 5),
+              const SizedBox(height: 10),
               Expanded(
                 child: _filteredProducts.isEmpty
                     ? Center(
@@ -1344,7 +1284,6 @@ class _AvailableProductsState extends State<AvailableProducts> {
                       )
                     : _buildGroupedProductList(context),
               ),
-              const SizedBox(height: 20),
             ],
           ),
           // Loading overlay for catalogue generation
@@ -1488,55 +1427,35 @@ class _AvailableProductsState extends State<AvailableProducts> {
   Widget _buildFilterChip(String key, String label) {
     final isSelected = _selectedFilter == key;
     final cardColor = Theme.of(context).cardTheme.color;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 0,
-            offset: const Offset(0, 0),
-            spreadRadius: 1,
-          ),
-        ],
-        gradient: LinearGradient(
-          colors: [Colors.white, Colors.white.withValues(alpha: 0.95)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+    return FilterChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        setState(() {
+          _selectedFilter = key;
+        });
+        _filterProducts();
+      },
+      elevation: 0,
+      pressElevation: 0,
+      shadowColor: Colors.transparent,
+      selectedShadowColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: cardColor,
+      selectedColor: Colors.blue.withValues(alpha: 0.2),
+      side: BorderSide(
+        color: isSelected ? Colors.blue : Colors.grey.withValues(alpha: 0.5),
+        width: 0.8,
       ),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        onSelected: (selected) {
-          setState(() {
-            _selectedFilter = key;
-          });
-          _filterProducts();
-        },
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: cardColor,
-        selectedColor: Colors.blue.withValues(alpha: 0.2),
-        side: BorderSide(
-          color: isSelected ? Colors.blue : Colors.grey.withValues(alpha: 0.5),
-          width: 0.8,
-        ),
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.blue : null,
-          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          fontSize: 12,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-        labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: -1),
-        visualDensity: const VisualDensity(horizontal: -2, vertical: -4),
-        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.blue : null,
+        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        fontSize: 14,
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: -1),
+      visualDensity: const VisualDensity(horizontal: -2, vertical: -4),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 
@@ -1631,8 +1550,6 @@ class _AvailableProductsState extends State<AvailableProducts> {
     final sortedProductNames = groupedByName.keys.toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
-    final cardColor = context.cardColor;
-
     // Limit products to currently loaded items
     final displayedProductNames = sortedProductNames
         .take(_currentlyLoadedItems)
@@ -1640,6 +1557,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     return ListView.builder(
       controller: _scrollController,
+      padding: const EdgeInsets.only(bottom: 16),
       itemCount: displayedProductNames.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= displayedProductNames.length) {
@@ -1716,339 +1634,263 @@ class _AvailableProductsState extends State<AvailableProducts> {
           }
         }
 
-        // Determine border color based on expiry status
-        Color borderColor = context.secondaryTextColor!.withValues(alpha: 0.1);
-        double borderWidth = 1.0;
+        // Determine accent for expiry status (left edge hint via divider color)
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+        final isLast = index == displayedProductNames.length - 1;
+        final hasImage =
+            firstBatch.imageUrl != null && firstBatch.imageUrl!.isNotEmpty;
 
-        if (hasExpired) {
-          borderColor = Colors.red;
-          borderWidth = 2.0;
-        } else if (expiringQuantity > 0) {
-          borderColor = Colors.orange;
-          borderWidth = 2.0;
-        }
-
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.0),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-                spreadRadius: 1,
-              ),
-              BoxShadow(
-                color: borderColor.withValues(alpha: 0.1),
-                blurRadius: 0,
-                offset: const Offset(0, 0),
-                spreadRadius: borderWidth,
-              ),
-            ],
-            gradient: LinearGradient(
-              colors: [
-                cardColor ?? Colors.white,
-                (cardColor ?? Colors.white).withValues(alpha: 0.95),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(16.0),
-            child: Stack(
-              children: [
-                InkWell(
-                  onTap: () {
-                    AppNavigator.push(
-                      context,
-                      AvailableProductDetailScreen(
-                        product: firstBatch,
-                        userId: _currentUserId,
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(16.0),
-                  splashColor: Colors.blue.withValues(alpha: 0.1),
-                  highlightColor: Colors.blue.withValues(alpha: 0.05),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
-                      children: [
-                        // Product Image (if available) - Left side
-                        if (firstBatch.imageUrl != null &&
-                            firstBatch.imageUrl!.isNotEmpty)
-                          Container(
-                            width: 48,
-                            height: 48,
-                            margin: const EdgeInsets.only(right: 12.0),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.1),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
+        return Material(
+          color: isDark ? const Color(0xFF171C22) : Colors.white,
+          child: Column(
+            children: [
+              InkWell(
+                onTap: () {
+                  AppNavigator.push(
+                    context,
+                    AvailableProductDetailScreen(
+                      product: firstBatch,
+                      userId: _currentUserId,
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 10.0,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: hasImage
+                            ? () => AppNavigator.push(
+                                context,
+                                ProductImagePreviewPage(
+                                  imageUrl: firstBatch.imageUrl!,
+                                  productName: productName,
                                 ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: CachedNetworkImage(
-                                imageUrl: firstBatch.imageUrl!,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Container(
-                                  color: Colors.grey.shade50,
-                                  child: Center(
-                                    child: SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Theme.of(context).primaryColor,
-                                            ),
+                              )
+                            : null,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: hasImage
+                              ? CachedNetworkImage(
+                                  imageUrl: firstBatch.imageUrl!,
+                                  width: 48,
+                                  height: 48,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => ColoredBox(
+                                    color: Colors.grey.shade100,
+                                    child: const Center(
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ),
-                                errorWidget: (context, url, error) => Container(
-                                  color: Colors.grey.shade100,
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    size: 24,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          )
-                        else
-                          Container(
-                            width: 48,
-                            height: 48,
-                            margin: const EdgeInsets.only(right: 12.0),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: Colors.blue.shade50,
-                              border: Border.all(
-                                color: Colors.blue.shade100,
-                                width: 1,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.inventory_2,
-                              color: Colors.blue.shade600,
-                              size: 24,
-                            ),
-                          ),
-
-                        // Product Details - Center
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Product Name with modern styling
-                              Text(
-                                productName[0].toUpperCase() +
-                                    productName.substring(1),
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
+                                  errorWidget: (context, url, error) =>
+                                      ColoredBox(
+                                        color: Colors.grey.shade100,
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          size: 22,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      ),
+                                )
+                              : ColoredBox(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primaryContainer,
+                                  child: SizedBox(
+                                    width: 48,
+                                    height: 48,
+                                    child: Icon(
+                                      Icons.inventory_2_outlined,
                                       color: Theme.of(
                                         context,
-                                      ).textTheme.bodyLarge?.color,
-                                      letterSpacing: 0.5,
-                                    ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 6),
-
-                              // Unit and Quantity with modern chips
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.grey.shade200,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.straighten,
-                                          size: 14,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          unit,
-                                          style: TextStyle(
-                                            color: Colors.grey.shade700,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+                                      ).colorScheme.onPrimaryContainer,
+                                      size: 22,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.shade50,
-                                      borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(
-                                        color: Colors.blue.shade200,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.inventory_2_outlined,
-                                          size: 14,
-                                          color: Colors.blue.shade700,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          '$totalQty',
-                                          style: TextStyle(
-                                            color: Colors.blue.shade800,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              productName[0].toUpperCase() +
+                                  productName.substring(1),
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    letterSpacing: 0.3,
                                   ),
-                                  const SizedBox(width: 8),
-                                  _buildStockBadge(totalQty, minLimitForStatus),
-                                ],
-                              ),
-
-                              // Expiry warning with modern styling
-                              if (expiringQuantity > 0) ...[
-                                const SizedBox(height: 6),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
                                 Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
-                                    vertical: 4,
+                                    vertical: 3,
                                   ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        (hasExpired
-                                                ? Colors.red
-                                                : Colors.orange)
-                                            .withValues(alpha: 0.1),
+                                    color: Colors.grey.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color:
-                                          (hasExpired
-                                                  ? Colors.red
-                                                  : Colors.orange)
-                                              .withValues(alpha: 0.3),
-                                      width: 1,
-                                    ),
                                   ),
                                   child: Row(
                                     children: [
                                       Icon(
-                                        hasExpired
-                                            ? Icons.error_outline
-                                            : Icons.warning_amber_rounded,
+                                        Icons.straighten,
                                         size: 14,
-                                        color: hasExpired
-                                            ? Colors.red[700]
-                                            : (daysUntilNearestExpiry != null &&
-                                                  daysUntilNearestExpiry < 30)
-                                            ? Colors.red[700]
-                                            : Colors.orange[700],
+                                        color: Colors.grey.shade600,
                                       ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          hasExpired
-                                              ? localizations!.expiredText
-                                                    .replaceAll(
-                                                      '{quantity}',
-                                                      expiringQuantity
-                                                          .toString(),
-                                                    )
-                                                    .replaceAll('{unit}', unit)
-                                              : daysUntilNearestExpiry == 0
-                                              ? localizations!.expiringToday
-                                                    .replaceAll(
-                                                      '{quantity}',
-                                                      expiringQuantity
-                                                          .toString(),
-                                                    )
-                                                    .replaceAll('{unit}', unit)
-                                              : daysUntilNearestExpiry == 1
-                                              ? localizations!.expiringTomorrow
-                                                    .replaceAll(
-                                                      '{quantity}',
-                                                      expiringQuantity
-                                                          .toString(),
-                                                    )
-                                                    .replaceAll('{unit}', unit)
-                                              : localizations!.expiringInDays
-                                                    .replaceAll(
-                                                      '{quantity}',
-                                                      expiringQuantity
-                                                          .toString(),
-                                                    )
-                                                    .replaceAll('{unit}', unit)
-                                                    .replaceAll(
-                                                      '{days}',
-                                                      daysUntilNearestExpiry
-                                                          .toString(),
-                                                    ),
-                                          style: TextStyle(
-                                            color: hasExpired
-                                                ? Colors.red[800]
-                                                : (daysUntilNearestExpiry !=
-                                                          null &&
-                                                      daysUntilNearestExpiry <
-                                                          30)
-                                                ? Colors.red[800]
-                                                : Colors.orange[800],
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 11,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        unit,
+                                        style: TextStyle(
+                                          color: Colors.grey.shade700,
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12,
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.inventory_2_outlined,
+                                        size: 14,
+                                        color: Colors.blue.shade700,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '$totalQty',
+                                        style: TextStyle(
+                                          color: Colors.blue.shade800,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                _buildStockBadge(totalQty, minLimitForStatus),
                               ],
+                            ),
+                            if (expiringQuantity > 0) ...[
+                              const SizedBox(height: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      (hasExpired ? Colors.red : Colors.orange)
+                                          .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      hasExpired
+                                          ? Icons.error_outline
+                                          : Icons.warning_amber_rounded,
+                                      size: 14,
+                                      color: hasExpired
+                                          ? Colors.red[700]
+                                          : (daysUntilNearestExpiry != null &&
+                                                daysUntilNearestExpiry < 30)
+                                          ? Colors.red[700]
+                                          : Colors.orange[700],
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        hasExpired
+                                            ? localizations!.expiredText
+                                                  .replaceAll(
+                                                    '{quantity}',
+                                                    expiringQuantity.toString(),
+                                                  )
+                                                  .replaceAll('{unit}', unit)
+                                            : daysUntilNearestExpiry == 0
+                                            ? localizations!.expiringToday
+                                                  .replaceAll(
+                                                    '{quantity}',
+                                                    expiringQuantity.toString(),
+                                                  )
+                                                  .replaceAll('{unit}', unit)
+                                            : daysUntilNearestExpiry == 1
+                                            ? localizations!.expiringTomorrow
+                                                  .replaceAll(
+                                                    '{quantity}',
+                                                    expiringQuantity.toString(),
+                                                  )
+                                                  .replaceAll('{unit}', unit)
+                                            : localizations!.expiringInDays
+                                                  .replaceAll(
+                                                    '{quantity}',
+                                                    expiringQuantity.toString(),
+                                                  )
+                                                  .replaceAll('{unit}', unit)
+                                                  .replaceAll(
+                                                    '{days}',
+                                                    daysUntilNearestExpiry
+                                                        .toString(),
+                                                  ),
+                                        style: TextStyle(
+                                          color: hasExpired
+                                              ? Colors.red[800]
+                                              : (daysUntilNearestExpiry !=
+                                                        null &&
+                                                    daysUntilNearestExpiry < 30)
+                                              ? Colors.red[800]
+                                              : Colors.orange[800],
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 11,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ],
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              if (!isLast) const Divider(height: 1, indent: 76, endIndent: 16),
+            ],
           ),
         );
       },

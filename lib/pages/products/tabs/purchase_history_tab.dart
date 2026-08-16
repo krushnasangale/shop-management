@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:flashbill/pages/products/tabs/history_ui.dart';
+import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
 
 class PurchaseHistoryTab extends StatefulWidget {
@@ -21,6 +22,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   final Map<int, bool> _expandedPurchaseHistory = {};
 
   late TextEditingController _searchController;
+  bool _showSearch = false;
   String _sortBy = 'date';
   bool _sortAscending = false;
   String _filterSupplier = 'all';
@@ -212,397 +214,145 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   }
 
   void _showSupplierFilterSheet(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showModalBottomSheet(
+    Adaptive.showSheet(
       context: context,
-      backgroundColor: isDark ? Colors.grey[900] : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.grey[400],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Icon(Icons.filter_list, color: Colors.blue[600]),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Filter by Supplier',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Divider(height: 1),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    ListTile(
-                      leading: Icon(
-                        _filterSupplier == 'all'
-                            ? Icons.check_circle
-                            : Icons.circle_outlined,
-                        color: _filterSupplier == 'all'
-                            ? Colors.blue[600]
-                            : Colors.grey,
-                      ),
-                      title: Text(
-                        'All Suppliers',
-                        style: TextStyle(
-                          fontWeight: _filterSupplier == 'all'
-                              ? FontWeight.w600
-                              : FontWeight.normal,
-                        ),
-                      ),
-                      onTap: () {
-                        setState(() {
-                          _filterSupplier = 'all';
-                        });
-                        _filterAndSortPurchaseHistory();
-                        Navigator.pop(context);
-                      },
-                    ),
-                    ..._getUniqueSuppliers().map(
-                      (supplier) => ListTile(
-                        leading: Icon(
-                          _filterSupplier == supplier
-                              ? Icons.check_circle
-                              : Icons.circle_outlined,
-                          color: _filterSupplier == supplier
-                              ? Colors.blue[600]
-                              : Colors.grey,
-                        ),
-                        title: Text(
-                          supplier,
-                          style: TextStyle(
-                            fontWeight: _filterSupplier == supplier
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        onTap: () {
-                          setState(() {
-                            _filterSupplier = supplier;
-                          });
-                          _filterAndSortPurchaseHistory();
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+      builder: (context) => HistoryOptionSheet(
+        title: 'Filter by Supplier',
+        options: [
+          const HistorySheetOption(value: 'all', label: 'All Suppliers'),
+          ..._getUniqueSuppliers().map(
+            (supplier) => HistorySheetOption(value: supplier, label: supplier),
+          ),
+        ],
+        selected: _filterSupplier,
+        onSelected: (value) {
+          setState(() => _filterSupplier = value);
+          _filterAndSortPurchaseHistory();
+        },
       ),
     );
   }
 
   void _showPurchaseSortSheet(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showModalBottomSheet(
+    Adaptive.showSheet(
       context: context,
-      backgroundColor: isDark ? Colors.grey[900] : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(bottom: 20),
-              decoration: BoxDecoration(
-                color: Colors.grey[400],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Icon(Icons.sort, color: Colors.blue[600]),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Sort Purchases',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Divider(height: 1),
-            ListTile(
-              leading: Icon(
-                _sortBy == 'date' ? Icons.check_circle : Icons.circle_outlined,
-                color: _sortBy == 'date' ? Colors.blue[600] : Colors.grey,
-              ),
-              title: Text(
-                'Date',
-                style: TextStyle(
-                  fontWeight: _sortBy == 'date'
-                      ? FontWeight.w600
-                      : FontWeight.normal,
-                ),
-              ),
-              onTap: () {
-                setState(() {
-                  _sortBy = 'date';
-                });
-                _filterAndSortPurchaseHistory();
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                _sortBy == 'amount'
-                    ? Icons.check_circle
-                    : Icons.circle_outlined,
-                color: _sortBy == 'amount' ? Colors.blue[600] : Colors.grey,
-              ),
-              title: Text(
-                'Amount',
-                style: TextStyle(
-                  fontWeight: _sortBy == 'amount'
-                      ? FontWeight.w600
-                      : FontWeight.normal,
-                ),
-              ),
-              onTap: () {
-                setState(() {
-                  _sortBy = 'amount';
-                });
-                _filterAndSortPurchaseHistory();
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                _sortBy == 'supplier'
-                    ? Icons.check_circle
-                    : Icons.circle_outlined,
-                color: _sortBy == 'supplier' ? Colors.blue[600] : Colors.grey,
-              ),
-              title: Text(
-                'Supplier',
-                style: TextStyle(
-                  fontWeight: _sortBy == 'supplier'
-                      ? FontWeight.w600
-                      : FontWeight.normal,
-                ),
-              ),
-              onTap: () {
-                setState(() {
-                  _sortBy = 'supplier';
-                });
-                _filterAndSortPurchaseHistory();
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                _sortBy == 'profit'
-                    ? Icons.check_circle
-                    : Icons.circle_outlined,
-                color: _sortBy == 'profit' ? Colors.blue[600] : Colors.grey,
-              ),
-              title: Text(
-                'Profit',
-                style: TextStyle(
-                  fontWeight: _sortBy == 'profit'
-                      ? FontWeight.w600
-                      : FontWeight.normal,
-                ),
-              ),
-              onTap: () {
-                setState(() {
-                  _sortBy = 'profit';
-                });
-                _filterAndSortPurchaseHistory();
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-    BuildContext context,
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[600],
-            ),
-          ),
+      builder: (context) => HistoryOptionSheet(
+        title: 'Sort Purchases',
+        options: const [
+          HistorySheetOption(value: 'date', label: 'Date'),
+          HistorySheetOption(value: 'amount', label: 'Amount'),
+          HistorySheetOption(value: 'supplier', label: 'Supplier'),
+          HistorySheetOption(value: 'profit', label: 'Profit'),
         ],
+        selected: _sortBy,
+        onSelected: (value) {
+          setState(() => _sortBy = value);
+          _filterAndSortPurchaseHistory();
+        },
       ),
     );
   }
 
-  Widget _buildDetailChip(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withValues(alpha: 0.3), width: 1),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 16),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w600,
+  String get _sortLabel => switch (_sortBy) {
+    'amount' => 'Amount',
+    'supplier' => 'Supplier',
+    'profit' => 'Profit',
+    _ => 'Date',
+  };
+
+  Widget _buildToolbar(BuildContext context) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: Adaptive.compactOutlined,
+                  onPressed: () => _showSupplierFilterSheet(context),
+                  icon: const Icon(Icons.filter_list, size: 16),
+                  label: Text(
+                    _filterSupplier == 'all'
+                        ? 'All Suppliers'
+                        : _filterSupplier,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: color,
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: Adaptive.compactOutlined,
+                  onPressed: () => _showPurchaseSortSheet(context),
+                  icon: const Icon(Icons.sort, size: 16),
+                  label: Text(
+                    _sortLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               ),
-            ),
-          ],
+              IconButton(
+                style: historyDenseIconButton,
+                tooltip: _sortAscending ? 'Ascending' : 'Descending',
+                icon: Icon(
+                  _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                ),
+                onPressed: () {
+                  setState(() => _sortAscending = !_sortAscending);
+                  _filterAndSortPurchaseHistory();
+                },
+              ),
+              IconButton(
+                style: historyDenseIconButton,
+                tooltip: 'Search',
+                icon: Icon(_showSearch ? Icons.search_off : Icons.search),
+                onPressed: () {
+                  setState(() {
+                    _showSearch = !_showSearch;
+                    if (!_showSearch) _searchController.clear();
+                  });
+                },
+              ),
+            ],
+          ),
         ),
-      ),
+        if (_showSearch)
+          Adaptive.searchField(
+            controller: _searchController,
+            hint: 'Search by supplier name',
+            query: _searchController.text,
+          ),
+      ],
     );
   }
 
-  Widget _buildSummaryCard(
+  Widget _buildSummary(
     BuildContext context,
     Map<String, dynamic> stats,
-    Color cardColor,
+    Color surfaceColor,
   ) {
-    return Card(
-      color: cardColor,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    final totalProfit = (stats['totalProfit'] as num).toDouble();
+    return Material(
+      color: surfaceColor,
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.blue[400]!, Colors.blue[700]!],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.analytics_outlined,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Summary Statistics',
-                  style: context.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
-                ),
-              ],
+            HistoryMetric(
+              label: 'Purchases',
+              value: stats['totalPurchases'].toString(),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Total',
-                    stats['totalPurchases'].toString(),
-                    Icons.shopping_cart,
-                    Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Spent',
-                    '₹${stats['totalSpent'].toStringAsFixed(0)}',
-                    Icons.account_balance_wallet,
-                    Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatCard(
-                    context,
-                    'Profit',
-                    '₹${stats['totalProfit'].toStringAsFixed(0)}',
-                    Icons.monetization_on,
-                    stats['totalProfit'] >= 0 ? Colors.green : Colors.red,
-                  ),
-                ),
-              ],
+            HistoryMetric(
+              label: 'Spent',
+              value: '₹${(stats['totalSpent'] as num).toStringAsFixed(0)}',
+            ),
+            HistoryMetric(
+              label: 'Profit',
+              value: '₹${totalProfit.toStringAsFixed(0)}',
+              valueColor: totalProfit >= 0 ? Colors.green : Colors.red,
             ),
           ],
         ),
@@ -611,107 +361,25 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 40.0),
-        child: Column(
-          children: [
-            Icon(
-              _searchController.text.isNotEmpty || _filterSupplier != 'all'
-                  ? Icons.search_off
-                  : Icons.history_outlined,
-              color: Colors.grey[400],
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _searchController.text.isNotEmpty || _filterSupplier != 'all'
-                  ? 'No purchases found'
-                  : 'No purchase history yet',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-            if (_searchController.text.isNotEmpty || _filterSupplier != 'all')
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  'Try adjusting your filters',
-                  style: TextStyle(color: Colors.grey[500], fontSize: 13),
-                ),
-              ),
-          ],
-        ),
-      ),
+    final filtering =
+        _searchController.text.isNotEmpty || _filterSupplier != 'all';
+    return HistoryEmptyState(
+      icon: filtering ? Icons.search_off : Icons.history_outlined,
+      message: filtering ? 'No purchases found' : 'No purchase history yet',
+      hint: filtering ? 'Try adjusting your filters' : null,
     );
   }
 
-  Widget _buildGroupHeader(String groupKey, int itemCount) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue[400]!, Colors.blue[600]!],
-              ),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withValues(alpha: 0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              groupKey,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              '$itemCount',
-              style: TextStyle(
-                color: Colors.blue[700],
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _getMarginColor(double margin) {
-    if (margin < 0) return Colors.red;
-    if (margin < 10) return Colors.orange;
-    if (margin < 30) return Colors.amber;
-    return Colors.green;
-  }
-
-  Widget _buildPurchaseCard(
+  Widget _buildPurchaseRow(
     BuildContext context,
     Map<String, dynamic> purchase,
     int index,
-    bool isDark,
+    Color surfaceColor,
+    bool showDivider,
   ) {
+    final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = isDark ? Colors.grey[400] : Colors.grey[600];
     final profitPerUnit =
         ((purchase['sellingPrice'] ?? 0) as num).toDouble() -
         ((purchase['buyingPrice'] ?? 0) as num).toDouble();
@@ -723,527 +391,147 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
               100
         : 0.0;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isDark ? Colors.grey[850] : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? Colors.grey[700]! : Colors.grey[200]!,
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            _buildPurchaseCardHeader(
-              context,
-              purchase,
-              index,
-              isExpanded,
-              profitMargin,
-              totalProfit,
-            ),
-            if (isExpanded)
-              _buildPurchaseCardDetails(
-                context,
-                purchase,
-                isDark,
-                profitPerUnit,
-                totalProfit,
-                profitMargin,
+    return Material(
+      color: surfaceColor,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() {
+              _expandedPurchaseHistory[index] = !isExpanded;
+            }),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPurchaseCardHeader(
-    BuildContext context,
-    Map<String, dynamic> purchase,
-    int index,
-    bool isExpanded,
-    double profitMargin,
-    double totalProfit,
-  ) {
-    return InkWell(
-      onTap: () => setState(() {
-        _expandedPurchaseHistory[index] = !isExpanded;
-      }),
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue[400]!, Colors.blue[600]!],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Text(
-                  (purchase['supplierName'] ?? 'U').toString()[0].toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 16,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Flexible(
+                      Expanded(
                         child: Text(
                           purchase['supplierName'] ?? 'Unknown',
                           style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                            color: context.primaryTextColor,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurface,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
+                      const SizedBox(width: 8),
+                      Text(
+                        '₹${purchase['total'] ?? 0}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.primary,
                         ),
-                        decoration: BoxDecoration(
-                          color: _getMarginColor(
-                            profitMargin,
-                          ).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${profitMargin.toStringAsFixed(0)}%',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: _getMarginColor(profitMargin),
-                          ),
-                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        isExpanded ? Icons.expand_less : Icons.expand_more,
+                        size: 20,
+                        color: mutedColor,
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(
-                        Icons.calendar_today,
-                        size: 11,
-                        color: Colors.grey[500],
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 13,
+                            color: mutedColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            purchase['date'] ?? 'N/A',
+                            style: TextStyle(fontSize: 12, color: mutedColor),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 4),
                       Text(
-                        purchase['date'] ?? 'N/A',
+                        [
+                          '${purchase['quantity']} ${purchase['unit'] ?? 'units'}',
+                          '${profitMargin.toStringAsFixed(0)}% margin',
+                        ].join('  ·  '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Icon(
-                        Icons.inventory_2_outlined,
-                        size: 11,
-                        color: Colors.grey[500],
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${purchase['quantity']} ${purchase['unit'] ?? 'units'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
+                          color: historyMarginColor(profitMargin),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
+                  if (isExpanded) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        HistoryMetric(
+                          label: 'Buy',
+                          value: '₹${purchase['buyingPrice']}',
+                        ),
+                        HistoryMetric(
+                          label: 'Sell',
+                          value: '₹${purchase['sellingPrice']}',
+                        ),
+                        HistoryMetric(
+                          label: 'Per unit',
+                          value: '₹${profitPerUnit.toStringAsFixed(0)}',
+                          valueColor: profitPerUnit >= 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                        HistoryMetric(
+                          label: 'Profit',
+                          value: '₹${totalProfit.toStringAsFixed(0)}',
+                          valueColor: totalProfit >= 0
+                              ? Colors.green
+                              : Colors.red,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: (profitMargin.clamp(0, 100) / 100),
+                        backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                        valueColor: AlwaysStoppedAnimation(
+                          historyMarginColor(profitMargin),
+                        ),
+                        minHeight: 6,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.payments_outlined,
+                          size: 14,
+                          color: mutedColor,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          purchase['paymentMethod'] ?? 'N/A',
+                          style: TextStyle(fontSize: 12, color: mutedColor),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  '₹${purchase['total'] ?? 0}',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.blue[700],
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: totalProfit >= 0
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        totalProfit >= 0
-                            ? Icons.trending_up
-                            : Icons.trending_down,
-                        size: 10,
-                        color: totalProfit >= 0 ? Colors.green : Colors.red,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '₹${totalProfit.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: totalProfit >= 0 ? Colors.green : Colors.red,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(width: 8),
-            Icon(
-              isExpanded ? Icons.expand_less : Icons.expand_more,
-              color: Colors.blue[600],
-              size: 24,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPurchaseCardDetails(
-    BuildContext context,
-    Map<String, dynamic> purchase,
-    bool isDark,
-    double profitPerUnit,
-    double totalProfit,
-    double profitMargin,
-  ) {
-    return Column(
-      children: [
-        Divider(color: isDark ? Colors.grey[700] : Colors.grey[200], height: 1),
-        Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Column(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? Colors.grey[800]?.withValues(alpha: 0.5)
-                      : Colors.grey[50],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _buildDetailChip(
-                          'Buy',
-                          '₹${purchase['buyingPrice']}',
-                          Icons.shopping_bag_outlined,
-                          Colors.orange,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildDetailChip(
-                          'Sell',
-                          '₹${purchase['sellingPrice']}',
-                          Icons.sell_outlined,
-                          Colors.green,
-                        ),
-                        const SizedBox(width: 8),
-                        _buildDetailChip(
-                          'Margin',
-                          '₹$profitPerUnit',
-                          Icons.attach_money,
-                          profitPerUnit >= 0 ? Colors.green : Colors.red,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Profit Margin',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            Text(
-                              '${profitMargin.toStringAsFixed(1)}%',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: _getMarginColor(profitMargin),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: (profitMargin.clamp(0, 100) / 100),
-                            backgroundColor: Colors.grey[300],
-                            valueColor: AlwaysStoppedAnimation(
-                              _getMarginColor(profitMargin),
-                            ),
-                            minHeight: 6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.blue.withValues(alpha: 0.05),
-                      Colors.blue.withValues(alpha: 0.1),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Colors.blue.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.monetization_on,
-                                size: 16,
-                                color: Colors.blue[700],
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Total Profit',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey[700],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '₹${totalProfit.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              color: totalProfit >= 0
-                                  ? Colors.blue[700]
-                                  : Colors.red,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[700],
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        purchase['paymentMethod'] ?? 'N/A',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSearchAndFilterBar(BuildContext context, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      color: isDark ? Colors.grey[900] : Colors.grey[100],
-      child: Column(
-        children: [
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by supplier name...',
-              prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
-              suffixIcon: _searchController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _searchController.clear();
-                      },
-                    )
-                  : null,
-              filled: true,
-              fillColor: isDark ? Colors.grey[800] : Colors.white,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: 35,
-            child: Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _showSupplierFilterSheet(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.grey[800] : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _filterSupplier == 'all'
-                                  ? 'All Suppliers'
-                                  : _filterSupplier,
-                              style: TextStyle(fontSize: 13),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Icon(
-                            Icons.filter_list,
-                            size: 20,
-                            color: Colors.grey[600],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _showPurchaseSortSheet(context),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark ? Colors.grey[800] : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _sortBy == 'date'
-                                  ? 'Date'
-                                  : _sortBy == 'amount'
-                                  ? 'Amount'
-                                  : _sortBy == 'supplier'
-                                  ? 'Supplier'
-                                  : 'Profit',
-                              style: TextStyle(fontSize: 13),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Icon(Icons.sort, size: 20, color: Colors.grey[600]),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[800] : Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: IconButton(
-                    icon: Icon(
-                      _sortAscending
-                          ? Icons.arrow_upward
-                          : Icons.arrow_downward,
-                      color: Colors.blue[600],
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _sortAscending = !_sortAscending;
-                      });
-                      _filterAndSortPurchaseHistory();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
+          if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16),
         ],
       ),
     );
@@ -1253,25 +541,23 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   Widget build(BuildContext context) {
     final stats = _calculateSummaryStats();
     final groupedPurchases = _groupPurchasesByDate();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = Theme.of(context).cardTheme.color ?? Colors.white;
+    final surfaceColor = historySurfaceColor(context);
 
     return Column(
       children: [
-        _buildSearchAndFilterBar(context, isDark),
-        const SizedBox(height: 4),
+        _buildToolbar(context),
+        const SizedBox(height: 8),
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.only(right: 10, left: 10, bottom: 8),
+            padding: const EdgeInsets.only(bottom: 24),
             child: Column(
               children: [
                 if (widget.purchaseHistory.isNotEmpty)
-                  _buildSummaryCard(context, stats, cardColor),
-                const SizedBox(height: 4),
+                  _buildSummary(context, stats, surfaceColor),
                 if (widget.isLoading)
                   const Center(
                     child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40.0),
+                      padding: EdgeInsets.symmetric(vertical: 48.0),
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
@@ -1282,16 +568,20 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildGroupHeader(group.key, group.value.length),
+                        HistoryGroupLabel(
+                          label: group.key,
+                          count: group.value.length,
+                        ),
                         ...group.value.asMap().entries.map((entry) {
                           final index = _filteredPurchaseHistory.indexOf(
                             entry.value,
                           );
-                          return _buildPurchaseCard(
+                          return _buildPurchaseRow(
                             context,
                             entry.value,
                             index,
-                            isDark,
+                            surfaceColor,
+                            entry.key != group.value.length - 1,
                           );
                         }),
                       ],

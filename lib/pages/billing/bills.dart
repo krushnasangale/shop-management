@@ -1050,7 +1050,7 @@ class _BillsState extends State<Bills> {
                     ),
                   ),
                 ), // --- 3. Filtered Bills List ---
-                const SizedBox(height: 5),
+                const SizedBox(height: 10),
                 Expanded(
                   child: _filteredBills.isEmpty
                       ? Center(
