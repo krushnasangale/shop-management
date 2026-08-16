@@ -485,6 +485,8 @@ class _SupplierTile extends StatelessWidget {
 
   Widget _menuButton() {
     return AppContextMenu.iconButton(
+      dense: true,
+      width: 168,
       items: () => [
         AppContextMenuItem(
           label: historyLabel,

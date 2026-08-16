@@ -549,6 +549,7 @@ class _ProductTile extends StatelessWidget {
               ),
             ),
             AppContextMenu.iconButton(
+              dense: true,
               width: 168,
               items: () => [
                 AppContextMenuItem(
@@ -583,6 +584,7 @@ class _ProductTile extends StatelessWidget {
               title: name,
               onTap: onEdit,
               trailing: AppContextMenu.iconButton(
+                dense: true,
                 width: 168,
                 items: () => [
                   AppContextMenuItem(

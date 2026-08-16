@@ -106,7 +106,6 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
         title: Text(loc?.expenseDetails ?? 'Expense Details'),
         actions: [
           AppContextMenu.iconButton(
-            style: Adaptive.compactIconButton,
             width: 168,
             items: () => [
               AppContextMenuItem(

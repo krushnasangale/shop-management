@@ -6,7 +6,6 @@ import 'package:flashbill/pages/products/available_products.dart';
 import 'package:flashbill/pages/billing/bills.dart';
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/pages/purchase/purchase_items_list.dart';
-import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/expenses/expenses_list.dart';
 import 'package:flashbill/pages/pending_payments_page.dart';
 import 'package:flashbill/pages/dashboard.dart';
@@ -501,17 +500,13 @@ class _MyHomePageState extends State<MyHomePage> {
             )
           : null,
       body: IndexedStack(index: _selectedIndex, children: _screens),
-      floatingActionButton: (_selectedIndex == 2 || _selectedIndex == 3)
+      floatingActionButton: _selectedIndex == 2
           ? FloatingActionButton(
               heroTag: 'fab_$_selectedIndex',
               onPressed: () {
-                if (_selectedIndex == 2) {
-                  AppNavigator.push(context, const CreateNewBill());
-                } else if (_selectedIndex == 3) {
-                  AppNavigator.push(context, const AddPurchaseEntry());
-                }
+                AppNavigator.push(context, const CreateNewBill());
               },
-              tooltip: localizations?.addItem ?? 'Add Item',
+              tooltip: localizations?.createBill ?? 'Create Bill',
               child: const Icon(Icons.add_rounded),
             )
           : null,

@@ -690,7 +690,7 @@ class _DashboardState extends State<Dashboard>
                           ),
                         ),
                         Text(
-                          loc?.itemsInStock ?? 'items in stock',
+                          loc?.itemsInStock ?? 'products in stock',
                           style: TextStyle(
                             fontSize: 10,
                             color: isDark ? Colors.grey[500] : Colors.grey[500],

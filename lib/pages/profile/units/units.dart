@@ -402,6 +402,7 @@ class _UnitTile extends StatelessWidget {
 
   Widget _menuButton() {
     return AppContextMenu.iconButton(
+      dense: true,
       width: 168,
       items: () => [
         AppContextMenuItem(

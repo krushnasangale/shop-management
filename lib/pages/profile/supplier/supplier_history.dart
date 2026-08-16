@@ -226,7 +226,7 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
           purchases: _totalTransactions,
           items: _totalUnits,
           purchasesLabel: loc?.purchases ?? 'Purchases',
-          itemsLabel: loc?.items ?? 'Items',
+          itemsLabel: loc?.items ?? 'Products',
         ),
         const SizedBox(height: 20),
         for (final monthYear in _groupedHistory.keys) ...[

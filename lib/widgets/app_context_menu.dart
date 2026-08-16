@@ -118,19 +118,32 @@ abstract final class AppContextMenu {
     );
   }
 
+  /// Shared size for menu buttons that sit inside list rows and cards, so the
+  /// trailing 3-dot button looks identical on every screen.
+  static ButtonStyle get denseButtonStyle => IconButton.styleFrom(
+    minimumSize: const Size(32, 32),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    iconSize: 20,
+  );
+
   static Widget iconButton({
     required List<AppContextMenuItem> Function() items,
     IconData icon = Icons.more_vert,
     String? tooltip,
-    EdgeInsetsGeometry padding = const EdgeInsets.all(8),
+    EdgeInsetsGeometry? padding,
     ButtonStyle? style,
     double width = AppContextMenu.width,
+    bool dense = false,
   }) {
+    final resolvedStyle = style ?? (dense ? denseButtonStyle : null);
+    final resolvedPadding =
+        padding ?? (dense ? const EdgeInsets.all(6) : const EdgeInsets.all(8));
+
     return Builder(
       builder: (buttonContext) {
         return IconButton(
-          padding: padding,
-          style: style,
+          padding: resolvedPadding,
+          style: resolvedStyle,
           tooltip: tooltip,
           icon: Icon(icon),
           onPressed: () =>

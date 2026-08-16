@@ -1,7 +1,10 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:material_ui/material_ui.dart';
 
 class CustomerBillsPage extends StatefulWidget {
   final String supplierName;
@@ -23,21 +26,10 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
   @override
   void initState() {
     super.initState();
-    // Sort bills by date descending (most recent first)
     _bills = List.from(widget.bills);
     _bills.sort((a, b) {
-      final timestampA = a['timestamp'];
-      final timestampB = b['timestamp'];
-      final dateA = timestampA is Timestamp
-          ? timestampA.toDate()
-          : timestampA is DateTime
-          ? timestampA
-          : null;
-      final dateB = timestampB is Timestamp
-          ? timestampB.toDate()
-          : timestampB is DateTime
-          ? timestampB
-          : null;
+      final dateA = _asDate(a['timestamp']);
+      final dateB = _asDate(b['timestamp']);
       if (dateA == null && dateB == null) return 0;
       if (dateA == null) return 1;
       if (dateB == null) return -1;
@@ -45,413 +37,262 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
     });
   }
 
+  DateTime? _asDate(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final localizations = AppLocalizations.of(context);
+    final loc = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     final totalAmount = _bills.fold<double>(
       0,
-      (double sum, bill) =>
-          sum + ((bill['totalAmount'] ?? 0) as num).toDouble(),
+      (total, bill) => total + ((bill['totalAmount'] ?? 0) as num).toDouble(),
     );
-    final totalBills = _bills.length;
+    final totalUnits = _bills.fold<int>(
+      0,
+      (total, bill) => total + ((bill['totalUnits'] ?? 0) as num).toInt(),
+    );
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(
-          widget.supplierName,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
-        ),
-        centerTitle: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                Theme.of(context).primaryColor.withValues(alpha: 0.8),
-                Theme.of(context).primaryColor.withValues(alpha: 0.6),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
-        leading: IconButton(
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.arrow_back_ios_new,
-              size: 20,
-              color: Colors.white,
-            ),
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).primaryColor.withValues(alpha: 0.05),
-              Colors.white,
-            ],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: _bills.isEmpty
-            ? _buildEmptyState(localizations)
-            : SafeArea(
-                child: Column(
+      appBar: AppBar(title: Text(widget.supplierName)),
+      body: _bills.isEmpty
+          ? _EmptyState(
+              icon: Icons.inventory_2_outlined,
+              message: loc?.noPurchasedEntriesYet ?? 'No purchased entries yet',
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: Row(
+                    children: [
+                      _SummaryTile(
+                        icon: Icons.account_balance_wallet_outlined,
+                        label: loc?.total ?? 'Total',
+                        value: '₹${_formatAmount(totalAmount)}',
+                        valueColor: scheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      _SummaryTile(
+                        icon: Icons.receipt_long_outlined,
+                        label: loc?.bills ?? 'Bills',
+                        value: '${_bills.length}',
+                      ),
+                      const SizedBox(width: 8),
+                      _SummaryTile(
+                        icon: Icons.shopping_bag_outlined,
+                        label: loc?.totalQuantity ?? 'Qty',
+                        value: '$totalUnits',
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _sectionLabel(
+                    context,
+                    loc?.purchasedEntries ?? 'Purchases',
+                  ),
+                ),
+                Adaptive.fullWidthGroup(
+                  context: context,
                   children: [
-                    const SizedBox(height: 12),
-                    _buildSummarySection(
-                      localizations,
-                      totalBills,
-                      totalAmount,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildBillsList(localizations),
+                    for (final entry in _bills)
+                      _PurchaseTile(
+                        title: (entry['date'] ?? 'N/A').toString(),
+                        subtitle: [
+                          '${entry['totalProducts'] ?? 0} ${loc?.products ?? 'Products'}',
+                          '${entry['totalUnits'] ?? 0} ${loc?.totalQuantity ?? 'Qty'}',
+                        ].join('  ·  '),
+                        amount: (entry['totalAmount'] ?? 0) as num,
+                        onTap: () => AppNavigator.push(
+                          context,
+                          PurchaseEntryDetails(entry: entry),
+                        ),
+                      ),
                   ],
                 ),
-              ),
+              ],
+            ),
+    );
+  }
+}
+
+class _PurchaseTile extends StatelessWidget {
+  const _PurchaseTile({
+    required this.title,
+    required this.subtitle,
+    required this.amount,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final num amount;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
+      minVerticalPadding: 4,
+      onTap: onTap,
+      leading: _squareIcon(Icons.receipt_long_outlined, scheme),
+      title: Text(
+        title,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
+      ),
+      subtitle: Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '₹${_formatAmount(amount)}',
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: scheme.primary,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            CupertinoIcons.chevron_forward,
+            size: 24,
+            color: scheme.onSurfaceVariant,
+          ),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildEmptyState(AppLocalizations? localizations) {
-    return SafeArea(
-      child: Center(
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _squareIcon(icon, scheme),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor ?? scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.icon, required this.message});
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.grey.withValues(alpha: 0.1),
-                    Colors.grey.withValues(alpha: 0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.inventory_2_outlined,
-                size: 64,
-                color: Colors.grey[400],
-              ),
-            ),
-            const SizedBox(height: 16),
+            _squareIcon(icon, scheme),
+            const SizedBox(height: 12),
             Text(
-              localizations?.noPurchasedEntriesYet ??
-                  'No purchased entries yet',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey,
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurface,
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Purchase entries from this supplier will appear here',
-              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
-              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildSummarySection(
-    AppLocalizations? localizations,
-    int totalBills,
-    double totalAmount,
-  ) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildSummaryCard(
-              icon: Icons.receipt_long,
-              title: localizations?.bills ?? 'Bills',
-              value: totalBills.toString(),
-              color: Colors.blue,
-              gradient: const LinearGradient(
-                colors: [Colors.blue, Colors.blueAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _buildSummaryCard(
-              icon: Icons.currency_rupee,
-              title: localizations?.total ?? 'Total',
-              value:
-                  '₹${totalAmount == totalAmount.toInt() ? totalAmount.toInt() : totalAmount.toStringAsFixed(2)}',
-              color: Colors.green,
-              gradient: const LinearGradient(
-                colors: [Colors.green, Colors.greenAccent],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-          ),
-        ],
+Widget _sectionLabel(BuildContext context, String title) {
+  final scheme = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 8),
+    child: Text(
+      title.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+        color: scheme.onSurfaceVariant,
       ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildSummaryCard({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-    required LinearGradient gradient,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: gradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+Widget _squareIcon(IconData icon, ColorScheme scheme) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: ColoredBox(
+      color: scheme.primaryContainer,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: Colors.white, size: 24),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.9),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+    ),
+  );
+}
 
-  Widget _buildBillsList(AppLocalizations? localizations) {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: _bills.length,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        itemBuilder: (context, index) {
-          final entry = _bills[index];
-          final date = entry['date'] ?? 'N/A';
-          final totalAmount = entry['totalAmount'] ?? 0;
-          final totalProducts = entry['totalProducts'] ?? 0;
-          final totalUnits = entry['totalUnits'] ?? 0;
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            child: Material(
-              elevation: 4,
-              borderRadius: BorderRadius.circular(16),
-              shadowColor: Colors.black.withValues(alpha: 0.1),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PurchaseEntryDetails(entry: entry),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    color: Colors.white,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Header with date and amount
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  date,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.inventory_2_outlined,
-                                      size: 14,
-                                      color: Colors.grey[600],
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '$totalProducts ${localizations?.products ?? 'Products'}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Colors.green, Colors.greenAccent],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.green.withValues(alpha: 0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              '₹${totalAmount == totalAmount.toInt() ? totalAmount.toInt() : totalAmount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Bottom section with quantity and status
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.purple.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.purple.withValues(alpha: 0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.shopping_bag_outlined,
-                                  size: 16,
-                                  color: Colors.purple,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  '$totalUnits Qty',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.purple,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.blue.withValues(alpha: 0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.check_circle_outline,
-                                  size: 16,
-                                  color: Colors.green,
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  localizations?.received ?? 'Received',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
+String _formatAmount(num amount) {
+  if (amount == amount.roundToDouble()) return amount.toInt().toString();
+  return amount.toStringAsFixed(2);
 }

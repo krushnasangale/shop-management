@@ -133,7 +133,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
           Icon(Icons.shopping_cart_outlined, size: 14, color: Colors.blue),
           const SizedBox(width: 4),
           Text(
-            '$productCount ${productCount == 1 ? (localizations?.item ?? 'Item') : (localizations?.items ?? 'Items')}',
+            '$productCount ${productCount == 1 ? (localizations?.item ?? 'Product') : (localizations?.items ?? 'Products')}',
             style: const TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
