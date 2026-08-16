@@ -843,5 +843,6 @@
     "close": "Close",
     "subscription_expired": "Subscription Expired",
     "subscription_expired_message": "Your subscription has expired. You can view existing data, but adding, editing, or deleting is disabled. Please renew your subscription to continue.",
-    "subscription_expired_banner": "Subscription expired — view only. Tap for details."
+    "subscription_expired_banner": "Subscription expired — view only. Tap for details.",
+    "subscription_expiring_banner": "Your subscription will expire on {date}. Please renew it before it expires."
 }

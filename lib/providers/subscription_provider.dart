@@ -37,6 +37,26 @@ class SubscriptionProvider with ChangeNotifier {
 
   bool get canWrite => !isExpired;
 
+  /// Calendar days from today until expiry. Negative when already expired.
+  int? get daysUntilExpiry {
+    if (_expiryDate == null) return null;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final expiry = DateTime(
+      _expiryDate!.year,
+      _expiryDate!.month,
+      _expiryDate!.day,
+    );
+    return expiry.difference(today).inDays;
+  }
+
+  /// True when expiry is within 30 days and the subscription is still active.
+  bool get isExpiringSoon {
+    final days = daysUntilExpiry;
+    if (days == null || isExpired) return false;
+    return days <= 30;
+  }
+
   void start() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {

@@ -459,6 +459,11 @@ class AppLocalizations {
         'subscription_expired_banner',
         fallback: 'Subscription expired — view only. Tap for details.',
       );
+  String subscriptionExpiringBanner(String date) => translate(
+        'subscription_expiring_banner',
+        fallback:
+            'Your subscription will expire on {date}. Please renew it before it expires.',
+      ).replaceAll('{date}', date);
   String get pleaseLoginToViewDevices =>
       translate('please_login_to_view_devices');
   String get deviceRemovedSuccessfully =>
