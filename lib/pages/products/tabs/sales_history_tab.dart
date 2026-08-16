@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/pages/products/tabs/history_ui.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
@@ -133,19 +134,19 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
       if (date.year == now.year &&
           date.month == now.month &&
           date.day == now.day) {
-        groupKey = 'Today';
+        groupKey = 'today';
       } else if (date.year == now.year &&
           date.month == now.month &&
           date.day == now.day - 1) {
-        groupKey = 'Yesterday';
+        groupKey = 'yesterday';
       } else if (now.difference(date).inDays < 7) {
-        groupKey = 'This Week';
+        groupKey = 'this_week';
       } else if (date.year == now.year && date.month == now.month) {
-        groupKey = 'This Month';
+        groupKey = 'this_month';
       } else if (date.year == now.year) {
-        groupKey = 'This Year';
+        groupKey = 'this_year';
       } else {
-        groupKey = 'Older';
+        groupKey = 'older';
       }
 
       grouped.putIfAbsent(groupKey, () => []);
@@ -155,12 +156,12 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
     // Return groups in chronological order (most recent first)
     final orderedGroups = <String, List<Map<String, dynamic>>>{};
     final order = [
-      'Today',
-      'Yesterday',
-      'This Week',
-      'This Month',
-      'This Year',
-      'Older',
+      'today',
+      'yesterday',
+      'this_week',
+      'this_month',
+      'this_year',
+      'older',
     ];
 
     for (var key in order) {
@@ -170,6 +171,18 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
     }
 
     return orderedGroups;
+  }
+
+  String _localizedGroupLabel(String key, AppLocalizations? loc) {
+    return switch (key) {
+      'today' => loc?.today ?? 'Today',
+      'yesterday' => loc?.yesterday ?? 'Yesterday',
+      'this_week' => loc?.thisWeek ?? 'This Week',
+      'this_month' => loc?.thisMonth ?? 'This Month',
+      'this_year' => loc?.thisYear ?? 'This Year',
+      'older' => loc?.older ?? 'Older',
+      _ => key,
+    };
   }
 
   Map<String, dynamic> _calculateSalesSummaryStats() {
@@ -199,14 +212,23 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
   }
 
   void _showCustomerFilterSheet(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     Adaptive.showSheet(
       context: context,
       builder: (context) => HistoryOptionSheet(
-        title: 'Filter by Customer',
+        title: loc?.filterByCustomer ?? 'Filter by Customer',
         options: [
-          const HistorySheetOption(value: 'all', label: 'All Customers'),
+          HistorySheetOption(
+            value: 'all',
+            label: loc?.allCustomers ?? 'All Customers',
+          ),
           ..._getUniqueCustomers().map(
-            (customer) => HistorySheetOption(value: customer, label: customer),
+            (customer) => HistorySheetOption(
+              value: customer,
+              label: customer == 'Unknown'
+                  ? (loc?.unknown ?? 'Unknown')
+                  : customer,
+            ),
           ),
         ],
         selected: _filterCustomer,
@@ -219,15 +241,19 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
   }
 
   void _showSalesSortSheet(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     Adaptive.showSheet(
       context: context,
       builder: (context) => HistoryOptionSheet(
-        title: 'Sort Sales',
-        options: const [
-          HistorySheetOption(value: 'date', label: 'Date'),
-          HistorySheetOption(value: 'amount', label: 'Amount'),
-          HistorySheetOption(value: 'customer', label: 'Customer'),
-          HistorySheetOption(value: 'profit', label: 'Profit'),
+        title: loc?.sortSales ?? 'Sort Sales',
+        options: [
+          HistorySheetOption(value: 'date', label: loc?.date ?? 'Date'),
+          HistorySheetOption(value: 'amount', label: loc?.amount ?? 'Amount'),
+          HistorySheetOption(
+            value: 'customer',
+            label: loc?.customer ?? 'Customer',
+          ),
+          HistorySheetOption(value: 'profit', label: loc?.profit ?? 'Profit'),
         ],
         selected: _sortSalesBy,
         onSelected: (value) {
@@ -238,14 +264,15 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
     );
   }
 
-  String get _sortLabel => switch (_sortSalesBy) {
-    'amount' => 'Amount',
-    'customer' => 'Customer',
-    'profit' => 'Profit',
-    _ => 'Date',
+  String _sortLabel(AppLocalizations? loc) => switch (_sortSalesBy) {
+    'amount' => loc?.amount ?? 'Amount',
+    'customer' => loc?.customer ?? 'Customer',
+    'profit' => loc?.profit ?? 'Profit',
+    _ => loc?.date ?? 'Date',
   };
 
   Widget _buildToolbar(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Column(
       children: [
         Padding(
@@ -259,8 +286,10 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                   icon: const Icon(Icons.filter_list, size: 16),
                   label: Text(
                     _filterCustomer == 'all'
-                        ? 'All Customers'
-                        : _filterCustomer,
+                        ? (loc?.allCustomers ?? 'All Customers')
+                        : (_filterCustomer == 'Unknown'
+                            ? (loc?.unknown ?? 'Unknown')
+                            : _filterCustomer),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -273,7 +302,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                   onPressed: () => _showSalesSortSheet(context),
                   icon: const Icon(Icons.sort, size: 16),
                   label: Text(
-                    _sortLabel,
+                    _sortLabel(loc),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -281,7 +310,9 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
               ),
               IconButton(
                 style: historyDenseIconButton,
-                tooltip: _sortSalesAscending ? 'Ascending' : 'Descending',
+                tooltip: _sortSalesAscending
+                    ? (loc?.ascending ?? 'Ascending')
+                    : (loc?.descending ?? 'Descending'),
                 icon: Icon(
                   _sortSalesAscending
                       ? Icons.arrow_upward
@@ -294,7 +325,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
               ),
               IconButton(
                 style: historyDenseIconButton,
-                tooltip: 'Search',
+                tooltip: loc?.search ?? 'Search',
                 icon: Icon(_showSearch ? Icons.search_off : Icons.search),
                 onPressed: () {
                   setState(() {
@@ -309,7 +340,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
         if (_showSearch)
           Adaptive.searchField(
             controller: _searchSalesController,
-            hint: 'Search by customer name',
+            hint: loc?.searchByCustomerName ?? 'Search by customer name',
             query: _searchSalesController.text,
           ),
       ],
@@ -320,6 +351,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
     BuildContext context,
     Map<String, dynamic> stats,
   ) {
+    final loc = AppLocalizations.of(context);
     final totalProfit = (stats['totalProfit'] as num).toDouble();
     return Adaptive.box(
       context: context,
@@ -328,15 +360,15 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
         child: Row(
           children: [
             HistoryMetric(
-              label: 'Sales',
+              label: loc?.sales ?? 'Sales',
               value: stats['totalSales'].toString(),
             ),
             HistoryMetric(
-              label: 'Revenue',
+              label: loc?.revenue ?? 'Revenue',
               value: '₹${(stats['totalRevenue'] as num).toStringAsFixed(0)}',
             ),
             HistoryMetric(
-              label: 'Profit',
+              label: loc?.profit ?? 'Profit',
               value: '₹${totalProfit.toStringAsFixed(0)}',
               valueColor: totalProfit >= 0 ? Colors.green : Colors.red,
             ),
@@ -347,12 +379,17 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final filtering =
         _searchSalesController.text.isNotEmpty || _filterCustomer != 'all';
     return HistoryEmptyState(
       icon: filtering ? Icons.search_off : Icons.receipt_long_outlined,
-      message: filtering ? 'No sales found' : 'No sales yet',
-      hint: filtering ? 'Try adjusting your filters' : null,
+      message: filtering
+          ? (loc?.noSalesFound ?? 'No sales found')
+          : (loc?.noSalesYet ?? 'No sales yet'),
+      hint: filtering
+          ? (loc?.tryAdjustingFilters ?? 'Try adjusting your filters')
+          : null,
     );
   }
 
@@ -363,6 +400,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
     Color surfaceColor,
     bool showDivider,
   ) {
+    final loc = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final mutedColor = isDark ? Colors.grey[400] : Colors.grey[600];
@@ -394,7 +432,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                     children: [
                       Expanded(
                         child: Text(
-                          sale['customerName'] ?? 'Unknown',
+                          sale['customerName'] ?? (loc?.unknown ?? 'Unknown'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -459,22 +497,22 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                     Row(
                       children: [
                         HistoryMetric(
-                          label: 'Buy',
+                          label: loc?.buy ?? 'Buy',
                           value: '₹${sale['buyingPrice']}',
                         ),
                         HistoryMetric(
-                          label: 'Sell',
+                          label: loc?.sell ?? 'Sell',
                           value: '₹${sale['sellingPrice']}',
                         ),
                         HistoryMetric(
-                          label: 'Per unit',
+                          label: loc?.perUnit ?? 'Per unit',
                           value: '₹${profitPerUnit.toStringAsFixed(0)}',
                           valueColor: profitPerUnit >= 0
                               ? Colors.green
                               : Colors.red,
                         ),
                         HistoryMetric(
-                          label: 'Profit',
+                          label: loc?.profit ?? 'Profit',
                           value: '₹${totalProfit.toStringAsFixed(0)}',
                           valueColor: totalProfit >= 0
                               ? Colors.green
@@ -521,6 +559,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final stats = _calculateSalesSummaryStats();
     final groupedSales = _groupSalesByDate();
     final surfaceColor = historySurfaceColor(context);
@@ -551,7 +590,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         HistoryGroupLabel(
-                          label: group.key,
+                          label: _localizedGroupLabel(group.key, loc),
                           count: group.value.length,
                         ),
                         Adaptive.box(

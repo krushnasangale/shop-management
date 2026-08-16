@@ -810,6 +810,76 @@ class AppLocalizations {
   String get appSettings => translate('app_settings');
 
   String get businessInsights => translate('business_insights');
+  String get paymentsProductsAndRestock =>
+      translate('payments_products_and_restock');
+  String get today => translate('today');
+  String get yesterday => translate('yesterday');
+  String get thisWeek => translate('this_week');
+  String get thisYear => translate('this_year');
+  String get older => translate('older');
+  String get ascending => translate('ascending');
+  String get descending => translate('descending');
+  String get allCustomers => translate('all_customers');
+  String get allSuppliers => translate('all_suppliers');
+  String get spent => translate('spent');
+  String get perUnit => translate('per_unit');
+  String get buy => translate('buy');
+  String get sell => translate('sell');
+  String get filterBySupplier => translate('filter_by_supplier');
+  String get filterByCustomer => translate('filter_by_customer');
+  String get sortPurchases => translate('sort_purchases');
+  String get sortSales => translate('sort_sales');
+  String get noSalesYet => translate('no_sales_yet');
+  String get noPurchaseHistoryYet => translate('no_purchase_history_yet');
+  String get noSalesFound => translate('no_sales_found');
+  String get noPurchasesFound => translate('no_purchases_found');
+  String get tryAdjustingFilters => translate('try_adjusting_filters');
+  String get searchBySupplierName => translate('search_by_supplier_name');
+  String get editExpense => translate('edit_expense');
+  String get expenseUpdatedSuccessfully =>
+      translate('expense_updated_successfully');
+  String get average => translate('average');
+  String get totalInvested => translate('total_invested');
+  String get businessSummary => translate('business_summary');
+  String get card => translate('card');
+  String get reviewPurchaseDetails => translate('review_purchase_details');
+  String get filterByDateOrSupplier => translate('filter_by_date_or_supplier');
+  String get viewFullImage => translate('view_full_image');
+  String get pleaseEnterValidNumber => translate('please_enter_valid_number');
+  String get poweredByGeminiAi => translate('powered_by_gemini_ai');
+  String get office => translate('office');
+  String get travel => translate('travel');
+  String get utilities => translate('utilities');
+  String get food => translate('food');
+  String get hospital => translate('hospital');
+  String get other => translate('other');
+  String get signWithFinger => translate('sign_with_finger');
+  String get takePhotoOfSignature => translate('take_photo_of_signature');
+  String get signatureSavedSuccessfully =>
+      translate('signature_saved_successfully');
+  String get optionalMobileNumber => translate('optional_mobile_number');
+  String get thisDeviceNow => translate('this_device_now');
+  String get download => translate('download');
+  String get failedToDownload => translate('failed_to_download');
+  String get takeAPhoto => translate('take_a_photo');
+  String get chooseExistingPhoto => translate('choose_existing_photo');
+  String retryAttempt(int current, int max) => translate(
+    'retry_attempt',
+  ).replaceAll('{current}', '$current').replaceAll('{max}', '$max');
+  String get adminDashboard => translate('admin_dashboard');
+  String get addUser => translate('add_user');
+  String get addNewUser => translate('add_new_user');
+  String get retry => translate('retry');
+  String get deactivateUser => translate('deactivate_user');
+  String get activateUser => translate('activate_user');
+  String get overview => translate('overview');
+  String get users => translate('users');
+  String get userType => translate('user_type');
+  String get admin => translate('admin');
+  String get user => translate('user');
+  String get deactivate => translate('deactivate');
+  String get activate => translate('activate');
+  String get close => translate('close');
   String get features => translate('features');
   String get basicInformation => translate('basic_information');
   String get contactInformation => translate('contact_information');

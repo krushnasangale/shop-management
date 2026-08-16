@@ -393,19 +393,36 @@ class _BillsState extends State<Bills> {
     }
   }
 
-  // Static status text for PDF
-  String _getPDFStatusText(PaymentFilter filter) {
+  // Status text for PDF/CSV (uses current locale)
+  String _getPDFStatusText(PaymentFilter filter, AppLocalizations loc) {
     switch (filter) {
       case PaymentFilter.all:
-        return 'All';
+        return loc.all;
       case PaymentFilter.paid:
-        return 'Paid';
+        return loc.paid;
       case PaymentFilter.partial:
-        return 'Partially Paid';
+        return loc.partiallyPaid;
       case PaymentFilter.unpaid:
-        return 'Unpaid';
+        return loc.unpaid;
       case PaymentFilter.previousDue:
-        return 'Previous Due';
+        return loc.previousDue;
+    }
+  }
+
+  String _getDateRangeText(AppLocalizations loc) {
+    if (_reportStartDate == null && _reportEndDate == null) {
+      return loc.allDates;
+    } else if (_reportStartDate != null && _reportEndDate != null) {
+      return '${DateFormat('dd MMM yyyy').format(_reportStartDate!)} - ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
+    } else if (_reportStartDate != null) {
+      return '${loc.from} ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
+    } else {
+      return loc
+          .translate('up_to_date_range')
+          .replaceAll(
+            '{date}',
+            DateFormat('dd MMM yyyy').format(_reportEndDate!),
+          );
     }
   }
 
@@ -584,19 +601,8 @@ class _BillsState extends State<Bills> {
     }).toList();
   }
 
-  String _getDateRangeText() {
-    if (_reportStartDate == null && _reportEndDate == null) {
-      return 'All Dates';
-    } else if (_reportStartDate != null && _reportEndDate != null) {
-      return '${DateFormat('dd MMM yyyy').format(_reportStartDate!)} - ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
-    } else if (_reportStartDate != null) {
-      return 'From ${DateFormat('dd MMM yyyy').format(_reportStartDate!)}';
-    } else {
-      return 'Up to ${DateFormat('dd MMM yyyy').format(_reportEndDate!)}';
-    }
-  }
-
   void _generateAndSharePDF() async {
+    final loc = AppLocalizations.of(context);
     try {
       // Show loading dialog
       showDialog(
@@ -650,7 +656,10 @@ class _BillsState extends State<Bills> {
         );
 
         if (!result.success) {
-          throw Exception(result.errorMessage ?? 'Failed to share PDF');
+          throw Exception(
+            result.errorMessage ??
+                (loc?.translate('failed_to_share_pdf') ?? 'Failed to share PDF'),
+          );
         }
       }
     } catch (e) {
@@ -658,7 +667,9 @@ class _BillsState extends State<Bills> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating PDF: $e'),
+            content: Text(
+              '${loc?.errorGeneratingPdf ?? 'Error generating PDF'}: $e',
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -667,6 +678,7 @@ class _BillsState extends State<Bills> {
   }
 
   void _generateAndShareCSV() async {
+    final loc = AppLocalizations.of(context);
     try {
       final csvString = await _generateBillsCSV();
 
@@ -686,7 +698,7 @@ class _BillsState extends State<Bills> {
         final result = await FileService.shareFile(
           fileBytes: csvBytes,
           fileName: fileName,
-          shareText: 'Bills Report CSV',
+          shareText: loc?.translate('bills_report_csv') ?? 'Bills Report CSV',
           subFolder: 'Bills',
         );
 
@@ -698,7 +710,10 @@ class _BillsState extends State<Bills> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error generating CSV: $e'),
+            content: Text(
+              (loc?.errorGeneratingCsv ?? 'Error generating CSV: {error}')
+                  .replaceAll('{error}', '$e'),
+            ),
             backgroundColor: Colors.red,
           ),
         );
@@ -723,6 +738,7 @@ class _BillsState extends State<Bills> {
   }
 
   Future<Uint8List> _generateBillsPDF() async {
+    final loc = AppLocalizations.of(context)!;
     final pdf = pw.Document();
     final now = DateTime.now();
     final formattedDate =
@@ -737,17 +753,17 @@ class _BillsState extends State<Bills> {
           return [
             // Header
             pw.Text(
-              'Bills Report',
+              loc.bills,
               style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
               textAlign: pw.TextAlign.center,
             ),
             pw.SizedBox(height: 10),
             pw.Text(
-              'Generated on: $formattedDate',
+              '${loc.createdAt}: $formattedDate',
               style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
             ),
             pw.Text(
-              'Filter Applied: ${_getPDFStatusText(_selectedFilter)} | Date Range: ${_getDateRangeText()}',
+              '${loc.filter}: ${_getPDFStatusText(_selectedFilter, loc)} | ${_getDateRangeText(loc)}',
               style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700),
             ),
             pw.SizedBox(height: 15),
@@ -769,12 +785,12 @@ class _BillsState extends State<Bills> {
                   decoration: const pw.BoxDecoration(color: PdfColors.grey300),
                   children:
                       [
-                            'S.N',
-                            'Customer Name',
-                            'Mobile Number',
-                            'Bill Date',
-                            'Total Amount',
-                            'Status',
+                            loc.translate('serial_number_short'),
+                            loc.customerName,
+                            loc.mobileNumber,
+                            loc.billDate,
+                            loc.totalAmount,
+                            loc.status,
                           ]
                           .map(
                             (header) => pw.Padding(
@@ -805,7 +821,7 @@ class _BillsState extends State<Bills> {
                       _buildTableCell(bill.date, isCenter: true),
                       _buildTableCell('Rs.${bill.totalAmount}', isCenter: true),
                       _buildTableCell(
-                        _getPDFStatusText(bill.status),
+                        _getPDFStatusText(bill.status, loc),
                         isCenter: true,
                       ),
                     ],
@@ -815,7 +831,7 @@ class _BillsState extends State<Bills> {
             ),
             pw.SizedBox(height: 20),
             pw.Text(
-              'Total Bills: ${reportBills.length}',
+              '${loc.totalBills}: ${reportBills.length}',
               style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
             ),
           ];
@@ -827,19 +843,20 @@ class _BillsState extends State<Bills> {
   }
 
   Future<String> _generateBillsCSV() async {
+    final loc = AppLocalizations.of(context)!;
     final reportBills = _getReportBills();
 
     // Create CSV header
     final csv = StringBuffer();
     csv.writeln(
-      'S.No,Customer Name,Mobile Number,Bill Date,Total Amount,Amount Paid,Amount Remaining,Status,Filter Applied: ${_getPDFStatusText(_selectedFilter)},Date Range: ${_getDateRangeText()}',
+      '${loc.translate('serial_number_short')},${loc.customerName},${loc.mobileNumber},${loc.billDate},${loc.totalAmount},${loc.amountPaid},${loc.amountRemaining},${loc.status},${loc.filter}: ${_getPDFStatusText(_selectedFilter, loc)},${_getDateRangeText(loc)}',
     );
 
     // Add bill rows
     for (var i = 0; i < reportBills.length; i++) {
       final bill = reportBills[i];
       csv.writeln(
-        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getPDFStatusText(bill.status)}"',
+        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getPDFStatusText(bill.status, loc)}"',
       );
     }
 

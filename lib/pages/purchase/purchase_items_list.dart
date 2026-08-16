@@ -216,7 +216,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
         fromLabel: loc?.fromDate ?? 'From',
         toLabel: loc?.upToDate ?? 'Up to',
         supplierLabel: loc?.supplier ?? 'Supplier',
-        allSuppliersLabel: 'All Suppliers',
+        allSuppliersLabel: loc?.allSuppliers ?? 'All Suppliers',
         selectDateLabel: loc?.selectDate ?? 'Select Date',
         initialFromDate: _filterFromDate,
         initialToDate: _filterToDate,
@@ -762,7 +762,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Powered by Gemini AI',
+                              loc?.poweredByGeminiAi ?? 'Powered by Gemini AI',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.blue,
@@ -809,7 +809,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                               border: Border.all(color: Colors.orange.shade200),
                             ),
                             child: Text(
-                              'Retry attempt $currentAttempt/5',
+                              loc?.retryAttempt(currentAttempt, 5) ??
+                                  'Retry attempt $currentAttempt/5',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.orange.shade900,
@@ -1016,7 +1017,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Powered by Gemini AI',
+                              loc?.poweredByGeminiAi ?? 'Powered by Gemini AI',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.green,
@@ -1063,7 +1064,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                               border: Border.all(color: Colors.orange.shade200),
                             ),
                             child: Text(
-                              'Retry attempt $currentAttempt/5',
+                              loc?.retryAttempt(currentAttempt, 5) ??
+                                  'Retry attempt $currentAttempt/5',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.orange.shade900,
@@ -1650,7 +1652,8 @@ class _PurchaseFilterSheetState extends State<_PurchaseFilterSheet> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Filter by date or supplier',
+              AppLocalizations.of(context)?.filterByDateOrSupplier ??
+                  'Filter by date or supplier',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),

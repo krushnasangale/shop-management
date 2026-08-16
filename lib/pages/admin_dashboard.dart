@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/pages/admin/add_user_page.dart';
 import 'package:flashbill/pages/widgets/users_list_widget.dart';
 import 'package:flashbill/services/profile_service.dart';
@@ -29,16 +30,17 @@ class _AdminDashboardState extends State<AdminDashboard>
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Admin Dashboard'),
+        title: Text(loc?.adminDashboard ?? 'Admin Dashboard'),
         centerTitle: true,
         elevation: 0,
         bottom: TabBar(
           controller: _tabController,
-          tabs: const [
-            Tab(text: 'Overview'),
-            Tab(text: 'Users'),
+          tabs: [
+            Tab(text: loc?.overview ?? 'Overview'),
+            Tab(text: loc?.users ?? 'Users'),
           ],
         ),
       ),
@@ -138,7 +140,9 @@ class _OverviewTabState extends State<_OverviewTab> {
                         const SizedBox(height: 12),
                         ElevatedButton(
                           onPressed: () {},
-                          child: const Text('Retry'),
+                          child: Text(
+                            AppLocalizations.of(context)?.retry ?? 'Retry',
+                          ),
                         ),
                       ],
                     ),
@@ -258,7 +262,9 @@ class _UsersTab extends StatelessWidget {
                   );
                 },
                 icon: const Icon(Icons.add),
-                label: const Text('Add User'),
+                label: Text(
+                  AppLocalizations.of(context)?.addUser ?? 'Add User',
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
                 ),

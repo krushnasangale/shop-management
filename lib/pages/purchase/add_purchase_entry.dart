@@ -1832,13 +1832,13 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         }
                         setDialogState(() {
                           locationError = value.trim().isEmpty
-                              ? 'Location required'
+                              ? appLocalizations.locationRequired
                               : '';
                         });
                       },
                       decoration: InputDecoration(
-                        labelText: 'Location',
-                        hintText: 'Enter Location',
+                        labelText: appLocalizations.location,
+                        hintText: appLocalizations.enterLocation,
                         errorText: locationError.isNotEmpty
                             ? locationError
                             : null,
@@ -2848,21 +2848,21 @@ class _BoughtItemCard extends StatelessWidget {
             Row(
               children: [
                 _BoughtMetric(
-                  label: 'Qty',
+                  label: loc.qtyLabel,
                   value: item.unit.isEmpty
                       ? '${item.quantity}'
                       : '${item.quantity} ${item.unit}',
                 ),
                 _BoughtMetric(
-                  label: 'Buy',
+                  label: loc.buy,
                   value: '₹${_formatAmount(item.buyingPrice)}',
                 ),
                 _BoughtMetric(
-                  label: 'Sell',
+                  label: loc.sell,
                   value: '₹${_formatAmount(item.sellingPrice)}',
                 ),
                 _BoughtMetric(
-                  label: 'Min',
+                  label: loc.minQty,
                   value: '${item.minLimit}',
                   valueColor: hasMinLimitError ? scheme.error : null,
                 ),
@@ -2872,7 +2872,7 @@ class _BoughtItemCard extends StatelessWidget {
               const SizedBox(height: 8),
               if (hasSellingPriceError)
                 Text(
-                  'Selling price is 0',
+                  loc.sellingPriceIs0,
                   style: TextStyle(
                     color: scheme.error,
                     fontSize: 12,

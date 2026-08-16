@@ -31,17 +31,24 @@ class _ProductImagePreviewPageState extends State<ProductImagePreviewPage> {
   Future<void> _download() async {
     if (_busy) return;
     setState(() => _busy = true);
+    final loc = AppLocalizations.of(context);
     try {
       final file = await _saveImage(temporary: false);
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Downloaded: ${file.path}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${loc?.download ?? 'Download'}: ${file.path}',
+          ),
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to download')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc?.failedToDownload ?? 'Failed to download'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -168,7 +175,7 @@ class _ProductImagePreviewPageState extends State<ProductImagePreviewPage> {
                         side: const BorderSide(color: Colors.white54),
                       ),
                       icon: const Icon(Icons.download_outlined, size: 20),
-                      label: const Text('Download'),
+                      label: Text(loc?.download ?? 'Download'),
                     ),
                   ),
                   const SizedBox(width: 8),

@@ -1558,7 +1558,9 @@ class _AvailableProductDetailScreenState
                                   );
                                 }
                               },
-                              tooltip: 'View full image',
+                              tooltip: AppLocalizations.of(context)
+                                      ?.viewFullImage ??
+                                  'View full image',
                             ),
                           ),
                         ),

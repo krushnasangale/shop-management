@@ -225,6 +225,8 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
           totalSpent: _totalSpent,
           purchases: _totalTransactions,
           items: _totalUnits,
+          businessSummaryLabel: loc?.businessSummary ?? 'BUSINESS SUMMARY',
+          totalInvestedLabel: loc?.totalInvested ?? 'Total Invested',
           purchasesLabel: loc?.purchases ?? 'Purchases',
           itemsLabel: loc?.items ?? 'Products',
         ),
@@ -259,6 +261,8 @@ class _SummaryCard extends StatelessWidget {
     required this.totalSpent,
     required this.purchases,
     required this.items,
+    required this.businessSummaryLabel,
+    required this.totalInvestedLabel,
     required this.purchasesLabel,
     required this.itemsLabel,
   });
@@ -266,6 +270,8 @@ class _SummaryCard extends StatelessWidget {
   final double totalSpent;
   final int purchases;
   final int items;
+  final String businessSummaryLabel;
+  final String totalInvestedLabel;
   final String purchasesLabel;
   final String itemsLabel;
 
@@ -299,10 +305,10 @@ class _SummaryCard extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: CupertinoListSection.insetGrouped(
         margin: EdgeInsets.zero,
-        header: const Text('BUSINESS SUMMARY'),
+        header: Text(businessSummaryLabel),
         children: [
           CupertinoListTile(
-            title: const Text('Total Invested'),
+            title: Text(totalInvestedLabel),
             additionalInfo: Text('₹${totalSpent.toStringAsFixed(2)}'),
           ),
           CupertinoListTile(
@@ -324,7 +330,7 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         children: [
           row(
-            'Total Invested',
+            totalInvestedLabel,
             '₹${totalSpent.toStringAsFixed(2)}',
             emphasize: true,
           ),

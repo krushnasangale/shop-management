@@ -517,7 +517,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    loc?.pleaseEnterAValidNumber ??
+                                    loc?.pleaseEnterValidNumber ??
                                         'Please enter a valid number',
                                   ),
                                 ),
@@ -532,7 +532,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
-                                    loc?.pleaseEnterAValidNumber ??
+                                    loc?.pleaseEnterValidNumber ??
                                         'Please enter a valid number',
                                   ),
                                 ),

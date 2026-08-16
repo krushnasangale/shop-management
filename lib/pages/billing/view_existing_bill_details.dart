@@ -1144,7 +1144,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 },
               ),
               AppContextMenuItem(
-                label: _isDeleting ? 'Deleting...' : 'Delete Bill',
+                label: _isDeleting
+                    ? localizations.deletingBill
+                    : localizations.deleteBill,
                 icon: CupertinoIcons.delete,
                 destructive: true,
                 onPressed: () {
@@ -2212,7 +2214,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         amountRemaining = '₹ ${isFullyPaid ? 0 : newRemainingAmount}';
         amountPaid = '₹ ${isFullyPaid ? totalAmountValue : newAmountPaid}';
         isTotalAmountPaid = isFullyPaid;
-        paymentStatus = isFullyPaid ? 'Paid' : 'Partially Paid';
+        paymentStatus = isFullyPaid
+            ? localizations.paid
+            : localizations.partiallyPaid;
         // IMPORTANT: Discount ALWAYS reduces profit
         // Ensure discount is positive (negative would incorrectly increase profit)
         final validDiscount = newTotalDiscount > 0 ? newTotalDiscount : 0;

@@ -56,6 +56,13 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final loc = AppLocalizations.of(context);
+    _categoryController.text = _categoryLabel(_selectedCategory, loc);
+  }
+
+  @override
   void dispose() {
     _dateController.dispose();
     _amountController.dispose();
@@ -103,7 +110,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
     if (selected == null || !mounted) return;
     setState(() {
       _selectedCategory = selected;
-      _categoryController.text = selected;
+      _categoryController.text = _categoryLabel(selected, loc);
     });
   }
 
@@ -153,7 +160,8 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
         SnackBar(
           content: Text(
             widget.expense != null
-                ? 'Expense updated successfully'
+                ? (loc?.expenseUpdatedSuccessfully ??
+                      'Expense updated successfully')
                 : (loc?.expenseAddedSuccessfully ??
                       'Expense added successfully'),
           ),
@@ -189,7 +197,9 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          isEditing ? 'Edit Expense' : (loc?.addExpense ?? 'Add Expense'),
+          isEditing
+              ? (loc?.editExpense ?? 'Edit Expense')
+              : (loc?.addExpense ?? 'Add Expense'),
         ),
       ),
       body: Form(
@@ -310,7 +320,10 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                           value: 'online',
                           label: Text(loc?.online ?? 'Online'),
                         ),
-                        const ButtonSegment(value: 'card', label: Text('Card')),
+                        ButtonSegment(
+                          value: 'card',
+                          label: Text(loc?.card ?? 'Card'),
+                        ),
                       ],
                       selected: {_paymentMethod},
                       onSelectionChanged: (value) {
@@ -359,6 +372,7 @@ class _CategoryPickerSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     if (Adaptive.isCupertino) {
       return CupertinoActionSheet(
         title: Text(title),
@@ -367,7 +381,7 @@ class _CategoryPickerSheet extends StatelessWidget {
             CupertinoActionSheetAction(
               isDefaultAction: category == selected,
               onPressed: () => Navigator.pop(context, category),
-              child: Text(category),
+              child: Text(_categoryLabel(category, loc)),
             ),
         ],
         cancelButton: CupertinoActionSheetAction(
@@ -409,6 +423,7 @@ class _CategoryPickerSheet extends StatelessWidget {
                     for (var i = 0; i < categories.length; i++) ...[
                       _CategoryTile(
                         category: categories[i],
+                        label: _categoryLabel(categories[i], loc),
                         selected: categories[i] == selected,
                         scheme: scheme,
                         onTap: () => Navigator.pop(context, categories[i]),
@@ -443,12 +458,14 @@ class _CategoryPickerSheet extends StatelessWidget {
 class _CategoryTile extends StatelessWidget {
   const _CategoryTile({
     required this.category,
+    required this.label,
     required this.selected,
     required this.scheme,
     required this.onTap,
   });
 
   final String category;
+  final String label;
   final bool selected;
   final ColorScheme scheme;
   final VoidCallback onTap;
@@ -464,7 +481,7 @@ class _CategoryTile extends StatelessWidget {
       minVerticalPadding: 4,
       leading: _squareIcon(_categoryIcon(category), scheme),
       title: Text(
-        category,
+        label,
         style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
       ),
       trailing: Icon(
@@ -489,6 +506,25 @@ Widget _squareIcon(IconData icon, ColorScheme scheme) {
       ),
     ),
   );
+}
+
+String _categoryLabel(String category, AppLocalizations? loc) {
+  switch (category) {
+    case 'Office':
+      return loc?.office ?? category;
+    case 'Travel':
+      return loc?.travel ?? category;
+    case 'Utilities':
+      return loc?.utilities ?? category;
+    case 'Food':
+      return loc?.food ?? category;
+    case 'Hospital':
+      return loc?.hospital ?? category;
+    case 'Other':
+      return loc?.other ?? category;
+    default:
+      return category;
+  }
 }
 
 IconData _categoryIcon(String category) {

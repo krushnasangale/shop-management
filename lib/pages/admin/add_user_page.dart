@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import '../../services/profile_service.dart';
 
 class AddUserPage extends StatefulWidget {
@@ -37,7 +38,12 @@ class _AddUserPageState extends State<AddUserPage> {
     final primaryTextColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New User'), elevation: 0),
+      appBar: AppBar(
+        title: Text(
+          AppLocalizations.of(context)?.addNewUser ?? 'Add New User',
+        ),
+        elevation: 0,
+      ),
       body: Column(
         children: [
           // Scrollable form content
@@ -168,15 +174,27 @@ class _AddUserPageState extends State<AddUserPage> {
                     DropdownButtonFormField<String>(
                       initialValue: _selectedUserType,
                       decoration: InputDecoration(
-                        labelText: 'User Type',
+                        labelText:
+                            AppLocalizations.of(context)?.userType ??
+                            'User Type',
                         prefixIcon: const Icon(Icons.person_outline),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      items: const [
-                        DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                        DropdownMenuItem(value: 'user', child: Text('User')),
+                      items: [
+                        DropdownMenuItem(
+                          value: 'admin',
+                          child: Text(
+                            AppLocalizations.of(context)?.admin ?? 'Admin',
+                          ),
+                        ),
+                        DropdownMenuItem(
+                          value: 'user',
+                          child: Text(
+                            AppLocalizations.of(context)?.user ?? 'User',
+                          ),
+                        ),
                       ],
                       onChanged: (value) {
                         if (value != null) {
@@ -257,9 +275,9 @@ class _AddUserPageState extends State<AddUserPage> {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.all(0),
                       ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
+                      child: Text(
+                        AppLocalizations.of(context)?.cancel ?? 'Cancel',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                         ),

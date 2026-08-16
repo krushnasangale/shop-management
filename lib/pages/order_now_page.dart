@@ -112,7 +112,8 @@ class _OrderNowPageState extends State<OrderNowPage> {
                 },
               ),
               AppContextMenuItem(
-                label: 'Sort by Supplier',
+                label:
+                    '${loc?.sortBy ?? 'Sort by'} ${loc?.supplier ?? 'Supplier'}',
                 icon: Icons.local_shipping_outlined,
                 selected: _sortBy == 'supplier',
                 onPressed: () {

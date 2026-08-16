@@ -230,7 +230,10 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _sectionFooter('This is the device you are using now.'),
+                child: _sectionFooter(
+                  loc?.thisDeviceNow ??
+                      'This is the device you are using now.',
+                ),
               ),
               const SizedBox(height: 20),
             ],
@@ -381,7 +384,8 @@ class _DeviceTile extends StatelessWidget {
           )
         : IconButton(
             icon: Icon(Icons.delete_outline, color: scheme.error),
-            tooltip: 'Remove device',
+            tooltip: AppLocalizations.of(context)?.removeDevice ??
+                'Remove device',
             onPressed: onRemove,
           );
 

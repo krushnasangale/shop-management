@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/pages/products/tabs/history_ui.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
@@ -126,19 +127,19 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
       if (date.year == now.year &&
           date.month == now.month &&
           date.day == now.day) {
-        groupKey = 'Today';
+        groupKey = 'today';
       } else if (date.year == now.year &&
           date.month == now.month &&
           date.day == now.day - 1) {
-        groupKey = 'Yesterday';
+        groupKey = 'yesterday';
       } else if (now.difference(date).inDays < 7) {
-        groupKey = 'This Week';
+        groupKey = 'this_week';
       } else if (date.year == now.year && date.month == now.month) {
-        groupKey = 'This Month';
+        groupKey = 'this_month';
       } else if (date.year == now.year) {
-        groupKey = 'This Year';
+        groupKey = 'this_year';
       } else {
-        groupKey = 'Older';
+        groupKey = 'older';
       }
 
       grouped.putIfAbsent(groupKey, () => []);
@@ -148,12 +149,12 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
     // Return groups in chronological order (most recent first)
     final orderedGroups = <String, List<Map<String, dynamic>>>{};
     final order = [
-      'Today',
-      'Yesterday',
-      'This Week',
-      'This Month',
-      'This Year',
-      'Older',
+      'today',
+      'yesterday',
+      'this_week',
+      'this_month',
+      'this_year',
+      'older',
     ];
 
     for (var key in order) {
@@ -163,6 +164,18 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
     }
 
     return orderedGroups;
+  }
+
+  String _localizedGroupLabel(String key, AppLocalizations? loc) {
+    return switch (key) {
+      'today' => loc?.today ?? 'Today',
+      'yesterday' => loc?.yesterday ?? 'Yesterday',
+      'this_week' => loc?.thisWeek ?? 'This Week',
+      'this_month' => loc?.thisMonth ?? 'This Month',
+      'this_year' => loc?.thisYear ?? 'This Year',
+      'older' => loc?.older ?? 'Older',
+      _ => key,
+    };
   }
 
   Map<String, dynamic> _calculateSummaryStats() {
@@ -214,14 +227,23 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   }
 
   void _showSupplierFilterSheet(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     Adaptive.showSheet(
       context: context,
       builder: (context) => HistoryOptionSheet(
-        title: 'Filter by Supplier',
+        title: loc?.filterBySupplier ?? 'Filter by Supplier',
         options: [
-          const HistorySheetOption(value: 'all', label: 'All Suppliers'),
+          HistorySheetOption(
+            value: 'all',
+            label: loc?.allSuppliers ?? 'All Suppliers',
+          ),
           ..._getUniqueSuppliers().map(
-            (supplier) => HistorySheetOption(value: supplier, label: supplier),
+            (supplier) => HistorySheetOption(
+              value: supplier,
+              label: supplier == 'Unknown'
+                  ? (loc?.unknown ?? 'Unknown')
+                  : supplier,
+            ),
           ),
         ],
         selected: _filterSupplier,
@@ -234,15 +256,19 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   }
 
   void _showPurchaseSortSheet(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     Adaptive.showSheet(
       context: context,
       builder: (context) => HistoryOptionSheet(
-        title: 'Sort Purchases',
-        options: const [
-          HistorySheetOption(value: 'date', label: 'Date'),
-          HistorySheetOption(value: 'amount', label: 'Amount'),
-          HistorySheetOption(value: 'supplier', label: 'Supplier'),
-          HistorySheetOption(value: 'profit', label: 'Profit'),
+        title: loc?.sortPurchases ?? 'Sort Purchases',
+        options: [
+          HistorySheetOption(value: 'date', label: loc?.date ?? 'Date'),
+          HistorySheetOption(value: 'amount', label: loc?.amount ?? 'Amount'),
+          HistorySheetOption(
+            value: 'supplier',
+            label: loc?.supplier ?? 'Supplier',
+          ),
+          HistorySheetOption(value: 'profit', label: loc?.profit ?? 'Profit'),
         ],
         selected: _sortBy,
         onSelected: (value) {
@@ -253,14 +279,15 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
     );
   }
 
-  String get _sortLabel => switch (_sortBy) {
-    'amount' => 'Amount',
-    'supplier' => 'Supplier',
-    'profit' => 'Profit',
-    _ => 'Date',
+  String _sortLabel(AppLocalizations? loc) => switch (_sortBy) {
+    'amount' => loc?.amount ?? 'Amount',
+    'supplier' => loc?.supplier ?? 'Supplier',
+    'profit' => loc?.profit ?? 'Profit',
+    _ => loc?.date ?? 'Date',
   };
 
   Widget _buildToolbar(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     return Column(
       children: [
         Padding(
@@ -274,8 +301,10 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                   icon: const Icon(Icons.filter_list, size: 16),
                   label: Text(
                     _filterSupplier == 'all'
-                        ? 'All Suppliers'
-                        : _filterSupplier,
+                        ? (loc?.allSuppliers ?? 'All Suppliers')
+                        : (_filterSupplier == 'Unknown'
+                            ? (loc?.unknown ?? 'Unknown')
+                            : _filterSupplier),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -288,7 +317,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                   onPressed: () => _showPurchaseSortSheet(context),
                   icon: const Icon(Icons.sort, size: 16),
                   label: Text(
-                    _sortLabel,
+                    _sortLabel(loc),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -296,7 +325,9 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
               ),
               IconButton(
                 style: historyDenseIconButton,
-                tooltip: _sortAscending ? 'Ascending' : 'Descending',
+                tooltip: _sortAscending
+                    ? (loc?.ascending ?? 'Ascending')
+                    : (loc?.descending ?? 'Descending'),
                 icon: Icon(
                   _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
                 ),
@@ -307,7 +338,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
               ),
               IconButton(
                 style: historyDenseIconButton,
-                tooltip: 'Search',
+                tooltip: loc?.search ?? 'Search',
                 icon: Icon(_showSearch ? Icons.search_off : Icons.search),
                 onPressed: () {
                   setState(() {
@@ -322,7 +353,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
         if (_showSearch)
           Adaptive.searchField(
             controller: _searchController,
-            hint: 'Search by supplier name',
+            hint: loc?.searchBySupplierName ?? 'Search by supplier name',
             query: _searchController.text,
           ),
       ],
@@ -333,6 +364,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
     BuildContext context,
     Map<String, dynamic> stats,
   ) {
+    final loc = AppLocalizations.of(context);
     final totalProfit = (stats['totalProfit'] as num).toDouble();
     return Adaptive.box(
       context: context,
@@ -341,15 +373,15 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
         child: Row(
           children: [
             HistoryMetric(
-              label: 'Purchases',
+              label: loc?.purchases ?? 'Purchases',
               value: stats['totalPurchases'].toString(),
             ),
             HistoryMetric(
-              label: 'Spent',
+              label: loc?.spent ?? 'Spent',
               value: '₹${(stats['totalSpent'] as num).toStringAsFixed(0)}',
             ),
             HistoryMetric(
-              label: 'Profit',
+              label: loc?.profit ?? 'Profit',
               value: '₹${totalProfit.toStringAsFixed(0)}',
               valueColor: totalProfit >= 0 ? Colors.green : Colors.red,
             ),
@@ -360,12 +392,17 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final filtering =
         _searchController.text.isNotEmpty || _filterSupplier != 'all';
     return HistoryEmptyState(
       icon: filtering ? Icons.search_off : Icons.history_outlined,
-      message: filtering ? 'No purchases found' : 'No purchase history yet',
-      hint: filtering ? 'Try adjusting your filters' : null,
+      message: filtering
+          ? (loc?.noPurchasesFound ?? 'No purchases found')
+          : (loc?.noPurchaseHistoryYet ?? 'No purchase history yet'),
+      hint: filtering
+          ? (loc?.tryAdjustingFilters ?? 'Try adjusting your filters')
+          : null,
     );
   }
 
@@ -376,6 +413,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
     Color surfaceColor,
     bool showDivider,
   ) {
+    final loc = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final mutedColor = isDark ? Colors.grey[400] : Colors.grey[600];
@@ -408,7 +446,8 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                     children: [
                       Expanded(
                         child: Text(
-                          purchase['supplierName'] ?? 'Unknown',
+                          purchase['supplierName'] ??
+                              (loc?.unknown ?? 'Unknown'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -473,22 +512,22 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                     Row(
                       children: [
                         HistoryMetric(
-                          label: 'Buy',
+                          label: loc?.buy ?? 'Buy',
                           value: '₹${purchase['buyingPrice']}',
                         ),
                         HistoryMetric(
-                          label: 'Sell',
+                          label: loc?.sell ?? 'Sell',
                           value: '₹${purchase['sellingPrice']}',
                         ),
                         HistoryMetric(
-                          label: 'Per unit',
+                          label: loc?.perUnit ?? 'Per unit',
                           value: '₹${profitPerUnit.toStringAsFixed(0)}',
                           valueColor: profitPerUnit >= 0
                               ? Colors.green
                               : Colors.red,
                         ),
                         HistoryMetric(
-                          label: 'Profit',
+                          label: loc?.profit ?? 'Profit',
                           value: '₹${totalProfit.toStringAsFixed(0)}',
                           valueColor: totalProfit >= 0
                               ? Colors.green
@@ -535,6 +574,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context);
     final stats = _calculateSummaryStats();
     final groupedPurchases = _groupPurchasesByDate();
     final surfaceColor = historySurfaceColor(context);
@@ -565,7 +605,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         HistoryGroupLabel(
-                          label: group.key,
+                          label: _localizedGroupLabel(group.key, loc),
                           count: group.value.length,
                         ),
                         Adaptive.box(

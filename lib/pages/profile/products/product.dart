@@ -745,7 +745,10 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                         title: Text(
                           AppLocalizations.of(sheetContext)?.camera ?? 'Camera',
                         ),
-                        subtitle: const Text('Take a photo'),
+                        subtitle: Text(
+                          AppLocalizations.of(sheetContext)?.takeAPhoto ??
+                              'Take a photo',
+                        ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () =>
                             Navigator.pop(sheetContext, ImageSource.camera),
@@ -761,7 +764,11 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                           AppLocalizations.of(sheetContext)?.gallery ??
                               'Gallery',
                         ),
-                        subtitle: const Text('Choose an existing photo'),
+                        subtitle: Text(
+                          AppLocalizations.of(sheetContext)
+                                  ?.chooseExistingPhoto ??
+                              'Choose an existing photo',
+                        ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () =>
                             Navigator.pop(sheetContext, ImageSource.gallery),
@@ -887,7 +894,9 @@ class _ProductFormSheetState extends State<_ProductFormSheet> {
                   _removeImage = true;
                 });
               },
-              child: const Text('Remove Image'),
+              child: Text(
+                AppLocalizations.of(context)?.removeImage ?? 'Remove Image',
+              ),
             ),
           ),
       ],

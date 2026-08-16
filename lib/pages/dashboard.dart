@@ -355,7 +355,7 @@ class _DashboardState extends State<Dashboard>
             Row(
               children: [
                 DashboardMetric(
-                  label: 'Total Due',
+                  label: loc?.totalDue ?? 'Total Due',
                   value:
                       '₹${_formatCurrency(((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt(), loc: loc)}',
                   valueColor: Colors.purple[600],
@@ -820,7 +820,8 @@ class _DashboardState extends State<Dashboard>
                                   child: _sectionHeader(
                                     loc?.businessInsights ??
                                         'Business Insights',
-                                    'Payments, products and restock',
+                                    loc?.paymentsProductsAndRestock ??
+                                        'Payments, products and restock',
                                   ),
                                 ),
                                 _buildUpcomingPaymentsCard(loc),

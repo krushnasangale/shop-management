@@ -141,7 +141,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                 _SummaryTile(
                   icon: Icons.category_outlined,
                   label: loc?.category ?? 'Category',
-                  value: category,
+                  value: _categoryLabel(category, loc),
                 ),
                 const SizedBox(width: 8),
                 _SummaryTile(
@@ -320,8 +320,27 @@ String _paymentLabel(String method, AppLocalizations? loc) {
     case 'online':
       return loc?.online ?? 'Online';
     case 'card':
-      return 'Card';
+      return loc?.card ?? 'Card';
     default:
       return loc?.cash ?? 'Cash';
+  }
+}
+
+String _categoryLabel(String category, AppLocalizations? loc) {
+  switch (category) {
+    case 'Office':
+      return loc?.office ?? category;
+    case 'Travel':
+      return loc?.travel ?? category;
+    case 'Utilities':
+      return loc?.utilities ?? category;
+    case 'Food':
+      return loc?.food ?? category;
+    case 'Hospital':
+      return loc?.hospital ?? category;
+    case 'Other':
+      return loc?.other ?? category;
+    default:
+      return category;
   }
 }

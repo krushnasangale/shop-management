@@ -563,16 +563,19 @@ class _PurchaseItemTile extends StatelessWidget {
             Row(
               children: [
                 _Metric(
-                  label: 'Qty',
+                  label: loc?.qtyLabel ?? 'Qty',
                   value: unit.isEmpty ? '$quantity' : '$quantity $unit',
                 ),
-                _Metric(label: 'Buy', value: '₹${_formatAmount(buyingPrice)}'),
                 _Metric(
-                  label: 'Sell',
+                  label: loc?.buy ?? 'Buy',
+                  value: '₹${_formatAmount(buyingPrice)}',
+                ),
+                _Metric(
+                  label: loc?.sell ?? 'Sell',
                   value: '₹${_formatAmount(sellingPrice)}',
                 ),
                 _Metric(
-                  label: 'Profit',
+                  label: loc?.profit ?? 'Profit',
                   value: '${profit >= 0 ? '+' : ''}₹${_formatAmount(profit)}',
                   valueColor: profit >= 0 ? scheme.primary : scheme.error,
                 ),

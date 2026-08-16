@@ -340,7 +340,7 @@ class _OverviewTab extends StatelessWidget {
               for (final entry in topCategories.take(5))
                 _InfoTile(
                   icon: _categoryIcon(entry.key),
-                  title: entry.key,
+                  title: _categoryLabel(entry.key, loc),
                   subtitle:
                       '${totalAmount > 0 ? (entry.value / totalAmount * 100).toStringAsFixed(1) : 0}%',
                   trailing: '₹${_formatAmount(entry.value)}',
@@ -565,7 +565,7 @@ class _CategoryTab extends StatelessWidget {
                   scheme,
                 ),
                 title: Text(
-                  summary['category'] as String,
+                  _categoryLabel(summary['category'] as String, loc),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -625,7 +625,7 @@ class CategoryExpensesPage extends StatelessWidget {
     final average = expenses.isEmpty ? 0.0 : totalAmount / expenses.length;
 
     return Scaffold(
-      appBar: AppBar(title: Text(category)),
+      appBar: AppBar(title: Text(_categoryLabel(category, loc))),
       body: expenses.isEmpty
           ? _EmptyState(
               icon: Icons.category_outlined,
@@ -647,7 +647,7 @@ class CategoryExpensesPage extends StatelessWidget {
                       const SizedBox(width: 8),
                       _SummaryTile(
                         icon: Icons.trending_up,
-                        label: 'Average',
+                        label: loc?.average ?? 'Average',
                         value: '₹${_formatAmount(average)}',
                       ),
                       const SizedBox(width: 8),
@@ -706,14 +706,14 @@ class _ExpenseTile extends StatelessWidget {
       onTap: onTap,
       leading: _squareIcon(_categoryIcon(category), scheme),
       title: Text(
-        description.isNotEmpty ? description : category,
+        description.isNotEmpty ? description : _categoryLabel(category, loc),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
       ),
       subtitle: Text(
         [
-          if (description.isNotEmpty) category,
+          if (description.isNotEmpty) _categoryLabel(category, loc),
           date,
           _paymentLabel(method, loc),
         ].join('  ·  '),
@@ -966,8 +966,27 @@ String _paymentLabel(String method, AppLocalizations? loc) {
     case 'online':
       return loc?.online ?? 'Online';
     case 'card':
-      return 'Card';
+      return loc?.card ?? 'Card';
     default:
       return loc?.cash ?? 'Cash';
+  }
+}
+
+String _categoryLabel(String category, AppLocalizations? loc) {
+  switch (category) {
+    case 'Office':
+      return loc?.office ?? category;
+    case 'Travel':
+      return loc?.travel ?? category;
+    case 'Utilities':
+      return loc?.utilities ?? category;
+    case 'Food':
+      return loc?.food ?? category;
+    case 'Hospital':
+      return loc?.hospital ?? category;
+    case 'Other':
+      return loc?.other ?? category;
+    default:
+      return category;
   }
 }

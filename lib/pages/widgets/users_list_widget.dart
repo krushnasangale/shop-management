@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import '../../services/profile_service.dart';
 
 class UsersListWidget extends StatefulWidget {
@@ -215,14 +216,17 @@ class _UsersListWidgetState extends State<UsersListWidget> {
                   const SizedBox(width: 8),
                   if (isActive)
                     _buildActionButton(
-                      label: 'Deactivate',
+                      label:
+                          AppLocalizations.of(context)?.deactivate ??
+                          'Deactivate',
                       icon: Icons.block,
                       onTap: () => _deactivateUser(context, userId, shopName),
                       color: Colors.orange,
                     )
                   else
                     _buildActionButton(
-                      label: 'Activate',
+                      label:
+                          AppLocalizations.of(context)?.activate ?? 'Activate',
                       icon: Icons.check_circle,
                       onTap: () => _activateUser(context, userId, shopName),
                       color: Colors.green,
@@ -296,7 +300,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(AppLocalizations.of(context)?.close ?? 'Close'),
           ),
         ],
       ),
@@ -328,7 +332,9 @@ class _UsersListWidgetState extends State<UsersListWidget> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Deactivate User'),
+        title: Text(
+          AppLocalizations.of(context)?.deactivateUser ?? 'Deactivate User',
+        ),
         content: Text('Are you sure you want to deactivate $shopName?'),
         actions: [
           TextButton(
@@ -364,7 +370,9 @@ class _UsersListWidgetState extends State<UsersListWidget> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Deactivate'),
+            child: Text(
+              AppLocalizations.of(context)?.deactivate ?? 'Deactivate',
+            ),
           ),
         ],
       ),
@@ -375,7 +383,9 @@ class _UsersListWidgetState extends State<UsersListWidget> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Activate User'),
+        title: Text(
+          AppLocalizations.of(context)?.activateUser ?? 'Activate User',
+        ),
         content: Text('Are you sure you want to activate $shopName?'),
         actions: [
           TextButton(
@@ -411,7 +421,7 @@ class _UsersListWidgetState extends State<UsersListWidget> {
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('Activate'),
+            child: Text(AppLocalizations.of(context)?.activate ?? 'Activate'),
           ),
         ],
       ),

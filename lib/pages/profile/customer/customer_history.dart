@@ -403,7 +403,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                             : amountRemaining == totalAmount
                                             ? (localizations?.unpaid ??
                                                   'Unpaid')
-                                            : (localizations?.partiallyPaid ??
+                                            : (localizations?.partial ??
                                                   'Partial'),
                                         style: TextStyle(
                                           fontSize: 12,

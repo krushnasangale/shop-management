@@ -71,7 +71,9 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Review Purchase Details')),
+      appBar: AppBar(
+        title: Text(loc.reviewPurchaseDetails),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverPadding(

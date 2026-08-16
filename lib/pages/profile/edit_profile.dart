@@ -72,6 +72,7 @@ class _EditProfileState extends State<EditProfile> {
       _hasSignature =
           _ownerSignatureBase64 != null && _ownerSignatureBase64!.isNotEmpty;
 
+      final loc = AppLocalizations.of(context);
       if (profileData['subscriptionExpiry'] != null) {
         try {
           DateTime expiryDate;
@@ -87,10 +88,10 @@ class _EditProfileState extends State<EditProfile> {
           _subscriptionExpiryController.text =
               '${expiryDate.day.toString().padLeft(2, '0')}/${expiryDate.month.toString().padLeft(2, '0')}/${expiryDate.year}';
         } catch (e) {
-          _subscriptionExpiryController.text = 'Not set';
+          _subscriptionExpiryController.text = loc?.notSet ?? 'Not set';
         }
       } else {
-        _subscriptionExpiryController.text = 'Not set';
+        _subscriptionExpiryController.text = loc?.notSet ?? 'Not set';
       }
     }
   }
@@ -176,7 +177,7 @@ class _EditProfileState extends State<EditProfile> {
             ? CupertinoIcons.pencil_outline
             : Icons.draw_outlined,
         title: loc?.drawSignature ?? 'Draw Signature',
-        subtitle: 'Sign with your finger or stylus',
+        subtitle: loc?.signWithFinger ?? 'Sign with your finger or stylus',
         onSelect: _showSignaturePad,
       ),
       _SignatureOptionData(
@@ -184,7 +185,7 @@ class _EditProfileState extends State<EditProfile> {
             ? CupertinoIcons.photo
             : Icons.image_outlined,
         title: loc?.upload ?? 'Upload',
-        subtitle: 'Choose an image from your gallery',
+        subtitle: loc?.chooseFromGallery ?? 'Choose from Gallery',
         onSelect: _pickSignatureFromGallery,
       ),
       _SignatureOptionData(
@@ -192,7 +193,8 @@ class _EditProfileState extends State<EditProfile> {
             ? CupertinoIcons.camera
             : Icons.camera_alt_outlined,
         title: loc?.camera ?? 'Camera',
-        subtitle: 'Take a photo of your signature',
+        subtitle:
+            loc?.takePhotoOfSignature ?? 'Take a photo of your signature',
         onSelect: _captureSignatureWithCamera,
       ),
     ];
@@ -335,7 +337,8 @@ class _EditProfileState extends State<EditProfile> {
                                           ).showSnackBar(
                                             SnackBar(
                                               content: Text(
-                                                localizations?.signatureSaved ??
+                                                localizations
+                                                        ?.signatureSavedSuccessfully ??
                                                     'Signature saved successfully',
                                               ),
                                               duration: const Duration(
@@ -602,18 +605,20 @@ class _EditProfileState extends State<EditProfile> {
                         ),
                         _InfoRow(
                           controller: _shopPhoneController,
-                          label: 'Mobile Number',
-                          hint: 'Enter mobile number',
+                          label: loc?.mobileNumber ?? 'Mobile Number',
+                          hint: loc?.enterMobileNumber ?? 'Enter mobile number',
                           icon: Icons.phone_outlined,
                           editable: _isEditMode,
                           keyboardType: TextInputType.phone,
                           validator: (value) {
                             if (_isEditMode) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter mobile number';
+                                return loc?.mobileNumberIsRequired ??
+                                    'Please enter mobile number';
                               }
                               if (value.length < 10) {
-                                return 'Please enter valid mobile number';
+                                return loc?.mobileNumberMustBe10Digits ??
+                                    'Please enter valid mobile number';
                               }
                             }
                             return null;
@@ -621,8 +626,10 @@ class _EditProfileState extends State<EditProfile> {
                         ),
                         _InfoRow(
                           controller: _ownerPhoneController,
-                          label: 'Optional Mobile Number',
-                          hint: 'Enter mobile number (optional)',
+                          label: loc?.optionalMobileNumber ??
+                              'Optional Mobile Number',
+                          hint: loc?.enterMobileNumber ??
+                              'Enter mobile number (optional)',
                           icon: Icons.phone_outlined,
                           editable: _isEditMode,
                           keyboardType: TextInputType.phone,
@@ -631,7 +638,8 @@ class _EditProfileState extends State<EditProfile> {
                                 value != null &&
                                 value.isNotEmpty &&
                                 value.length < 10) {
-                              return 'Please enter valid mobile number';
+                              return loc?.mobileNumberMustBe10Digits ??
+                                  'Please enter valid mobile number';
                             }
                             return null;
                           },
