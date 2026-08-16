@@ -1,6 +1,21 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 
+Color dashboardSurface(BuildContext context) {
+  return Theme.of(context).brightness == Brightness.dark
+      ? const Color(0xFF171C22)
+      : Colors.white;
+}
+
+TextStyle dashboardSectionLabel(BuildContext context) {
+  return TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.6,
+    color: Theme.of(context).colorScheme.onSurfaceVariant,
+  );
+}
+
 /// A reusable expandable card widget for dashboard components
 class ExpandableCard extends StatefulWidget {
   final String title;
@@ -10,6 +25,9 @@ class ExpandableCard extends StatefulWidget {
   final bool initiallyExpanded;
   final VoidCallback? onExpansionChanged;
   final AppLocalizations? loc;
+  final String? subtitle;
+  final bool grouped;
+  final bool showDivider;
 
   const ExpandableCard({
     super.key,
@@ -20,6 +38,9 @@ class ExpandableCard extends StatefulWidget {
     this.initiallyExpanded = false,
     this.onExpansionChanged,
     this.loc,
+    this.subtitle,
+    this.grouped = false,
+    this.showDivider = false,
   });
 
   @override
@@ -37,98 +58,84 @@ class _ExpandableCardState extends State<ExpandableCard> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : widget.themeColor.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? widget.themeColor.withValues(alpha: 0.3)
-              : widget.themeColor.withValues(alpha: 0.15),
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: widget.themeColor.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: widget.themeColor.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () {
-              setState(() => _isExpanded = !_isExpanded);
-              widget.onExpansionChanged?.call();
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    widget.title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.grey[100] : Colors.grey[800],
-                    ),
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () {
+            setState(() => _isExpanded = !_isExpanded);
+            widget.onExpansionChanged?.call();
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 12, 14),
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: widget.subtitle == null ? 28 : 36,
+                  decoration: BoxDecoration(
+                    color: widget.themeColor,
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  Row(
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (widget.badgeText != null) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: widget.themeColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            widget.badgeText!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: widget.themeColor,
-                            ),
+                      Text(
+                        widget.title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: scheme.onSurface,
+                        ),
+                      ),
+                      if (widget.subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          widget.subtitle!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ),
-                        const SizedBox(width: 8),
                       ],
-                      Icon(
-                        _isExpanded ? Icons.expand_less : Icons.expand_more,
-                        color: widget.themeColor,
-                        size: 20,
-                      ),
                     ],
                   ),
+                ),
+                if (widget.badgeText != null) ...[
+                  Text(
+                    widget.badgeText!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: widget.themeColor,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
                 ],
-              ),
+                Icon(
+                  _isExpanded ? Icons.expand_less : Icons.expand_more,
+                  color: scheme.onSurfaceVariant,
+                  size: 20,
+                ),
+              ],
             ),
           ),
-          if (_isExpanded && widget.expandedContent != null) ...[
-            Divider(
-              color: isDark ? Colors.grey[700] : Colors.grey[300],
-              height: 1,
-            ),
-            widget.expandedContent!,
-          ],
-        ],
-      ),
+        ),
+        if (_isExpanded && widget.expandedContent != null)
+          widget.expandedContent!,
+        if (widget.showDivider)
+          const Divider(height: 1, indent: 32, endIndent: 16),
+      ],
     );
+
+    if (widget.grouped) return body;
+
+    return Material(color: dashboardSurface(context), child: body);
   }
 }
 
@@ -153,51 +160,48 @@ class ProductListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${index + 1}. $name',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.grey[100] : Colors.grey[800],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${index + 1}. $name',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: scheme.onSurface,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${loc?.qty ?? 'Qty'}: $quantity • ${loc?.revenue ?? 'Revenue'}: ₹$revenue',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  '${loc?.qty ?? 'Qty'}: $quantity  ·  ${loc?.revenue ?? 'Revenue'}: ₹$revenue',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${loc?.profit ?? 'Profit'}: ₹$profit',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: profit >= 0 ? Colors.green[600] : Colors.red[600],
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          Text(
+            '${loc?.profit ?? 'Profit'}: ₹$profit',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: profit >= 0 ? Colors.green[600] : Colors.red[600],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -223,83 +227,86 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? textColor.withValues(alpha: 0.4)
-              : textColor.withValues(alpha: 0.2),
-          width: isDark ? 1.5 : 1,
+    return Material(
+      color: dashboardSurface(context),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: textColor),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: textColor.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: textColor.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-            spreadRadius: 0,
-          ),
-        ],
       ),
-      padding: const EdgeInsets.all(10),
+    );
+  }
+}
+
+class DashboardMetric extends StatelessWidget {
+  const DashboardMetric({
+    super.key,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.grey[300] : Colors.grey[700],
-                    letterSpacing: 0.5,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? textColor.withValues(alpha: 0.15)
-                      : textColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: textColor),
-              ),
-            ],
+          Text(
+            label,
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.w800,
-              color: textColor,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 11,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
-              fontWeight: FontWeight.w500,
-              height: 1.4,
+              letterSpacing: -0.4,
+              color: valueColor ?? scheme.onSurface,
             ),
           ),
         ],
@@ -327,39 +334,41 @@ class PaymentListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: onTap,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  customerName,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.grey[100] : Colors.grey[800],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    customerName,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: scheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${loc?.bill ?? 'Bill'}: ₹$totalAmount • ${loc?.remaining ?? 'Remaining'}: ₹$remainingAmount',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: isDark ? Colors.grey[400] : Colors.grey[600],
+                  const SizedBox(height: 4),
+                  Text(
+                    '${loc?.bill ?? 'Bill'}: ₹$totalAmount  ·  ${loc?.remaining ?? 'Remaining'}: ₹$remainingAmount',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: scheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

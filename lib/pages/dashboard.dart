@@ -13,6 +13,7 @@ import 'package:flashbill/services/dashboard_service.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:flashbill/widgets/dashboard_widgets.dart';
 import 'package:flashbill/services/notification_service.dart';
+import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 
 class Dashboard extends StatefulWidget {
@@ -175,6 +176,8 @@ class _DashboardState extends State<Dashboard>
       title: loc?.topSellingProducts ?? 'Top Selling Products',
       themeColor: Colors.purple,
       badgeText: '${displayProducts.length}',
+      grouped: true,
+      showDivider: true,
       initiallyExpanded: _expandTopProducts,
       onExpansionChanged: () =>
           setState(() => _expandTopProducts = !_expandTopProducts),
@@ -192,12 +195,8 @@ class _DashboardState extends State<Dashboard>
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: displayProducts.length,
-                separatorBuilder: (_, _) => Divider(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey[700]!
-                      : Colors.grey[300]!,
-                  height: 12,
-                ),
+                separatorBuilder: (_, _) =>
+                    const Divider(height: 1, indent: 0, endIndent: 0),
                 itemBuilder: (context, index) {
                   final product = displayProducts[index];
                   final profit = (product['totalProfit'] as num?)?.toInt() ?? 0;
@@ -230,6 +229,8 @@ class _DashboardState extends State<Dashboard>
       title: loc?.leastSellingProducts ?? 'Least Selling Products',
       themeColor: Colors.red,
       badgeText: '${displayProducts.length}',
+      grouped: true,
+      showDivider: true,
       initiallyExpanded: _expandLeastProducts,
       onExpansionChanged: () =>
           setState(() => _expandLeastProducts = !_expandLeastProducts),
@@ -247,12 +248,7 @@ class _DashboardState extends State<Dashboard>
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: displayProducts.length,
-                separatorBuilder: (_, _) => Divider(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey[700]!
-                      : Colors.grey[300]!,
-                  height: 12,
-                ),
+                separatorBuilder: (_, _) => const Divider(height: 16),
                 itemBuilder: (context, index) {
                   final product = displayProducts[index];
                   final profit = (product['totalProfit'] as num?)?.toInt() ?? 0;
@@ -276,6 +272,8 @@ class _DashboardState extends State<Dashboard>
       themeColor: Colors.orange,
       badgeText:
           '₹${_formatCurrency(_dashboardData?.pendingPayments.totalAmount ?? 0, loc: AppLocalizations.of(context))}',
+      grouped: true,
+      showDivider: true,
       initiallyExpanded: _expandPendingPayments,
       onExpansionChanged: () =>
           setState(() => _expandPendingPayments = !_expandPendingPayments),
@@ -296,12 +294,7 @@ class _DashboardState extends State<Dashboard>
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount:
                         _dashboardData?.pendingPayments.payments.length ?? 0,
-                    separatorBuilder: (_, _) => Divider(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey[700]!
-                          : Colors.grey[300]!,
-                      height: 12,
-                    ),
+                    separatorBuilder: (_, _) => const Divider(height: 16),
                     itemBuilder: (context, index) {
                       final payment =
                           _dashboardData!.pendingPayments.payments[index];
@@ -331,12 +324,8 @@ class _DashboardState extends State<Dashboard>
                   label: Text(
                     loc?.viewAllPendingPayments ?? 'View All Pending Payments',
                   ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.orange[600],
-                    side: BorderSide(
-                      color: Colors.orange.withValues(alpha: 0.5),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  style: Adaptive.compactOutlined.copyWith(
+                    foregroundColor: WidgetStatePropertyAll(Colors.orange[600]),
                   ),
                 ),
               ),
@@ -348,832 +337,330 @@ class _DashboardState extends State<Dashboard>
   }
 
   Widget _buildPreviousDueCard(AppLocalizations? loc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark
-            ? Colors.grey[850]
-            : Colors.purple.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.purple.withValues(alpha: 0.3)
-              : Colors.purple.withValues(alpha: 0.15),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () =>
-                setState(() => _expandPreviousDue = !_expandPreviousDue),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    loc?.previousDueTracking ?? 'Previous Due Tracking',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.grey[100] : Colors.grey[800],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.purple.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${_dashboardData?.previousDueTracking.totalBills == 1 ? (loc?.bill ?? 'Bill') : (loc?.bills ?? 'Bills')} ${_dashboardData?.previousDueTracking.totalBills ?? 0}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.purple[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _expandPreviousDue
-                            ? Icons.expand_less
-                            : Icons.expand_more,
-                        color: Colors.purple[600],
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+    return ExpandableCard(
+      title: loc?.previousDueTracking ?? 'Previous Due Tracking',
+      themeColor: Colors.purple,
+      badgeText:
+          '${_dashboardData?.previousDueTracking.totalBills == 1 ? (loc?.bill ?? 'Bill') : (loc?.bills ?? 'Bills')} ${_dashboardData?.previousDueTracking.totalBills ?? 0}',
+      grouped: true,
+      showDivider: true,
+      initiallyExpanded: _expandPreviousDue,
+      onExpansionChanged: () =>
+          setState(() => _expandPreviousDue = !_expandPreviousDue),
+      loc: loc,
+      expandedContent: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                DashboardMetric(
+                  label: 'Total Due',
+                  value:
+                      '₹${_formatCurrency(((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt(), loc: loc)}',
+                  valueColor: Colors.purple[600],
+                ),
+                DashboardMetric(
+                  label: loc?.collected ?? 'Collected',
+                  value:
+                      '₹${_formatCurrency(_dashboardData?.previousDueTracking.totalCollected.toInt() ?? 0, loc: loc)}',
+                  valueColor: Colors.green[600],
+                ),
+                DashboardMetric(
+                  label: loc?.pending ?? 'Pending',
+                  value:
+                      '₹${_formatCurrency(_dashboardData?.previousDueTracking.totalPending.toInt() ?? 0, loc: loc)}',
+                  valueColor: Colors.orange[600],
+                ),
+              ],
             ),
-          ),
-          if (_expandPreviousDue) ...[
-            Divider(
-              color: isDark ? Colors.grey[700] : Colors.grey[300],
-              height: 1,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Total Due',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '₹${_formatCurrency(((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt(), loc: AppLocalizations.of(context))}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.purple[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 1,
-                        height: 40,
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              loc?.collected ?? 'Collected',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '₹${_formatCurrency(_dashboardData?.previousDueTracking.totalCollected.toInt() ?? 0, loc: loc)}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.green[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        width: 1,
-                        height: 40,
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              loc?.pending ?? 'Pending',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '₹${_formatCurrency(_dashboardData?.previousDueTracking.totalPending.toInt() ?? 0, loc: loc)}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.orange[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        AppNavigator.push(
-                          context,
-                          const PreviousDuePaymentsPage(),
-                        );
-                      },
-                      icon: Icon(
-                        Icons.visibility,
-                        size: 18,
-                        color: Colors.purple[600],
-                      ),
-                      label: Text(
-                        loc?.viewAllPreviousDuePayments ??
-                            'View All Previous Due Payments',
-                        style: TextStyle(color: Colors.purple[600]),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(color: Colors.purple[600]!),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  AppNavigator.push(context, const PreviousDuePaymentsPage());
+                },
+                icon: const Icon(Icons.visibility, size: 18),
+                label: Text(
+                  loc?.viewAllPreviousDuePayments ??
+                      'View All Previous Due Payments',
+                ),
+                style: Adaptive.compactOutlined.copyWith(
+                  foregroundColor: WidgetStatePropertyAll(Colors.purple[600]),
+                ),
               ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
 
   Widget _buildAvailabilityCard(AppLocalizations? loc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.green.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.green.withValues(alpha: 0.3)
-              : Colors.green.withValues(alpha: 0.15),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      loc?.availability ?? 'Availability',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? Colors.grey[100] : Colors.grey[800],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      loc?.currentStockOverview ?? 'Current Stock Overview',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w500,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.orange.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        (_dashboardData?.productsData.availableProductsCount ??
-                                0)
-                            .toString(),
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.orange[600],
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        loc?.availableProductsCount ?? 'Available\nProducts',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.orange[600],
-                          height: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.green.withValues(alpha: 0.1)
-                          : Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.green.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.inventory_2,
-                              color: Colors.green[600],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              loc?.totalQuantity ?? 'Total Quantity',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          (_dashboardData?.productsData.totalAvailableQty ?? 0)
-                              .toString(),
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.green[600],
-                          ),
-                        ),
-                        Text(
-                          loc?.itemsInStock ?? 'products in stock',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isDark ? Colors.grey[500] : Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.blue.withValues(alpha: 0.1)
-                          : Colors.blue.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.blue.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.currency_rupee,
-                              color: Colors.blue[600],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              loc?.totalAmount ?? 'Total Amount',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: isDark
-                                    ? Colors.grey[400]
-                                    : Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '₹${_formatCurrency((_dashboardData?.productsData.totalAvailableAmount ?? 0).toInt(), loc: AppLocalizations.of(context))}',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.blue[600],
-                          ),
-                        ),
-                        Text(
-                          loc?.stockValue ?? 'stock value',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: isDark ? Colors.grey[500] : Colors.grey[500],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: Row(
+        children: [
+          DashboardMetric(
+            label: loc?.availableProductsCount ?? 'Products',
+            value:
+                '${_dashboardData?.productsData.availableProductsCount ?? 0}',
+            valueColor: Colors.orange[600],
+          ),
+          DashboardMetric(
+            label: loc?.totalQuantity ?? 'Qty',
+            value: '${_dashboardData?.productsData.totalAvailableQty ?? 0}',
+            valueColor: Colors.green[600],
+          ),
+          DashboardMetric(
+            label: loc?.stockValue ?? 'Stock value',
+            value:
+                '₹${_formatCurrency((_dashboardData?.productsData.totalAvailableAmount ?? 0).toInt(), loc: loc)}',
+            valueColor: Colors.blue[600],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildUpcomingPaymentsCard(AppLocalizations? loc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.blue.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.blue.withValues(alpha: 0.3)
-              : Colors.blue.withValues(alpha: 0.15),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(
-              () => _expandUpcomingPayments = !_expandUpcomingPayments,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        loc?.upcomingPayments ?? 'Upcoming Payments',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.grey[100] : Colors.grey[800],
-                        ),
-                      ),
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              '${_dashboardData?.upcomingPayments.length ?? 0} ${loc?.due ?? 'due'}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue[600],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            _expandUpcomingPayments
-                                ? Icons.expand_less
-                                : Icons.expand_more,
-                            color: Colors.blue[600],
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Text(
-                    '${loc?.getFullMonthName(DateTime.now().month) ?? getMonthName(DateTime.now().month)} ${DateTime.now().year}',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.grey[400] : Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_expandUpcomingPayments) ...[
-            Divider(
-              color: isDark ? Colors.grey[700] : Colors.grey[300],
-              height: 1,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: (_dashboardData?.upcomingPayments.isEmpty ?? true)
-                  ? Center(
-                      child: Text(
-                        loc?.noUpcomingPayments ?? 'No upcoming payments',
-                        style: TextStyle(color: Colors.grey[500]),
-                      ),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _dashboardData?.upcomingPayments.length ?? 0,
-                      separatorBuilder: (_, _) => Divider(
-                        color: isDark ? Colors.grey[700] : Colors.grey[300],
-                        height: 12,
-                      ),
-                      itemBuilder: (context, index) {
-                        final payment = _dashboardData!.upcomingPayments[index];
-                        return InkWell(
-                          onTap: () => _navigateToBillDetails(payment),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ExpandableCard(
+      title: loc?.upcomingPayments ?? 'Upcoming Payments',
+      subtitle:
+          '${loc?.getFullMonthName(DateTime.now().month) ?? getMonthName(DateTime.now().month)} ${DateTime.now().year}',
+      themeColor: Colors.blue,
+      badgeText:
+          '${_dashboardData?.upcomingPayments.length ?? 0} ${loc?.due ?? 'due'}',
+      grouped: true,
+      showDivider: true,
+      initiallyExpanded: _expandUpcomingPayments,
+      onExpansionChanged: () =>
+          setState(() => _expandUpcomingPayments = !_expandUpcomingPayments),
+      loc: loc,
+      expandedContent: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: (_dashboardData?.upcomingPayments.isEmpty ?? true)
+            ? Center(
+                child: Text(
+                  loc?.noUpcomingPayments ?? 'No upcoming payments',
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              )
+            : ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _dashboardData?.upcomingPayments.length ?? 0,
+                separatorBuilder: (_, _) => const Divider(height: 16),
+                itemBuilder: (context, index) {
+                  final payment = _dashboardData!.upcomingPayments[index];
+                  return InkWell(
+                    onTap: () => _navigateToBillDetails(payment),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      payment['customerName'],
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: isDark
-                                            ? Colors.grey[100]
-                                            : Colors.grey[800],
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Text(
-                                          '${loc?.due ?? 'Due'}: ${payment['nextPaymentDate']}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            color: isDark
-                                                ? Colors.grey[400]
-                                                : Colors.grey[600],
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '₹${payment['totalAmount']}',
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blue[600],
-                                          ),
-                                        ),
-
-                                        const Spacer(),
-                                        Text(
-                                          '${loc?.remaining ?? 'Remaining'}: ₹${payment['amountRemaining']}',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.orange[600],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                              Text(
+                                payment['customerName'],
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: scheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${loc?.due ?? 'Due'}: ${payment['nextPaymentDate']}  ·  ₹${payment['totalAmount']}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: scheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      },
+                        ),
+                        Text(
+                          '${loc?.remaining ?? 'Remaining'}: ₹${payment['amountRemaining']}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.orange[600],
+                          ),
+                        ),
+                      ],
                     ),
-            ),
-          ],
-        ],
+                  );
+                },
+              ),
       ),
     );
   }
 
   Widget _buildOrderNowCard(AppLocalizations? loc) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final scheme = Theme.of(context).colorScheme;
+    final products = _dashboardData?.productsData.orderNowProducts ?? [];
+    final visibleCount = products.length > 5 ? 5 : products.length;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? Colors.grey[850] : Colors.red.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark
-              ? Colors.red.withValues(alpha: 0.3)
-              : Colors.red.withValues(alpha: 0.15),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _expandOrderNow = !_expandOrderNow),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ExpandableCard(
+      title: loc?.orderNow ?? 'Order Now',
+      themeColor: Colors.red,
+      badgeText: '${products.length}',
+      grouped: true,
+      initiallyExpanded: _expandOrderNow,
+      onExpansionChanged: () =>
+          setState(() => _expandOrderNow = !_expandOrderNow),
+      loc: loc,
+      expandedContent: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: products.isEmpty
+            ? Center(
+                child: Text(
+                  loc?.noProductsToOrder ?? 'No products to order',
+                  style: TextStyle(color: Colors.grey[500]),
+                ),
+              )
+            : Column(
                 children: [
-                  Text(
-                    loc?.orderNow ?? 'Order Now',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: isDark ? Colors.grey[100] : Colors.grey[800],
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          '${_dashboardData?.productsData.orderNowProducts.length ?? 0}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.red[600],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _expandOrderNow ? Icons.expand_less : Icons.expand_more,
-                        color: Colors.red[600],
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_expandOrderNow) ...[
-            Divider(
-              color: isDark ? Colors.grey[700] : Colors.grey[300],
-              height: 1,
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child:
-                  (_dashboardData?.productsData.orderNowProducts.isEmpty ??
-                      true)
-                  ? Center(
-                      child: Text(
-                        loc?.noProductsToOrder ?? 'No products to order',
-                        style: TextStyle(color: Colors.grey[500]),
-                      ),
-                    )
-                  : Column(
-                      children: [
-                        ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount:
-                              (_dashboardData!
-                                      .productsData
-                                      .orderNowProducts
-                                      .length >
-                                  5
-                              ? 5
-                              : _dashboardData!
-                                    .productsData
-                                    .orderNowProducts
-                                    .length),
-                          separatorBuilder: (_, _) => Divider(
-                            color: isDark ? Colors.grey[700] : Colors.grey[300],
-                            height: 12,
-                          ),
-                          itemBuilder: (context, index) {
-                            final product = _dashboardData!
-                                .productsData
-                                .orderNowProducts[index];
-                            return Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: visibleCount,
+                    separatorBuilder: (_, _) => const Divider(height: 16),
+                    itemBuilder: (context, index) {
+                      final product = products[index];
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        product['productName'],
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark
-                                              ? Colors.grey[100]
-                                              : Colors.grey[800],
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${product['supplierName']} • ${product['unit']}',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: isDark
-                                              ? Colors.grey[400]
-                                              : Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
+                                Text(
+                                  product['productName'],
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: scheme.onSurface,
                                   ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    loc?.stock0 ?? 'Stock: 0',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.red[600],
-                                    ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${product['supplierName']}  ·  ${product['unit']}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: scheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
-                            );
-                          },
-                        ),
-                        if (_dashboardData!
-                                .productsData
-                                .orderNowProducts
-                                .length >
-                            5) ...[
-                          const SizedBox(height: 12),
-                          InkWell(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => OrderNowPage(
-                                    orderNowProducts: _dashboardData!
-                                        .productsData
-                                        .orderNowProducts,
-                                  ),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.red.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.red.withValues(alpha: 0.3),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    loc?.viewAll ?? 'View All',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.red[600],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '(${_dashboardData!.productsData.orderNowProducts.length - 5} more)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.red[400],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 14,
-                                    color: Colors.red[600],
-                                  ),
-                                ],
-                              ),
+                            ),
+                          ),
+                          Text(
+                            loc?.stock0 ?? 'Stock: 0',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.red[600],
                             ),
                           ),
                         ],
-                      ],
+                      );
+                    },
+                  ),
+                  if (products.length > 5) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          AppNavigator.push(
+                            context,
+                            OrderNowPage(orderNowProducts: products),
+                          );
+                        },
+                        icon: const Icon(Icons.arrow_forward, size: 16),
+                        label: Text(
+                          '${loc?.viewAll ?? 'View All'} (${products.length - 5} more)',
+                        ),
+                        style: Adaptive.compactOutlined.copyWith(
+                          foregroundColor: WidgetStatePropertyAll(
+                            Colors.red[600],
+                          ),
+                        ),
+                      ),
                     ),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(
+    String title,
+    String description, {
+    Widget? trailing,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+          if (trailing != null) trailing,
         ],
       ),
     );
   }
 
+  Widget _sectionBox({required Widget child}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      decoration: BoxDecoration(
+        color: dashboardSurface(context),
+        border: Border.all(color: scheme.outline),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final loc = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -1182,342 +669,180 @@ class _DashboardState extends State<Dashboard>
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 15,
-                        vertical: 6,
-                      ),
+                      padding: const EdgeInsets.only(bottom: 24),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Section 1 Title: Inventory & Payments
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: IntrinsicHeight(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  AspectRatio(
-                                    aspectRatio: 1,
-                                    child: FittedBox(
-                                      fit: BoxFit.contain,
-                                      child: Icon(
-                                        Icons.store_outlined,
-                                        color: isDark
-                                            ? Colors.green[300]
-                                            : Colors.green[700],
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        loc?.inventoryPayments ??
-                                            'Inventory & Payments',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                          height: 1.2,
-                                          color: isDark
-                                              ? Colors.grey[100]
-                                              : Colors.grey[800],
-                                        ),
-                                      ),
-                                      Text(
-                                        loc?.liveStatus ?? 'Live status',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                          height: 1.2,
-                                          color: isDark
-                                              ? Colors.grey[400]
-                                              : Colors.grey[600],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          // Availability Section
-                          _buildAvailabilityCard(loc),
                           const SizedBox(height: 12),
-
-                          // Section 2 Title: Sales & Profit / Loss Analysis
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 2),
-                            child: Row(
+                          _sectionBox(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(
-                                  Icons.analytics_outlined,
-                                  color: isDark
-                                      ? Colors.blue[300]
-                                      : Colors.blue[700],
-                                  size: 22,
+                                _sectionHeader(
+                                  loc?.availability ?? 'Availability',
+                                  loc?.currentStockOverview ??
+                                      'Current Stock Overview',
                                 ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  loc?.salesProfitAnalysis ??
-                                      'Sales & Profit / Loss Analysis',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? Colors.grey[100]
-                                        : Colors.grey[800],
-                                  ),
-                                ),
+                                _buildAvailabilityCard(loc),
                               ],
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? Colors.blue.withValues(alpha: 0.2)
-                                      : Colors.blue.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? Colors.blue.withValues(alpha: 0.6)
-                                        : Colors.blue.withValues(alpha: 0.3),
-                                    width: isDark ? 1.2 : 1,
-                                  ),
-                                ),
-                                child: Text(
+                          _sectionBox(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _sectionHeader(
+                                  loc?.salesProfitAnalysis ??
+                                      'Sales & Profit / Loss Analysis',
                                   _getMonthYear(),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark
-                                        ? Colors.blue[300]
-                                        : Colors.blue[700],
-                                  ),
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? Colors.grey[750]
-                                          : Colors.white,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: isDark
-                                            ? Colors.grey[600]!
-                                            : Colors.transparent,
-                                        width: isDark ? 1 : 0,
-                                      ),
-                                    ),
-                                    child: Builder(
-                                      builder: (buttonContext) {
-                                        return InkWell(
-                                          onTap: () => AppContextMenu.show(
-                                            buttonContext: buttonContext,
-                                            items: [
-                                              AppContextMenuItem(
-                                                label:
-                                                    loc?.allData ?? 'All Data',
-                                                icon: Icons.all_inclusive,
-                                                selected: filterType == 'all',
-                                                onPressed: () {
-                                                  setState(
-                                                    () => filterType = 'all',
-                                                  );
-                                                  _saveFilterPreference('all');
-                                                  _updateDashboardSubscription();
-                                                },
-                                              ),
-                                              AppContextMenuItem(
-                                                label:
-                                                    loc?.dateRange ??
-                                                    'Date Range',
-                                                icon: Icons.date_range,
-                                                selected: filterType == 'range',
-                                                onPressed: () {
-                                                  setState(
-                                                    () => filterType = 'range',
-                                                  );
-                                                  _saveFilterPreference(
-                                                    'range',
-                                                  );
-                                                  _updateDashboardSubscription();
-                                                },
-                                              ),
-                                              AppContextMenuItem(
-                                                label: loc?.day ?? 'Day',
-                                                icon: Icons.calendar_today,
-                                                selected: filterType == 'day',
-                                                onPressed: () {
-                                                  setState(
-                                                    () => filterType = 'day',
-                                                  );
-                                                  _saveFilterPreference('day');
-                                                  _updateDashboardSubscription();
-                                                },
-                                              ),
-                                              AppContextMenuItem(
-                                                label: loc?.month ?? 'Month',
-                                                icon: Icons.calendar_month,
-                                                selected: filterType == 'month',
-                                                onPressed: () {
-                                                  setState(
-                                                    () => filterType = 'month',
-                                                  );
-                                                  _saveFilterPreference(
-                                                    'month',
-                                                  );
-                                                  _updateDashboardSubscription();
-                                                },
-                                              ),
-                                              AppContextMenuItem(
-                                                label: loc?.year ?? 'Year',
-                                                icon: Icons.calendar_view_month,
-                                                selected: filterType == 'year',
-                                                onPressed: () {
-                                                  setState(
-                                                    () => filterType = 'year',
-                                                  );
-                                                  _saveFilterPreference('year');
-                                                  _updateDashboardSubscription();
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                          child: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 8,
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Builder(
+                                        builder: (buttonContext) {
+                                          return IconButton(
+                                            tooltip: loc?.filter ?? 'Filter',
+                                            icon: Icon(
+                                              Icons.filter_list,
+                                              color: scheme.primary,
                                             ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.filter_list,
-                                                  color: Colors.blue[600],
-                                                  size: 20,
+                                            onPressed: () =>
+                                                AppContextMenu.show(
+                                              buttonContext: buttonContext,
+                                              items: [
+                                                AppContextMenuItem(
+                                                  label:
+                                                      loc?.allData ??
+                                                      'All Data',
+                                                  icon: Icons.all_inclusive,
+                                                  selected:
+                                                      filterType == 'all',
+                                                  onPressed: () {
+                                                    setState(
+                                                      () =>
+                                                          filterType = 'all',
+                                                    );
+                                                    _saveFilterPreference(
+                                                      'all',
+                                                    );
+                                                    _updateDashboardSubscription();
+                                                  },
                                                 ),
-                                                const SizedBox(width: 4),
-                                                Icon(
-                                                  Icons.arrow_drop_down,
-                                                  color: Colors.blue[600],
-                                                  size: 18,
+                                                AppContextMenuItem(
+                                                  label:
+                                                      loc?.dateRange ??
+                                                      'Date Range',
+                                                  icon: Icons.date_range,
+                                                  selected:
+                                                      filterType == 'range',
+                                                  onPressed: () {
+                                                    setState(
+                                                      () => filterType =
+                                                          'range',
+                                                    );
+                                                    _saveFilterPreference(
+                                                      'range',
+                                                    );
+                                                    _updateDashboardSubscription();
+                                                  },
+                                                ),
+                                                AppContextMenuItem(
+                                                  label: loc?.day ?? 'Day',
+                                                  icon: Icons.calendar_today,
+                                                  selected:
+                                                      filterType == 'day',
+                                                  onPressed: () {
+                                                    setState(
+                                                      () =>
+                                                          filterType = 'day',
+                                                    );
+                                                    _saveFilterPreference(
+                                                      'day',
+                                                    );
+                                                    _updateDashboardSubscription();
+                                                  },
+                                                ),
+                                                AppContextMenuItem(
+                                                  label:
+                                                      loc?.month ?? 'Month',
+                                                  icon: Icons.calendar_month,
+                                                  selected:
+                                                      filterType == 'month',
+                                                  onPressed: () {
+                                                    setState(
+                                                      () => filterType =
+                                                          'month',
+                                                    );
+                                                    _saveFilterPreference(
+                                                      'month',
+                                                    );
+                                                    _updateDashboardSubscription();
+                                                  },
+                                                ),
+                                                AppContextMenuItem(
+                                                  label: loc?.year ?? 'Year',
+                                                  icon: Icons
+                                                      .calendar_view_month,
+                                                  selected:
+                                                      filterType == 'year',
+                                                  onPressed: () {
+                                                    setState(
+                                                      () =>
+                                                          filterType = 'year',
+                                                    );
+                                                    _saveFilterPreference(
+                                                      'year',
+                                                    );
+                                                    _updateDashboardSubscription();
+                                                  },
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: IconButton(
-                                      icon: Icon(
-                                        Icons.calendar_today,
-                                        color: filterType == 'all'
-                                            ? Colors.grey[400]
-                                            : Colors.blue[600],
-                                        size: 22,
+                                          );
+                                        },
                                       ),
-                                      onPressed: filterType == 'all'
-                                          ? null
-                                          : () =>
-                                                _showMonthPicker(context, loc),
-                                      style: IconButton.styleFrom(
-                                        backgroundColor: isDark
-                                            ? (filterType == 'all'
-                                                  ? Colors.grey[800]
-                                                  : Colors.grey[750])
-                                            : (filterType == 'all'
-                                                  ? Colors.grey[100]
-                                                  : Colors.white),
-                                        side: isDark
-                                            ? (filterType == 'all'
-                                                  ? BorderSide(
-                                                      color: Colors.grey[700]!,
-                                                      width: 1,
-                                                    )
-                                                  : BorderSide(
-                                                      color: Colors.grey[600]!,
-                                                      width: 1,
-                                                    ))
-                                            : null,
+                                      IconButton(
+                                        tooltip: loc?.select ?? 'Select',
+                                        icon: Icon(
+                                          Icons.calendar_today,
+                                          color: filterType == 'all'
+                                              ? scheme.onSurfaceVariant
+                                              : scheme.primary,
+                                        ),
+                                        onPressed: filterType == 'all'
+                                            ? null
+                                            : () => _showMonthPicker(
+                                                context,
+                                                loc,
+                                              ),
                                       ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-
-                          // Profit/Loss Card
-                          _buildProfitLossCard(),
-                          const SizedBox(height: 12),
-
-                          // Section 3 Title: Business Insights
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 2),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.insights_outlined,
-                                  color: isDark
-                                      ? Colors.purple[300]
-                                      : Colors.purple[700],
-                                  size: 22,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  loc?.businessInsights ?? 'Business Insights',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark
-                                        ? Colors.grey[100]
-                                        : Colors.grey[800],
+                                    ],
                                   ),
                                 ),
+                                _buildProfitLossCard(),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
-
-                          // Upcoming Payments
-                          _buildUpcomingPaymentsCard(loc),
-                          const SizedBox(height: 12),
-
-                          // Top Selling Products
-                          _buildTopSellingProductsCard(loc),
-                          const SizedBox(height: 12),
-
-                          // Least Selling Products
-                          _buildLeastSellingProductsCard(loc),
-                          const SizedBox(height: 12),
-
-                          // Pending Payments
-                          _buildPendingPaymentsCard(loc),
-                          const SizedBox(height: 12),
-
-                          // Previous Due Tracking
-                          _buildPreviousDueCard(loc),
-                          const SizedBox(height: 12),
-
-                          // Order Now
-                          _buildOrderNowCard(loc),
-                          const SizedBox(height: 80),
+                          _sectionBox(
+                            child: Column(
+                              children: [
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: _sectionHeader(
+                                    loc?.businessInsights ??
+                                        'Business Insights',
+                                    'Payments, products and restock',
+                                  ),
+                                ),
+                                _buildUpcomingPaymentsCard(loc),
+                                _buildTopSellingProductsCard(loc),
+                                _buildLeastSellingProductsCard(loc),
+                                _buildPendingPaymentsCard(loc),
+                                _buildPreviousDueCard(loc),
+                                _buildOrderNowCard(loc),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -1532,148 +857,64 @@ class _DashboardState extends State<Dashboard>
     final totalSales = _dashboardData?.salesMetrics.totalSales ?? 0;
     final profit = _dashboardData?.salesMetrics.totalProfit ?? 0;
     final isProfitable = profit >= 0;
-    final profitBgColor = isProfitable ? Colors.green : Colors.red;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final loc = AppLocalizations.of(context);
+    final scheme = Theme.of(context).colorScheme;
 
-    return Row(
-      children: [
-        // Total Sales Card
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.grey[850]
-                  : Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark
-                    ? Colors.blue.withValues(alpha: 0.4)
-                    : Colors.blue.withValues(alpha: 0.2),
-                width: isDark ? 1.5 : 1,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      child: Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    loc?.totalSales ?? 'Total Sales',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '₹${_formatCurrency(totalSales, loc: loc)}',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.8,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ],
               ),
             ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                // First row: Icon and Label
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.blue.withValues(alpha: 0.15)
-                            : Colors.blue.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.attach_money,
-                        size: 20,
-                        color: Colors.blue,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      loc?.totalSales ?? 'Total Sales',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.grey[300] : Colors.grey[700],
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Second row: Amount
                 Text(
-                  '₹${_formatCurrency(totalSales, loc: loc)}',
+                  isProfitable
+                      ? loc?.profitLabel ?? 'Profit'
+                      : loc?.loss ?? 'Loss',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${isProfitable ? '+' : '-'}₹${_formatCurrency(profit.abs(), loc: loc)}',
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
-                    color: Colors.blue,
-                    letterSpacing: -0.5,
+                    letterSpacing: -0.4,
+                    color: isProfitable ? Colors.green[600] : Colors.red[600],
                   ),
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),
-          ),
+          ],
         ),
-
-        // Profit/Loss Card
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.only(left: 8),
-            decoration: BoxDecoration(
-              color: isDark
-                  ? Colors.grey[850]
-                  : profitBgColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: isDark
-                    ? profitBgColor.withValues(alpha: 0.4)
-                    : profitBgColor.withValues(alpha: 0.2),
-                width: isDark ? 1.5 : 1,
-              ),
-            ),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // First row: Icon and Label
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? profitBgColor.withValues(alpha: 0.15)
-                            : profitBgColor.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        isProfitable ? Icons.trending_up : Icons.trending_down,
-                        size: 20,
-                        color: profitBgColor,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      isProfitable
-                          ? loc?.profitLabel ?? 'Profit'
-                          : loc?.loss ?? 'Loss',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.grey[300] : Colors.grey[700],
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Second row: Amount
-                Text(
-                  '₹${_formatCurrency(profit.abs(), loc: loc)}',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: profitBgColor,
-                    letterSpacing: -0.5,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
     );
   }
 
