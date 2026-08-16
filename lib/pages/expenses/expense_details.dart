@@ -157,6 +157,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
             child: _sectionLabel(context, loc?.details ?? 'Details'),
           ),
           Adaptive.fullWidthGroup(
+            bordered: true,
             context: context,
             children: [
               _infoTile(
@@ -228,7 +229,9 @@ class _SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Expanded(
-      child: Card(
+      child: Adaptive.box(
+        context: context,
+        margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(

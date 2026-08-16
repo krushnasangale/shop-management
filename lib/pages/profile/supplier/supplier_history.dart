@@ -294,7 +294,10 @@ class _SummaryCard extends StatelessWidget {
     }
 
     if (Adaptive.isCupertino) {
-      return CupertinoListSection.insetGrouped(
+      return Adaptive.box(
+        context: context,
+        margin: EdgeInsets.zero,
+        child: CupertinoListSection.insetGrouped(
         margin: EdgeInsets.zero,
         header: const Text('BUSINESS SUMMARY'),
         children: [
@@ -311,11 +314,13 @@ class _SummaryCard extends StatelessWidget {
             additionalInfo: Text('$items'),
           ),
         ],
+        ),
       );
     }
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return Adaptive.box(
+      context: context,
+      margin: EdgeInsets.zero,
       child: Column(
         children: [
           row(
@@ -395,7 +400,10 @@ class _TransactionGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (Adaptive.isCupertino) {
-      return CupertinoListSection.insetGrouped(
+      return Adaptive.box(
+        context: context,
+        margin: EdgeInsets.zero,
+        child: CupertinoListSection.insetGrouped(
         margin: EdgeInsets.zero,
         children: [
           for (final purchase in transactions)
@@ -405,11 +413,13 @@ class _TransactionGroup extends StatelessWidget {
               onOpen: () => onOpen(purchase),
             ),
         ],
+        ),
       );
     }
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return Adaptive.box(
+      context: context,
+      margin: EdgeInsets.zero,
       child: Column(
         children: [
           for (var i = 0; i < transactions.length; i++) ...[

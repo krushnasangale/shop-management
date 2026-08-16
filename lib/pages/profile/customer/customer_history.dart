@@ -5,6 +5,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/theme/adaptive.dart';
 
 class CustomerHistoryScreen extends StatefulWidget {
   final String customerId;
@@ -232,13 +233,11 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
             )
           : Column(
               children: [
-                // Summary Card
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(15.0),
-                      child: Column(
+                Adaptive.box(
+                  context: context,
+                  child: Padding(
+                    padding: const EdgeInsets.all(15.0),
+                    child: Column(
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -324,7 +323,6 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                             ],
                           ),
                         ],
-                      ),
                     ),
                   ),
                 ),
@@ -332,10 +330,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                 Expanded(
                   child: ListView.builder(
                     itemCount: _customerBills.length,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+                    padding: const EdgeInsets.only(bottom: 8),
                     itemBuilder: (context, index) {
                       final bill = _customerBills[index];
                       final totalAmount =
@@ -346,8 +341,8 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                           (bill['amountRemaining'] as num?)?.toInt() ?? 0;
                       final isFullyPaid = bill['totalAmountPaid'] as bool;
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
+                      return Adaptive.box(
+                        context: context,
                         child: InkWell(
                           onTap: () {
                             AppNavigator.push(

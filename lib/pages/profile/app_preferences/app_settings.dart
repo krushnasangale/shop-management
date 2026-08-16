@@ -263,29 +263,29 @@ class _SettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (Adaptive.isCupertino) {
-      return CupertinoListSection.insetGrouped(
-        margin: EdgeInsets.zero,
-        children: children,
-      );
-    }
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            Padding(
-              padding: EdgeInsets.only(
-                top: i == 0 ? 8 : 0,
-                bottom: i == children.length - 1 ? 8 : 0,
-              ),
-              child: children[i],
+    return Adaptive.box(
+      context: context,
+      margin: EdgeInsets.zero,
+      child: Adaptive.isCupertino
+          ? CupertinoListSection.insetGrouped(
+              margin: EdgeInsets.zero,
+              children: children,
+            )
+          : Column(
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  Padding(
+                    padding: EdgeInsets.only(
+                      top: i == 0 ? 8 : 0,
+                      bottom: i == children.length - 1 ? 8 : 0,
+                    ),
+                    child: children[i],
+                  ),
+                  if (i != children.length - 1)
+                    const Divider(height: 1, indent: 64),
+                ],
+              ],
             ),
-            if (i != children.length - 1) const Divider(height: 1, indent: 64),
-          ],
-        ],
-      ),
     );
   }
 }

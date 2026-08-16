@@ -107,6 +107,7 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
           ),
           SliverToBoxAdapter(
             child: Adaptive.fullWidthGroup(
+              bordered: true,
               context: context,
               children: [
                 _infoTile(
@@ -130,6 +131,7 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
           ),
           SliverToBoxAdapter(
             child: Adaptive.fullWidthGroup(
+              bordered: true,
               context: context,
               children: [
                 for (final product in widget.items)

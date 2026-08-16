@@ -1163,8 +1163,6 @@ class _AvailableProductDetailScreenState
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = isDark ? const Color(0xFF171C22) : Colors.white;
     final totalPotentialRevenue = this.totalPotentialRevenue;
     final totalPotentialProfit = this.totalPotentialProfit;
     final profitMargin = this.profitMargin;
@@ -1414,7 +1412,6 @@ class _AvailableProductDetailScreenState
           _buildInfoTab(
             context,
             localizations,
-            cardColor,
             totalPotentialRevenue,
             totalPotentialProfit,
             profitMargin,
@@ -1442,7 +1439,6 @@ class _AvailableProductDetailScreenState
   Widget _buildInfoTab(
     BuildContext context,
     AppLocalizations localizations,
-    Color cardColor,
     double totalPotentialRevenue,
     double totalPotentialProfit,
     double profitMargin,
@@ -1456,24 +1452,26 @@ class _AvailableProductDetailScreenState
       child: Column(
         children: [
           // Product Header Card
-          Material(
-            color: cardColor,
+          Adaptive.box(
+            context: context,
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 12),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   // Product Image (Left side)
-                  Container(
+                  SizedBox(
                     width: 160,
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Stack(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Stack(
                       children: [
                         // Main image with tap functionality
                         Positioned.fill(
@@ -1566,6 +1564,7 @@ class _AvailableProductDetailScreenState
                         ),
                       ],
                     ),
+                    ),
                   ),
 
                   const SizedBox(width: 16),
@@ -1633,15 +1632,15 @@ class _AvailableProductDetailScreenState
                     ),
                   ),
                 ],
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 8),
 
           // --- Total Quantity By Unit ---
           if (_allBatches.isNotEmpty)
-            Material(
-              color: cardColor,
+            Adaptive.box(
+              context: context,
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
@@ -1879,11 +1878,10 @@ class _AvailableProductDetailScreenState
                 ),
               ),
             ),
-          const SizedBox(height: 10),
 
           // --- 2. All Batches Card (Always show) ---
-          Material(
-            color: cardColor,
+          Adaptive.box(
+            context: context,
             child: Padding(
               padding: const EdgeInsets.only(
                 right: 16.0,
@@ -2252,11 +2250,10 @@ class _AvailableProductDetailScreenState
               ),
             ),
           ),
-          const SizedBox(height: 16),
 
           // --- 3. Financial Metrics Card (Current Stock) ---
-          Material(
-            color: cardColor,
+          Adaptive.box(
+            context: context,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(

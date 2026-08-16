@@ -200,6 +200,12 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
+                  Adaptive.box(
+                    context: context,
+                    margin: EdgeInsets.zero,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                   TextFormField(
                     controller: _dateController,
                     readOnly: true,
@@ -312,6 +318,9 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                       },
                     ),
                   ),
+                      ],
+                    ),
+                  ),
                 ]),
               ),
             ),
@@ -390,8 +399,9 @@ class _CategoryPickerSheet extends StatelessWidget {
               ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
-            Card(
-              clipBehavior: Clip.antiAlias,
+            Adaptive.box(
+              context: context,
+              margin: EdgeInsets.zero,
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Column(

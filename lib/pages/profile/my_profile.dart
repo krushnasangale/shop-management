@@ -269,24 +269,12 @@ class _ProfileHeader extends StatelessWidget {
       ),
     );
 
-    if (Adaptive.isCupertino) {
-      return GestureDetector(
-        onTap: onTap,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: CupertinoColors.secondarySystemGroupedBackground.resolveFrom(
-              context,
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: content,
-        ),
-      );
-    }
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(onTap: onTap, child: content),
+    return Adaptive.box(
+      context: context,
+      margin: EdgeInsets.zero,
+      child: Adaptive.isCupertino
+          ? GestureDetector(onTap: onTap, child: content)
+          : InkWell(onTap: onTap, child: content),
     );
   }
 }
@@ -298,23 +286,23 @@ class _SettingsGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (Adaptive.isCupertino) {
-      return CupertinoListSection.insetGrouped(
-        margin: EdgeInsets.zero,
-        children: children,
-      );
-    }
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            children[i],
-            if (i != children.length - 1) const Divider(height: 1, indent: 56),
-          ],
-        ],
-      ),
+    return Adaptive.box(
+      context: context,
+      margin: EdgeInsets.zero,
+      child: Adaptive.isCupertino
+          ? CupertinoListSection.insetGrouped(
+              margin: EdgeInsets.zero,
+              children: children,
+            )
+          : Column(
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  children[i],
+                  if (i != children.length - 1)
+                    const Divider(height: 1, indent: 56),
+                ],
+              ],
+            ),
     );
   }
 }

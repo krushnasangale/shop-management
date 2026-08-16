@@ -332,11 +332,10 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
   Widget _buildSummary(
     BuildContext context,
     Map<String, dynamic> stats,
-    Color surfaceColor,
   ) {
     final totalProfit = (stats['totalProfit'] as num).toDouble();
-    return Material(
-      color: surfaceColor,
+    return Adaptive.box(
+      context: context,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: Row(
@@ -391,9 +390,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
               100
         : 0.0;
 
-    return Material(
-      color: surfaceColor,
-      child: Column(
+    return Column(
         children: [
           InkWell(
             onTap: () => setState(() {
@@ -533,7 +530,6 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
           ),
           if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16),
         ],
-      ),
     );
   }
 
@@ -553,7 +549,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
             child: Column(
               children: [
                 if (widget.purchaseHistory.isNotEmpty)
-                  _buildSummary(context, stats, surfaceColor),
+                  _buildSummary(context, stats),
                 if (widget.isLoading)
                   const Center(
                     child: Padding(
@@ -572,18 +568,25 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                           label: group.key,
                           count: group.value.length,
                         ),
-                        ...group.value.asMap().entries.map((entry) {
-                          final index = _filteredPurchaseHistory.indexOf(
-                            entry.value,
-                          );
-                          return _buildPurchaseRow(
-                            context,
-                            entry.value,
-                            index,
-                            surfaceColor,
-                            entry.key != group.value.length - 1,
-                          );
-                        }),
+                        Adaptive.box(
+                          context: context,
+                          child: Column(
+                            children: [
+                              ...group.value.asMap().entries.map((entry) {
+                                final index = _filteredPurchaseHistory.indexOf(
+                                  entry.value,
+                                );
+                                return _buildPurchaseRow(
+                                  context,
+                                  entry.value,
+                                  index,
+                                  surfaceColor,
+                                  entry.key != group.value.length - 1,
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
                       ],
                     );
                   }),

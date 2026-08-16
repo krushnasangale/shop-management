@@ -75,7 +75,7 @@ class HistoryGroupLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Text(
         '${label.toUpperCase()}  ·  $count',
         style: TextStyle(

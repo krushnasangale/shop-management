@@ -376,6 +376,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                   child: _sectionLabel(context, loc?.details ?? 'Details'),
                 ),
                 Adaptive.fullWidthGroup(
+                  bordered: true,
                   context: context,
                   children: [
                     _infoTile(
@@ -400,6 +401,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                 ),
                 if (_items.isEmpty)
                   Adaptive.fullWidthGroup(
+                  bordered: true,
                     context: context,
                     children: [
                       ListTile(
@@ -418,8 +420,8 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                     ],
                   )
                 else
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  Adaptive.box(
+                    context: context,
                     child: Column(
                       children: [
                         for (var i = 0; i < _items.length; i++) ...[
@@ -436,7 +438,8 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                                         .toString(),
                                   ),
                           ),
-                          if (i != _items.length - 1) const SizedBox(height: 8),
+                          if (i != _items.length - 1)
+                            const Divider(height: 1, indent: 16),
                         ],
                       ],
                     ),
@@ -497,8 +500,7 @@ class _PurchaseItemTile extends StatelessWidget {
         '${loc?.batch ?? 'Batch'} ${batchId.length > 8 ? '${batchId.substring(0, 8)}…' : batchId}',
     ].join('  ·  ');
 
-    return Card(
-      child: Padding(
+    return Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 4, 12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,7 +580,6 @@ class _PurchaseItemTile extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -641,7 +642,9 @@ class _SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Expanded(
-      child: Card(
+      child: Adaptive.box(
+        context: context,
+        margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(

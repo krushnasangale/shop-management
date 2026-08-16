@@ -643,18 +643,7 @@ class _DashboardState extends State<Dashboard>
   }
 
   Widget _sectionBox({required Widget child}) {
-    final scheme = Theme.of(context).colorScheme;
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      decoration: BoxDecoration(
-        color: dashboardSurface(context),
-        border: Border.all(color: scheme.outline),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: child,
-    );
+    return Adaptive.box(context: context, child: child);
   }
 
   @override

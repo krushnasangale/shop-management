@@ -266,23 +266,23 @@ class _PasswordGroup extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (Adaptive.isCupertino) {
-      return CupertinoFormSection.insetGrouped(
-        margin: EdgeInsets.zero,
-        children: children,
-      );
-    }
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            children[i],
-            if (i != children.length - 1) const Divider(height: 1, indent: 56),
-          ],
-        ],
-      ),
+    return Adaptive.box(
+      context: context,
+      margin: EdgeInsets.zero,
+      child: Adaptive.isCupertino
+          ? CupertinoFormSection.insetGrouped(
+              margin: EdgeInsets.zero,
+              children: children,
+            )
+          : Column(
+              children: [
+                for (var i = 0; i < children.length; i++) ...[
+                  children[i],
+                  if (i != children.length - 1)
+                    const Divider(height: 1, indent: 56),
+                ],
+              ],
+            ),
     );
   }
 }

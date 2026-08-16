@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
@@ -14,10 +15,15 @@ class PrivacyPolicyPage extends StatelessWidget {
         centerTitle: false,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+        child: Adaptive.box(
+          context: context,
+          margin: EdgeInsets.zero,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             // Header
             Text(
               loc?.privacyPolicy ?? 'Privacy Policy',
@@ -263,6 +269,8 @@ class PrivacyPolicyPage extends StatelessWidget {
 
             const SizedBox(height: 24),
           ],
+            ),
+          ),
         ),
       ),
     );

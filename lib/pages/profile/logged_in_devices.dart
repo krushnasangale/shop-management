@@ -215,16 +215,18 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _sectionLabel(loc?.thisDevice ?? 'This device'),
               ),
-              Adaptive.fullWidthGroup(
+              Adaptive.box(
                 context: context,
-                children: [
-                  for (final device in current)
-                    _DeviceTile(
-                      device: device,
-                      isCurrent: true,
-                      currentLabel: loc?.currentDevice ?? 'This device',
-                    ),
-                ],
+                child: Column(
+                  children: [
+                    for (final device in current)
+                      _DeviceTile(
+                        device: device,
+                        isCurrent: true,
+                        currentLabel: loc?.currentDevice ?? 'This device',
+                      ),
+                  ],
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -237,23 +239,25 @@ class _LoggedInDevicesScreenState extends State<LoggedInDevicesScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _sectionLabel(loc?.otherDevices ?? 'Other devices'),
               ),
-              Adaptive.fullWidthGroup(
+              Adaptive.box(
                 context: context,
-                children: [
-                  for (final device in others)
-                    _DeviceTile(
-                      device: device,
-                      isCurrent: false,
-                      currentLabel: loc?.currentDevice ?? 'This device',
-                      onRemove: () {
-                        final data = device.data() as Map<String, dynamic>;
-                        _confirmRemove(
-                          device.id,
-                          data['deviceName'] ?? 'Unknown Device',
-                        );
-                      },
-                    ),
-                ],
+                child: Column(
+                  children: [
+                    for (final device in others)
+                      _DeviceTile(
+                        device: device,
+                        isCurrent: false,
+                        currentLabel: loc?.currentDevice ?? 'This device',
+                        onRemove: () {
+                          final data = device.data() as Map<String, dynamic>;
+                          _confirmRemove(
+                            device.id,
+                            data['deviceName'] ?? 'Unknown Device',
+                          );
+                        },
+                      ),
+                  ],
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),

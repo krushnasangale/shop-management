@@ -319,11 +319,10 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
   Widget _buildSummary(
     BuildContext context,
     Map<String, dynamic> stats,
-    Color surfaceColor,
   ) {
     final totalProfit = (stats['totalProfit'] as num).toDouble();
-    return Material(
-      color: surfaceColor,
+    return Adaptive.box(
+      context: context,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
         child: Row(
@@ -377,9 +376,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
         ? (profitPerUnit / ((sale['buyingPrice'] ?? 1) as num).toDouble()) * 100
         : 0.0;
 
-    return Material(
-      color: surfaceColor,
-      child: Column(
+    return Column(
         children: [
           InkWell(
             onTap: () => setState(() {
@@ -519,7 +516,6 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
           ),
           if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16),
         ],
-      ),
     );
   }
 
@@ -539,7 +535,7 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
             child: Column(
               children: [
                 if (widget.soldHistory.isNotEmpty)
-                  _buildSummary(context, stats, surfaceColor),
+                  _buildSummary(context, stats),
                 if (widget.isLoading)
                   const Center(
                     child: Padding(
@@ -558,18 +554,25 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                           label: group.key,
                           count: group.value.length,
                         ),
-                        ...group.value.asMap().entries.map((entry) {
-                          final index = _filteredSoldHistory.indexOf(
-                            entry.value,
-                          );
-                          return _buildSaleRow(
-                            context,
-                            entry.value,
-                            index,
-                            surfaceColor,
-                            entry.key != group.value.length - 1,
-                          );
-                        }),
+                        Adaptive.box(
+                          context: context,
+                          child: Column(
+                            children: [
+                              ...group.value.asMap().entries.map((entry) {
+                                final index = _filteredSoldHistory.indexOf(
+                                  entry.value,
+                                );
+                                return _buildSaleRow(
+                                  context,
+                                  entry.value,
+                                  index,
+                                  surfaceColor,
+                                  entry.key != group.value.length - 1,
+                                );
+                              }),
+                            ],
+                          ),
+                        ),
                       ],
                     );
                   }),

@@ -665,7 +665,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     if (i != _billItems.length - 1) const SizedBox(height: 8),
                   ],
                 const SizedBox(height: 12),
-                Card(
+                Adaptive.box(
+                  context: context,
+                  margin: EdgeInsets.zero,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                     child: Column(

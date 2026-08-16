@@ -203,6 +203,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
               child: _sectionLabel(context, localizations.billStatus),
             ),
             Adaptive.fullWidthGroup(
+              bordered: true,
               context: context,
               children: [
                 _infoTile(

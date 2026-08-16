@@ -831,8 +831,9 @@ class _SignaturePickerSheet extends StatelessWidget {
               ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
-            Card(
-              clipBehavior: Clip.antiAlias,
+            Adaptive.box(
+              context: context,
+              margin: EdgeInsets.zero,
               child: Column(
                 children: [
                   for (var i = 0; i < options.length; i++) ...[
@@ -884,20 +885,24 @@ class _InfoGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (Adaptive.isCupertino) {
-      if (editing) {
-        return CupertinoFormSection.insetGrouped(
-          margin: EdgeInsets.zero,
-          children: children,
-        );
-      }
-      return CupertinoListSection.insetGrouped(
+      return Adaptive.box(
+        context: context,
         margin: EdgeInsets.zero,
-        children: children,
+        child: editing
+            ? CupertinoFormSection.insetGrouped(
+                margin: EdgeInsets.zero,
+                children: children,
+              )
+            : CupertinoListSection.insetGrouped(
+                margin: EdgeInsets.zero,
+                children: children,
+              ),
       );
     }
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
+    return Adaptive.box(
+      context: context,
+      margin: EdgeInsets.zero,
       child: Column(
         children: [
           for (var i = 0; i < children.length; i++) ...[

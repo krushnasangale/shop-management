@@ -200,6 +200,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                   ),
                 ),
                 Adaptive.fullWidthGroup(
+                  bordered: true,
                   context: context,
                   children: [
                     _infoTile(
@@ -222,6 +223,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                   ),
                 ),
                 Adaptive.fullWidthGroup(
+                  bordered: true,
                   context: context,
                   children: [
                     if (isLoadingPayments)

@@ -335,6 +335,7 @@ class _OverviewTab extends StatelessWidget {
           ),
           Adaptive.fullWidthGroup(
             context: context,
+            bordered: true,
             children: [
               for (final entry in topCategories.take(5))
                 _InfoTile(
@@ -358,6 +359,7 @@ class _OverviewTab extends StatelessWidget {
         ),
         Adaptive.fullWidthGroup(
           context: context,
+          bordered: true,
           children: [
             for (final entry in monthlyExpenses.entries)
               _InfoTile(
@@ -380,6 +382,7 @@ class _OverviewTab extends StatelessWidget {
           ),
           Adaptive.fullWidthGroup(
             context: context,
+            bordered: true,
             children: [
               for (final method in methods)
                 _InfoTile(
@@ -403,6 +406,7 @@ class _OverviewTab extends StatelessWidget {
           ),
           Adaptive.fullWidthGroup(
             context: context,
+            bordered: true,
             children: [
               for (final expense in expenses.take(5))
                 _ExpenseTile(
@@ -794,7 +798,9 @@ class _SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Expanded(
-      child: Card(
+      child: Adaptive.box(
+        context: context,
+        margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(

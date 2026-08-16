@@ -1195,6 +1195,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             child: _sectionLabel(context, localizations.customer),
           ),
           Adaptive.fullWidthGroup(
+            bordered: true,
             context: context,
             children: [
               _infoTile(
@@ -1253,18 +1254,21 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: _sectionLabel(context, localizations.products),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                children: [
-                  for (var i = 0; i < products.length; i++) ...[
-                    _BillProductTile(
-                      product: products[i],
-                      localizations: localizations,
-                    ),
-                    if (i != products.length - 1) const SizedBox(height: 8),
+            Adaptive.box(
+              context: context,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < products.length; i++) ...[
+                      _BillProductTile(
+                        product: products[i],
+                        localizations: localizations,
+                      ),
+                      if (i != products.length - 1) const SizedBox(height: 8),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ],
@@ -1274,6 +1278,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             child: _sectionLabel(context, localizations.summary),
           ),
           Adaptive.fullWidthGroup(
+            bordered: true,
             context: context,
             children: [
               _infoTile(
@@ -1335,6 +1340,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               child: _sectionLabel(context, localizations.previousDue),
             ),
             Adaptive.fullWidthGroup(
+            bordered: true,
               context: context,
               children: [
                 _infoTile(
@@ -1368,6 +1374,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             child: _sectionLabel(context, localizations.profitLoss),
           ),
           Adaptive.fullWidthGroup(
+            bordered: true,
             context: context,
             children: [
               _infoTile(
@@ -1388,20 +1395,37 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           ),
           const SizedBox(height: 20),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _sectionLabel(context, localizations.paymentHistory),
-          ),
-          if (remainingAmount != 0)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: FilledButton.icon(
-                style: Adaptive.compactFilled,
-                onPressed: _showAddPaymentDialog,
-                icon: const Icon(Icons.add, size: 20),
-                label: Text(localizations.addPayment),
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    localizations.paymentHistory.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.6,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                if (remainingAmount != 0)
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                    ),
+                    onPressed: _showAddPaymentDialog,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: Text(localizations.addPayment),
+                  ),
+              ],
             ),
+          ),
           Adaptive.fullWidthGroup(
+            bordered: true,
             context: context,
             children: [
               if (paymentRecords.isEmpty)
@@ -2461,9 +2485,7 @@ class _BillProductTile extends StatelessWidget {
     final total = sellingPrice * quantity;
     final profit = profitPerUnit * quantity;
 
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Theme(
+    return Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -2530,7 +2552,6 @@ class _BillProductTile extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -2593,7 +2614,9 @@ class _SummaryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Expanded(
-      child: Card(
+      child: Adaptive.box(
+        context: context,
+        margin: EdgeInsets.zero,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(

@@ -94,32 +94,72 @@ abstract final class Adaptive {
     );
   }
 
+  static Color surfaceColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.light
+        ? Colors.white
+        : const Color(0xFF171C22);
+  }
+
+  static BoxDecoration boxDecoration(BuildContext context) {
+    return BoxDecoration(
+      color: surfaceColor(context),
+      border: Border.all(color: Theme.of(context).colorScheme.outline),
+      borderRadius: BorderRadius.circular(12),
+    );
+  }
+
+  static Widget box({
+    required BuildContext context,
+    required Widget child,
+    EdgeInsetsGeometry? margin,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: margin ?? const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      decoration: boxDecoration(context),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(11),
+        child: Material(
+          color: surfaceColor(context),
+          child: child,
+        ),
+      ),
+    );
+  }
+
   static Widget fullWidthGroup({
     required BuildContext context,
     required List<Widget> children,
+    bool bordered = false,
   }) {
     if (isCupertino) {
-      return CupertinoListSection(margin: EdgeInsets.zero, children: children);
+      final section = CupertinoListSection(
+        margin: EdgeInsets.zero,
+        children: children,
+      );
+      return bordered ? box(context: context, child: section) : section;
     }
 
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    return Material(
-      color: isLight ? Colors.white : const Color(0xFF171C22),
-      child: Column(
-        children: [
-          for (var i = 0; i < children.length; i++) ...[
-            Padding(
-              padding: EdgeInsets.only(
-                top: i == 0 ? 8 : 0,
-                bottom: i == children.length - 1 ? 8 : 0,
-              ),
-              child: children[i],
+    final content = Column(
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          Padding(
+            padding: EdgeInsets.only(
+              top: i == 0 ? 8 : 0,
+              bottom: i == children.length - 1 ? 8 : 0,
             ),
-            if (i != children.length - 1) const Divider(height: 1, indent: 64),
-          ],
+            child: children[i],
+          ),
+          if (i != children.length - 1) const Divider(height: 1, indent: 64),
         ],
-      ),
+      ],
     );
+
+    if (bordered) {
+      return box(context: context, child: content);
+    }
+
+    return Material(color: surfaceColor(context), child: content);
   }
 
   /// Sits at the bottom of the screen when content is short, and after the

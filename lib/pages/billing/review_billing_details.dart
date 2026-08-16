@@ -132,6 +132,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           ),
           SliverToBoxAdapter(
             child: Adaptive.fullWidthGroup(
+              bordered: true,
               context: context,
               children: [
                 _infoTile(
@@ -173,6 +174,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           ),
           SliverToBoxAdapter(
             child: Adaptive.fullWidthGroup(
+              bordered: true,
               context: context,
               children: [
                 for (final product in widget.products)
@@ -215,6 +217,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             ),
             SliverToBoxAdapter(
               child: Adaptive.fullWidthGroup(
+              bordered: true,
                 context: context,
                 children: [
                   _infoTile(
@@ -249,6 +252,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           ),
           SliverToBoxAdapter(
             child: Adaptive.fullWidthGroup(
+              bordered: true,
               context: context,
               children: [
                 _infoTile(

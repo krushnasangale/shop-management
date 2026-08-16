@@ -2496,7 +2496,9 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Card(
+                Adaptive.box(
+                  context: context,
+                  margin: EdgeInsets.zero,
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                     child: Row(
