@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:signature/signature.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -97,6 +98,7 @@ class _EditProfileState extends State<EditProfile> {
   }
 
   Future<void> _saveShopDetails() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
@@ -497,13 +499,19 @@ class _EditProfileState extends State<EditProfile> {
       if (Adaptive.isCupertino) {
         return CupertinoButton(
           padding: EdgeInsets.zero,
-          onPressed: () => setState(() => _isEditMode = true),
+          onPressed: () {
+            if (!SubscriptionGuard.ensureCanWrite(context)) return;
+            setState(() => _isEditMode = true);
+          },
           child: const Icon(CupertinoIcons.pencil),
         );
       }
       return IconButton(
         icon: const Icon(Icons.edit_outlined),
-        onPressed: () => setState(() => _isEditMode = true),
+        onPressed: () {
+          if (!SubscriptionGuard.ensureCanWrite(context)) return;
+          setState(() => _isEditMode = true);
+        },
       );
     }
 

@@ -18,6 +18,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class PurchaseItemsList extends StatefulWidget {
   const PurchaseItemsList({super.key});
@@ -389,13 +390,18 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             ),
             icon: const Icon(Icons.document_scanner_outlined, size: 26),
             tooltip: loc?.scanInvoice ?? 'Scan Invoice',
-            onPressed: () => _showScanOptions(context),
+            onPressed: () {
+              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              _showScanOptions(context);
+            },
           ),
           IconButton(
             icon: const Icon(Icons.add_rounded, size: 32),
             tooltip: loc?.addPurchase ?? 'Add Purchase',
-            onPressed: () =>
-                AppNavigator.push(context, const AddPurchaseEntry()),
+            onPressed: () {
+              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              AppNavigator.push(context, const AddPurchaseEntry());
+            },
           ),
           Container(
             decoration: BoxDecoration(

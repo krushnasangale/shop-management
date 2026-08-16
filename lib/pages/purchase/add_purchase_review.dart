@@ -1,6 +1,7 @@
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class BoughtItemReview {
   final String productName;
@@ -51,6 +52,7 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
       widget.items.fold(0, (sum, product) => sum + product.quantity);
 
   Future<void> _confirm() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     if (_isLoading) return;
     setState(() => _isLoading = true);
     try {

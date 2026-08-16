@@ -10,6 +10,7 @@ import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class PurchaseEntryDetails extends StatefulWidget {
   final Map<String, dynamic> entry;
@@ -271,6 +272,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
   }
 
   void _showRemoveConfirmation(String itemId, String productName) {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     showDialog<void>(
@@ -304,6 +306,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
   }
 
   void _editPurchase() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     AppNavigator.push(
       context,
       AddPurchaseEntry(

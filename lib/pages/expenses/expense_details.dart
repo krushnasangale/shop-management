@@ -8,6 +8,7 @@ import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class ExpenseDetails extends StatefulWidget {
   final Map<String, dynamic> expense;
@@ -28,6 +29,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
   }
 
   Future<void> _deleteExpense() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     final confirmed = await showDialog<bool>(
@@ -81,6 +83,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
   }
 
   Future<void> _editExpense() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final updated = await AppNavigator.push<Map<String, dynamic>>(
       context,
       AddExpenseEntry(expense: _expense),

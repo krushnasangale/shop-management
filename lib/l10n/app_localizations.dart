@@ -32,8 +32,10 @@ class AppLocalizations {
   }
 
   // Called from every widget to get the translated text
-  String translate(String key) {
-    return _localizedStrings[key] ?? key;
+  String translate(String key, {String? fallback}) {
+    final value = _localizedStrings[key];
+    if (value != null && value.isNotEmpty) return value;
+    return fallback ?? key;
   }
 
   // Common translations getters for easy access
@@ -444,6 +446,19 @@ class AppLocalizations {
   String get pleaseDrawSignature => translate('please_draw_signature');
   String get saveSignature => translate('save_signature');
   String get subscriptionExpiry => translate('subscription_expiry');
+  String get subscriptionExpired => translate(
+        'subscription_expired',
+        fallback: 'Subscription Expired',
+      );
+  String get subscriptionExpiredMessage => translate(
+        'subscription_expired_message',
+        fallback:
+            'Your subscription has expired. You can view existing data, but adding, editing, or deleting is disabled. Please renew your subscription to continue.',
+      );
+  String get subscriptionExpiredBanner => translate(
+        'subscription_expired_banner',
+        fallback: 'Subscription expired — view only. Tap for details.',
+      );
   String get pleaseLoginToViewDevices =>
       translate('please_login_to_view_devices');
   String get deviceRemovedSuccessfully =>
@@ -879,7 +894,7 @@ class AppLocalizations {
   String get user => translate('user');
   String get deactivate => translate('deactivate');
   String get activate => translate('activate');
-  String get close => translate('close');
+  String get close => translate('close', fallback: 'Close');
   String get features => translate('features');
   String get basicInformation => translate('basic_information');
   String get contactInformation => translate('contact_information');

@@ -5,6 +5,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class AddExpenseEntry extends StatefulWidget {
   final Map<String, dynamic>? expense;
@@ -37,6 +38,12 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!SubscriptionGuard.ensureCanWrite(context)) {
+        Navigator.of(context).maybePop();
+      }
+    });
     _dateController = TextEditingController();
     _amountController = TextEditingController();
     _categoryController = TextEditingController();
@@ -115,6 +122,7 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
   }
 
   Future<void> _saveExpense() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);

@@ -12,6 +12,7 @@ import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:flashbill/providers/language_provider.dart';
+import 'package:flashbill/providers/subscription_provider.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/notification_service.dart';
@@ -77,6 +78,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
       ],
       child: const MyApp(),
     ),
@@ -340,6 +342,10 @@ class _MyHomePageState extends State<MyHomePage> {
     _listenToShopName();
     _listenToProductsCount();
     _listenToAppSettings();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<SubscriptionProvider>().start();
+    });
   }
 
   void _listenToShopName() {

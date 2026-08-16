@@ -21,6 +21,7 @@ import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class AddPurchaseEntry extends StatefulWidget {
   final String? purchaseId;
@@ -101,6 +102,12 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!SubscriptionGuard.ensureCanWrite(context)) {
+        Navigator.of(context).maybePop();
+      }
+    });
     _searchController = TextEditingController();
     _dateController = TextEditingController(
       text: DateFormat('dd/MM/yyyy').format(DateTime.now()),
@@ -931,6 +938,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   }
 
   void _openReviewIfValid() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     if (_supplierNameController.text.isEmpty) {
       setState(() {
         _supplierNameError = appLocalizations.supplierNameRequired;
@@ -1993,6 +2001,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
   }
 
   Future<void> _saveBoughtEntry() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     // Validate form
     if (_supplierNameController.text.isEmpty) {
       setState(() {

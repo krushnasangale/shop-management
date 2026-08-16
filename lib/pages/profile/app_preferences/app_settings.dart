@@ -12,6 +12,7 @@ import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/widgets/language_selector.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class AppSettings extends StatefulWidget {
   const AppSettings({super.key});
@@ -90,6 +91,7 @@ class _AppSettingsState extends State<AppSettings> {
   }
 
   void _toggle(String key, bool value, void Function(bool) apply) {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     setState(() => apply(value));
     _saveSetting(key, value);
   }

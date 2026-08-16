@@ -18,6 +18,7 @@ import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/services/file_service.dart';
 import 'dart:typed_data';
 import 'package:flashbill/utils/app_logger.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class Bills extends StatefulWidget {
   const Bills({super.key});
@@ -890,7 +891,10 @@ class _BillsState extends State<Bills> {
           IconButton(
             icon: const Icon(Icons.add_rounded, size: 32),
             tooltip: localizations.createBill,
-            onPressed: () => AppNavigator.push(context, const CreateNewBill()),
+            onPressed: () {
+              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              AppNavigator.push(context, const CreateNewBill());
+            },
           ),
           Container(
             decoration: BoxDecoration(

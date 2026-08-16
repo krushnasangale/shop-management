@@ -13,6 +13,7 @@ import 'package:flashbill/services/dashboard_service.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:flashbill/widgets/dashboard_widgets.dart';
 import 'package:flashbill/services/notification_service.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 
@@ -654,6 +655,7 @@ class _DashboardState extends State<Dashboard>
       body: SafeArea(
         child: Column(
           children: [
+            const SubscriptionExpiredBanner(),
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())

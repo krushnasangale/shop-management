@@ -6,6 +6,7 @@ import 'package:flashbill/pages/billing/bill_success_page.dart';
 import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class ReviewBillingDetails extends StatefulWidget {
   final String billDate;
@@ -300,7 +301,10 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           Adaptive.sliverBottomAction(
             child: FilledButton(
               style: Adaptive.compactFilled,
-              onPressed: () => _showConfirmDialog(context),
+              onPressed: () {
+                if (!SubscriptionGuard.ensureCanWrite(context)) return;
+                _showConfirmDialog(context);
+              },
               child: Text(
                 widget.isEditMode ? loc.updateBill : loc.confirmBill,
               ),
@@ -336,6 +340,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
   }
 
   void _showConfirmDialog(BuildContext context) {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     showDialog(
       context: context,
       barrierDismissible: false,

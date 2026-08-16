@@ -13,6 +13,7 @@ import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class ExpensesList extends StatefulWidget {
   const ExpensesList({super.key});
@@ -70,16 +71,16 @@ class _ExpensesListState extends State<ExpensesList>
 
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
-      setState(() {
-        _displayedItemCount = (_displayedItemCount + 50).clamp(
-          0,
-          _filteredExpenses.length,
-        );
-        _displayedExpenses = _filteredExpenses
-            .take(_displayedItemCount)
-            .toList();
-        _isLoadingMore = false;
-      });
+        setState(() {
+          _displayedItemCount = (_displayedItemCount + 50).clamp(
+            0,
+            _filteredExpenses.length,
+          );
+          _displayedExpenses = _filteredExpenses
+              .take(_displayedItemCount)
+              .toList();
+          _isLoadingMore = false;
+        });
     });
   }
 
@@ -90,16 +91,16 @@ class _ExpensesListState extends State<ExpensesList>
         .listen(
           (snapshot) {
             if (!mounted) return;
-            final expenses = snapshot.docs.map((doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              data['id'] = doc.id;
-              return data;
-            }).toList();
+              final expenses = snapshot.docs.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                data['id'] = doc.id;
+                return data;
+              }).toList();
 
-            setState(() {
-              _expenses = expenses;
-              _isLoading = false;
-            });
+              setState(() {
+                _expenses = expenses;
+                _isLoading = false;
+              });
             _filterExpenses();
           },
           onError: (error) {
@@ -111,20 +112,20 @@ class _ExpensesListState extends State<ExpensesList>
 
   void _filterExpenses() {
     final query = _searchController.text;
-    setState(() {
+      setState(() {
       _filteredExpenses = query.isEmpty
           ? _expenses
           : _expenses.where((expense) {
-              final category = (expense['category'] ?? '').toString();
-              final description = (expense['description'] ?? '').toString();
-              final amount = (expense['amount'] ?? '').toString();
-              return SearchUtils.matchesSubsequence(category, query) ||
-                  SearchUtils.matchesSubsequence(description, query) ||
-                  SearchUtils.matchesSubsequence(amount, query);
-            }).toList();
-      _displayedItemCount = 50;
+          final category = (expense['category'] ?? '').toString();
+          final description = (expense['description'] ?? '').toString();
+          final amount = (expense['amount'] ?? '').toString();
+          return SearchUtils.matchesSubsequence(category, query) ||
+              SearchUtils.matchesSubsequence(description, query) ||
+              SearchUtils.matchesSubsequence(amount, query);
+        }).toList();
+        _displayedItemCount = 50;
       _displayedExpenses = _filteredExpenses.take(_displayedItemCount).toList();
-    });
+      });
   }
 
   @override
@@ -139,12 +140,12 @@ class _ExpensesListState extends State<ExpensesList>
 
   void _onTabChanged() {
     if (!_tabController.indexIsChanging) {
-      setState(() {
-        if (_tabController.index != 1) {
-          _showSearchBar = false;
-          _searchController.clear();
-        }
-      });
+    setState(() {
+      if (_tabController.index != 1) {
+        _showSearchBar = false;
+        _searchController.clear();
+      }
+    });
     }
   }
 
@@ -168,7 +169,7 @@ class _ExpensesListState extends State<ExpensesList>
               tooltip: _showSearchBar
                   ? (loc?.closeSearch ?? 'Close Search')
                   : (loc?.search ?? 'Search'),
-              onPressed: () {
+                          onPressed: () {
                 setState(() {
                   _showSearchBar = !_showSearchBar;
                   if (!_showSearchBar) _searchController.clear();
@@ -178,12 +179,14 @@ class _ExpensesListState extends State<ExpensesList>
           IconButton(
             icon: const Icon(Icons.add_rounded, size: 32),
             tooltip: loc?.addExpense ?? 'Add Expense',
-            onPressed: () =>
-                AppNavigator.push(context, const AddExpenseEntry()),
-          ),
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+            onPressed: () {
+              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              AppNavigator.push(context, const AddExpenseEntry());
+            },
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20),
               color: Colors.grey.withValues(alpha: 0.2),
             ),
             height: 40,
@@ -215,7 +218,7 @@ class _ExpensesListState extends State<ExpensesList>
             )
           : TabBarView(
               controller: _tabController,
-              children: [
+                                    children: [
                 _OverviewTab(expenses: _expenses, loc: loc, scheme: scheme),
                 _RecentTab(
                   loc: loc,
@@ -271,13 +274,13 @@ class _OverviewTab extends StatelessWidget {
     for (final expense in expenses) {
       final dateStr = expense['date'] ?? '';
       if (dateStr.isEmpty) continue;
-      try {
-        final date = DateFormat('dd/MM/yyyy').parse(dateStr);
-        final monthKey =
-            '${date.year}-${date.month.toString().padLeft(2, '0')}';
-        if (monthlyExpenses.containsKey(monthKey)) {
-          monthlyExpenses[monthKey] =
-              monthlyExpenses[monthKey]! +
+        try {
+          final date = DateFormat('dd/MM/yyyy').parse(dateStr);
+          final monthKey =
+              '${date.year}-${date.month.toString().padLeft(2, '0')}';
+          if (monthlyExpenses.containsKey(monthKey)) {
+            monthlyExpenses[monthKey] =
+                monthlyExpenses[monthKey]! +
               ((expense['amount'] ?? 0) as num).toDouble();
         }
       } catch (_) {}
@@ -299,7 +302,7 @@ class _OverviewTab extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
-      children: [
+        children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Row(
@@ -336,7 +339,7 @@ class _OverviewTab extends StatelessWidget {
           Adaptive.fullWidthGroup(
             context: context,
             bordered: true,
-            children: [
+                              children: [
               for (final entry in topCategories.take(5))
                 _InfoTile(
                   icon: _categoryIcon(entry.key),
@@ -345,9 +348,9 @@ class _OverviewTab extends StatelessWidget {
                       '${totalAmount > 0 ? (entry.value / totalAmount * 100).toStringAsFixed(1) : 0}%',
                   trailing: '₹${_formatAmount(entry.value)}',
                   trailingColor: scheme.error,
-                ),
-            ],
-          ),
+                                    ),
+                                  ],
+                                ),
           const SizedBox(height: 20),
         ],
         Padding(
@@ -360,7 +363,7 @@ class _OverviewTab extends StatelessWidget {
         Adaptive.fullWidthGroup(
           context: context,
           bordered: true,
-          children: [
+              children: [
             for (final entry in monthlyExpenses.entries)
               _InfoTile(
                 icon: Icons.calendar_today_outlined,
@@ -368,9 +371,9 @@ class _OverviewTab extends StatelessWidget {
                 subtitle: '',
                 trailing: '₹${_formatAmount(entry.value)}',
                 trailingColor: entry.value > 0 ? scheme.error : null,
-              ),
-          ],
-        ),
+                    ),
+                  ],
+                ),
         if (methods.isNotEmpty) ...[
           const SizedBox(height: 20),
           Padding(
@@ -383,7 +386,7 @@ class _OverviewTab extends StatelessWidget {
           Adaptive.fullWidthGroup(
             context: context,
             bordered: true,
-            children: [
+                      children: [
               for (final method in methods)
                 _InfoTile(
                   icon: _paymentIcon(method.key),
@@ -391,9 +394,9 @@ class _OverviewTab extends StatelessWidget {
                   subtitle:
                       '${totalAmount > 0 ? (method.value / totalAmount * 100).toStringAsFixed(1) : 0}%',
                   trailing: '₹${_formatAmount(method.value)}',
-                ),
-            ],
-          ),
+                        ),
+                      ],
+                    ),
         ],
         if (expenses.isNotEmpty) ...[
           const SizedBox(height: 20),
@@ -407,16 +410,16 @@ class _OverviewTab extends StatelessWidget {
           Adaptive.fullWidthGroup(
             context: context,
             bordered: true,
-            children: [
+                      children: [
               for (final expense in expenses.take(5))
                 _ExpenseTile(
                   expense: expense,
                   onTap: () => AppNavigator.push(
                     context,
                     ExpenseDetails(expense: expense),
-                  ),
-                ),
-            ],
+                                  ),
+                            ),
+                          ],
           ),
         ],
       ],
@@ -446,7 +449,7 @@ class _RecentTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: [
+                      children: [
         if (showSearchBar)
           Adaptive.searchField(
             controller: searchController,
@@ -454,7 +457,7 @@ class _RecentTab extends StatelessWidget {
             hint:
                 loc?.searchByCategoryOrAmount ?? 'Search by category or amount',
           ),
-        Expanded(
+                        Expanded(
           child: filteredExpenses.isEmpty
               ? _EmptyState(
                   icon: Icons.search_off,
@@ -465,29 +468,29 @@ class _RecentTab extends StatelessWidget {
               : ListView(
                   controller: scrollController,
                   padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
-                  children: [
+                            children: [
                     Adaptive.fullWidthGroup(
                       context: context,
-                      children: [
+                          children: [
                         for (final expense in displayedExpenses)
                           _ExpenseTile(
                             expense: expense,
                             onTap: () => AppNavigator.push(
                               context,
                               ExpenseDetails(expense: expense),
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
+                          ],
+                        ),
                     if (isLoadingMore)
                       Padding(
-                        padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
                         child: Center(child: Adaptive.progress()),
                       ),
                   ],
-                ),
-        ),
-      ],
+            ),
+          ),
+        ],
     );
   }
 }
@@ -542,7 +545,7 @@ class _CategoryTab extends StatelessWidget {
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
-      children: [
+        children: [
         Adaptive.fullWidthGroup(
           context: context,
           children: [
@@ -564,12 +567,12 @@ class _CategoryTab extends StatelessWidget {
                   _categoryIcon(summary['category'] as String),
                   scheme,
                 ),
-                title: Text(
+        title: Text(
                   _categoryLabel(summary['category'] as String, loc),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w700,
                     color: scheme.onSurface,
                   ),
                 ),
@@ -580,7 +583,7 @@ class _CategoryTab extends StatelessWidget {
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
-                  children: [
+              children: [
                     Text(
                       '₹${_formatAmount(summary['totalAmount'] as double)}',
                       style: TextStyle(
@@ -596,9 +599,9 @@ class _CategoryTab extends StatelessWidget {
                     ),
                   ],
                 ),
-              ),
-          ],
-        ),
+                      ),
+                    ],
+                  ),
       ],
     );
   }
@@ -665,17 +668,17 @@ class CategoryExpensesPage extends StatelessWidget {
                 ),
                 Adaptive.fullWidthGroup(
                   context: context,
-                  children: [
+                                  children: [
                     for (final expense in expenses)
                       _ExpenseTile(
                         expense: expense,
                         onTap: () => AppNavigator.push(
                           context,
                           ExpenseDetails(expense: expense),
-                        ),
-                      ),
-                  ],
-                ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
               ],
             ),
     );
@@ -722,7 +725,7 @@ class _ExpenseTile extends StatelessWidget {
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
+                              children: [
           Text(
             '₹${_formatAmount(amount)}',
             style: TextStyle(fontWeight: FontWeight.w700, color: scheme.error),
@@ -732,9 +735,9 @@ class _ExpenseTile extends StatelessWidget {
             CupertinoIcons.chevron_forward,
             size: 24,
             color: scheme.onSurfaceVariant,
-          ),
-        ],
-      ),
+                                ),
+                              ],
+                            ),
     );
   }
 }
@@ -801,18 +804,18 @@ class _SummaryTile extends StatelessWidget {
       child: Adaptive.box(
         context: context,
         margin: EdgeInsets.zero,
-        child: Padding(
+                          child: Padding(
           padding: const EdgeInsets.all(12),
-          child: Column(
+                                  child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+                                    children: [
               _squareIcon(icon, scheme),
               const SizedBox(height: 8),
-              Text(
+                                      Text(
                 label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 0.3,
@@ -820,18 +823,18 @@ class _SummaryTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
+                                          Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                                            style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: valueColor ?? scheme.onSurface,
-                ),
-              ),
-            ],
-          ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
         ),
       ),
     );
@@ -865,9 +868,9 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
+                          ),
+                        ),
+                      );
   }
 }
 
@@ -883,13 +886,13 @@ Widget _sectionLabel(BuildContext context, String title) {
         letterSpacing: 0.6,
         color: scheme.onSurfaceVariant,
       ),
-    ),
-  );
-}
+            ),
+    );
+  }
 
 Widget _squareIcon(IconData icon, ColorScheme scheme) {
   return ClipRRect(
-    borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(8),
     child: ColoredBox(
       color: scheme.primaryContainer,
       child: SizedBox(
@@ -956,7 +959,7 @@ IconData _paymentIcon(String method) {
       return Icons.qr_code_outlined;
     case 'card':
       return Icons.credit_card_outlined;
-    default:
+      default:
       return Icons.payments_outlined;
   }
 }

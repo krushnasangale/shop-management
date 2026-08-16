@@ -11,6 +11,7 @@ import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class Customers extends StatefulWidget {
   const Customers({super.key});
@@ -254,6 +255,7 @@ class _CustomersState extends State<Customers> {
   }
 
   Future<void> _showForm({Map<String, dynamic>? customer}) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final result = await Adaptive.showSheet<Map<String, String>>(
       context: context,
@@ -357,6 +359,7 @@ class _CustomersState extends State<Customers> {
   }
 
   Future<void> _confirmDelete(Map<String, dynamic> customer) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final confirmed = Adaptive.isCupertino
         ? await showCupertinoDialog<bool>(

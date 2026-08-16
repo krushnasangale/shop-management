@@ -17,6 +17,7 @@ import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/pages/product_image_preview_page.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
@@ -469,6 +470,7 @@ class _AvailableProductDetailScreenState
   }
 
   Future<void> _selectImage() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     await _showImageSourceDialog((source) async {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: source);
@@ -804,6 +806,7 @@ class _AvailableProductDetailScreenState
 
   // --- SAVE BATCH SELLING PRICE ---
   Future<void> _saveBatchSellingPrice(String batchId, double newPrice) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     try {
       await FirebaseFirestore.instance
           .collection('purchased-products')
@@ -842,6 +845,7 @@ class _AvailableProductDetailScreenState
 
   // --- SHOW EDIT QUANTITY DIALOG ---
   void _showEditQuantityDialog(BoughtProduct batch) {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final localizations = AppLocalizations.of(context)!;
     final quantityController = TextEditingController(
       text: batch.quantity.toString(),
@@ -887,6 +891,7 @@ class _AvailableProductDetailScreenState
 
   // --- SHOW EDIT SELLING PRICE DIALOG ---
   void _showEditSellingPriceDialog(BoughtProduct batch) {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final localizations = AppLocalizations.of(context)!;
     final priceController = TextEditingController(
       text: batch.sellingPrice.toStringAsFixed(2),
@@ -1234,6 +1239,7 @@ class _AvailableProductDetailScreenState
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () {
+              if (!SubscriptionGuard.ensureCanWrite(context)) return;
               bool isDeleting = false;
               // Confirm deletion
               showDialog(
@@ -1795,6 +1801,11 @@ class _AvailableProductDetailScreenState
                               ),
                               onPressed: () {
                                 if (_editingMinLimit) {
+                                  if (!SubscriptionGuard.ensureCanWrite(
+                                    context,
+                                  )) {
+                                    return;
+                                  }
                                   // Save the new min limit
                                   final newMinLimit =
                                       int.tryParse(_minLimitController.text) ??
@@ -1866,6 +1877,11 @@ class _AvailableProductDetailScreenState
                                     );
                                   }
                                 } else {
+                                  if (!SubscriptionGuard.ensureCanWrite(
+                                    context,
+                                  )) {
+                                    return;
+                                  }
                                   setState(() {
                                     _editingMinLimit = true;
                                   });

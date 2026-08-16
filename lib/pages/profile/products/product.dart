@@ -14,6 +14,7 @@ import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class Product {
   final String id;
@@ -274,6 +275,7 @@ class _ProductNameState extends State<ProductName> {
   }
 
   Future<void> _showProductForm({Product? product}) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final result = await Adaptive.showSheet<_ProductFormResult>(
       context: context,
@@ -370,6 +372,7 @@ class _ProductNameState extends State<ProductName> {
   }
 
   Future<void> _confirmDelete(Product product) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final confirmed = Adaptive.isCupertino
         ? await showCupertinoDialog<bool>(

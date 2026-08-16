@@ -9,6 +9,7 @@ import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class PreviousDueDetailsPage extends StatefulWidget {
   final Map<String, dynamic> payment;
@@ -369,6 +370,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
   }
 
   void _showAddPaymentDialog(BuildContext context) {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final TextEditingController amountController = TextEditingController();
     final previousDueAmount =

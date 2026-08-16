@@ -8,6 +8,7 @@ import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class UnitOfMeasure {
   final String id;
@@ -215,6 +216,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   }
 
   Future<void> _showAddUnit() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final name = await _showNameSheet(
       title: loc?.addNewUnit ?? 'Add New Unit',
@@ -241,6 +243,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   }
 
   Future<void> _showEditUnit(UnitOfMeasure unit) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final name = await _showNameSheet(
       title: loc?.editUnit ?? 'Edit Unit',
@@ -294,6 +297,7 @@ class _MeasurementUnitsScreenState extends State<MeasurementUnitsScreen> {
   }
 
   Future<void> _confirmDelete(UnitOfMeasure unit) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final confirmed = await _confirmDestructive(
       context: context,

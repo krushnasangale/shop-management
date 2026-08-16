@@ -18,6 +18,7 @@ import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:printing/printing.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -678,6 +679,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _deleteBill() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -836,6 +838,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _editBill() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     // Prepare the bill data for editing
     final billData = {
       'billId': billId,
@@ -1168,15 +1171,15 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Row(
-              children: [
+                child: Row(
+                  children: [
                 _SummaryTile(
                   icon: Icons.receipt_long_outlined,
                   label: localizations.finalAmount,
                   value: '₹${_formatAmount(finalAmount)}',
                   valueColor: scheme.primary,
                 ),
-                const SizedBox(width: 8),
+                    const SizedBox(width: 8),
                 _SummaryTile(
                   icon: Icons.payments_outlined,
                   label: localizations.amountPaid,
@@ -1189,9 +1192,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   value: '₹${_formatAmount(remainingAmount)}',
                   valueColor: remainingAmount > 0 ? scheme.error : null,
                 ),
-              ],
-            ),
-          ),
+                  ],
+                ),
+              ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: _sectionLabel(context, localizations.customer),
@@ -1199,7 +1202,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           Adaptive.fullWidthGroup(
             bordered: true,
             context: context,
-            children: [
+                  children: [
               _infoTile(
                 icon: Icons.calendar_today_outlined,
                 label: localizations.billDate,
@@ -1271,9 +1274,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     ],
                   ],
                 ),
-              ),
-            ),
-          ],
+                      ),
+                    ),
+                  ],
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1332,7 +1335,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                   label: localizations.nextPaymentDate,
                   value: nextPaymentDate!,
                   onTap: _showEditNextPaymentDateDialog,
-                ),
+              ),
             ],
           ),
           if (previousDueAmount > 0 || previousPaidAmount > 0) ...[
@@ -1366,9 +1369,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     icon: Icons.notes_outlined,
                     label: localizations.description,
                     value: previousDueDescription,
-                  ),
-              ],
-            ),
+          ),
+        ],
+      ),
           ],
           const SizedBox(height: 20),
           Padding(
@@ -1378,7 +1381,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           Adaptive.fullWidthGroup(
             bordered: true,
             context: context,
-            children: [
+        children: [
               _infoTile(
                 icon: isProfitable
                     ? Icons.trending_up_rounded
@@ -1399,7 +1402,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(
-              children: [
+                children: [
                 Expanded(
                   child: Text(
                     localizations.paymentHistory.toUpperCase(),
@@ -1419,13 +1422,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
-                    onPressed: _showAddPaymentDialog,
+                    onPressed: () {
+                      if (!SubscriptionGuard.ensureCanWrite(context)) return;
+                      _showAddPaymentDialog();
+                    },
                     icon: const Icon(Icons.add, size: 18),
                     label: Text(localizations.addPayment),
                   ),
-              ],
+                ],
+              ),
             ),
-          ),
           Adaptive.fullWidthGroup(
             bordered: true,
             context: context,
@@ -1510,6 +1516,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showAddPaymentDialog() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController amountController = TextEditingController();
     final remainingAmount = int.parse(amountRemaining.replaceAll('₹ ', ''));
     String selectedPaymentMethod = 'cash';
@@ -1583,12 +1590,12 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                         ),
                         const SizedBox(height: 8),
                         RadioGroup<String>(
-                          groupValue: selectedPaymentMethod,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedPaymentMethod = value ?? 'cash';
-                            });
-                          },
+                                groupValue: selectedPaymentMethod,
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedPaymentMethod = value ?? 'cash';
+                                  });
+                                },
                           child: Row(
                             children: [
                               Expanded(
@@ -1596,16 +1603,16 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                                   title: Text(localizations.cash),
                                   value: 'cash',
                                   contentPadding: EdgeInsets.zero,
-                                ),
                               ),
-                              Expanded(
-                                child: RadioListTile<String>(
-                                  title: Text(localizations.online),
-                                  value: 'online',
-                                  contentPadding: EdgeInsets.zero,
-                                ),
+                            ),
+                            Expanded(
+                              child: RadioListTile<String>(
+                                title: Text(localizations.online),
+                                value: 'online',
+                                contentPadding: EdgeInsets.zero,
                               ),
-                            ],
+                            ),
+                          ],
                           ),
                         ),
                       ],
@@ -1680,6 +1687,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditNextPaymentDateDialog() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     showDialog(
       context: context,
       builder: (context) {
@@ -1776,6 +1784,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditMobileDialog() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController mobileController = TextEditingController(
       text: customerMobile,
     );
@@ -1874,6 +1883,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditVehicleDialog() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController vehicleController = TextEditingController(
       text: customerVehicle ?? '',
     );
@@ -2055,6 +2065,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditDiscountDialog() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController discountController = TextEditingController();
     String? errorText;
     final remainingAmountValue = int.parse(
@@ -2251,6 +2262,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditAmountPaidDialog() {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController amountController = TextEditingController(
       text: amountPaid.replaceAll('₹ ', ''),
     );
@@ -2470,14 +2482,14 @@ class _BillProductTile extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final name = product['name'] ?? '';
     final quantity = double.tryParse(product['qty'] ?? '0') ?? 0;
-    final sellingPrice =
+              final sellingPrice =
         double.tryParse(product['price']?.replaceAll('₹', '').trim() ?? '0') ??
-        0;
-    final boughtPrice =
-        double.tryParse(
+                  0;
+              final boughtPrice =
+                  double.tryParse(
           product['boughtPrice']?.replaceAll('₹', '').trim() ?? '0',
-        ) ??
-        0;
+                  ) ??
+                  0;
     final batchId = product['batchId'] ?? '';
     final shortBatch = batchId.length > 8
         ? '${batchId.substring(0, 8)}…'
@@ -2485,23 +2497,23 @@ class _BillProductTile extends StatelessWidget {
     final batchLabel = batchId.isEmpty
         ? ''
         : '  ·  ${localizations.batch} $shortBatch';
-    final profitPerUnit = sellingPrice - boughtPrice;
+              final profitPerUnit = sellingPrice - boughtPrice;
     final total = sellingPrice * quantity;
     final profit = profitPerUnit * quantity;
 
     return Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-        child: ExpansionTile(
+                  child: ExpansionTile(
           tilePadding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
           leading: _squareIcon(Icons.inventory_2_outlined, scheme),
           title: Row(
-            children: [
-              Expanded(
-                child: Text(
+                      children: [
+                            Expanded(
+                              child: Text(
                   name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
                     color: scheme.onSurface,
@@ -2509,24 +2521,24 @@ class _BillProductTile extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Text(
+                            Text(
                 '₹${_formatAmount(total)}',
-                style: TextStyle(
+                              style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: scheme.primary,
-                ),
-              ),
-            ],
-          ),
+                              ),
+                            ),
+                          ],
+                        ),
           subtitle: Text(
             '${localizations.qty}: ${_formatAmount(quantity)}$batchLabel',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
-          ),
-          children: [
+                    ),
+                    children: [
             Row(
-              children: [
+                        children: [
                 _Metric(
                   label: localizations.buyingPrice,
                   value: '₹${_formatAmount(boughtPrice)}',
@@ -2534,12 +2546,12 @@ class _BillProductTile extends StatelessWidget {
                 _Metric(
                   label: localizations.sellingPrice,
                   value: '₹${_formatAmount(sellingPrice)}',
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
                 _Metric(
                   label: localizations.profitPerUnit,
                   value: '₹${_formatAmount(profitPerUnit)}',
@@ -2551,10 +2563,10 @@ class _BillProductTile extends StatelessWidget {
                   label: localizations.totalProfit,
                   value: '₹${_formatAmount(profit)}',
                   valueColor: profit >= 0 ? scheme.primary : scheme.error,
-                ),
-              ],
-            ),
-          ],
+                          ),
+                        ],
+                      ),
+                    ],
         ),
     );
   }
@@ -2571,14 +2583,14 @@ class _Metric extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Expanded(
-      child: Column(
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+          children: [
+            Text(
             label.toUpperCase(),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+              style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               letterSpacing: 0.3,
@@ -2586,16 +2598,16 @@ class _Metric extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
+            Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
               fontWeight: FontWeight.w700,
               color: valueColor ?? scheme.onSurface,
-            ),
-          ),
-        ],
+                        ),
+                      ),
+                    ],
       ),
     );
   }
@@ -2621,37 +2633,37 @@ class _SummaryTile extends StatelessWidget {
       child: Adaptive.box(
         context: context,
         margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      child: Padding(
+              padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
               _squareIcon(icon, scheme),
               const SizedBox(height: 8),
-              Text(
+                        Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                          style: TextStyle(
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.w600,
                   letterSpacing: 0.3,
                   color: scheme.onSurfaceVariant,
-                ),
-              ),
+                          ),
+                        ),
               const SizedBox(height: 2),
-              Text(
+                        Text(
                 value,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
+                          style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: valueColor ?? scheme.onSurface,
-                ),
-              ),
-            ],
-          ),
+                          ),
+                        ),
+                      ],
+                    ),
         ),
       ),
     );
@@ -2662,17 +2674,17 @@ Widget _sectionLabel(BuildContext context, String title) {
   final scheme = Theme.of(context).colorScheme;
   return Padding(
     padding: const EdgeInsets.only(left: 4, bottom: 8),
-    child: Text(
+                  child: Text(
       title.toUpperCase(),
-      style: TextStyle(
-        fontSize: 12,
+                    style: TextStyle(
+                      fontSize: 12,
         fontWeight: FontWeight.w700,
         letterSpacing: 0.6,
         color: scheme.onSurfaceVariant,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
 Widget _squareIcon(IconData icon, ColorScheme scheme) {
   return ClipRRect(
@@ -2683,10 +2695,10 @@ Widget _squareIcon(IconData icon, ColorScheme scheme) {
         width: 36,
         height: 36,
         child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
 String _formatAmount(num amount) {
   if (amount == amount.roundToDouble()) return amount.toInt().toString();

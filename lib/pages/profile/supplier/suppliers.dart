@@ -10,6 +10,7 @@ import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:flashbill/services/subscription_guard.dart';
 
 class Supplier {
   final String id;
@@ -251,6 +252,7 @@ class _SuppliersState extends State<Suppliers> {
   }
 
   Future<void> _showAddSupplier() async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final result = await _showSupplierForm();
     if (result == null || _userId.isEmpty) return;
 
@@ -262,6 +264,7 @@ class _SuppliersState extends State<Suppliers> {
   }
 
   Future<void> _showEditSupplier(Supplier supplier) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final result = await _showSupplierForm(supplier: supplier);
     if (result == null || _userId.isEmpty) return;
 
@@ -312,6 +315,7 @@ class _SuppliersState extends State<Suppliers> {
   }
 
   Future<void> _confirmDelete(Supplier supplier) async {
+    if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final loc = AppLocalizations.of(context);
     final confirmed = await _showDeleteDialog(supplier, loc);
     if (confirmed != true || _userId.isEmpty) return;
