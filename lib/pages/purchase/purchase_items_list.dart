@@ -319,19 +319,15 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
                   controller: _scrollController,
                   padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
                   children: [
-                    Adaptive.fullWidthGroup(
-                      context: context,
-                      children: [
-                        for (final entry in _displayedEntries)
-                          _PurchaseEntryTile(
-                            entry: entry,
-                            onTap: () => AppNavigator.push(
-                              context,
-                              PurchaseEntryDetails(entry: entry),
-                            ),
-                          ),
-                      ],
-                    ),
+                    for (var i = 0; i < _displayedEntries.length; i++)
+                      _PurchaseEntryTile(
+                        entry: _displayedEntries[i],
+                        showDivider: i != _displayedEntries.length - 1,
+                        onTap: () => AppNavigator.push(
+                          context,
+                          PurchaseEntryDetails(entry: _displayedEntries[i]),
+                        ),
+                      ),
                     if (_isLoadingMore)
                       Padding(
                         padding: const EdgeInsets.all(16),
@@ -1177,59 +1173,101 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
 }
 
 class _PurchaseEntryTile extends StatelessWidget {
-  const _PurchaseEntryTile({required this.entry, required this.onTap});
+  const _PurchaseEntryTile({
+    required this.entry,
+    required this.onTap,
+    this.showDivider = true,
+  });
 
   final Map<String, dynamic> entry;
   final VoidCallback onTap;
+  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final supplier = (entry['supplierName'] ?? 'Unknown').toString();
     final date = (entry['date'] ?? 'N/A').toString();
     final products = entry['totalProducts'] ?? 0;
     final units = entry['totalUnits'] ?? 0;
     final amount = (entry['totalAmount'] ?? 0) as num;
+    final mutedColor = isDark ? Colors.grey[400] : Colors.grey[600];
 
-    return ListTile(
-      dense: true,
-      visualDensity: VisualDensity.compact,
-      contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
-      minVerticalPadding: 4,
-      onTap: onTap,
-      leading: _squareIcon(Icons.inventory_2_outlined, scheme),
-      title: Text(
-        supplier,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
-      ),
-      subtitle: Text(
-        [
-          date,
-          '$products ${loc?.products ?? 'Products'}',
-          '$units ${loc?.totalQuantity ?? 'Qty'}',
-        ].join('  ·  '),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
+    return Material(
+      color: isDark ? const Color(0xFF171C22) : Colors.white,
+      child: Column(
         children: [
-          Text(
-            '₹${_formatAmount(amount)}',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: scheme.primary,
+          InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          supplier,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '₹${_formatAmount(amount)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: scheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            size: 13,
+                            color: mutedColor,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            date,
+                            style: TextStyle(fontSize: 12, color: mutedColor),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        [
+                          '$products ${loc?.products ?? 'Products'}',
+                          '$units ${loc?.totalQuantity ?? 'Qty'}',
+                        ].join('  ·  '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontSize: 12, color: mutedColor),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-          const SizedBox(width: 4),
-          Icon(
-            CupertinoIcons.chevron_forward,
-            size: 24,
-            color: scheme.onSurfaceVariant,
-          ),
+          if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16),
         ],
       ),
     );

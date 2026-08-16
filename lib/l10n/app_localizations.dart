@@ -719,6 +719,7 @@ class AppLocalizations {
   String get stockStatus => translate('stock_status');
   String get minLimit => translate('min_limit');
   String get filterApplied => translate('filter_applied');
+  String get filter => translate('filter');
   String get expiredText => translate('expired_text');
   String get expiringToday => translate('expiring_today');
   String get expiringTomorrow => translate('expiring_tomorrow');

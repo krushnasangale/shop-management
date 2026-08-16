@@ -11,12 +11,13 @@ import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/services/file_service.dart';
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:printing/printing.dart';
 import 'package:flashbill/utils/app_logger.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -1063,20 +1064,48 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Determine the color scheme for dynamic styling
-    final cardColor = Theme.of(context).cardTheme.color;
+    final scheme = Theme.of(context).colorScheme;
+    final baseAmount = int.tryParse(totalAmount.replaceAll('₹ ', '')) ?? 0;
+    final paidAmount = int.tryParse(amountPaid.replaceAll('₹ ', '')) ?? 0;
+    final remainingAmount =
+        int.tryParse(amountRemaining.replaceAll('₹ ', '')) ?? 0;
+    final finalAmount =
+        baseAmount + (_deliveryChargesEnabled ? deliveryCharges : 0) - discount;
+    final isMobile = Platform.isAndroid || Platform.isIOS;
+    final showVehicle =
+        _vehicleNumberEnabled ||
+        (customerVehicle != null && customerVehicle!.isNotEmpty);
+    final pendingPreviousDue = (previousDueAmount - previousPaidAmount).clamp(
+      0.0,
+      double.infinity,
+    );
+    final isProfitable = totalProfit >= 0;
+    final profitColor = isProfitable ? scheme.primary : scheme.error;
+
+    double totalCost = 0;
+    if (widget.products != null) {
+      for (final product in widget.products!) {
+        final boughtPrice =
+            double.tryParse(
+              product['boughtPrice']?.toString().replaceAll('₹', '').trim() ??
+                  '0',
+            ) ??
+            0;
+        final quantity = (product['quantity'] ?? 0) as num;
+        totalCost += boughtPrice * quantity;
+      }
+    }
+    final profitPercentage = totalCost > 0
+        ? (totalProfit / totalCost) * 100
+        : 0.0;
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
         title: Text(localizations.billDetails),
-        centerTitle: true,
         actions: [
           if (Platform.isWindows)
             IconButton(
+              icon: const Icon(Icons.print_outlined),
               onPressed: () {
                 _generateBillPDF()
                     .then((pdfBytes) {
@@ -1089,18 +1118,18 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           content: Text(
                             '${localizations.errorGeneratingBill}: $e',
                           ),
-                          backgroundColor: Colors.red,
+                          backgroundColor: scheme.error,
                         ),
                       );
                     });
               },
-              icon: const Icon(Icons.print),
             ),
           AppContextMenu.iconButton(
+            width: 180,
             items: () => [
               AppContextMenuItem(
                 label: localizations.previewBill,
-                icon: Icons.visibility_outlined,
+                icon: CupertinoIcons.eye,
                 onPressed: () {
                   if (_isDeleting) return;
                   _previewBill();
@@ -1108,7 +1137,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ),
               AppContextMenuItem(
                 label: localizations.editBill,
-                icon: Icons.edit_outlined,
+                icon: CupertinoIcons.pencil,
                 onPressed: () {
                   if (_isDeleting) return;
                   _editBill();
@@ -1116,7 +1145,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               ),
               AppContextMenuItem(
                 label: _isDeleting ? 'Deleting...' : 'Delete Bill',
-                icon: Icons.delete_outline,
+                icon: CupertinoIcons.delete,
                 destructive: true,
                 onPressed: () {
                   if (_isDeleting) return;
@@ -1126,51 +1155,332 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             ],
           ),
           IconButton(
-            icon: const Icon(Icons.share),
+            icon: const Icon(Icons.share_outlined),
             onPressed: () => _shareBill(context),
           ),
+          const SizedBox(width: 4),
         ],
       ),
-      body: Column(
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(10.0),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: [
+                _SummaryTile(
+                  icon: Icons.receipt_long_outlined,
+                  label: localizations.finalAmount,
+                  value: '₹${_formatAmount(finalAmount)}',
+                  valueColor: scheme.primary,
+                ),
+                const SizedBox(width: 8),
+                _SummaryTile(
+                  icon: Icons.payments_outlined,
+                  label: localizations.amountPaid,
+                  value: '₹${_formatAmount(paidAmount)}',
+                ),
+                const SizedBox(width: 8),
+                _SummaryTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: localizations.remaining,
+                  value: '₹${_formatAmount(remainingAmount)}',
+                  valueColor: remainingAmount > 0 ? scheme.error : null,
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _sectionLabel(context, localizations.customer),
+          ),
+          Adaptive.fullWidthGroup(
+            context: context,
+            children: [
+              _infoTile(
+                icon: Icons.calendar_today_outlined,
+                label: localizations.billDate,
+                value: billDate,
+              ),
+              _infoTile(
+                icon: Icons.person_outline,
+                label: localizations.customerName,
+                value: customerName,
+              ),
+              _infoTile(
+                icon: Icons.phone_outlined,
+                label: localizations.customerMobileNumber,
+                value: customerMobile,
+                onTap: _showEditMobileDialog,
+                trailing: isMobile
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.call_outlined, size: 20),
+                            onPressed: () => _makePhoneCall(customerMobile),
+                          ),
+                          IconButton(
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.message_outlined, size: 20),
+                            onPressed: () => _sendMessage(customerMobile),
+                          ),
+                        ],
+                      )
+                    : null,
+              ),
+              if (showVehicle)
+                _infoTile(
+                  icon: Icons.directions_car_outlined,
+                  label: localizations.customerVehicleNumber,
+                  value: (customerVehicle == null || customerVehicle!.isEmpty)
+                      ? localizations.nA
+                      : customerVehicle!,
+                  onTap: _showEditVehicleDialog,
+                ),
+              if (paidAmount > 0)
+                _infoTile(
+                  icon: _paymentMethodIcon(paymentMethod),
+                  label: localizations.paymentMethod,
+                  value: _paymentMethodLabel(paymentMethod),
+                ),
+            ],
+          ),
+          if (products.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _sectionLabel(context, localizations.products),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- 1. Bill/Customer Info Card ---
-                  _buildCustomerInfoCard(context, cardColor),
-                  const SizedBox(height: 8),
-
-                  // --- 2. Products List Card ---
-                  _buildProductsCard(context, cardColor),
-                  const SizedBox(height: 8),
-
-                  // --- 3. Financial Summary Card ---
-                  _buildSummaryCard(context, cardColor),
-                  const SizedBox(height: 8),
-
-                  // --- 4. Previous Due Card ---
-                  _buildPreviousDueCard(context, cardColor),
-                  const SizedBox(height: 8),
-
-                  // --- 5. Profit & Loss Card ---
-                  _buildProfitLossCard(context, cardColor),
-                  const SizedBox(height: 8),
-
-                  // --- 6. Payment History Card ---
-                  _buildPaymentHistoryCard(context, cardColor),
-
-                  // --- 6. Fixed Bottom Action (e.g., Record Payment) ---
-                  const SizedBox(height: 12),
+                  for (var i = 0; i < products.length; i++) ...[
+                    _BillProductTile(
+                      product: products[i],
+                      localizations: localizations,
+                    ),
+                    if (i != products.length - 1) const SizedBox(height: 8),
+                  ],
                 ],
               ),
             ),
+          ],
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _sectionLabel(context, localizations.summary),
+          ),
+          Adaptive.fullWidthGroup(
+            context: context,
+            children: [
+              _infoTile(
+                icon: Icons.shopping_bag_outlined,
+                label: localizations.totalItems,
+                value: totalItems,
+              ),
+              _infoTile(
+                icon: Icons.local_offer_outlined,
+                label: localizations.discount,
+                value: '₹${_formatAmount(discount)}',
+                onTap: _showEditDiscountDialog,
+              ),
+              if (_deliveryChargesEnabled || deliveryCharges > 0)
+                _infoTile(
+                  icon: Icons.local_shipping_outlined,
+                  label: localizations.deliveryCharges,
+                  value: '₹${_formatAmount(deliveryCharges)}',
+                ),
+              _infoTile(
+                icon: Icons.receipt_long_outlined,
+                label: localizations.finalAmount,
+                value: '₹${_formatAmount(finalAmount)}',
+                valueColor: scheme.primary,
+              ),
+              _infoTile(
+                icon: Icons.payments_outlined,
+                label: localizations.amountPaid,
+                value: '₹${_formatAmount(paidAmount)}',
+                onTap: _showEditAmountPaidDialog,
+              ),
+              _infoTile(
+                icon: Icons.account_balance_wallet_outlined,
+                label: localizations.amountRemaining,
+                value: '₹${_formatAmount(remainingAmount)}',
+                valueColor: remainingAmount > 0 ? scheme.error : null,
+              ),
+              _infoTile(
+                icon: Icons.verified_outlined,
+                label: localizations.paymentStatus,
+                value: paymentStatus,
+                valueColor: remainingAmount > 0 ? scheme.error : null,
+              ),
+              if (remainingAmount != 0 &&
+                  nextPaymentDate != null &&
+                  nextPaymentDate!.isNotEmpty)
+                _infoTile(
+                  icon: Icons.event_outlined,
+                  label: localizations.nextPaymentDate,
+                  value: nextPaymentDate!,
+                  onTap: _showEditNextPaymentDateDialog,
+                ),
+            ],
+          ),
+          if (previousDueAmount > 0 || previousPaidAmount > 0) ...[
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _sectionLabel(context, localizations.previousDue),
+            ),
+            Adaptive.fullWidthGroup(
+              context: context,
+              children: [
+                _infoTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: localizations.total,
+                  value: '₹${_formatAmount(previousDueAmount)}',
+                ),
+                _infoTile(
+                  icon: Icons.payments_outlined,
+                  label: localizations.paid,
+                  value: '₹${_formatAmount(previousPaidAmount)}',
+                ),
+                _infoTile(
+                  icon: Icons.pending_actions_outlined,
+                  label: localizations.remaining,
+                  value: '₹${_formatAmount(pendingPreviousDue)}',
+                  valueColor: pendingPreviousDue > 0 ? scheme.error : null,
+                ),
+                if (previousDueDescription.isNotEmpty)
+                  _infoTile(
+                    icon: Icons.notes_outlined,
+                    label: localizations.description,
+                    value: previousDueDescription,
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _sectionLabel(context, localizations.profitLoss),
+          ),
+          Adaptive.fullWidthGroup(
+            context: context,
+            children: [
+              _infoTile(
+                icon: isProfitable
+                    ? Icons.trending_up_rounded
+                    : Icons.trending_down_rounded,
+                label: isProfitable ? localizations.profit : localizations.loss,
+                value: '₹${_formatAmount(totalProfit.abs())}',
+                valueColor: profitColor,
+              ),
+              _infoTile(
+                icon: Icons.percent_outlined,
+                label: localizations.margin,
+                value: '${profitPercentage.abs().toStringAsFixed(1)}%',
+                valueColor: profitColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _sectionLabel(context, localizations.paymentHistory),
+          ),
+          if (remainingAmount != 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: FilledButton.icon(
+                style: Adaptive.compactFilled,
+                onPressed: _showAddPaymentDialog,
+                icon: const Icon(Icons.add, size: 20),
+                label: Text(localizations.addPayment),
+              ),
+            ),
+          Adaptive.fullWidthGroup(
+            context: context,
+            children: [
+              if (paymentRecords.isEmpty)
+                _infoTile(
+                  icon: Icons.history_outlined,
+                  label: localizations.paymentHistory,
+                  value: localizations.noPaymentsRecorded,
+                )
+              else
+                for (final payment in paymentRecords)
+                  _infoTile(
+                    icon: _paymentMethodIcon(payment.paymentMethod),
+                    label:
+                        '${payment.date}  ·  ${_paymentMethodLabel(payment.paymentMethod)}',
+                    value: '₹${_formatAmount(payment.amount)}',
+                  ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _infoTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+    VoidCallback? onTap,
+    Widget? trailing,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+      minVerticalPadding: 4,
+      onTap: onTap,
+      leading: _squareIcon(icon, scheme),
+      title: Text(
+        value,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: valueColor ?? scheme.onSurface,
+        ),
+      ),
+      subtitle: Text(label),
+      trailing:
+          trailing ??
+          (onTap == null
+              ? null
+              : Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                )),
+    );
+  }
+
+  IconData _paymentMethodIcon(String method) {
+    switch (method) {
+      case 'online':
+        return Icons.qr_code_outlined;
+      case 'discount':
+        return Icons.local_offer_outlined;
+      default:
+        return Icons.payments_outlined;
+    }
+  }
+
+  String _paymentMethodLabel(String method) {
+    switch (method) {
+      case 'online':
+        return localizations.online;
+      case 'discount':
+        return localizations.discount;
+      default:
+        return localizations.cash;
+    }
   }
 
   void _showAddPaymentDialog() {
@@ -1186,9 +1496,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 localizations.recordPayment,
-                style: context.bodyLargeText?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               content: SingleChildScrollView(
                 child: Column(
@@ -1240,7 +1550,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       children: [
                         Text(
                           localizations.paymentMethod,
-                          style: context.titleMedium?.copyWith(
+                          style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1350,7 +1660,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         return AlertDialog(
           title: Text(
             localizations.editNextPaymentDate,
-            style: context.bodyLargeText?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           content: GestureDetector(
             onTap: () async {
@@ -1451,9 +1763,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 localizations.editMobileNumber,
-                style: context.bodyLargeText?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               content: TextField(
                 controller: mobileController,
@@ -1549,9 +1861,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 localizations.editVehicleNumber,
-                style: context.bodyLargeText?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               content: TextField(
                 controller: vehicleController,
@@ -1731,9 +2043,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 localizations.editDiscount,
-                style: context.bodyLargeText?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1926,9 +2238,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             return AlertDialog(
               title: Text(
                 localizations.editAmountPaid,
-                style: context.bodyLargeText?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -2084,1293 +2396,6 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       ).showSnackBar(SnackBar(content: Text('${localizations.error}: $e')));
     }
   }
-
-  // --- Helper 5: Payment History Card ---
-  Widget _buildPaymentHistoryCard(BuildContext context, Color? cardColor) {
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 14, 10, 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    localizations.paymentHistory,
-                    style: context.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                if (amountRemaining != '₹ 0')
-                  Flexible(
-                    child: ElevatedButton.icon(
-                      onPressed: _showAddPaymentDialog,
-                      icon: const Icon(
-                        Icons.add,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        localizations.addPayment,
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            Divider(
-              color: context.secondaryTextColor?.withValues(alpha: 0.3),
-              height: 20,
-            ),
-            if (paymentRecords.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Center(
-                  child: Text(
-                    localizations.noPaymentsRecorded,
-                    style: context.subtitleMedium,
-                  ),
-                ),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: paymentRecords.length,
-                itemBuilder: (context, index) {
-                  final payment = paymentRecords[index];
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    '₹ ${payment.amount}',
-                                    style: context.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  if (payment.amount > 0)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: payment.paymentMethod == 'cash'
-                                            ? Colors.blue.withValues(
-                                                alpha: 0.15,
-                                              )
-                                            : payment.paymentMethod ==
-                                                  'discount'
-                                            ? Colors.orange.withValues(
-                                                alpha: 0.15,
-                                              )
-                                            : Colors.green.withValues(
-                                                alpha: 0.15,
-                                              ),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        payment.paymentMethod == 'cash'
-                                            ? localizations.cash
-                                            : payment.paymentMethod ==
-                                                  'discount'
-                                            ? localizations.discount
-                                            : localizations.online,
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w600,
-                                          color: payment.paymentMethod == 'cash'
-                                              ? Colors.blue[600]
-                                              : payment.paymentMethod ==
-                                                    'discount'
-                                              ? Colors.orange[600]
-                                              : Colors.green[600],
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                payment.date,
-                                style: context.subtitleMedium?.copyWith(
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- REST OF THE PREVIOUS HELPERS (Unchanged) ---
-  Widget _buildCustomerInfoCard(BuildContext context, Color? cardColor) {
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Bill Date and Payment Method in one row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: _buildDetailRow(
-                    context,
-                    localizations.billDate,
-                    billDate,
-                    Icons.calendar_month,
-                  ),
-                ),
-                // Only show payment method if amount paid is greater than 0
-                if (int.parse(amountPaid.replaceAll('₹ ', '')) > 0)
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: paymentMethod == 'cash'
-                            ? Colors.blue.withValues(alpha: 0.1)
-                            : Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: paymentMethod == 'cash'
-                              ? Colors.blue
-                              : Colors.green,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            localizations.paymentMethod,
-                            style: context.subtitleMedium?.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                paymentMethod == 'cash'
-                                    ? Icons.money
-                                    : Icons.credit_card,
-                                color: paymentMethod == 'cash'
-                                    ? Colors.blue
-                                    : Colors.green,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                paymentMethod == 'cash'
-                                    ? localizations.cash
-                                    : localizations.online,
-                                style: TextStyle(
-                                  color: paymentMethod == 'cash'
-                                      ? Colors.blue
-                                      : Colors.green,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            Divider(
-              color: context.secondaryTextColor?.withValues(alpha: 0.3),
-              height: 20,
-            ),
-            Text(
-              localizations.customerName,
-              style: context.subtitleMedium?.copyWith(fontSize: 12),
-            ),
-            Text(
-              customerName,
-              style: context.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              localizations.customerMobileNumber,
-              style: context.subtitleMedium?.copyWith(fontSize: 12),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _showEditMobileDialog,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.blue.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            customerMobile,
-                            style: context.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 15,
-                            ),
-                          ),
-                          Icon(Icons.edit, size: 16, color: Colors.blue[600]),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // Show call and message buttons only on mobile platforms
-                if (Platform.isAndroid || Platform.isIOS) ...[
-                  const SizedBox(width: 8),
-                  // Call button
-                  InkWell(
-                    onTap: () => _makePhoneCall(customerMobile),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green),
-                      ),
-                      child: const Icon(
-                        Icons.call,
-                        color: Colors.green,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Message button
-                  InkWell(
-                    onTap: () => _sendMessage(customerMobile),
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue),
-                      ),
-                      child: const Icon(
-                        Icons.message,
-                        color: Colors.blue,
-                        size: 20,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (_vehicleNumberEnabled ||
-                customerVehicle != null ||
-                customerVehicle!.isNotEmpty) ...[
-              Text(
-                localizations.customerVehicleNumber,
-                style: context.subtitleMedium?.copyWith(fontSize: 12),
-              ),
-              GestureDetector(
-                onTap: _showEditVehicleDialog,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        customerVehicle ?? localizations.nA,
-                        style: context.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 15,
-                        ),
-                      ),
-                      Icon(Icons.edit, size: 16, color: Colors.blue[600]),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: Colors.blue, size: 16),
-            const SizedBox(width: 8),
-            Text(title, style: context.subtitleMedium?.copyWith(fontSize: 11)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: context.bodyLargeText?.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 13,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProductsCard(BuildContext context, Color? cardColor) {
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              localizations.products,
-              style: context.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-            const SizedBox(height: 10),
-            ...products.asMap().entries.map((entry) {
-              final index = entry.key;
-              final product = entry.value;
-              final batchId = product['batchId']?.toString() ?? '';
-              final quantity = double.tryParse(product['qty'] ?? '0') ?? 0;
-
-              // Calculate profit per unit from prices
-              final sellingPrice =
-                  double.tryParse(
-                    product['price']?.toString().replaceAll('₹', '').trim() ??
-                        '0',
-                  ) ??
-                  0;
-              final boughtPrice =
-                  double.tryParse(
-                    product['boughtPrice']
-                            ?.toString()
-                            .replaceAll('₹', '')
-                            .trim() ??
-                        '0',
-                  ) ??
-                  0;
-              final profitPerUnit = sellingPrice - boughtPrice;
-              final totalSellingPrice = sellingPrice * quantity;
-              final totalProfit = profitPerUnit * quantity;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Theme(
-                  data: Theme.of(
-                    context,
-                  ).copyWith(dividerColor: Colors.transparent),
-                  child: ExpansionTile(
-                    tilePadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 2,
-                    ),
-                    childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    backgroundColor: Colors.blue.withValues(alpha: 0.02),
-                    collapsedBackgroundColor: Colors.blue.withValues(
-                      alpha: 0.02,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(
-                        color: Colors.blue.withValues(alpha: 0.15),
-                        width: 1,
-                      ),
-                    ),
-                    collapsedShape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      side: BorderSide(
-                        color: Colors.blue.withValues(alpha: 0.15),
-                        width: 1,
-                      ),
-                    ),
-                    title: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue,
-                                borderRadius: BorderRadius.circular(3),
-                              ),
-                              child: Text(
-                                '#${index + 1}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                product['name']!,
-                                style: context.titleMedium?.copyWith(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        // Tile: Show only Qty and Total Selling Price
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '${localizations.qty}: ${quantity.toInt()}',
-                              style: context.subtitleMedium?.copyWith(
-                                fontSize: 12,
-                              ),
-                            ),
-                            Text(
-                              '${localizations.total}: ₹${totalSellingPrice.toStringAsFixed(0)}',
-                              style: TextStyle(
-                                color: Colors.green[700],
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    children: [
-                      // Expanded details
-                      Divider(
-                        color: Colors.grey.withValues(alpha: 0.2),
-                        height: 12,
-                      ),
-                      const SizedBox(height: 8),
-
-                      if (batchId.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.purple.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: Colors.purple.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Text(
-                              '${localizations.batch}: ${batchId.substring(0, 8)}...',
-                              style: TextStyle(
-                                color: Colors.purple[700],
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-
-                      // Expanded info: Selling Price, Buying Price, Profit Per Unit, Total Profit
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildDetailBox(
-                            localizations.sellingPrice,
-                            product['price']!,
-                            Colors.green,
-                          ),
-                          _buildDetailBox(
-                            localizations.buyingPrice,
-                            product['boughtPrice']!,
-                            Colors.orange,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _buildDetailBox(
-                            localizations.profitPerUnit,
-                            '₹${profitPerUnit.toStringAsFixed(2)}',
-                            profitPerUnit >= 0 ? Colors.green : Colors.red,
-                          ),
-                          _buildDetailBox(
-                            localizations.totalProfit,
-                            '₹${totalProfit.toStringAsFixed(0)}',
-                            totalProfit >= 0 ? Colors.green : Colors.red,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailBox(String label, String value, Color accentColor) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-        decoration: BoxDecoration(
-          color: accentColor.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: accentColor.withValues(alpha: 0.15),
-            width: 0.5,
-          ),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                color: context.secondaryTextColor,
-                fontSize: 10,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                color: accentColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(BuildContext context, Color? cardColor) {
-    Color getStatusColor() {
-      if (paymentStatus == localizations.paid) return Colors.green;
-      if (paymentStatus == localizations.partiallyPaid) return Colors.orange;
-      return Colors.red;
-    }
-
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 8),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.blue.shade400, Colors.blue.shade600],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.withValues(alpha: 0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.shopping_bag,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        localizations.totalItems,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      totalItems,
-                      style: TextStyle(
-                        color: Colors.blue.shade700,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Discount row with edit functionality
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    localizations.discount,
-                    style: context.titleMedium?.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _showEditDiscountDialog,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.orange.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            localizations.addDiscountLabel,
-                            style: TextStyle(
-                              color: Colors.orange[700],
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Icon(Icons.edit, size: 14, color: Colors.orange[600]),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // delivery charges row
-            if (_deliveryChargesEnabled || deliveryCharges > 0) ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      localizations.deliveryCharges,
-                      style: context.titleMedium?.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                      ),
-                    ),
-                    Text(
-                      '₹ $deliveryCharges',
-                      style: TextStyle(
-                        color: Colors.blue[700],
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            // Final Amount row
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    localizations.finalAmount,
-                    style: TextStyle(
-                      color: Colors.green[700],
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    '₹ ${int.parse(totalAmount.replaceAll('₹ ', '')) + (_deliveryChargesEnabled ? deliveryCharges : 0) - discount}',
-                    style: TextStyle(
-                      color: Colors.green[700],
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Divider(
-              color: context.secondaryTextColor?.withValues(alpha: 0.3),
-              height: 16,
-            ),
-            // Amount Paid row with edit functionality
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    localizations.amountPaid,
-                    style: context.bodyLargeText?.copyWith(
-                      fontSize: 14,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _showEditAmountPaidDialog,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.green.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            amountPaid,
-                            style: TextStyle(
-                              color: Colors.green[700],
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Icon(Icons.edit, size: 14, color: Colors.green[600]),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            _buildSummaryRow(
-              localizations.amountRemaining,
-              amountRemaining,
-              (amountRemaining != '₹ 0')
-                  ? Colors.red[400]!
-                  : Colors.green[400]!,
-              isBold: true,
-            ),
-            Divider(
-              color: context.secondaryTextColor?.withValues(alpha: 0.3),
-              height: 16,
-            ),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  localizations.paymentStatus,
-                  style: context.bodyLargeText?.copyWith(fontSize: 14),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: getStatusColor().withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    paymentStatus,
-                    style: TextStyle(
-                      color: getStatusColor(),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            if ((amountRemaining != '₹ 0') &&
-                nextPaymentDate != null &&
-                nextPaymentDate!.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Divider(
-                color: context.secondaryTextColor?.withValues(alpha: 0.3),
-                height: 16,
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    localizations.nextPaymentDate,
-                    style: context.bodyLargeText?.copyWith(fontSize: 14),
-                  ),
-                  GestureDetector(
-                    onTap: _showEditNextPaymentDateDialog,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.blue.withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            nextPaymentDate!,
-                            style: context.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 12,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Icon(Icons.edit, size: 14, color: Colors.blue[600]),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildProfitLossCard(BuildContext context, Color? cardColor) {
-    final isProfitable = totalProfit >= 0;
-    final profitColor = isProfitable ? Colors.green : Colors.red;
-    final profitLossLabel = isProfitable
-        ? localizations.profit
-        : localizations.loss;
-
-    // Calculate total cost (investment) for percentage calculation
-    double totalCost = 0;
-    if (widget.products != null && widget.products!.isNotEmpty) {
-      for (final product in widget.products!) {
-        final boughtPrice =
-            double.tryParse(
-              product['boughtPrice']?.toString().replaceAll('₹', '').trim() ??
-                  '0',
-            ) ??
-            0;
-        final quantity = product['quantity'] ?? 0;
-        totalCost += boughtPrice * quantity;
-      }
-    }
-
-    // Calculate profit/loss percentage
-    final profitPercentage = totalCost > 0
-        ? (totalProfit / totalCost) * 100
-        : 0.0;
-
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  localizations.profitLoss,
-                  style: context.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                Text(
-                  '${localizations.margin}: ${profitPercentage.abs().toStringAsFixed(1)}%',
-                  style: TextStyle(
-                    color: profitColor.withValues(alpha: 0.8),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: profitColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: profitColor.withValues(alpha: 0.3),
-                  width: 2,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          profitLossLabel,
-                          style: TextStyle(
-                            color: profitColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '₹ ${totalProfit.abs().toStringAsFixed(2)}',
-                          style: TextStyle(
-                            color: profitColor,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    isProfitable
-                        ? Icons.trending_up_rounded
-                        : Icons.trending_down_rounded,
-                    size: 36,
-                    color: profitColor.withValues(alpha: 0.6),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPreviousDueCard(BuildContext context, Color? cardColor) {
-    if (previousDueAmount <= 0 && previousPaidAmount <= 0) {
-      return const SizedBox.shrink();
-    }
-
-    final pendingAmount = (previousDueAmount - previousPaidAmount).clamp(
-      0.0,
-      double.infinity,
-    );
-    final isFullyPaid = pendingAmount == 0;
-
-    return Card(
-      color: cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.deepOrange.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: Colors.deepOrange,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Previous Due',
-                  style: context.bodyLargeText?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isFullyPaid
-                        ? Colors.green.withValues(alpha: 0.12)
-                        : Colors.orange.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    isFullyPaid ? 'Cleared' : 'Pending',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isFullyPaid
-                          ? Colors.green.shade700
-                          : Colors.orange.shade700,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 14),
-            const Divider(height: 1),
-            const SizedBox(height: 14),
-
-            // Three amounts in a row
-            Row(
-              children: [
-                _buildDueAmountChip(
-                  label: 'Total Due',
-                  amount: previousDueAmount,
-                  color: Colors.blue,
-                ),
-                const SizedBox(width: 8),
-                _buildDueAmountChip(
-                  label: 'Paid',
-                  amount: previousPaidAmount,
-                  color: Colors.green,
-                ),
-                const SizedBox(width: 8),
-                _buildDueAmountChip(
-                  label: 'Remaining',
-                  amount: pendingAmount,
-                  color: isFullyPaid ? Colors.grey : Colors.deepOrange,
-                ),
-              ],
-            ),
-
-            // Description
-            if (previousDueDescription.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    Icons.notes_rounded,
-                    size: 16,
-                    color: Colors.grey.shade500,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      previousDueDescription,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade600,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatAmount(double value) {
-    if (value == value.truncateToDouble()) {
-      return value.toInt().toString();
-    }
-    return value.toStringAsFixed(2).replaceAll(RegExp(r'0+$'), '');
-  }
-
-  Widget _buildDueAmountChip({
-    required String label,
-    required double amount,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: color.withValues(alpha: 0.8),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              '₹${_formatAmount(amount)}',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryRow(
-    String title,
-    String value,
-    Color? valueColor, {
-    bool isBold = false,
-  }) {
-    Color displayColor =
-        valueColor ??
-        (isBold ? context.primaryTextColor! : context.secondaryTextColor!);
-    double fontSize = isBold ? 15 : 13;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: context.bodyLargeText?.copyWith(
-              fontSize: fontSize,
-              fontWeight: isBold ? FontWeight.w600 : FontWeight.normal,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              color: displayColor,
-              fontSize: fontSize,
-              fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // Custom input formatter to prevent entering amounts greater than max amount
@@ -3404,4 +2429,239 @@ class _AmountInputFormatter extends TextInputFormatter {
     // Allow the change
     return newValue;
   }
+}
+
+class _BillProductTile extends StatelessWidget {
+  const _BillProductTile({required this.product, required this.localizations});
+
+  final Map<String, String> product;
+  final AppLocalizations localizations;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final name = product['name'] ?? '';
+    final quantity = double.tryParse(product['qty'] ?? '0') ?? 0;
+    final sellingPrice =
+        double.tryParse(product['price']?.replaceAll('₹', '').trim() ?? '0') ??
+        0;
+    final boughtPrice =
+        double.tryParse(
+          product['boughtPrice']?.replaceAll('₹', '').trim() ?? '0',
+        ) ??
+        0;
+    final batchId = product['batchId'] ?? '';
+    final shortBatch = batchId.length > 8
+        ? '${batchId.substring(0, 8)}…'
+        : batchId;
+    final batchLabel = batchId.isEmpty
+        ? ''
+        : '  ·  ${localizations.batch} $shortBatch';
+    final profitPerUnit = sellingPrice - boughtPrice;
+    final total = sellingPrice * quantity;
+    final profit = profitPerUnit * quantity;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          leading: _squareIcon(Icons.inventory_2_outlined, scheme),
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '₹${_formatAmount(total)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: scheme.primary,
+                ),
+              ),
+            ],
+          ),
+          subtitle: Text(
+            '${localizations.qty}: ${_formatAmount(quantity)}$batchLabel',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          ),
+          children: [
+            Row(
+              children: [
+                _Metric(
+                  label: localizations.buyingPrice,
+                  value: '₹${_formatAmount(boughtPrice)}',
+                ),
+                _Metric(
+                  label: localizations.sellingPrice,
+                  value: '₹${_formatAmount(sellingPrice)}',
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _Metric(
+                  label: localizations.profitPerUnit,
+                  value: '₹${_formatAmount(profitPerUnit)}',
+                  valueColor: profitPerUnit >= 0
+                      ? scheme.primary
+                      : scheme.error,
+                ),
+                _Metric(
+                  label: localizations.totalProfit,
+                  value: '₹${_formatAmount(profit)}',
+                  valueColor: profit >= 0 ? scheme.primary : scheme.error,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  const _Metric({required this.label, required this.value, this.valueColor});
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label.toUpperCase(),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.3,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.w700,
+              color: valueColor ?? scheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _squareIcon(icon, scheme),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor ?? scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Widget _sectionLabel(BuildContext context, String title) {
+  final scheme = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 8),
+    child: Text(
+      title.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+        color: scheme.onSurfaceVariant,
+      ),
+    ),
+  );
+}
+
+Widget _squareIcon(IconData icon, ColorScheme scheme) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: ColoredBox(
+      color: scheme.primaryContainer,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
+      ),
+    ),
+  );
+}
+
+String _formatAmount(num amount) {
+  if (amount == amount.roundToDouble()) return amount.toInt().toString();
+  return amount.toStringAsFixed(2);
 }

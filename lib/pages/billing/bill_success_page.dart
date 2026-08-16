@@ -1,10 +1,10 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flashbill/services/profile_service.dart';
-import 'package:flashbill/services/file_service.dart';
-import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/pages/billing/create_new_bill.dart';
+import 'package:flashbill/services/file_service.dart';
+import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:material_ui/material_ui.dart';
 
 class BillProductItem {
   final String productName;
@@ -117,170 +117,132 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   @override
   Widget build(BuildContext context) {
     final localizations = AppLocalizations.of(context)!;
-    final cardColor = context.cardColor;
+    final scheme = Theme.of(context).colorScheme;
+    final paymentLabel = amountRemaining > 0
+        ? localizations.partial
+        : localizations.full;
 
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(localizations.billCreated),
-        centerTitle: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(0, 24, 0, 24),
+          children: [
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: ColoredBox(
+                  color: scheme.primaryContainer,
+                  child: SizedBox(
+                    width: 56,
+                    height: 56,
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: 28,
+                      color: scheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  Text(
+                    localizations.billCreatedSuccessfully,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    localizations.billSavedToSystem,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Row(
+                children: [
+                  _SummaryTile(
+                    icon: Icons.person_outline,
+                    label: localizations.customer,
+                    value: customerName,
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryTile(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: localizations.total,
+                    value: '₹$totalAmount',
+                    valueColor: scheme.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryTile(
+                    icon: Icons.verified_outlined,
+                    label: localizations.status,
+                    value: localizations.completed,
+                    valueColor: scheme.primary,
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _sectionLabel(context, localizations.billStatus),
+            ),
+            Adaptive.fullWidthGroup(
+              context: context,
               children: [
-                const SizedBox(height: 40),
-                // Success Icon
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.green.withValues(alpha: 0.1),
+                _infoTile(
+                  icon: Icons.check_circle_outline,
+                  label: localizations.status,
+                  value: localizations.completed,
+                  valueColor: scheme.primary,
+                ),
+                _infoTile(
+                  icon: Icons.payments_outlined,
+                  label: localizations.payment,
+                  value: paymentLabel,
+                ),
+                _infoTile(
+                  icon: Icons.person_outline,
+                  label: localizations.customerName,
+                  value: customerName,
+                ),
+                _infoTile(
+                  icon: Icons.receipt_long_outlined,
+                  label: localizations.totalAmount,
+                  value: '₹$totalAmount',
+                  valueColor: scheme.primary,
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  FilledButton.icon(
+                    style: Adaptive.compactFilled,
+                    onPressed: () => _shareBill(context, localizations),
+                    icon: const Icon(Icons.share_outlined, size: 20),
+                    label: Text(localizations.shareBill),
                   ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    size: 60,
-                    color: Colors.green,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Success Message
-                Text(
-                  localizations.billCreatedSuccessfully,
-                  textAlign: TextAlign.center,
-                  style: context.headingLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  localizations.billSavedToSystem,
-                  textAlign: TextAlign.center,
-                  style: context.subtitleMedium,
-                ),
-                const SizedBox(height: 40),
-
-                // Bill Status Card
-                Card(
-                  color: cardColor,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color:
-                          context.secondaryTextColor?.withValues(alpha: 0.1) ??
-                          Colors.grey,
-                      width: 1,
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          localizations.billStatus,
-                          style: context.titleLarge,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildStatusRow(
-                          localizations.status,
-                          localizations.completed,
-                          Colors.green,
-                          context,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildStatusRow(
-                          localizations.payment,
-                          amountRemaining > 0
-                              ? localizations.partial
-                              : localizations.full,
-                          Colors.blue,
-                          context,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Action Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 45,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          onPressed: () {
-                            Navigator.of(
-                              context,
-                            ).popUntil((route) => route.isFirst);
-                          },
-                          child: Text(
-                            localizations.goToDashboard,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: SizedBox(
-                        height: 45,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            side: const BorderSide(
-                              color: Colors.blue,
-                              width: 2,
-                            ),
-                          ),
-                          onPressed: () {
-                            // Share bill functionality
-                            _shareBill(context, localizations);
-                          },
-                          icon: const Icon(Icons.share, color: Colors.blue),
-                          label: Text(
-                            localizations.shareBill,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 45,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      side: const BorderSide(color: Colors.green, width: 2),
-                    ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    style: Adaptive.compactOutlined,
                     onPressed: () {
                       Navigator.of(context).pushAndRemoveUntil(
                         MaterialPageRoute(
@@ -289,29 +251,30 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                         (route) => route.isFirst,
                       );
                     },
-                    icon: const Icon(
-                      Icons.add_circle_outline,
-                      color: Colors.green,
-                    ),
-                    label: Text(
-                      localizations.createNewBill,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.green,
-                      ),
-                    ),
+                    icon: const Icon(Icons.add_circle_outline, size: 20),
+                    label: Text(localizations.createNewBill),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 10),
+                  OutlinedButton(
+                    style: Adaptive.compactOutlined,
+                    onPressed: () {
+                      Navigator.of(
+                        context,
+                      ).popUntil((route) => route.isFirst);
+                    },
+                    child: Text(localizations.goToDashboard),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
   void _shareBill(BuildContext context, AppLocalizations localizations) async {
+    final scheme = Theme.of(context).colorScheme;
     try {
       // Show loading dialog
       showDialog(
@@ -322,22 +285,19 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      localizations.generatingPdf,
-                      style: context.bodyLargeText,
-                    ),
-                  ],
+              child: Material(
+                color: scheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Adaptive.progress(color: scheme.primary),
+                      const SizedBox(height: 16),
+                      Text(localizations.generatingPdf),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -424,7 +384,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
               content: Text(
                 '${localizations.errorGeneratingBill}: ${result.errorMessage}',
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: scheme.error,
             ),
           );
         }
@@ -435,35 +395,34 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${localizations.errorGeneratingBill}: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
     }
   }
 
-  Widget _buildStatusRow(
-    String label,
-    String value,
-    Color valueColor,
-    BuildContext context,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: context.subtitleMedium),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: valueColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: Text(
-            value,
-            style: context.titleMedium?.copyWith(color: valueColor),
-          ),
+  Widget _infoTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+      minVerticalPadding: 4,
+      leading: _squareIcon(icon, scheme),
+      title: Text(
+        value,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: valueColor ?? scheme.onSurface,
         ),
-      ],
+      ),
+      subtitle: Text(label),
     );
   }
 
@@ -472,4 +431,89 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
     _profileService.dispose();
     super.dispose();
   }
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _squareIcon(icon, scheme),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor ?? scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Widget _sectionLabel(BuildContext context, String title) {
+  final scheme = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 8),
+    child: Text(
+      title.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+        color: scheme.onSurfaceVariant,
+      ),
+    ),
+  );
+}
+
+Widget _squareIcon(IconData icon, ColorScheme scheme) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: ColoredBox(
+      color: scheme.primaryContainer,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
+      ),
+    ),
+  );
 }

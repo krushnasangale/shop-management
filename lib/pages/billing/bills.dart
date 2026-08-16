@@ -9,6 +9,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/utils/search_utils.dart';
@@ -869,6 +870,11 @@ class _BillsState extends State<Bills> {
             icon: const Icon(Icons.share),
             onPressed: () => _showReportOptionsDialog(context, localizations),
           ),
+          IconButton(
+            icon: const Icon(Icons.add_rounded, size: 32),
+            tooltip: localizations.createBill,
+            onPressed: () => AppNavigator.push(context, const CreateNewBill()),
+          ),
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -967,89 +973,65 @@ class _BillsState extends State<Bills> {
                     child: Row(
                       children: [
                         // Combined Filter & Sort Button
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16.0),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.08),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                                spreadRadius: 1,
+                        FilterChip(
+                          label: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.tune,
+                                size: 16,
+                                color: (_selectedSort != SortOption.dateNewest)
+                                    ? Colors.blue[700]
+                                    : Colors.grey[600],
                               ),
-                              BoxShadow(
-                                color: Colors.grey.withValues(alpha: 0.1),
-                                blurRadius: 0,
-                                offset: const Offset(0, 0),
-                                spreadRadius: 1,
-                              ),
+                              const SizedBox(width: 4),
+                              Text(localizations.filterSort),
                             ],
-                            gradient: LinearGradient(
-                              colors: [
-                                Colors.white,
-                                Colors.white.withValues(alpha: 0.95),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
                           ),
-                          child: FilterChip(
-                            label: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.tune,
-                                  size: 14,
-                                  color:
-                                      (_selectedSort != SortOption.dateNewest)
-                                      ? Colors.blue[700]
-                                      : Colors.grey[600],
-                                ),
-                                const SizedBox(width: 4),
-                                Text(localizations.filterSort),
-                              ],
-                            ),
-                            selected: _selectedSort != SortOption.dateNewest,
-                            onSelected: (selected) async {
-                              await _showFilterSortBottomSheet(localizations);
-                            },
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            backgroundColor: Theme.of(context).cardTheme.color,
-                            selectedColor: Colors.blue.withValues(alpha: 0.2),
-                            side: BorderSide(
-                              color: (_selectedSort != SortOption.dateNewest)
-                                  ? Colors.blue
-                                  : Colors.grey.withValues(alpha: 0.5),
-                              width: 0.8,
-                            ),
-                            labelStyle: TextStyle(
-                              color: (_selectedSort != SortOption.dateNewest)
-                                  ? Colors.blue
-                                  : null,
-                              fontWeight:
-                                  (_selectedFilter != PaymentFilter.all ||
-                                      _selectedSort != SortOption.dateNewest)
-                                  ? FontWeight.w600
-                                  : FontWeight.normal,
-                              fontSize: 12,
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 1,
-                            ),
-                            labelPadding: const EdgeInsets.symmetric(
-                              horizontal: 4,
-                              vertical: -1,
-                            ),
-                            visualDensity: const VisualDensity(
-                              horizontal: -2,
-                              vertical: -4,
-                            ),
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
+                          selected: _selectedSort != SortOption.dateNewest,
+                          onSelected: (selected) async {
+                            await _showFilterSortBottomSheet(localizations);
+                          },
+                          elevation: 0,
+                          pressElevation: 0,
+                          shadowColor: Colors.transparent,
+                          selectedShadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
+                          backgroundColor: Theme.of(context).cardTheme.color,
+                          selectedColor: Colors.blue.withValues(alpha: 0.2),
+                          side: BorderSide(
+                            color: (_selectedSort != SortOption.dateNewest)
+                                ? Colors.blue
+                                : Colors.grey.withValues(alpha: 0.5),
+                            width: 0.8,
+                          ),
+                          labelStyle: TextStyle(
+                            color: (_selectedSort != SortOption.dateNewest)
+                                ? Colors.blue
+                                : null,
+                            fontWeight:
+                                (_selectedFilter != PaymentFilter.all ||
+                                    _selectedSort != SortOption.dateNewest)
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                            fontSize: 14,
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1,
+                          ),
+                          labelPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: -1,
+                          ),
+                          visualDensity: const VisualDensity(
+                            horizontal: -2,
+                            vertical: -4,
+                          ),
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
                         ),
                         const SizedBox(width: 8),
                         _buildFilterChip(PaymentFilter.all, localizations),
@@ -1079,6 +1061,7 @@ class _BillsState extends State<Bills> {
                         )
                       : ListView.builder(
                           controller: _scrollController,
+                          padding: const EdgeInsets.only(bottom: 16),
                           itemCount:
                               _currentlyLoadedItems + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
@@ -1093,12 +1076,11 @@ class _BillsState extends State<Bills> {
                             return _buildBillCard(
                               _filteredBills[index],
                               localizations,
+                              showDivider: index != _currentlyLoadedItems - 1,
                             );
                           },
                         ),
                 ),
-
-                const SizedBox(height: 16),
               ],
             ),
     );
@@ -1174,6 +1156,10 @@ class _BillsState extends State<Bills> {
           _filterBills();
         });
       },
+      elevation: 0,
+      pressElevation: 0,
+      shadowColor: Colors.transparent,
+      selectedShadowColor: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       backgroundColor: cardColor,
       selectedColor: Colors.blue.withValues(alpha: 0.2),
@@ -1184,7 +1170,7 @@ class _BillsState extends State<Bills> {
       labelStyle: TextStyle(
         color: isSelected ? Colors.blue : null,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-        fontSize: 12,
+        fontSize: 14,
       ),
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
       labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: -1),
@@ -1193,223 +1179,198 @@ class _BillsState extends State<Bills> {
     );
   }
 
-  // Helper to build a single bill card
-  Widget _buildBillCard(Bill bill, AppLocalizations localizations) {
+  // Helper to build a single full-width bill tile
+  Widget _buildBillCard(
+    Bill bill,
+    AppLocalizations localizations, {
+    bool showDivider = true,
+  }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 3.0),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(
-          width: 1,
-          color: Colors.black.withValues(alpha: 0.1),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-            spreadRadius: 1,
-          ),
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 0,
-            offset: const Offset(0, 0),
-            spreadRadius: 1,
-          ),
-        ],
-
-        gradient: LinearGradient(
-          colors: [Colors.white, Colors.white.withValues(alpha: 0.95)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            AppNavigator.push(
-              context,
-              ViewBillDetailsScreen(
-                billId: bill.billId,
-                billDate: bill.date,
-                customerName: bill.customerName,
-                customerMobile: bill.customerMobile,
-                customerVehicle: bill.customerVehicle,
-                totalAmount: bill.totalAmount,
-                totalAmountPaid: bill.totalAmountPaid,
-                amountPaid: bill.amountPaid,
-                amountRemaining: bill.amountRemaining,
-                products: bill.products,
-                nextPaymentDate: bill.nextPaymentDate,
-                previousDueAmount: bill.previousDueAmount,
-                previousPaidAmount: bill.previousPaidAmount,
-                previousDueDescription: bill.previousDueDescription,
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12.0,
-              vertical: 8.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Row: Customer Name and Status Badge
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        bill.customerName,
-                        style: context.titleLarge?.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    _buildStatusBadge(bill.status, localizations),
-                  ],
+    return Material(
+      color: isDark ? const Color(0xFF171C22) : Colors.white,
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () {
+              AppNavigator.push(
+                context,
+                ViewBillDetailsScreen(
+                  billId: bill.billId,
+                  billDate: bill.date,
+                  customerName: bill.customerName,
+                  customerMobile: bill.customerMobile,
+                  customerVehicle: bill.customerVehicle,
+                  totalAmount: bill.totalAmount,
+                  totalAmountPaid: bill.totalAmountPaid,
+                  amountPaid: bill.amountPaid,
+                  amountRemaining: bill.amountRemaining,
+                  products: bill.products,
+                  nextPaymentDate: bill.nextPaymentDate,
+                  previousDueAmount: bill.previousDueAmount,
+                  previousPaidAmount: bill.previousPaidAmount,
+                  previousDueDescription: bill.previousDueDescription,
                 ),
-
-                const SizedBox(height: 4),
-
-                // Bottom Row: Date and Amount
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Date Section
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 13,
-                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Row: Customer Name and Status Badge
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          bill.customerName,
+                          style: context.titleLarge?.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          bill.date,
-                          style: context.subtitleMedium?.copyWith(fontSize: 12),
-                        ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 4),
+                      _buildStatusBadge(bill.status, localizations),
+                    ],
+                  ),
 
-                    // Pending Amount Section (Center)
-                    if (bill.amountRemaining > 0)
+                  const SizedBox(height: 4),
+
+                  // Bottom Row: Date and Amount
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Date Section
                       Row(
                         children: [
-                          Text(
-                            '${localizations.pending}: ',
-                            style: context.titleMedium?.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.orange[700],
-                            ),
+                          Icon(
+                            Icons.calendar_today,
+                            size: 13,
+                            color: isDark ? Colors.grey[400] : Colors.grey[600],
                           ),
+                          const SizedBox(width: 4),
                           Text(
-                            '${bill.amountRemaining}',
-                            style: context.titleMedium?.copyWith(
+                            bill.date,
+                            style: context.subtitleMedium?.copyWith(
                               fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.orange[700],
                             ),
                           ),
                         ],
                       ),
 
-                    // Amount Section
-                    Text(
-                      '${localizations.currencySymbol}${bill.totalAmount}',
-                      style: context.titleLarge?.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: getStatusColor(bill.status),
-                      ),
-                    ),
-                  ],
-                ),
-
-                if (bill.previousDueAmount > 0) ...[
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: getOtherDueAmountColor(
-                        bill.previousDueAmount,
-                        bill.previousPaidAmount,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      // Pending Amount Section (Center)
+                      if (bill.amountRemaining > 0)
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Text(
-                                  '${localizations.otherDue}: ',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
-                                  ),
-                                ),
-                                Text(
-                                  '${localizations.currencySymbol}${bill.previousDueAmount}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.blue[700],
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              '${localizations.pending}: ',
+                              style: context.titleMedium?.copyWith(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange[700],
+                              ),
                             ),
-
-                            Row(
-                              children: [
-                                Text(
-                                  '${localizations.paidLabel}: ',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: isDark
-                                        ? Colors.grey[400]
-                                        : Colors.grey[600],
-                                  ),
-                                ),
-                                Text(
-                                  '${localizations.currencySymbol}${bill.previousPaidAmount}',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.green[700],
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              '${bill.amountRemaining}',
+                              style: context.titleMedium?.copyWith(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.orange[700],
+                              ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
+
+                      // Amount Section
+                      Text(
+                        '${localizations.currencySymbol}${bill.totalAmount}',
+                        style: context.titleLarge?.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: getStatusColor(bill.status),
+                        ),
+                      ),
+                    ],
                   ),
+
+                  if (bill.previousDueAmount > 0) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: getOtherDueAmountColor(
+                          bill.previousDueAmount,
+                          bill.previousPaidAmount,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                '${localizations.otherDue}: ',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                '${localizations.currencySymbol}${bill.previousDueAmount}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue[700],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          Row(
+                            children: [
+                              Text(
+                                '${localizations.paidLabel}: ',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                '${localizations.currencySymbol}${bill.previousPaidAmount}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green[700],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
-        ),
+          if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16),
+        ],
       ),
     );
   }

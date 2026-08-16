@@ -1,11 +1,11 @@
 import 'dart:async';
-import 'package:material_ui/material_ui.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
 import 'package:flashbill/services/bills_data_service.dart';
-import 'package:flashbill/ui helpers/app_text_styles.dart';
-import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/theme/adaptive.dart';
+import 'package:material_ui/material_ui.dart';
 
 class ReviewBillingDetails extends StatefulWidget {
   final String billDate;
@@ -77,610 +77,257 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     }
   }
 
+  bool get _isPaid => (widget.amountRemaining ?? 0) == 0;
+
+  String get _paymentStatusLabel =>
+      _isPaid ? localizations!.paid : localizations!.unpaid;
+
+  String get _paymentMethodLabel => widget.paymentMethod == 'cash'
+      ? localizations!.cash
+      : localizations!.online;
+
+  IconData get _paymentMethodIcon =>
+      widget.paymentMethod == 'cash' ? Icons.money : Icons.credit_card;
+
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final cardColor = Theme.of(context).cardTheme.color;
+    final scheme = Theme.of(context).colorScheme;
+    final loc = localizations!;
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        title: Text(localizations!.reviewBill),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Customer Info Card
-            _buildCustomerInfoCard(context, cardColor),
-            const SizedBox(height: 12),
-
-            // Products Card
-            _buildProductsCard(context, cardColor),
-            const SizedBox(height: 12),
-
-            // Previous Due Card (only show if there's a previous due amount)
-            if (widget.previousDueAmount > 0) ...[
-              _buildPreviousDueCard(context, cardColor),
-              const SizedBox(height: 12),
-            ],
-
-            // Financial Summary Card
-            _buildSummaryCard(context, cardColor),
-
-            const SizedBox(height: 12),
-
-            // Bottom Buttons
-            _buildBottomButtons(context, isDarkMode),
-            const SizedBox(height: 12),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCustomerInfoCard(BuildContext context, Color? cardColor) {
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Bill Date and Payment Method in one row
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: _buildDetailRow(
-                    context,
-                    localizations!.billDate,
-                    widget.billDate,
-                    Icons.calendar_month,
-                  ),
+      appBar: AppBar(title: Text(loc.reviewBill)),
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                Row(
+                  children: [
+                    _SummaryTile(
+                      icon: Icons.account_balance_wallet_outlined,
+                      label: loc.total,
+                      value: '₹${widget.totalAmount}',
+                      valueColor: scheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    _SummaryTile(
+                      icon: Icons.inventory_2_outlined,
+                      label: loc.products,
+                      value: '${widget.products.length}',
+                    ),
+                    const SizedBox(width: 8),
+                    _SummaryTile(
+                      icon: Icons.verified_outlined,
+                      label: loc.paymentStatus,
+                      value: _paymentStatusLabel,
+                      valueColor: _isPaid ? scheme.primary : scheme.error,
+                    ),
+                  ],
                 ),
-                // Only show payment method if amount paid is greater than 0
+                const SizedBox(height: 20),
+                _sectionLabel(context, loc.customer),
+              ]),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Adaptive.fullWidthGroup(
+              context: context,
+              children: [
+                _infoTile(
+                  icon: Icons.calendar_today_outlined,
+                  label: loc.billDate,
+                  value: widget.billDate,
+                ),
+                _infoTile(
+                  icon: Icons.person_outline,
+                  label: loc.customerName,
+                  value: widget.customerName,
+                ),
+                _infoTile(
+                  icon: Icons.phone_outlined,
+                  label: loc.customerMobileNumber,
+                  value: widget.customerMobile,
+                ),
+                if (widget.customerVehicle != null &&
+                    widget.customerVehicle!.isNotEmpty)
+                  _infoTile(
+                    icon: Icons.directions_car_outlined,
+                    label: loc.vehicleNumber,
+                    value: widget.customerVehicle!,
+                  ),
                 if ((widget.amountPaid ?? 0) > 0)
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: widget.paymentMethod == 'cash'
-                            ? Colors.blue.withValues(alpha: 0.1)
-                            : Colors.green.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: widget.paymentMethod == 'cash'
-                              ? Colors.blue
-                              : Colors.green,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            localizations!.paymentMethod,
-                            style: context.subtitleMedium?.copyWith(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                widget.paymentMethod == 'cash'
-                                    ? Icons.money
-                                    : Icons.credit_card,
-                                color: widget.paymentMethod == 'cash'
-                                    ? Colors.blue
-                                    : Colors.green,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                widget.paymentMethod == 'cash'
-                                    ? localizations!.cash
-                                    : localizations!.online,
-                                style: TextStyle(
-                                  color: widget.paymentMethod == 'cash'
-                                      ? Colors.blue
-                                      : Colors.green,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                  _infoTile(
+                    icon: _paymentMethodIcon,
+                    label: loc.paymentMethod,
+                    value: _paymentMethodLabel,
                   ),
               ],
             ),
-            Divider(
-              color: context.secondaryTextColor?.withValues(alpha: 0.3),
-              height: 20,
-            ),
-
-            // Customer Name
-            Text(
-              localizations!.customerName,
-              style: context.subtitleMedium?.copyWith(fontSize: 14),
-            ),
-            Text(
-              widget.customerName,
-              style: context.headingMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Customer Mobile Number
-            Text(
-              localizations!.customerMobileNumber,
-              style: context.subtitleMedium?.copyWith(fontSize: 14),
-            ),
-            Text(
-              widget.customerMobile,
-              style: context.headingMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-              ),
-            ),
-            if (widget.customerVehicle != null &&
-                widget.customerVehicle!.isNotEmpty)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 12),
-                  Text(
-                    localizations!.vehicleNumber,
-                    style: context.subtitleMedium?.copyWith(fontSize: 14),
-                  ),
-                  Text(
-                    widget.customerVehicle!,
-                    style: context.headingMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
-                    ),
-                  ),
-                ],
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: Colors.blue, size: 20),
-            const SizedBox(width: 8),
-            Text(title, style: context.subtitleMedium?.copyWith(fontSize: 12)),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          subtitle,
-          style: context.bodyLargeText?.copyWith(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProductsCard(BuildContext context, Color? cardColor) {
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              localizations!.products,
-              style: context.headingMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+            sliver: SliverToBoxAdapter(
+              child: _sectionLabel(context, loc.products),
             ),
-            const SizedBox(height: 12),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: widget.products.length,
-              separatorBuilder: (context, index) => Divider(
-                color: context.secondaryTextColor?.withValues(alpha: 0.3),
-              ),
-              itemBuilder: (context, index) {
-                final product = widget.products[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product.productName,
-                                  style: context.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                Text(
-                                  '${localizations!.supplier}: ${product.supplierName}',
-                                  style: context.subtitleMedium?.copyWith(
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${localizations!.qty}: ${product.quantity.toStringAsFixed(0)} ${product.unit}',
-                            style: context.subtitleMedium?.copyWith(
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '₹${product.price} ${localizations!.each}',
-                            style: context.bodyLargeText?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          Text(
-                            '₹${product.total.toStringAsFixed(2)}',
-                            style: context.bodyLargeText?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryCard(BuildContext context, Color? cardColor) {
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              localizations!.summary,
-              style: context.headingMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          ),
+          SliverToBoxAdapter(
+            child: Adaptive.fullWidthGroup(
+              context: context,
               children: [
-                Text(
-                  localizations!.totalAmount,
-                  style: context.subtitleMedium?.copyWith(fontSize: 14),
-                ),
-                Text(
-                  '₹${widget.totalAmount}',
-                  style: context.bodyLargeText?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
-              ],
-            ),
-            if (widget.deliveryCharges > 0) ...[
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Delivery Charges',
-                    style: context.subtitleMedium?.copyWith(fontSize: 14),
-                  ),
-                  Text(
-                    '₹${widget.deliveryCharges}',
-                    style: context.bodyLargeText?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
+                for (final product in widget.products)
+                  ListTile(
+                    dense: true,
+                    visualDensity: VisualDensity.compact,
+                    contentPadding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+                    minVerticalPadding: 4,
+                    leading: _squareIcon(Icons.inventory_2_outlined, scheme),
+                    title: Text(
+                      product.productName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: scheme.onSurface,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${loc.supplier}: ${product.supplierName}\n'
+                      '${loc.qty}: ${product.quantity.toStringAsFixed(0)} ${product.unit}'
+                      '  ·  ₹${product.price} ${loc.each}',
+                    ),
+                    isThreeLine: true,
+                    trailing: Text(
+                      '₹${product.total.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: scheme.primary,
+                      ),
                     ),
                   ),
+              ],
+            ),
+          ),
+          if (widget.previousDueAmount > 0) ...[
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              sliver: SliverToBoxAdapter(
+                child: _sectionLabel(context, loc.previousDue),
+              ),
+            ),
+            SliverToBoxAdapter(
+              child: Adaptive.fullWidthGroup(
+                context: context,
+                children: [
+                  _infoTile(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: loc.amount,
+                    value: '₹${widget.previousDueAmount.toStringAsFixed(2)}',
+                    valueColor: scheme.error,
+                  ),
+                  if (widget.previousPaidAmount > 0)
+                    _infoTile(
+                      icon: Icons.payments_outlined,
+                      label: loc.previousPaidAmount,
+                      value:
+                          '₹${widget.previousPaidAmount.toStringAsFixed(2)}',
+                      valueColor: scheme.primary,
+                    ),
+                  if (widget.previousDueDescription.isNotEmpty)
+                    _infoTile(
+                      icon: Icons.notes_outlined,
+                      label: loc.description,
+                      value: widget.previousDueDescription,
+                    ),
                 ],
               ),
-            ],
-            const SizedBox(height: 12),
-            Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      localizations!.amountPaid,
-                      style: context.subtitleMedium?.copyWith(fontSize: 14),
-                    ),
-                    Text(
-                      '₹${widget.amountPaid ?? 0}',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Divider(
-                  color: context.secondaryTextColor?.withValues(alpha: 0.3),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      localizations!.amountDue,
-                      style: context.subtitleMedium?.copyWith(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      '₹${widget.amountRemaining ?? 0}',
-                      style: TextStyle(
-                        color: Colors.orange,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
             ),
-            const SizedBox(height: 12),
-            Divider(color: context.secondaryTextColor?.withValues(alpha: 0.3)),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  localizations!.paymentStatus,
-                  style: context.subtitleMedium?.copyWith(fontSize: 14),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: ((widget.amountRemaining ?? 0) == 0)
-                        ? Colors.green.withValues(alpha: 0.2)
-                        : Colors.orange.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    ((widget.amountRemaining ?? 0) == 0)
-                        ? localizations!.paid
-                        : localizations!.unpaid,
-                    style: TextStyle(
-                      color: ((widget.amountRemaining ?? 0) == 0)
-                          ? Colors.green
-                          : Colors.orange,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
+          ],
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+            sliver: SliverToBoxAdapter(
+              child: _sectionLabel(context, loc.summary),
             ),
-            if ((widget.amountRemaining ?? 0) > 0) ...[
-              const SizedBox(height: 12),
-              Divider(
-                color: context.secondaryTextColor?.withValues(alpha: 0.3),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    localizations!.nextPaymentDate,
-                    style: context.subtitleMedium?.copyWith(fontSize: 14),
+          ),
+          SliverToBoxAdapter(
+            child: Adaptive.fullWidthGroup(
+              context: context,
+              children: [
+                _infoTile(
+                  icon: Icons.shopping_bag_outlined,
+                  label: loc.totalAmount,
+                  value: '₹${widget.totalAmount}',
+                ),
+                if (widget.deliveryCharges > 0)
+                  _infoTile(
+                    icon: Icons.local_shipping_outlined,
+                    label: loc.deliveryCharges,
+                    value: '₹${widget.deliveryCharges}',
                   ),
-                  Text(
-                    widget.nextPaymentDate.isNotEmpty
+                _infoTile(
+                  icon: Icons.payments_outlined,
+                  label: loc.amountPaid,
+                  value: '₹${widget.amountPaid ?? 0}',
+                  valueColor: scheme.primary,
+                ),
+                _infoTile(
+                  icon: Icons.account_balance_wallet_outlined,
+                  label: loc.amountDue,
+                  value: '₹${widget.amountRemaining ?? 0}',
+                  valueColor: (widget.amountRemaining ?? 0) > 0
+                      ? scheme.error
+                      : null,
+                ),
+                _infoTile(
+                  icon: Icons.verified_outlined,
+                  label: loc.paymentStatus,
+                  value: _paymentStatusLabel,
+                  valueColor: _isPaid ? scheme.primary : scheme.error,
+                ),
+                if ((widget.amountRemaining ?? 0) > 0)
+                  _infoTile(
+                    icon: Icons.event_outlined,
+                    label: loc.nextPaymentDate,
+                    value: widget.nextPaymentDate.isNotEmpty
                         ? widget.nextPaymentDate
-                        : localizations!.notSet,
-                    style: context.bodyLargeText?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                        : loc.notSet,
                   ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPreviousDueCard(BuildContext context, Color? cardColor) {
-    return Card(
-      color: cardColor,
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.account_balance_wallet,
-                  color: Colors.orange[700],
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  localizations!.previousDueAmount,
-                  style: context.headingMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange[700],
-                  ),
-                ),
               ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  localizations!.amount,
-                  style: context.subtitleMedium?.copyWith(fontSize: 14),
-                ),
-                Text(
-                  '₹${widget.previousDueAmount.toStringAsFixed(2)}',
-                  style: context.bodyLargeText?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                    color: Colors.orange[700],
-                  ),
-                ),
-              ],
-            ),
-            if (widget.previousPaidAmount > 0) ...[
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    localizations!.previousPaidAmount,
-                    style: context.subtitleMedium?.copyWith(fontSize: 14),
-                  ),
-                  Text(
-                    '₹${widget.previousPaidAmount.toStringAsFixed(2)}',
-                    style: context.bodyLargeText?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                      color: Colors.green[700],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-            if (widget.previousDueDescription.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                localizations!.description,
-                style: context.subtitleMedium?.copyWith(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                ':-- ${widget.previousDueDescription}',
-                style: context.bodyMediumText?.copyWith(
-                  fontSize: 14,
-                  color: Colors.grey[700],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomButtons(BuildContext context, bool isDarkMode) {
-    return Row(
-      children: [
-        Expanded(
-          child: SizedBox(
-            height: 45,
-            child: TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.grey,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(
-                localizations!.editBill,
-                style: const TextStyle(fontSize: 16, color: Colors.white),
-              ),
             ),
           ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: SizedBox(
-            height: 45,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
+          Adaptive.sliverBottomAction(
+            child: FilledButton(
+              style: Adaptive.compactFilled,
               onPressed: () => _showConfirmDialog(context),
               child: Text(
-                widget.isEditMode
-                    ? localizations!.updateBill
-                    : localizations!.confirmBill,
-                style: const TextStyle(fontSize: 16),
+                widget.isEditMode ? loc.updateBill : loc.confirmBill,
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    Color? valueColor,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.fromLTRB(16, 2, 16, 2),
+      minVerticalPadding: 4,
+      leading: _squareIcon(icon, scheme),
+      title: Text(
+        value,
+        style: TextStyle(
+          fontWeight: FontWeight.w700,
+          color: valueColor ?? scheme.onSurface,
         ),
-      ],
+      ),
+      subtitle: Text(label),
     );
   }
 
@@ -694,7 +341,6 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             widget.isEditMode
                 ? localizations!.updateBill
                 : localizations!.confirmBill,
-            style: context.bodyLargeText?.copyWith(fontWeight: FontWeight.bold),
           ),
           content: Text(
             widget.isEditMode
@@ -706,15 +352,12 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
               onPressed: () => Navigator.pop(context),
               child: Text(localizations!.no),
             ),
-            ElevatedButton(
+            FilledButton(
+              style: Adaptive.compactFilled,
               onPressed: () async {
                 Navigator.pop(context);
                 await _showLoadingAndCreateBill();
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-              ),
               child: Text(localizations!.yes),
             ),
           ],
@@ -724,6 +367,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
   }
 
   Future<void> _showLoadingAndCreateBill() async {
+    final scheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -734,24 +378,23 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             backgroundColor: Colors.transparent,
             elevation: 0,
             child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      widget.isEditMode
-                          ? localizations!.updatingBill
-                          : localizations!.creatingBill,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ],
+              child: Material(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Adaptive.progress(color: scheme.primary),
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.isEditMode
+                            ? localizations!.updatingBill
+                            : localizations!.creatingBill,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -777,10 +420,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
           // Pop all the way back to the bills list (pop review page, edit page, and detail page)
           Navigator.of(context).popUntil((route) => route.isFirst);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(localizations!.billUpdatedSuccessfully),
-              backgroundColor: Colors.green,
-            ),
+            SnackBar(content: Text(localizations!.billUpdatedSuccessfully)),
           );
         } else {
           // For new bills, navigate to success page
@@ -820,7 +460,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   ? '${localizations!.errorUpdatingBill}: $e'
                   : '${localizations!.errorCreatingBill}: $e',
             ),
-            backgroundColor: Colors.red,
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
       }
@@ -1047,4 +687,89 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     _billsDataServiceSubscription?.cancel();
     super.dispose();
   }
+}
+
+class _SummaryTile extends StatelessWidget {
+  const _SummaryTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _squareIcon(icon, scheme),
+              const SizedBox(height: 8),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.3,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: valueColor ?? scheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Widget _sectionLabel(BuildContext context, String title) {
+  final scheme = Theme.of(context).colorScheme;
+  return Padding(
+    padding: const EdgeInsets.only(left: 4, bottom: 8),
+    child: Text(
+      title.toUpperCase(),
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.6,
+        color: scheme.onSurfaceVariant,
+      ),
+    ),
+  );
+}
+
+Widget _squareIcon(IconData icon, ColorScheme scheme) {
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child: ColoredBox(
+      color: scheme.primaryContainer,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 20, color: scheme.onPrimaryContainer),
+      ),
+    ),
+  );
 }
