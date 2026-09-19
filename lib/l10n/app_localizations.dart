@@ -86,11 +86,47 @@ class AppLocalizations {
   String get settings => translate('settings');
   String get logout => translate('logout');
   String get login => translate('login');
-  String get email => translate('email');
-  String get password => translate('password');
+  String get email => translate('email', fallback: 'Email');
+  String get password => translate('password', fallback: 'Password');
   String get forgotPassword => translate('forgot_password');
-  String get signUp => translate('sign_up');
-  String get createAccount => translate('create_account');
+  String get signUp => translate('sign_up', fallback: 'Sign Up');
+  String get createAccount =>
+      translate('create_account', fallback: 'Create Account');
+  String get confirmPassword =>
+      translate('confirm_password', fallback: 'Confirm Password');
+  String get alreadyHaveAccount =>
+      translate('already_have_account', fallback: 'Already have an account?');
+  String get dontHaveAccount =>
+      translate('dont_have_account', fallback: "Don't have an account?");
+  String get licenseNumber => translate('license_number');
+  String get enterLicenseNumber => translate('enter_license_number');
+  String get pleaseEnterLicenseNumber =>
+      translate('please_enter_license_number');
+  String get pleaseAddSignature =>
+      translate('please_add_signature', fallback: 'Please add owner signature');
+  String get pleaseEnterShopEmail =>
+      translate('please_enter_shop_email', fallback: 'Please enter shop email');
+  String get ownerPhone => translate('owner_phone', fallback: 'Owner Phone');
+  String get enterOwnerPhone =>
+      translate('enter_owner_phone', fallback: 'Enter owner phone');
+  String get pleaseEnterOwnerPhone =>
+      translate('please_enter_owner_phone', fallback: 'Please enter owner phone');
+  String get emailAlreadyInUse => translate(
+    'email_already_in_use',
+    fallback: 'This email is already registered',
+  );
+  String get weakPassword =>
+      translate('weak_password', fallback: 'Password is too weak');
+  String get registrationFailed => translate(
+    'registration_failed',
+    fallback: 'Registration failed. Please try again.',
+  );
+  String get fillAllRequiredFields => translate(
+    'fill_all_required_fields',
+    fallback: 'Fill all required fields to get started',
+  );
+  String get accountDetails =>
+      translate('account_details', fallback: 'Account Details');
   String get totalSales => translate('total_sales');
   String get totalPurchases => translate('total_purchases');
   String get totalProfit => translate('total_profit');
@@ -107,7 +143,7 @@ class AppLocalizations {
   String get buyingPrice => translate('buying_price');
   String get sellingPrice => translate('selling_price');
   String get save => translate('save');
-  String get cancel => translate('cancel');
+  String get cancel => translate('cancel', fallback: 'Cancel');
   String get delete => translate('delete');
   String get edit => translate('edit');
   String get search => translate('search');
@@ -129,13 +165,14 @@ class AppLocalizations {
   String get yes => translate('yes');
   String get no => translate('no');
   String get ok => translate('ok');
-  String get error => translate('error');
+  String get error => translate('error', fallback: 'Error');
   String get success => translate('success');
   String get warning => translate('warning');
   String get loading => translate('loading');
   String get noDataFound => translate('no_data_found');
   String get language => translate('language');
-  String get selectLanguage => translate('select_language');
+  String get selectLanguage =>
+      translate('select_language', fallback: 'Select Language');
   String get darkMode => translate('dark_mode');
   String get lightMode => translate('light_mode');
   String get theme => translate('theme');
@@ -166,20 +203,26 @@ class AppLocalizations {
   String get dark => translate('dark');
   String get light => translate('light');
   String get apply => translate('apply');
-  String get clear => translate('clear');
+  String get clear => translate('clear', fallback: 'Clear');
   String get na => translate('na');
   String get welcomeBack => translate('welcome_back');
   String get signInToContinue => translate('sign_in_to_continue');
-  String get enterEmailOrUsername => translate('enter_email_or_username');
-  String get enterPassword => translate('enter_password');
-  String get signIn => translate('sign_in');
-  String get pleaseEnterEmailOrUsername =>
-      translate('please_enter_email_or_username');
-  String get pleaseEnterPassword => translate('please_enter_password');
+  String get enterEmailOrUsername =>
+      translate('enter_email_or_username', fallback: 'Enter your email');
+  String get enterPassword =>
+      translate('enter_password', fallback: 'Enter your password');
+  String get signIn => translate('sign_in', fallback: 'Sign In');
+  String get pleaseEnterEmailOrUsername => translate(
+    'please_enter_email_or_username',
+    fallback: 'Please enter email',
+  );
+  String get pleaseEnterPassword =>
+      translate('please_enter_password', fallback: 'Please enter password');
   String get loginFailed => translate('login_failed');
   String get userNotFound => translate('user_not_found');
   String get incorrectPassword => translate('incorrect_password');
-  String get invalidEmail => translate('invalid_email');
+  String get invalidEmail =>
+      translate('invalid_email', fallback: 'The email address is invalid.');
   String get salesProfitAnalysis => translate('sales_profit_analysis');
   String get allData => translate('all_data');
   String get all => translate('all');
@@ -287,7 +330,10 @@ class AppLocalizations {
   String get enterCurrentPassword => translate('enter_current_password');
   String get newPassword => translate('new_password');
   String get enterNewPassword => translate('enter_new_password');
-  String get passwordMinLength => translate('password_min_length');
+  String get passwordMinLength => translate(
+    'password_min_length',
+    fallback: 'Password must be at least 6 characters',
+  );
   String get confirmNewPassword => translate('confirm_new_password');
   String get reEnterNewPassword => translate('re_enter_new_password');
   String get updatingPassword => translate('updating_password');
@@ -300,8 +346,12 @@ class AppLocalizations {
   String get reauthenticateRequired => translate('reauthenticate_required');
   String get currentPasswordRequired => translate('current_password_required');
   String get newPasswordRequired => translate('new_password_required');
-  String get confirmPasswordRequired => translate('confirm_password_required');
-  String get passwordsDoNotMatch => translate('passwords_do_not_match');
+  String get confirmPasswordRequired => translate(
+    'confirm_password_required',
+    fallback: 'Please confirm your password',
+  );
+  String get passwordsDoNotMatch =>
+      translate('passwords_do_not_match', fallback: 'Passwords do not match');
   String get failedToChangePassword => translate('failed_to_change_password');
 
   // Customers Page
@@ -321,7 +371,8 @@ class AppLocalizations {
   String get enterCustomerName => translate('enter_customer_name');
   String get nameIsRequired => translate('name_is_required');
   String get mobileNumberRequired => translate('mobile_number_required');
-  String get enterMobileNumber => translate('enter_mobile_number');
+  String get enterMobileNumber =>
+      translate('enter_mobile_number', fallback: 'Enter mobile number');
   String get mobileNumberIsRequired => translate('mobile_number_is_required');
   String get mobileNumberMinLength => translate('mobile_number_min_length');
   String get vehicleNumber => translate('vehicle_number');
@@ -404,36 +455,57 @@ class AppLocalizations {
 
   // Edit Profile Page
   String get editProfile => translate('edit_profile');
-  String get shopName => translate('shop_name');
-  String get ownerName => translate('owner_name');
-  String get shopAddress => translate('shop_address');
-  String get shopPhone => translate('shop_phone');
-  String get shopEmail => translate('shop_email');
-  String get ownerSignature => translate('owner_signature');
+  String get shopName => translate('shop_name', fallback: 'Shop Name');
+  String get ownerName => translate('owner_name', fallback: 'Owner Name');
+  String get shopAddress => translate('shop_address', fallback: 'Shop Address');
+  String get shopPhone => translate('shop_phone', fallback: 'Shop Phone');
+  String get shopEmail => translate('shop_email', fallback: 'Shop Email');
+  String get ownerSignature =>
+      translate('owner_signature', fallback: 'Owner Signature');
   String get saveChanges => translate('save_changes');
-  String get addUpdateSignature => translate('add_update_signature');
+  String get addUpdateSignature =>
+      translate('add_update_signature', fallback: 'Add Signature');
   String get chooseSignatureMethod => translate('choose_signature_method');
-  String get drawSignature => translate('draw_signature');
-  String get upload => translate('upload');
-  String get camera => translate('camera');
-  String get drawYourSignature => translate('draw_your_signature');
+  String get drawSignature =>
+      translate('draw_signature', fallback: 'Draw Signature');
+  String get upload => translate('upload', fallback: 'Upload');
+  String get camera => translate('camera', fallback: 'Camera');
+  String get drawYourSignature =>
+      translate('draw_your_signature', fallback: 'Draw Your Signature');
   String get noSignatureAdded => translate('no_signature_added');
-  String get updateSignature => translate('update_signature');
-  String get addSignature => translate('add_signature');
+  String get updateSignature =>
+      translate('update_signature', fallback: 'Update Signature');
+  String get addSignature => translate('add_signature', fallback: 'Add Signature');
   String get notSet => translate('not_set');
-  String get enterShopName => translate('enter_shop_name');
-  String get enterOwnerName => translate('enter_owner_name');
-  String get enterCompleteShopAddress =>
-      translate('enter_complete_shop_address');
+  String get enterShopName =>
+      translate('enter_shop_name', fallback: 'Enter your shop name');
+  String get enterOwnerName =>
+      translate('enter_owner_name', fallback: 'Enter owner name');
+  String get enterCompleteShopAddress => translate(
+    'enter_complete_shop_address',
+    fallback: 'Enter complete shop address',
+  );
   String get enterPhoneNumber => translate('enter_phone_number');
-  String get enterEmailAddress => translate('enter_email_address');
-  String get pleaseEnterShopName => translate('please_enter_shop_name');
-  String get pleaseEnterOwnerName => translate('please_enter_owner_name');
-  String get pleaseEnterShopAddress => translate('please_enter_shop_address');
-  String get pleaseEnterPhoneNumber => translate('please_enter_phone_number');
-  String get pleaseEnterValidPhoneNumber =>
-      translate('please_enter_valid_phone_number');
-  String get pleaseEnterValidEmail => translate('please_enter_valid_email');
+  String get enterEmailAddress =>
+      translate('enter_email_address', fallback: 'Enter email address');
+  String get pleaseEnterShopName =>
+      translate('please_enter_shop_name', fallback: 'Please enter shop name');
+  String get pleaseEnterOwnerName =>
+      translate('please_enter_owner_name', fallback: 'Please enter owner name');
+  String get pleaseEnterShopAddress => translate(
+    'please_enter_shop_address',
+    fallback: 'Please enter shop address',
+  );
+  String get pleaseEnterPhoneNumber => translate(
+    'please_enter_phone_number',
+    fallback: 'Please enter phone number',
+  );
+  String get pleaseEnterValidPhoneNumber => translate(
+    'please_enter_valid_phone_number',
+    fallback: 'Please enter valid phone number',
+  );
+  String get pleaseEnterValidEmail =>
+      translate('please_enter_valid_email', fallback: 'Please enter valid email');
   String get profileSavedSuccessfully =>
       translate('profile_saved_successfully');
   String get errorSavingProfile => translate('error_saving_profile');
@@ -443,8 +515,10 @@ class AppLocalizations {
   String get signatureCapturedSuccessfully =>
       translate('signature_captured_successfully');
   String get signatureSaved => translate('signature_saved');
-  String get pleaseDrawSignature => translate('please_draw_signature');
-  String get saveSignature => translate('save_signature');
+  String get pleaseDrawSignature =>
+      translate('please_draw_signature', fallback: 'Please draw your signature');
+  String get saveSignature =>
+      translate('save_signature', fallback: 'Save Signature');
   String get subscriptionExpiry => translate('subscription_expiry');
   String get subscriptionExpired => translate(
         'subscription_expired',
@@ -491,7 +565,8 @@ class AppLocalizations {
   String get takePhoto => translate('take_photo');
   String get captureInvoiceWithCamera =>
       translate('capture_invoice_with_camera');
-  String get chooseFromGallery => translate('choose_from_gallery');
+  String get chooseFromGallery =>
+      translate('choose_from_gallery', fallback: 'Choose from Gallery');
   String get selectInvoiceFromPhotos => translate('select_invoice_from_photos');
   String get noPurchasedEntriesYet => translate('no_purchased_entries_yet');
   String get searchBySupplierOrAmount =>
@@ -873,8 +948,12 @@ class AppLocalizations {
   String get food => translate('food');
   String get hospital => translate('hospital');
   String get other => translate('other');
-  String get signWithFinger => translate('sign_with_finger');
-  String get takePhotoOfSignature => translate('take_photo_of_signature');
+  String get signWithFinger =>
+      translate('sign_with_finger', fallback: 'Sign with your finger');
+  String get takePhotoOfSignature => translate(
+    'take_photo_of_signature',
+    fallback: 'Take a photo of your signature',
+  );
   String get signatureSavedSuccessfully =>
       translate('signature_saved_successfully');
   String get optionalMobileNumber => translate('optional_mobile_number');
@@ -901,9 +980,12 @@ class AppLocalizations {
   String get activate => translate('activate');
   String get close => translate('close', fallback: 'Close');
   String get features => translate('features');
-  String get basicInformation => translate('basic_information');
-  String get contactInformation => translate('contact_information');
-  String get additionalInformation => translate('additional_information');
+  String get basicInformation =>
+      translate('basic_information', fallback: 'Basic Information');
+  String get contactInformation =>
+      translate('contact_information', fallback: 'Contact Information');
+  String get additionalInformation =>
+      translate('additional_information', fallback: 'Additional Information');
   String get thisDevice => translate('this_device');
   String get otherDevices => translate('other_devices');
   String get gallery => translate('gallery');

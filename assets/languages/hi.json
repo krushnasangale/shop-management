@@ -844,5 +844,21 @@
     "subscription_expired": "सदस्यता समाप्त",
     "subscription_expired_message": "आपकी सदस्यता समाप्त हो गई है। आप मौजूदा डेटा देख सकते हैं, लेकिन जोड़ना, संपादित करना या हटाना अक्षम है। जारी रखने के लिए कृपया अपनी सदस्यता नवीनीकृत करें।",
     "subscription_expired_banner": "सदस्यता समाप्त — केवल देखने के लिए। विवरण के लिए टैप करें।",
-    "subscription_expiring_banner": "आपकी सदस्यता {date} को समाप्त होगी। कृपया समाप्त होने से पहले इसे नवीनीकृत करें।"
+    "subscription_expiring_banner": "आपकी सदस्यता {date} को समाप्त होगी। कृपया समाप्त होने से पहले इसे नवीनीकृत करें।",
+    "confirm_password": "पासवर्ड की पुष्टि करें",
+    "already_have_account": "पहले से खाता है?",
+    "dont_have_account": "खाता नहीं है?",
+    "license_number": "लाइसेंस नंबर",
+    "enter_license_number": "लाइसेंस नंबर दर्ज करें",
+    "please_enter_license_number": "कृपया लाइसेंस नंबर दर्ज करें",
+    "please_add_signature": "कृपया मालिक के हस्ताक्षर जोड़ें",
+    "please_enter_shop_email": "कृपया दुकान का ईमेल दर्ज करें",
+    "owner_phone": "मालिक का फ़ोन",
+    "enter_owner_phone": "मालिक का फ़ोन दर्ज करें",
+    "please_enter_owner_phone": "कृपया मालिक का फ़ोन दर्ज करें",
+    "email_already_in_use": "यह ईमेल पहले से पंजीकृत है",
+    "weak_password": "पासवर्ड बहुत कमज़ोर है",
+    "registration_failed": "पंजीकरण विफल रहा। कृपया पुनः प्रयास करें।",
+    "fill_all_required_fields": "शुरू करने के लिए सभी आवश्यक फ़ील्ड भरें",
+    "account_details": "खाता विवरण"
 }

@@ -9,6 +9,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flashbill/services/notification_service.dart';
 import 'package:flashbill/utils/device_utils.dart';
+import 'package:flashbill/pages/login/register.dart';
 import 'package:flashbill/theme/adaptive.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -347,6 +348,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 28),
               _buildLoginButton(loc),
+              const SizedBox(height: 16),
+              _buildSignUpRow(loc),
             ],
           ),
         ),
@@ -410,6 +413,26 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     return FilledButton(onPressed: _loading ? null : _login, child: child);
+  }
+
+  Widget _buildSignUpRow(AppLocalizations? loc) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(loc?.dontHaveAccount ?? "Don't have an account?"),
+        TextButton(
+          onPressed: _loading
+              ? null
+              : () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const RegisterPage()),
+                  );
+                },
+          child: Text(loc?.signUp ?? 'Sign Up'),
+        ),
+      ],
+    );
   }
 }
 

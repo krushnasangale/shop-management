@@ -844,5 +844,21 @@
     "subscription_expired": "Subscription Expired",
     "subscription_expired_message": "Your subscription has expired. You can view existing data, but adding, editing, or deleting is disabled. Please renew your subscription to continue.",
     "subscription_expired_banner": "Subscription expired — view only. Tap for details.",
-    "subscription_expiring_banner": "Your subscription will expire on {date}. Please renew it before it expires."
+    "subscription_expiring_banner": "Your subscription will expire on {date}. Please renew it before it expires.",
+    "confirm_password": "Confirm Password",
+    "already_have_account": "Already have an account?",
+    "dont_have_account": "Don't have an account?",
+    "license_number": "License Number",
+    "enter_license_number": "Enter license number",
+    "please_enter_license_number": "Please enter license number",
+    "please_add_signature": "Please add owner signature",
+    "please_enter_shop_email": "Please enter shop email",
+    "owner_phone": "Owner Phone",
+    "enter_owner_phone": "Enter owner phone",
+    "please_enter_owner_phone": "Please enter owner phone",
+    "email_already_in_use": "This email is already registered",
+    "weak_password": "Password is too weak",
+    "registration_failed": "Registration failed. Please try again.",
+    "fill_all_required_fields": "Fill all required fields to get started",
+    "account_details": "Account Details"
 }

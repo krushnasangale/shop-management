@@ -180,9 +180,7 @@ class MyApp extends StatelessWidget {
                   builder: (context, deviceIdSnapshot) {
                     if (deviceIdSnapshot.connectionState ==
                         ConnectionState.waiting) {
-                      return Scaffold(
-                        body: AppLoader.page(),
-                      );
+                      return Scaffold(body: AppLoader.page());
                     }
 
                     final deviceId = deviceIdSnapshot.data ?? 'unknown';
@@ -214,9 +212,7 @@ class MyApp extends StatelessWidget {
                       builder: (context, deviceSnapshot) {
                         if (deviceSnapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return Scaffold(
-                            body: AppLoader.page(),
-                          );
+                          return Scaffold(body: AppLoader.page());
                         }
 
                         if (deviceSnapshot.hasError) {
