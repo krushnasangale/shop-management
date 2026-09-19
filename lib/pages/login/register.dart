@@ -35,8 +35,11 @@ class _RegisterPageState extends State<RegisterPage> {
   final _shopPhoneController = TextEditingController();
   final _shopEmailController = TextEditingController();
 
-  bool _loading = false;
+  bool _emailLoading = false;
+  bool _googleLoading = false;
   bool _showPassword = false;
+
+  bool get _busy => _emailLoading || _googleLoading;
   bool _showConfirmPassword = false;
   bool _submitted = false;
   bool _skipAccountFields = false;
@@ -149,7 +152,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _register() async {
     if (!_validateProfile(requireAccount: !_googleLinked)) return;
 
-    setState(() => _loading = true);
+    setState(() => _emailLoading = true);
     AppLoader.show(
       message: AppLocalizations.of(context)?.createAccount ?? 'Create Account',
     );
@@ -214,12 +217,12 @@ class _RegisterPageState extends State<RegisterPage> {
       }
     } finally {
       AppLoader.hide();
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _emailLoading = false);
     }
   }
 
   Future<void> _registerWithGoogle() async {
-    setState(() => _loading = true);
+    setState(() => _googleLoading = true);
     AppLoader.show(
       message:
           AppLocalizations.of(context)?.continueWithGoogle ??
@@ -292,7 +295,7 @@ class _RegisterPageState extends State<RegisterPage> {
       );
     } finally {
       AppLoader.hide();
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _googleLoading = false);
     }
   }
 
@@ -518,7 +521,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Row(
                   children: [
                     IconButton.filledTonal(
-                      onPressed: _loading ? null : _onBack,
+                      onPressed: _busy ? null : _onBack,
                       icon: const Icon(Icons.arrow_back_rounded),
                     ),
                     const Spacer(),
@@ -601,7 +604,7 @@ class _RegisterPageState extends State<RegisterPage> {
         child: Form(
           key: _formKey,
           autovalidateMode: _submitted
-              ? AutovalidateMode.onUserInteraction
+              ? AutovalidateMode.always
               : AutovalidateMode.disabled,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -609,8 +612,8 @@ class _RegisterPageState extends State<RegisterPage> {
               if (!_googleLinked) ...[
                 ContinueWithGoogleButton(
                   label: loc?.continueWithGoogle ?? 'Continue with Google',
-                  loading: _loading,
-                  onPressed: _registerWithGoogle,
+                  loading: _googleLoading,
+                  onPressed: _busy ? null : _registerWithGoogle,
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -816,7 +819,7 @@ class _RegisterPageState extends State<RegisterPage> {
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: _loading ? null : _showSignaturePicker,
+        onTap: _busy ? null : _showSignaturePicker,
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -904,6 +907,12 @@ class _RegisterPageState extends State<RegisterPage> {
             maxLines: obscureText ? 1 : maxLines,
             prefix: Icon(icon, size: 20),
             validator: validator,
+            autovalidateMode: _submitted
+                ? AutovalidateMode.always
+                : AutovalidateMode.disabled,
+            onChanged: (_) {
+              if (_submitted) setState(() {});
+            },
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
         ],
@@ -916,6 +925,12 @@ class _RegisterPageState extends State<RegisterPage> {
       obscureText: obscureText,
       maxLines: obscureText ? 1 : maxLines,
       validator: validator,
+      autovalidateMode: _submitted
+          ? AutovalidateMode.always
+          : AutovalidateMode.disabled,
+      onChanged: (_) {
+        if (_submitted) setState(() {});
+      },
       decoration: InputDecoration(
         labelText: requiredLabel,
         hintText: hint,
@@ -926,18 +941,18 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Widget _buildSubmitButton(AppLocalizations? loc) {
-    final child = _loading
+    final child = _emailLoading
         ? SizedBox(height: 22, width: 22, child: Adaptive.progress())
         : Text(loc?.createAccount ?? 'Create Account');
 
     if (Adaptive.isCupertino) {
       return CupertinoButton.filled(
-        onPressed: _loading ? null : _register,
+        onPressed: _busy ? null : _register,
         child: child,
       );
     }
 
-    return FilledButton(onPressed: _loading ? null : _register, child: child);
+    return FilledButton(onPressed: _busy ? null : _register, child: child);
   }
 
   Widget _buildSignInRow(AppLocalizations? loc) {
@@ -947,7 +962,7 @@ class _RegisterPageState extends State<RegisterPage> {
       children: [
         Text(loc?.alreadyHaveAccount ?? 'Already have an account?'),
         TextButton(
-          onPressed: _loading ? null : () => Navigator.of(context).pop(),
+          onPressed: _busy ? null : () => Navigator.of(context).pop(),
           child: Text(loc?.signIn ?? 'Sign In'),
         ),
       ],

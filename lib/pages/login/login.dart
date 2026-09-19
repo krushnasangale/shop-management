@@ -21,8 +21,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _loading = false;
+  bool _emailLoading = false;
+  bool _googleLoading = false;
   bool _showPassword = false;
+  bool _submitted = false;
+
+  bool get _busy => _emailLoading || _googleLoading;
 
   @override
   void dispose() {
@@ -32,8 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    setState(() => _submitted = true);
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+    setState(() => _emailLoading = true);
     try {
       final email = _emailController.text.trim();
       final password = _passwordController.text;
@@ -70,12 +75,12 @@ class _LoginScreenState extends State<LoginScreen> {
         ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _emailLoading = false);
     }
   }
 
   Future<void> _loginWithGoogle() async {
-    setState(() => _loading = true);
+    setState(() => _googleLoading = true);
     AppLoader.show(message: AppLocalizations.of(context)?.signIn ?? 'Sign In');
     try {
       final credential = await AuthService.signInWithGoogle();
@@ -109,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       AppLoader.hide();
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _googleLoading = false);
     }
   }
 
@@ -222,6 +227,9 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.all(28),
         child: Form(
           key: _formKey,
+          autovalidateMode: _submitted
+              ? AutovalidateMode.always
+              : AutovalidateMode.disabled,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -270,8 +278,8 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               ContinueWithGoogleButton(
                 label: loc?.continueWithGoogle ?? 'Continue with Google',
-                loading: _loading,
-                onPressed: _loginWithGoogle,
+                loading: _googleLoading,
+                onPressed: _busy ? null : _loginWithGoogle,
               ),
               const SizedBox(height: 16),
               _buildSignUpRow(loc),
@@ -305,6 +313,12 @@ class _LoginScreenState extends State<LoginScreen> {
             obscureText: obscureText,
             prefix: Icon(icon, size: 20),
             validator: validator,
+            autovalidateMode: _submitted
+                ? AutovalidateMode.always
+                : AutovalidateMode.disabled,
+            onChanged: (_) {
+              if (_submitted) setState(() {});
+            },
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
         ],
@@ -316,6 +330,12 @@ class _LoginScreenState extends State<LoginScreen> {
       keyboardType: keyboardType,
       obscureText: obscureText,
       validator: validator,
+      autovalidateMode: _submitted
+          ? AutovalidateMode.always
+          : AutovalidateMode.disabled,
+      onChanged: (_) {
+        if (_submitted) setState(() {});
+      },
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
@@ -326,18 +346,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildLoginButton(AppLocalizations? loc) {
-    final child = _loading
+    final child = _emailLoading
         ? SizedBox(height: 22, width: 22, child: Adaptive.progress())
         : Text(loc?.signIn ?? 'Sign In');
 
     if (Adaptive.isCupertino) {
       return CupertinoButton.filled(
-        onPressed: _loading ? null : _login,
+        onPressed: _busy ? null : _login,
         child: child,
       );
     }
 
-    return FilledButton(onPressed: _loading ? null : _login, child: child);
+    return FilledButton(onPressed: _busy ? null : _login, child: child);
   }
 
   Widget _buildSignUpRow(AppLocalizations? loc) {
@@ -347,7 +367,7 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Text(loc?.dontHaveAccount ?? "Don't have an account?"),
         TextButton(
-          onPressed: _loading
+          onPressed: _busy
               ? null
               : () {
                   Navigator.of(context).push(
