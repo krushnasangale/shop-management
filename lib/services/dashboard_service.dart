@@ -9,12 +9,22 @@ class DashboardService {
 
   StreamSubscription<List<Map<String, dynamic>>>? _billsSubscription;
   StreamSubscription<QuerySnapshot>? _productsSubscription;
+  StreamController<DashboardData>? _dashboardController;
+  DashboardData? _latestData;
+  String? _userId;
+  int _recalcToken = 0;
+
+  String _salesFilterType = 'month';
+  DateTime _salesSelectedDate = DateTime.now();
+  DateTime? _salesRangeStart;
+  DateTime? _salesRangeEnd;
 
   /// Get access to bills service for checking cached data
   BillsDataService get billsService => _billsService;
 
   /// Initialize dashboard data loading
   void initialize(String userId) {
+    _userId = userId;
     _billsService.initialize(userId);
   }
 
@@ -26,98 +36,39 @@ class DashboardService {
     DateTime? rangeStartDate,
     DateTime? rangeEndDate,
   }) {
+    _salesFilterType = filterType;
+    _salesSelectedDate = selectedDate;
+    _salesRangeStart = rangeStartDate;
+    _salesRangeEnd = rangeEndDate;
+    _userId = userId;
+
     final controller = StreamController<DashboardData>();
+    _dashboardController = controller;
 
     // Cancel any existing subscription before creating a new one
     _billsSubscription?.cancel();
     _productsSubscription?.cancel();
 
-    // Immediately calculate and emit data using cached bills
-    final cachedBills = _billsService.getCachedBills();
-    if (cachedBills.isNotEmpty) {
-      _calculateAllDashboardData(
-            cachedBills,
-            userId,
-            filterType: filterType,
-            selectedDate: selectedDate,
-            rangeStartDate: rangeStartDate,
-            rangeEndDate: rangeEndDate,
-          )
-          .then((dashboardData) {
-            if (!controller.isClosed) {
-              controller.add(dashboardData);
-            }
-          })
-          .catchError((error) {
-            appLog('Error calculating initial dashboard data: $error');
-            if (!controller.isClosed) {
-              controller.addError(error);
-            }
-          });
-    }
+    // Always compute once immediately so the UI is never waiting on a filter change.
+    unawaited(refreshAll());
 
     _billsSubscription = _billsService.billsStream.listen(
-      (bills) async {
-        try {
-          final dashboardData = await _calculateAllDashboardData(
-            bills,
-            userId,
-            filterType: filterType,
-            selectedDate: selectedDate,
-            rangeStartDate: rangeStartDate,
-            rangeEndDate: rangeEndDate,
-          );
-          if (!controller.isClosed) {
-            controller.add(dashboardData);
-          }
-        } catch (e) {
-          appLog('Error calculating dashboard data: $e');
-          if (!controller.isClosed) {
-            controller.addError(e);
-          }
-        }
-      },
+      (bills) => unawaited(_onBillsUpdated(bills)),
       onError: (error) {
         if (!controller.isClosed) {
           controller.addError(error);
         }
       },
-      onDone: () {
-        if (!controller.isClosed) {
-          controller.close();
-        }
-      },
     );
 
-    // Listen to products changes
+    // Listen to products changes so availability / restock stay live.
     _productsSubscription = FirebaseFirestore.instance
         .collection('purchased-products')
         .doc(userId)
         .collection('items')
         .snapshots()
         .listen(
-          (_) async {
-            // When products change, recalculate with current bills
-            final currentBills = _billsService.getCachedBills();
-            try {
-              final dashboardData = await _calculateAllDashboardData(
-                currentBills,
-                userId,
-                filterType: filterType,
-                selectedDate: selectedDate,
-                rangeStartDate: rangeStartDate,
-                rangeEndDate: rangeEndDate,
-              );
-              if (!controller.isClosed) {
-                controller.add(dashboardData);
-              }
-            } catch (e) {
-              appLog('Error calculating dashboard data on products change: $e');
-              if (!controller.isClosed) {
-                controller.addError(e);
-              }
-            }
-          },
+          (_) => unawaited(refreshAll()),
           onError: (error) {
             if (!controller.isClosed) {
               controller.addError(error);
@@ -131,53 +82,101 @@ class DashboardService {
       _billsSubscription = null;
       _productsSubscription?.cancel();
       _productsSubscription = null;
+      if (_dashboardController == controller) {
+        _dashboardController = null;
+      }
     };
 
     return controller.stream;
   }
 
-  /// Calculate all dashboard metrics from cached bills data
-  Future<DashboardData> _calculateAllDashboardData(
-    List<Map<String, dynamic>> bills,
-    String userId, {
+  Future<void> _onBillsUpdated(List<Map<String, dynamic>> bills) async {
+    await _emitLiveSales(bills);
+    await refreshAll();
+  }
+
+  /// Pushes Sales & Profit immediately so it never waits on product queries.
+  Future<void> _emitLiveSales(List<Map<String, dynamic>> bills) async {
+    final controller = _dashboardController;
+    if (controller == null || controller.isClosed) return;
+    final sales = await _calculateSalesMetrics(bills);
+    final latest = _latestData;
+    final next = latest == null
+        ? DashboardData.empty().copyWith(salesMetrics: sales)
+        : latest.copyWith(salesMetrics: sales);
+    _latestData = next;
+    if (!controller.isClosed) {
+      controller.add(next);
+    }
+  }
+
+  /// Recalculates every dashboard box from the latest bills and products.
+  Future<void> refreshAll() async {
+    final userId = _userId;
+    final controller = _dashboardController;
+    if (userId == null || controller == null || controller.isClosed) return;
+
+    final token = ++_recalcToken;
+    final bills = _billsService.getCachedBills();
+    try {
+      final billResults = await Future.wait([
+        _calculateSalesMetrics(bills),
+        _calculateTopSellingProducts(bills),
+        _calculatePendingPayments(bills),
+        _calculateUpcomingPayments(bills),
+        _calculatePreviousDueTracking(bills),
+      ]);
+      if (token != _recalcToken || controller.isClosed) return;
+
+      final fromBills = DashboardData(
+        salesMetrics: billResults[0] as SalesMetrics,
+        topSellingProducts: billResults[1] as List<Map<String, dynamic>>,
+        pendingPayments: billResults[2] as PendingPaymentsData,
+        upcomingPayments: billResults[3] as List<Map<String, dynamic>>,
+        previousDueTracking: billResults[4] as PreviousDueData,
+        productsData: _latestData?.productsData ?? ProductsData.empty(),
+      );
+      _latestData = fromBills;
+      controller.add(fromBills);
+
+      final productsData = await _loadProductsData(userId);
+      if (token != _recalcToken || controller.isClosed) return;
+      final full = fromBills.copyWith(productsData: productsData);
+      _latestData = full;
+      controller.add(full);
+    } catch (e) {
+      appLog('Error calculating dashboard data: $e');
+      if (!controller.isClosed && token == _recalcToken) {
+        controller.addError(e);
+      }
+    }
+  }
+
+  /// Updates only Sales & Profit. Other dashboard sections stay unchanged.
+  Future<void> applySalesFilter({
     required String filterType,
     required DateTime selectedDate,
     DateTime? rangeStartDate,
     DateTime? rangeEndDate,
   }) async {
-    // Calculate all metrics in parallel for better performance
-    final results = await Future.wait([
-      _calculateSalesMetrics(
-        bills,
-        filterType: filterType,
-        selectedDate: selectedDate,
-        rangeStartDate: rangeStartDate,
-        rangeEndDate: rangeEndDate,
-      ),
-      _calculateTopSellingProducts(bills),
-      _calculatePendingPayments(bills),
-      _calculateUpcomingPayments(bills),
-      _calculatePreviousDueTracking(bills),
-      _loadProductsData(userId),
-    ]);
+    _salesFilterType = filterType;
+    _salesSelectedDate = selectedDate;
+    _salesRangeStart = rangeStartDate;
+    _salesRangeEnd = rangeEndDate;
+    ++_recalcToken;
 
-    return DashboardData(
-      salesMetrics: results[0] as SalesMetrics,
-      topSellingProducts: results[1] as List<Map<String, dynamic>>,
-      pendingPayments: results[2] as PendingPaymentsData,
-      upcomingPayments: results[3] as List<Map<String, dynamic>>,
-      previousDueTracking: results[4] as PreviousDueData,
-      productsData: results[5] as ProductsData,
-    );
+    final controller = _dashboardController;
+    if (controller == null || controller.isClosed) {
+      await refreshAll();
+      return;
+    }
+
+    await _emitLiveSales(_billsService.getCachedBills());
   }
 
   Future<SalesMetrics> _calculateSalesMetrics(
-    List<Map<String, dynamic>> bills, {
-    required String filterType,
-    required DateTime selectedDate,
-    DateTime? rangeStartDate,
-    DateTime? rangeEndDate,
-  }) async {
+    List<Map<String, dynamic>> bills,
+  ) async {
     int totalSales = 0;
     int totalProfit = 0;
 
@@ -192,10 +191,10 @@ class DashboardService {
       // Check if bill matches the selected filter criteria
       if (_isFromSelectedMonth(
         billDate,
-        filterType,
-        selectedDate,
-        rangeStartDate,
-        rangeEndDate,
+        _salesFilterType,
+        _salesSelectedDate,
+        _salesRangeStart,
+        _salesRangeEnd,
       )) {
         totalSales += totalAmount - deliveryCharges;
 
@@ -604,6 +603,42 @@ class DashboardData {
     required this.previousDueTracking,
     required this.productsData,
   });
+
+  factory DashboardData.empty() => const DashboardData(
+    salesMetrics: SalesMetrics(totalSales: 0, totalProfit: 0),
+    topSellingProducts: [],
+    pendingPayments: PendingPaymentsData(payments: [], totalAmount: 0),
+    upcomingPayments: [],
+    previousDueTracking: PreviousDueData(
+      totalBills: 0,
+      totalCollected: 0,
+      totalPending: 0,
+    ),
+    productsData: ProductsData(
+      orderNowProducts: [],
+      totalAvailableQty: 0,
+      totalAvailableAmount: 0,
+      availableProductsCount: 0,
+    ),
+  );
+
+  DashboardData copyWith({
+    SalesMetrics? salesMetrics,
+    List<Map<String, dynamic>>? topSellingProducts,
+    PendingPaymentsData? pendingPayments,
+    List<Map<String, dynamic>>? upcomingPayments,
+    PreviousDueData? previousDueTracking,
+    ProductsData? productsData,
+  }) {
+    return DashboardData(
+      salesMetrics: salesMetrics ?? this.salesMetrics,
+      topSellingProducts: topSellingProducts ?? this.topSellingProducts,
+      pendingPayments: pendingPayments ?? this.pendingPayments,
+      upcomingPayments: upcomingPayments ?? this.upcomingPayments,
+      previousDueTracking: previousDueTracking ?? this.previousDueTracking,
+      productsData: productsData ?? this.productsData,
+    );
+  }
 }
 
 class SalesMetrics {

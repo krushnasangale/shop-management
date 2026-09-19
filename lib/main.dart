@@ -428,7 +428,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Dynamic list of screens based on settings
   List<Widget> get _screens => [
-    const Dashboard(),
+    Dashboard(isVisible: _selectedIndex == 0),
     const AvailableProducts(),
     const Bills(),
     const PurchaseItemsList(),

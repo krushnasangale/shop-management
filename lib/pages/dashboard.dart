@@ -19,14 +19,18 @@ import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/utils/app_logger.dart';
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+  const Dashboard({super.key, this.isVisible = true});
+
+  final bool isVisible;
 
   @override
   State<Dashboard> createState() => _DashboardState();
 }
 
 class _DashboardState extends State<Dashboard>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   DateTime selectedDate = DateTime.now();
   String filterType = 'month';
   DateTime? _rangeStartDate;
@@ -90,6 +94,14 @@ class _DashboardState extends State<Dashboard>
     _initializeDashboardData();
   }
 
+  @override
+  void didUpdateWidget(Dashboard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isVisible && !oldWidget.isVisible) {
+      _dashboardService.refreshAll();
+    }
+  }
+
   Future<void> _saveFilterPreference(String filter) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('dashboard_filter_type', filter);
@@ -119,6 +131,15 @@ class _DashboardState extends State<Dashboard>
 
     // Listen to dashboard data updates with current filter settings
     _updateDashboardSubscription();
+  }
+
+  void _applySalesDateFilter() {
+    _dashboardService.applySalesFilter(
+      filterType: filterType,
+      selectedDate: selectedDate,
+      rangeStartDate: _rangeStartDate,
+      rangeEndDate: _rangeEndDate,
+    );
   }
 
   void _updateDashboardSubscription() {
@@ -646,6 +667,7 @@ class _DashboardState extends State<Dashboard>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final loc = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
@@ -711,7 +733,7 @@ class _DashboardState extends State<Dashboard>
                                                     _saveFilterPreference(
                                                       'all',
                                                     );
-                                                    _updateDashboardSubscription();
+                                                    _applySalesDateFilter();
                                                   },
                                                 ),
                                                 AppContextMenuItem(
@@ -729,7 +751,7 @@ class _DashboardState extends State<Dashboard>
                                                     _saveFilterPreference(
                                                       'range',
                                                     );
-                                                    _updateDashboardSubscription();
+                                                    _applySalesDateFilter();
                                                   },
                                                 ),
                                                 AppContextMenuItem(
@@ -743,7 +765,7 @@ class _DashboardState extends State<Dashboard>
                                                     _saveFilterPreference(
                                                       'day',
                                                     );
-                                                    _updateDashboardSubscription();
+                                                    _applySalesDateFilter();
                                                   },
                                                 ),
                                                 AppContextMenuItem(
@@ -759,7 +781,7 @@ class _DashboardState extends State<Dashboard>
                                                     _saveFilterPreference(
                                                       'month',
                                                     );
-                                                    _updateDashboardSubscription();
+                                                    _applySalesDateFilter();
                                                   },
                                                 ),
                                                 AppContextMenuItem(
@@ -775,7 +797,7 @@ class _DashboardState extends State<Dashboard>
                                                     _saveFilterPreference(
                                                       'year',
                                                     );
-                                                    _updateDashboardSubscription();
+                                                    _applySalesDateFilter();
                                                   },
                                                 ),
                                               ],
@@ -924,7 +946,7 @@ class _DashboardState extends State<Dashboard>
             _rangeEndDate = pickedRange.end;
           });
           _saveFilterPreference('range');
-          _updateDashboardSubscription();
+          _applySalesDateFilter();
         }
       });
       return;
@@ -942,7 +964,7 @@ class _DashboardState extends State<Dashboard>
           setState(() {
             selectedDate = pickedDate;
           });
-          _updateDashboardSubscription();
+          _applySalesDateFilter();
         }
       });
       return;
@@ -1064,7 +1086,7 @@ class _DashboardState extends State<Dashboard>
                   selectedDate = DateTime(selectedYear, selectedMonth, 1);
                 });
                 Navigator.of(context).pop();
-                _updateDashboardSubscription();
+                _applySalesDateFilter();
               },
               child: Text(loc?.select ?? 'Select'),
             ),
