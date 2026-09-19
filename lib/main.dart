@@ -12,10 +12,11 @@ import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:flashbill/providers/language_provider.dart';
-import 'package:flashbill/providers/subscription_provider.dart';
+// import 'package:flashbill/providers/subscription_provider.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/notification_service.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/utils/device_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -29,7 +30,6 @@ import 'firebase_options.dart';
 import 'package:flashbill/services/gemini_service.dart';
 import 'package:flashbill/services/crash_reporting_service.dart';
 import 'package:flashbill/utils/app_logger.dart';
-import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/theme/app_theme.dart';
 import 'package:flashbill/widgets/app_bottom_nav.dart';
 
@@ -78,7 +78,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
-        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        // Subscription expiry is temporarily disabled.
+        // ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
       ],
       child: const MyApp(),
     ),
@@ -162,7 +163,7 @@ class MyApp extends StatelessWidget {
             return MaterialUiCompatibilityBridge(
               child: CupertinoTheme(
                 data: AppTheme.cupertino(Theme.of(context).brightness),
-                child: content,
+                child: AppLoaderHost(child: content),
               ),
             );
           },
@@ -170,7 +171,7 @@ class MyApp extends StatelessWidget {
             stream: FirebaseAuth.instance.authStateChanges(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Scaffold(body: Center(child: Adaptive.progress()));
+                return Scaffold(body: AppLoader.page());
               }
               if (snapshot.hasData && snapshot.data != null) {
                 // Listen to device revocation status in real-time
@@ -179,8 +180,8 @@ class MyApp extends StatelessWidget {
                   builder: (context, deviceIdSnapshot) {
                     if (deviceIdSnapshot.connectionState ==
                         ConnectionState.waiting) {
-                      return const Scaffold(
-                        body: Center(child: CircularProgressIndicator()),
+                      return Scaffold(
+                        body: AppLoader.page(),
                       );
                     }
 
@@ -213,8 +214,8 @@ class MyApp extends StatelessWidget {
                       builder: (context, deviceSnapshot) {
                         if (deviceSnapshot.connectionState ==
                             ConnectionState.waiting) {
-                          return const Scaffold(
-                            body: Center(child: CircularProgressIndicator()),
+                          return Scaffold(
+                            body: AppLoader.page(),
                           );
                         }
 
@@ -342,10 +343,11 @@ class _MyHomePageState extends State<MyHomePage> {
     _listenToShopName();
     _listenToProductsCount();
     _listenToAppSettings();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<SubscriptionProvider>().start();
-    });
+    // Subscription expiry is temporarily disabled.
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (!mounted) return;
+    //   context.read<SubscriptionProvider>().start();
+    // });
   }
 
   void _listenToShopName() {

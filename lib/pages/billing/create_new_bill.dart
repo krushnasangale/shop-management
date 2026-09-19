@@ -18,7 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:flashbill/services/subscription_guard.dart';
+// import 'package:flashbill/services/subscription_guard.dart';
 
 class CreateNewBill extends StatefulWidget {
   final bool isEditMode;
@@ -166,9 +166,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (!SubscriptionGuard.ensureCanWrite(context)) {
-        Navigator.of(context).maybePop();
-      }
+      // if (!SubscriptionGuard.ensureCanWrite(context)) {
+        //   Navigator.of(context).maybePop();
+      // }
     });
     _searchController = TextEditingController();
     _dateController = TextEditingController(
@@ -1022,7 +1022,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
     BuildContext context,
     AppLocalizations localizations,
   ) async {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     setState(() {
       _customerNameError =
           _validateCustomerName(_customerNameController.text, localizations) ??

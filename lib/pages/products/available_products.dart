@@ -21,6 +21,7 @@ import 'package:flashbill/utils/search_utils.dart';
 import 'package:image/image.dart' as img;
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/pages/product_image_preview_page.dart';
 
 class AvailableProducts extends StatefulWidget {
@@ -49,12 +50,21 @@ class _AvailableProductsState extends State<AvailableProducts> {
   final int _itemsPerPage = 100;
   int _currentlyLoadedItems = 100;
   bool _isLoadingMore = false;
+  // ignore: unused_field
   bool _isGeneratingReport = false;
+  // ignore: unused_field
   double _generationProgress = 0.0;
   bool _cancelGeneration = false;
 
   AppLocalizations? localizations;
   final ProfileService _profileService = ProfileService();
+
+  void _setGenerationProgress(double value) {
+    _generationProgress = value;
+    if (AppLoader.isShowing) {
+      AppLoader.update(progress: value);
+    }
+  }
 
   @override
   void initState() {
@@ -465,7 +475,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     // Initialize progress
     setState(() {
-      _generationProgress = 0.1; // 10% - Starting
+      _setGenerationProgress(0.1); // 10% - Starting
     });
 
     final pdf = pw.Document();
@@ -474,7 +484,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     // Group all products by name and calculate total quantities
     setState(() {
-      _generationProgress = 0.2; // 20% - Grouping products
+      _setGenerationProgress(0.2); // 20% - Grouping products
     });
 
     // Check for cancellation after grouping
@@ -502,7 +512,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     // Download images for products that have them - OPTIMIZED PARALLEL PROCESSING
     setState(() {
-      _generationProgress = 0.3; // 30% - Starting image downloads
+      _setGenerationProgress(0.3); // 30% - Starting image downloads
     });
 
     Map<String, Uint8List?> productImages = {};
@@ -560,7 +570,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
       // Update progress during image processing (30% to 70%)
       setState(() {
-        _generationProgress = 0.3 + (0.4 * processedCount / totalProducts);
+        _setGenerationProgress(0.3 + (0.4 * processedCount / totalProducts));
       });
     }
 
@@ -571,7 +581,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     // Build PDF content
     setState(() {
-      _generationProgress = 0.8; // 80% - Building PDF content
+      _setGenerationProgress(0.8); // 80% - Building PDF content
     });
 
     pdf.addPage(
@@ -748,7 +758,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     // Save PDF file
     setState(() {
-      _generationProgress = 0.9; // 90% - Saving file
+      _setGenerationProgress(0.9); // 90% - Saving file
     });
 
     final pdfBytes = await pdf.save();
@@ -763,7 +773,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
 
     // Complete
     setState(() {
-      _generationProgress = 1.0; // 100% - Complete
+      _setGenerationProgress(1.0); // 100% - Complete
     });
 
     return pdfBytes;
@@ -776,6 +786,15 @@ class _AvailableProductsState extends State<AvailableProducts> {
         _cancelGeneration = false;
         _generationProgress = 0.0;
       });
+      AppLoader.show(
+        message: localizations?.generatingPdf ?? 'Generating...',
+        progress: 0,
+        cancelLabel: localizations?.cancel ?? 'Cancel',
+        onCancel: () {
+          _cancelGeneration = true;
+          AppLoader.hide();
+        },
+      );
 
       final pdfBytes = await _generateProductsPDF();
 
@@ -827,11 +846,14 @@ class _AvailableProductsState extends State<AvailableProducts> {
         );
       }
     } finally {
-      setState(() {
-        _isGeneratingReport = false;
-        _generationProgress = 0.0;
-        _cancelGeneration = false;
-      });
+      AppLoader.hide();
+      if (mounted) {
+        setState(() {
+          _isGeneratingReport = false;
+          _generationProgress = 0.0;
+          _cancelGeneration = false;
+        });
+      }
     }
   }
 
@@ -842,6 +864,15 @@ class _AvailableProductsState extends State<AvailableProducts> {
         _cancelGeneration = false;
         _generationProgress = 0.0;
       });
+      AppLoader.show(
+        message: localizations?.generatingPdf ?? 'Generating...',
+        progress: 0,
+        cancelLabel: localizations?.cancel ?? 'Cancel',
+        onCancel: () {
+          _cancelGeneration = true;
+          AppLoader.hide();
+        },
+      );
 
       // Ensure shop name is loaded before generating catalogue
       await _ensureShopNameLoaded();
@@ -896,11 +927,14 @@ class _AvailableProductsState extends State<AvailableProducts> {
         );
       }
     } finally {
-      setState(() {
-        _isGeneratingReport = false;
-        _generationProgress = 0.0;
-        _cancelGeneration = false;
-      });
+      AppLoader.hide();
+      if (mounted) {
+        setState(() {
+          _isGeneratingReport = false;
+          _generationProgress = 0.0;
+          _cancelGeneration = false;
+        });
+      }
     }
   }
 
@@ -1200,7 +1234,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
           centerTitle: false,
           automaticallyImplyLeading: false,
         ),
-        body: const Center(child: CircularProgressIndicator()),
+        body: AppLoader.page(),
       );
     }
 
@@ -1244,10 +1278,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
           const SizedBox(width: 14),
         ],
       ),
-      body: Stack(
+      body: Column(
         children: [
-          Column(
-            children: [
               if (_showSearchBar)
                 Adaptive.searchField(
                   controller: _searchController,
@@ -1284,140 +1316,6 @@ class _AvailableProductsState extends State<AvailableProducts> {
                       )
                     : _buildGroupedProductList(context),
               ),
-            ],
-          ),
-          // Loading overlay for catalogue generation
-          if (_isGeneratingReport)
-            Container(
-              color: Colors.black.withValues(alpha: 0.7),
-              child: Center(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 32),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 20,
-                        spreadRadius: 5,
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Animated icon
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.blue,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Title
-                      const Text(
-                        'Generating Catalogue',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Subtitle
-                      Text(
-                        'Please wait while we prepare your product catalogue...',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w400,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      // Progress bar
-                      Container(
-                        width: double.infinity,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: _generationProgress,
-                            backgroundColor: Colors.transparent,
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.blue,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Percentage text
-                      Text(
-                        '${(_generationProgress * 100).toInt()}%',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Cancel button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() {
-                              _cancelGeneration = true;
-                              _isGeneratingReport = false;
-                              _generationProgress = 0.0;
-                            });
-                            // Show cancellation message
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  localizations?.catalogueGenerationCancelled ??
-                                      'Catalogue generation cancelled',
-                                ),
-                                backgroundColor: Colors.orange,
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.cancel, size: 18),
-                          label: Text(localizations?.cancel ?? 'Cancel'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red.shade50,
-                            foregroundColor: Colors.red.shade700,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.red.shade200),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -1561,10 +1459,10 @@ class _AvailableProductsState extends State<AvailableProducts> {
       itemCount: displayedProductNames.length + (_isLoadingMore ? 1 : 0),
       itemBuilder: (context, index) {
         if (index >= displayedProductNames.length) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: CircularProgressIndicator(),
+              padding: const EdgeInsets.all(16.0),
+              child: AppLoader.indicator(),
             ),
           );
         }
@@ -1682,14 +1580,8 @@ class _AvailableProductsState extends State<AvailableProducts> {
                                   fit: BoxFit.cover,
                                   placeholder: (context, url) => ColoredBox(
                                     color: Colors.grey.shade100,
-                                    child: const Center(
-                                      child: SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      ),
+                                    child: Center(
+                                      child: AppLoader.indicator(size: 20),
                                     ),
                                   ),
                                   errorWidget: (context, url, error) =>

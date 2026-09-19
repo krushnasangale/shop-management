@@ -4,6 +4,7 @@ import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/services/file_service.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 import 'package:material_ui/material_ui.dart';
 
 class BillProductItem {
@@ -277,34 +278,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
   void _shareBill(BuildContext context, AppLocalizations localizations) async {
     final scheme = Theme.of(context).colorScheme;
     try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Center(
-              child: Material(
-                color: scheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Adaptive.progress(color: scheme.primary),
-                      const SizedBox(height: 16),
-                      Text(localizations.generatingPdf),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          );
-        },
-      );
+      AppLoader.show(message: localizations.generatingPdf);
 
       // Fetch profile data for PDF generation
       String? ownerSignatureBase64;
@@ -377,7 +351,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
       );
 
       if (context.mounted) {
-        Navigator.pop(context); // Close loading dialog
+        AppLoader.hide();
 
         if (!result.success) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -392,7 +366,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
       }
     } catch (e) {
       if (context.mounted) {
-        Navigator.pop(context);
+        AppLoader.hide();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${localizations.errorGeneratingBill}: $e'),

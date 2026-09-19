@@ -15,9 +15,10 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/image_upload_service.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/pages/product_image_preview_page.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
-import 'package:flashbill/services/subscription_guard.dart';
+// import 'package:flashbill/services/subscription_guard.dart';
 
 class AvailableProductDetailScreen extends StatefulWidget {
   final BoughtProduct product;
@@ -470,54 +471,16 @@ class _AvailableProductDetailScreenState
   }
 
   Future<void> _selectImage() async {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     await _showImageSourceDialog((source) async {
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: source);
       if (!mounted) return;
       if (image != null) {
-        // Show loading dialog with progress
-        double uploadProgress = 0.0;
-        StateSetter? dialogSetState;
-
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (BuildContext context) {
-            return StatefulBuilder(
-              builder: (context, setState) {
-                dialogSetState = setState;
-                return Dialog(
-                  backgroundColor: Colors.white,
-                  elevation: 8,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Uploading Image...',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 8),
-                        Text(
-                          uploadProgress > 0
-                              ? '${(uploadProgress * 100).round()}%'
-                              : 'Preparing image...',
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+        AppLoader.show(
+          message: 'Uploading Image...',
+          detail: 'Preparing image...',
+          progress: 0,
         );
 
         try {
@@ -528,11 +491,10 @@ class _AvailableProductDetailScreenState
             image: File(image.path),
             deleteOldImage: true,
             onProgress: (progress) {
-              if (dialogSetState != null) {
-                dialogSetState!(() {
-                  uploadProgress = progress;
-                });
-              }
+              AppLoader.update(
+                progress: progress,
+                detail: '${(progress * 100).round()}%',
+              );
             },
           );
 
@@ -555,10 +517,7 @@ class _AvailableProductDetailScreenState
             // Wait for Firestore update to complete
             await updateFuture;
 
-            // Close loading dialog
-            if (mounted) {
-              Navigator.pop(context);
-            }
+            AppLoader.hide();
 
             // Show success message
             if (mounted) {
@@ -573,10 +532,7 @@ class _AvailableProductDetailScreenState
               );
             }
           } else {
-            // Close loading dialog
-            if (mounted) {
-              Navigator.pop(context);
-            }
+            AppLoader.hide();
 
             // Show error message
             if (mounted) {
@@ -591,10 +547,7 @@ class _AvailableProductDetailScreenState
             }
           }
         } catch (e) {
-          // Close loading dialog
-          if (mounted) {
-            Navigator.pop(context);
-          }
+          AppLoader.hide();
 
           // Show error message
           if (mounted) {
@@ -687,47 +640,12 @@ class _AvailableProductDetailScreenState
           '📊 Available Stock: ${batch.quantity} ${batch.unit}';
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
-        // Show loading dialog
-        if (mounted) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (BuildContext context) {
-              return Dialog(
-                backgroundColor: Colors.transparent,
-                elevation: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const CircularProgressIndicator(),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Preparing image for sharing...',
-                          style: Theme.of(context).textTheme.bodyLarge,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        }
+        AppLoader.show(message: 'Preparing image for sharing...');
 
         // Download the image
         final response = await http.get(Uri.parse(imageUrl));
         if (response.statusCode == 200) {
-          // Close loading dialog
-          if (mounted) {
-            Navigator.pop(context);
-          }
+          AppLoader.hide();
 
           // Save to temporary file
           final tempDir = await getTemporaryDirectory();
@@ -744,10 +662,7 @@ class _AvailableProductDetailScreenState
           // Clean up temp file after sharing
           tempFile.delete().ignore();
         } else {
-          // Close loading dialog
-          if (mounted) {
-            Navigator.pop(context);
-          }
+          AppLoader.hide();
 
           // Fallback to text-only sharing if image download fails
           await SharePlus.instance.share(ShareParams(text: shareText));
@@ -757,10 +672,7 @@ class _AvailableProductDetailScreenState
         await SharePlus.instance.share(ShareParams(text: shareText));
       }
     } catch (e) {
-      // Close loading dialog if it's open
-      if (mounted) {
-        Navigator.pop(context);
-      }
+      AppLoader.hide();
 
       // Fallback to text-only sharing on any error
       try {
@@ -806,7 +718,7 @@ class _AvailableProductDetailScreenState
 
   // --- SAVE BATCH SELLING PRICE ---
   Future<void> _saveBatchSellingPrice(String batchId, double newPrice) async {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     try {
       await FirebaseFirestore.instance
           .collection('purchased-products')
@@ -845,7 +757,7 @@ class _AvailableProductDetailScreenState
 
   // --- SHOW EDIT QUANTITY DIALOG ---
   void _showEditQuantityDialog(BoughtProduct batch) {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final localizations = AppLocalizations.of(context)!;
     final quantityController = TextEditingController(
       text: batch.quantity.toString(),
@@ -891,7 +803,7 @@ class _AvailableProductDetailScreenState
 
   // --- SHOW EDIT SELLING PRICE DIALOG ---
   void _showEditSellingPriceDialog(BoughtProduct batch) {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final localizations = AppLocalizations.of(context)!;
     final priceController = TextEditingController(
       text: batch.sellingPrice.toStringAsFixed(2),
@@ -1239,7 +1151,7 @@ class _AvailableProductDetailScreenState
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () {
-              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              // if (!SubscriptionGuard.ensureCanWrite(context)) return;
               bool isDeleting = false;
               // Confirm deletion
               showDialog(
@@ -1390,11 +1302,11 @@ class _AvailableProductDetailScreenState
                               ? Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const SizedBox(
+                                    SizedBox(
                                       width: 20,
                                       height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
+                                      child: AppLoader.indicator(
+                                        size: 20,
                                         color: Colors.white,
                                       ),
                                     ),
@@ -1504,8 +1416,8 @@ class _AvailableProductDetailScreenState
                                       fit: BoxFit.cover,
                                       placeholder: (context, url) => Container(
                                         color: Colors.grey.shade100,
-                                        child: const Center(
-                                          child: CircularProgressIndicator(),
+                                        child: Center(
+                                          child: AppLoader.indicator(),
                                         ),
                                       ),
                                       errorWidget: (context, url, error) =>
@@ -1801,11 +1713,11 @@ class _AvailableProductDetailScreenState
                               ),
                               onPressed: () {
                                 if (_editingMinLimit) {
-                                  if (!SubscriptionGuard.ensureCanWrite(
-                                    context,
-                                  )) {
-                                    return;
-                                  }
+                                  // if (!SubscriptionGuard.ensureCanWrite(
+                                    //   context,
+                                  // )) {
+                                    //   return;
+                                  // }
                                   // Save the new min limit
                                   final newMinLimit =
                                       int.tryParse(_minLimitController.text) ??
@@ -1877,11 +1789,11 @@ class _AvailableProductDetailScreenState
                                     );
                                   }
                                 } else {
-                                  if (!SubscriptionGuard.ensureCanWrite(
-                                    context,
-                                  )) {
-                                    return;
-                                  }
+                                  // if (!SubscriptionGuard.ensureCanWrite(
+                                    //   context,
+                                  // )) {
+                                    //   return;
+                                  // }
                                   setState(() {
                                     _editingMinLimit = true;
                                   });
@@ -1918,7 +1830,7 @@ class _AvailableProductDetailScreenState
                   ),
 
                   if (_isLoadingBatches)
-                    const Center(child: CircularProgressIndicator())
+                    AppLoader.page()
                   else if (_allBatches.isEmpty)
                     Center(
                       child: Text(

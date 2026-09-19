@@ -12,13 +12,14 @@ import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/services/gemini_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
-import 'package:flashbill/services/subscription_guard.dart';
+// import 'package:flashbill/services/subscription_guard.dart';
 
 class PurchaseItemsList extends StatefulWidget {
   const PurchaseItemsList({super.key});
@@ -391,7 +392,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             icon: const Icon(Icons.document_scanner_outlined, size: 26),
             tooltip: loc?.scanInvoice ?? 'Scan Invoice',
             onPressed: () {
-              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              // if (!SubscriptionGuard.ensureCanWrite(context)) return;
               _showScanOptions(context);
             },
           ),
@@ -399,7 +400,7 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
             icon: const Icon(Icons.add_rounded, size: 32),
             tooltip: loc?.addPurchase ?? 'Add Purchase',
             onPressed: () {
-              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              // if (!SubscriptionGuard.ensureCanWrite(context)) return;
               AppNavigator.push(context, const AddPurchaseEntry());
             },
           ),
@@ -704,152 +705,40 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
     int currentAttempt = 0;
     double scanProgress = 0.0;
     Timer? progressTimer;
-    void Function(void Function())? dialogSetState;
+
+    void publishScanProgress() {
+      AppLoader.update(
+        message: statusMessage,
+        progress: scanProgress,
+        detail: currentAttempt > 0
+            ? (loc?.retryAttempt(currentAttempt, 5) ??
+                  'Retry attempt $currentAttempt/5')
+            : null,
+      );
+    }
 
     void startProgressTimer() {
       progressTimer?.cancel();
       progressTimer = Timer.periodic(const Duration(milliseconds: 150), (_) {
         if (scanProgress < 0.88) {
-          dialogSetState?.call(() {
-            final step = (0.88 - scanProgress) * 0.035;
-            scanProgress = (scanProgress + step).clamp(0.0, 0.88);
-          });
+          final step = (0.88 - scanProgress) * 0.035;
+          scanProgress = (scanProgress + step).clamp(0.0, 0.88);
+          publishScanProgress();
         }
       });
     }
 
-    // Show loading dialog with stateful builder
     if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          return StatefulBuilder(
-            builder: (context, setDialogState) {
-              dialogSetState = setDialogState; // Capture setState
-              return PopScope(
-                canPop: false,
-                child: Dialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 3,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          statusMessage,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.auto_awesome,
-                              size: 16,
-                              color: Colors.blue,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              loc?.poweredByGeminiAi ?? 'Powered by Gemini AI',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: scanProgress,
-                            minHeight: 8,
-                            backgroundColor: Colors.blue.withValues(
-                              alpha: 0.15,
-                            ),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.blue,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            '${(scanProgress * 100).toInt()}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue,
-                            ),
-                          ),
-                        ),
-                        if (currentAttempt > 0) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Text(
-                              loc?.retryAttempt(currentAttempt, 5) ??
-                                  'Retry attempt $currentAttempt/5',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange.shade900,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        TextButton.icon(
-                          onPressed: () {
-                            isCancelled = true;
-                            Navigator.of(dialogContext).pop();
-                          },
-                          icon: const Icon(Icons.close),
-                          label: Text(loc?.cancel ?? 'Cancel'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
+      AppLoader.show(
+        message: statusMessage,
+        progress: scanProgress,
+        cancelLabel: loc?.cancel ?? 'Cancel',
+        onCancel: () {
+          isCancelled = true;
+          progressTimer?.cancel();
+          AppLoader.hide();
         },
-      ).then((_) {
-        // If dialog is dismissed, mark as cancelled
-        isCancelled = true;
-        progressTimer?.cancel();
-      });
+      );
     }
 
     startProgressTimer();
@@ -887,21 +776,18 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       final invoiceData = await geminiService.extractInvoiceData(
         pdfText: extractedText,
         onRetry: (attempt, delay) {
-          // Update dialog state to show retry attempt
           currentAttempt = attempt;
           statusMessage = 'Retrying in $delay seconds...';
           scanProgress = 0.15;
           startProgressTimer();
-          dialogSetState?.call(() {});
+          publishScanProgress();
         },
         isCancelled: () => isCancelled,
       );
 
       progressTimer?.cancel();
-      // Close loading dialog
+      AppLoader.hide();
       if (mounted) {
-        Navigator.of(context).pop();
-
         // Check if meaningful data was extracted
         final products = invoiceData['products'] as List<dynamic>? ?? [];
         if (products.isEmpty && extractedText.length < 500) {
@@ -919,10 +805,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       }
     } catch (e) {
       progressTimer?.cancel();
-      // Close loading dialog
+      AppLoader.hide();
       if (mounted) {
-        Navigator.of(context).pop();
-
         // Don't show error if user cancelled
         if (e.toString().contains('Operation cancelled by user')) {
           return;
@@ -958,153 +842,40 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
     int currentAttempt = 0;
     double scanProgress = 0.0;
     Timer? progressTimer;
-    void Function(void Function())? dialogSetState;
+
+    void publishScanProgress() {
+      AppLoader.update(
+        message: statusMessage,
+        progress: scanProgress,
+        detail: currentAttempt > 0
+            ? (loc?.retryAttempt(currentAttempt, 5) ??
+                  'Retry attempt $currentAttempt/5')
+            : null,
+      );
+    }
 
     void startProgressTimer() {
       progressTimer?.cancel();
       progressTimer = Timer.periodic(const Duration(milliseconds: 150), (_) {
         if (scanProgress < 0.88) {
-          dialogSetState?.call(() {
-            final step = (0.88 - scanProgress) * 0.035;
-            scanProgress = (scanProgress + step).clamp(0.0, 0.88);
-          });
+          final step = (0.88 - scanProgress) * 0.035;
+          scanProgress = (scanProgress + step).clamp(0.0, 0.88);
+          publishScanProgress();
         }
       });
     }
 
-    // Show loading dialog with stateful builder
     if (mounted) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogContext) {
-          return StatefulBuilder(
-            builder: (context, setDialogState) {
-              dialogSetState = setDialogState; // Capture setState
-              return PopScope(
-                canPop: false,
-                child: Dialog(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: Colors.green,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        Text(
-                          statusMessage,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.auto_awesome,
-                              size: 16,
-                              color: Colors.green,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              loc?.poweredByGeminiAi ?? 'Powered by Gemini AI',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: scanProgress,
-                            minHeight: 8,
-                            backgroundColor: Colors.green.withValues(
-                              alpha: 0.15,
-                            ),
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                              Colors.green,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Text(
-                            '${(scanProgress * 100).toInt()}%',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ),
-                        if (currentAttempt > 0) ...[
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Text(
-                              loc?.retryAttempt(currentAttempt, 5) ??
-                                  'Retry attempt $currentAttempt/5',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.orange.shade900,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 20),
-                        TextButton.icon(
-                          onPressed: () {
-                            isCancelled = true;
-                            Navigator.of(dialogContext).pop();
-                          },
-                          icon: const Icon(Icons.close),
-                          label: Text(loc?.cancel ?? 'Cancel'),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
+      AppLoader.show(
+        message: statusMessage,
+        progress: scanProgress,
+        cancelLabel: loc?.cancel ?? 'Cancel',
+        onCancel: () {
+          isCancelled = true;
+          progressTimer?.cancel();
+          AppLoader.hide();
         },
-      ).then((_) {
-        // If dialog is dismissed, mark as cancelled
-        isCancelled = true;
-        progressTimer?.cancel();
-      });
+      );
     }
 
     startProgressTimer();
@@ -1115,21 +886,18 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       final invoiceData = await geminiService.extractInvoiceData(
         imagePath: imagePath,
         onRetry: (attempt, delay) {
-          // Update dialog state to show retry attempt
           currentAttempt = attempt;
           statusMessage = 'Retrying in $delay seconds...';
           scanProgress = 0.15;
           startProgressTimer();
-          dialogSetState?.call(() {});
+          publishScanProgress();
         },
         isCancelled: () => isCancelled,
       );
 
       progressTimer?.cancel();
-      // Close loading dialog
+      AppLoader.hide();
       if (mounted) {
-        Navigator.of(context).pop();
-
         // Check if meaningful data was extracted
         final products = invoiceData['products'] as List<dynamic>? ?? [];
         if (products.isEmpty) {
@@ -1147,10 +915,8 @@ class _PurchaseItemsListState extends State<PurchaseItemsList> {
       }
     } catch (e) {
       progressTimer?.cancel();
-      // Close loading dialog
+      AppLoader.hide();
       if (mounted) {
-        Navigator.of(context).pop();
-
         // Don't show error if user cancelled
         if (e.toString().contains('Operation cancelled by user')) {
           return;

@@ -13,7 +13,7 @@ import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/services/subscription_guard.dart';
+// import 'package:flashbill/services/subscription_guard.dart';
 
 class ExpensesList extends StatefulWidget {
   const ExpensesList({super.key});
@@ -180,7 +180,7 @@ class _ExpensesListState extends State<ExpensesList>
             icon: const Icon(Icons.add_rounded, size: 32),
             tooltip: loc?.addExpense ?? 'Add Expense',
             onPressed: () {
-              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              // if (!SubscriptionGuard.ensureCanWrite(context)) return;
               AppNavigator.push(context, const AddExpenseEntry());
             },
                                   ),

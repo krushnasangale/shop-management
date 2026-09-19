@@ -13,12 +13,13 @@ import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:pdfx/pdfx.dart' as pdfx;
 import 'package:printing/printing.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
-import 'package:flashbill/services/subscription_guard.dart';
+// import 'package:flashbill/services/subscription_guard.dart';
 
 // --- Payment Record Model ---
 class PaymentRecord {
@@ -68,43 +69,13 @@ Future<void> _shareWithLoadingDialog({
   String errorPrefix = 'Error sharing file',
 }) async {
   try {
-    // Show loading dialog
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 16),
-                  Text(
-                    loadingMessage,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    AppLoader.show(message: loadingMessage);
 
     // Execute share function
     final result = await shareFunction();
 
     if (context.mounted) {
-      Navigator.pop(context); // Close loading dialog
+      AppLoader.hide();
 
       // Show error if sharing failed
       if (!result.success) {
@@ -120,7 +91,7 @@ Future<void> _shareWithLoadingDialog({
     }
   } catch (e) {
     if (context.mounted) {
-      Navigator.pop(context);
+      AppLoader.hide();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('$errorPrefix: $e'),
@@ -546,37 +517,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
   void _previewBill() async {
     try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      localizations.generatingPdf,
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
+      AppLoader.show(message: localizations.generatingPdf);
 
       // Generate PDF
       final pdfBytes = await _generateBillPDF();
@@ -594,7 +535,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       await pdfFile.writeAsBytes(pdfBytes);
 
       if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+        AppLoader.hide();
 
         // Navigate to PDF preview page
         Navigator.push(
@@ -609,7 +550,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
+        AppLoader.hide();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${localizations.errorGeneratingBill}: $e'),
@@ -679,7 +620,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _deleteBill() async {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -710,22 +651,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         _isDeleting = true;
       });
 
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            content: Row(
-              children: [
-                const CircularProgressIndicator(),
-                const SizedBox(width: 16),
-                Text(localizations.deletingBill),
-              ],
-            ),
-          );
-        },
-      );
+      AppLoader.show(message: localizations.deletingBill);
 
       try {
         final user = FirebaseAuth.instance.currentUser;
@@ -797,10 +723,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             .doc(billId)
             .delete();
 
-        // Dismiss loading dialog
-        if (mounted) {
-          Navigator.of(context).pop(); // Close loading dialog
-        }
+        AppLoader.hide();
 
         if (mounted) {
           setState(() {
@@ -816,10 +739,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           ).pop(true); // Return true to indicate bill was deleted
         }
       } catch (e) {
-        // Dismiss loading dialog
-        if (mounted) {
-          Navigator.of(context).pop(); // Close loading dialog
-        }
+        AppLoader.hide();
 
         if (mounted) {
           setState(() {
@@ -838,7 +758,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _editBill() {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     // Prepare the bill data for editing
     final billData = {
       'billId': billId,
@@ -1423,7 +1343,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                     ),
                     onPressed: () {
-                      if (!SubscriptionGuard.ensureCanWrite(context)) return;
+                      // if (!SubscriptionGuard.ensureCanWrite(context)) return;
                       _showAddPaymentDialog();
                     },
                     icon: const Icon(Icons.add, size: 18),
@@ -1516,7 +1436,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showAddPaymentDialog() {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController amountController = TextEditingController();
     final remainingAmount = int.parse(amountRemaining.replaceAll('₹ ', ''));
     String selectedPaymentMethod = 'cash';
@@ -1687,7 +1607,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditNextPaymentDateDialog() {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     showDialog(
       context: context,
       builder: (context) {
@@ -1784,7 +1704,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditMobileDialog() {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController mobileController = TextEditingController(
       text: customerMobile,
     );
@@ -1883,7 +1803,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditVehicleDialog() {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController vehicleController = TextEditingController(
       text: customerVehicle ?? '',
     );
@@ -2065,7 +1985,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditDiscountDialog() {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController discountController = TextEditingController();
     String? errorText;
     final remainingAmountValue = int.parse(
@@ -2262,7 +2182,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   }
 
   void _showEditAmountPaidDialog() {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController amountController = TextEditingController(
       text: amountPaid.replaceAll('₹ ', ''),
     );

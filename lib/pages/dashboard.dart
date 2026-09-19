@@ -13,8 +13,9 @@ import 'package:flashbill/services/dashboard_service.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:flashbill/widgets/dashboard_widgets.dart';
 import 'package:flashbill/services/notification_service.dart';
-import 'package:flashbill/services/subscription_guard.dart';
+// import 'package:flashbill/services/subscription_guard.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/utils/app_logger.dart';
 
 class Dashboard extends StatefulWidget {
@@ -603,11 +604,7 @@ class _DashboardState extends State<Dashboard>
     );
   }
 
-  Widget _sectionHeader(
-    String title,
-    String description, {
-    Widget? trailing,
-  }) {
+  Widget _sectionHeader(String title, String description, {Widget? trailing}) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
@@ -637,7 +634,7 @@ class _DashboardState extends State<Dashboard>
               ],
             ),
           ),
-          if (trailing != null) trailing,
+          ?trailing,
         ],
       ),
     );
@@ -655,10 +652,11 @@ class _DashboardState extends State<Dashboard>
       body: SafeArea(
         child: Column(
           children: [
-            const SubscriptionExpiredBanner(),
+            // Subscription expiry is temporarily disabled.
+            // const SubscriptionExpiredBanner(),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? AppLoader.page()
                   : SingleChildScrollView(
                       padding: const EdgeInsets.only(bottom: 24),
                       child: Column(
@@ -697,8 +695,7 @@ class _DashboardState extends State<Dashboard>
                                               Icons.filter_list,
                                               color: scheme.primary,
                                             ),
-                                            onPressed: () =>
-                                                AppContextMenu.show(
+                                            onPressed: () => AppContextMenu.show(
                                               buttonContext: buttonContext,
                                               items: [
                                                 AppContextMenuItem(
@@ -706,12 +703,10 @@ class _DashboardState extends State<Dashboard>
                                                       loc?.allData ??
                                                       'All Data',
                                                   icon: Icons.all_inclusive,
-                                                  selected:
-                                                      filterType == 'all',
+                                                  selected: filterType == 'all',
                                                   onPressed: () {
                                                     setState(
-                                                      () =>
-                                                          filterType = 'all',
+                                                      () => filterType = 'all',
                                                     );
                                                     _saveFilterPreference(
                                                       'all',
@@ -728,8 +723,8 @@ class _DashboardState extends State<Dashboard>
                                                       filterType == 'range',
                                                   onPressed: () {
                                                     setState(
-                                                      () => filterType =
-                                                          'range',
+                                                      () =>
+                                                          filterType = 'range',
                                                     );
                                                     _saveFilterPreference(
                                                       'range',
@@ -740,12 +735,10 @@ class _DashboardState extends State<Dashboard>
                                                 AppContextMenuItem(
                                                   label: loc?.day ?? 'Day',
                                                   icon: Icons.calendar_today,
-                                                  selected:
-                                                      filterType == 'day',
+                                                  selected: filterType == 'day',
                                                   onPressed: () {
                                                     setState(
-                                                      () =>
-                                                          filterType = 'day',
+                                                      () => filterType = 'day',
                                                     );
                                                     _saveFilterPreference(
                                                       'day',
@@ -754,15 +747,14 @@ class _DashboardState extends State<Dashboard>
                                                   },
                                                 ),
                                                 AppContextMenuItem(
-                                                  label:
-                                                      loc?.month ?? 'Month',
+                                                  label: loc?.month ?? 'Month',
                                                   icon: Icons.calendar_month,
                                                   selected:
                                                       filterType == 'month',
                                                   onPressed: () {
                                                     setState(
-                                                      () => filterType =
-                                                          'month',
+                                                      () =>
+                                                          filterType = 'month',
                                                     );
                                                     _saveFilterPreference(
                                                       'month',
@@ -772,14 +764,13 @@ class _DashboardState extends State<Dashboard>
                                                 ),
                                                 AppContextMenuItem(
                                                   label: loc?.year ?? 'Year',
-                                                  icon: Icons
-                                                      .calendar_view_month,
+                                                  icon:
+                                                      Icons.calendar_view_month,
                                                   selected:
                                                       filterType == 'year',
                                                   onPressed: () {
                                                     setState(
-                                                      () =>
-                                                          filterType = 'year',
+                                                      () => filterType = 'year',
                                                     );
                                                     _saveFilterPreference(
                                                       'year',
@@ -855,39 +846,14 @@ class _DashboardState extends State<Dashboard>
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    loc?.totalSales ?? 'Total Sales',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: scheme.onSurfaceVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '₹${_formatCurrency(totalSales, loc: loc)}',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.8,
-                      color: Colors.blue[700],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isProfitable
-                      ? loc?.profitLabel ?? 'Profit'
-                      : loc?.loss ?? 'Loss',
+                  loc?.totalSales ?? 'Total Sales',
                   style: TextStyle(
                     fontSize: 13,
                     color: scheme.onSurfaceVariant,
@@ -895,18 +861,40 @@ class _DashboardState extends State<Dashboard>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${isProfitable ? '+' : '-'}₹${_formatCurrency(profit.abs(), loc: loc)}',
+                  '₹${_formatCurrency(totalSales, loc: loc)}',
                   style: TextStyle(
-                    fontSize: 22,
+                    fontSize: 28,
                     fontWeight: FontWeight.w800,
-                    letterSpacing: -0.4,
-                    color: isProfitable ? Colors.green[600] : Colors.red[600],
+                    letterSpacing: -0.8,
+                    color: Colors.blue[700],
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                isProfitable
+                    ? loc?.profitLabel ?? 'Profit'
+                    : loc?.loss ?? 'Loss',
+                style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${isProfitable ? '+' : '-'}₹${_formatCurrency(profit.abs(), loc: loc)}',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                  color: isProfitable ? Colors.green[600] : Colors.red[600],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

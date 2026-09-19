@@ -6,6 +6,7 @@ import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 
 class CustomerHistoryScreen extends StatefulWidget {
   final String customerId;
@@ -222,7 +223,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
         centerTitle: false,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? AppLoader.page()
           : _customerBills.isEmpty
           ? Center(
               child: Text(

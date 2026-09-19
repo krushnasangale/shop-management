@@ -18,7 +18,8 @@ import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/services/file_service.dart';
 import 'dart:typed_data';
 import 'package:flashbill/utils/app_logger.dart';
-import 'package:flashbill/services/subscription_guard.dart';
+import 'package:flashbill/widgets/app_loader.dart';
+// import 'package:flashbill/services/subscription_guard.dart';
 
 class Bills extends StatefulWidget {
   const Bills({super.key});
@@ -605,42 +606,12 @@ class _BillsState extends State<Bills> {
   void _generateAndSharePDF() async {
     final loc = AppLocalizations.of(context);
     try {
-      // Show loading dialog
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).scaffoldBackgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Generating PDF...',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      );
+      AppLoader.show(message: loc?.generatingPdf ?? 'Generating PDF...');
 
       final pdfBytes = await _generateBillsPDF();
 
       if (mounted) {
-        Navigator.pop(context); // Close loading dialog
+        AppLoader.hide();
 
         // Generate file name using FileService
         final fileName = FileService.generateTimestampedFileName(
@@ -665,7 +636,7 @@ class _BillsState extends State<Bills> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context);
+        AppLoader.hide();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -892,7 +863,7 @@ class _BillsState extends State<Bills> {
             icon: const Icon(Icons.add_rounded, size: 32),
             tooltip: localizations.createBill,
             onPressed: () {
-              if (!SubscriptionGuard.ensureCanWrite(context)) return;
+              // if (!SubscriptionGuard.ensureCanWrite(context)) return;
               AppNavigator.push(context, const CreateNewBill());
             },
           ),
@@ -916,7 +887,7 @@ class _BillsState extends State<Bills> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? AppLoader.page()
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1087,10 +1058,10 @@ class _BillsState extends State<Bills> {
                               _currentlyLoadedItems + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
                             if (index >= _currentlyLoadedItems) {
-                              return const Center(
+                              return Center(
                                 child: Padding(
-                                  padding: EdgeInsets.all(16.0),
-                                  child: CircularProgressIndicator(),
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: AppLoader.indicator(),
                                 ),
                               );
                             }

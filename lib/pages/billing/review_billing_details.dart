@@ -5,8 +5,9 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
 import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:flashbill/services/subscription_guard.dart';
+// import 'package:flashbill/services/subscription_guard.dart';
 
 class ReviewBillingDetails extends StatefulWidget {
   final String billDate;
@@ -302,7 +303,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             child: FilledButton(
               style: Adaptive.compactFilled,
               onPressed: () {
-                if (!SubscriptionGuard.ensureCanWrite(context)) return;
+                // if (!SubscriptionGuard.ensureCanWrite(context)) return;
                 _showConfirmDialog(context);
               },
               child: Text(
@@ -340,7 +341,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
   }
 
   void _showConfirmDialog(BuildContext context) {
-    if (!SubscriptionGuard.ensureCanWrite(context)) return;
+    // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -376,40 +377,10 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
   }
 
   Future<void> _showLoadingAndCreateBill() async {
-    final scheme = Theme.of(context).colorScheme;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return PopScope(
-          canPop: false,
-          child: Dialog(
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: Center(
-              child: Material(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Adaptive.progress(color: scheme.primary),
-                      const SizedBox(height: 16),
-                      Text(
-                        widget.isEditMode
-                            ? localizations!.updatingBill
-                            : localizations!.creatingBill,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
+    AppLoader.show(
+      message: widget.isEditMode
+          ? localizations!.updatingBill
+          : localizations!.creatingBill,
     );
 
     // Calculate total amount including delivery charges
@@ -422,7 +393,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
     try {
       await _saveBillToDatabase();
       if (mounted) {
-        Navigator.pop(context); // Close loader
+        AppLoader.hide();
 
         // If in edit mode, pop back to bills list with success result
         if (widget.isEditMode) {
@@ -461,7 +432,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.pop(context); // Close loader
+        AppLoader.hide();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
