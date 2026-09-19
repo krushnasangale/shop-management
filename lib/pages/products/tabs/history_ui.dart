@@ -21,6 +21,27 @@ ButtonStyle get historyCompactFilterButton => OutlinedButton.styleFrom(
   padding: const EdgeInsets.symmetric(horizontal: 8),
 );
 
+class HistoryDetailsButton extends StatelessWidget {
+  const HistoryDetailsButton({
+    super.key,
+    required this.onPressed,
+  });
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onPressed,
+      customBorder: const CircleBorder(),
+      child: const Padding(
+        padding: EdgeInsets.all(8),
+        child: Icon(Icons.chevron_right_rounded, size: 24),
+      ),
+    );
+  }
+}
+
 class HistoryFilterButton extends StatelessWidget {
   const HistoryFilterButton({
     super.key,

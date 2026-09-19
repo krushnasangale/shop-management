@@ -370,10 +370,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
     );
   }
 
-  Widget _buildSummary(
-    BuildContext context,
-    Map<String, dynamic> stats,
-  ) {
+  Widget _buildSummary(BuildContext context, Map<String, dynamic> stats) {
     final loc = AppLocalizations.of(context);
     final totalProfit = (stats['totalProfit'] as num).toDouble();
     return Adaptive.box(
@@ -439,162 +436,159 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
         : 0.0;
 
     return Column(
-        children: [
-          InkWell(
-            onTap: () => setState(() {
-              _expandedPurchaseHistory[index] = !isExpanded;
-            }),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 10.0,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          purchase['supplierName'] ??
-                              (loc?.unknown ?? 'Unknown'),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: scheme.onSurface,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '₹${purchase['total'] ?? 0}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: scheme.primary,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      IconButton(
-                        style: historyDenseIconButton,
-                        tooltip: loc?.viewDetails ?? 'View Details',
-                        icon: const Icon(Icons.open_in_new, size: 18),
-                        onPressed: () => _openPurchaseDetails(purchase),
-                      ),
-                      Icon(
-                        isExpanded ? Icons.expand_less : Icons.expand_more,
-                        size: 20,
-                        color: mutedColor,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => setState(() {
+                  _expandedPurchaseHistory[index] = !isExpanded;
+                }),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 13,
-                            color: mutedColor,
+                          Expanded(
+                            child: Text(
+                              purchase['supplierName'] ??
+                                  (loc?.unknown ?? 'Unknown'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: scheme.onSurface,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '₹${purchase['total'] ?? 0}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: scheme.primary,
+                            ),
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            purchase['date'] ?? 'N/A',
-                            style: TextStyle(fontSize: 12, color: mutedColor),
+                          Icon(
+                            isExpanded ? Icons.expand_less : Icons.expand_more,
+                            size: 20,
+                            color: mutedColor,
                           ),
                         ],
                       ),
-                      Text(
-                        [
-                          '${purchase['quantity']} ${purchase['unit'] ?? 'units'}',
-                          '${profitMargin.toStringAsFixed(0)}% margin',
-                        ].join('  ·  '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: historyMarginColor(profitMargin),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today,
+                                size: 13,
+                                color: mutedColor,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                purchase['date'] ?? 'N/A',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: mutedColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            [
+                              '${purchase['quantity']} ${purchase['unit'] ?? 'units'}',
+                              '${profitMargin.toStringAsFixed(0)}% margin',
+                            ].join('  ·  '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: historyMarginColor(profitMargin),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
+                      if (isExpanded) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            HistoryMetric(
+                              label: loc?.buy ?? 'Buy',
+                              value: '₹${purchase['buyingPrice']}',
+                            ),
+                            HistoryMetric(
+                              label: loc?.sell ?? 'Sell',
+                              value: '₹${purchase['sellingPrice']}',
+                            ),
+                            HistoryMetric(
+                              label: loc?.perUnit ?? 'Per unit',
+                              value: '₹${profitPerUnit.toStringAsFixed(0)}',
+                              valueColor: profitPerUnit >= 0
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                            HistoryMetric(
+                              label: loc?.profit ?? 'Profit',
+                              value: '₹${totalProfit.toStringAsFixed(0)}',
+                              valueColor: totalProfit >= 0
+                                  ? Colors.green
+                                  : Colors.red,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: LinearProgressIndicator(
+                            value: (profitMargin.clamp(0, 100) / 100),
+                            backgroundColor: Colors.grey.withValues(alpha: 0.2),
+                            valueColor: AlwaysStoppedAnimation(
+                              historyMarginColor(profitMargin),
+                            ),
+                            minHeight: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.payments_outlined,
+                              size: 14,
+                              color: mutedColor,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              purchase['paymentMethod'] ?? 'N/A',
+                              style: TextStyle(fontSize: 12, color: mutedColor),
+                            ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
-                  if (isExpanded) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        HistoryMetric(
-                          label: loc?.buy ?? 'Buy',
-                          value: '₹${purchase['buyingPrice']}',
-                        ),
-                        HistoryMetric(
-                          label: loc?.sell ?? 'Sell',
-                          value: '₹${purchase['sellingPrice']}',
-                        ),
-                        HistoryMetric(
-                          label: loc?.perUnit ?? 'Per unit',
-                          value: '₹${profitPerUnit.toStringAsFixed(0)}',
-                          valueColor: profitPerUnit >= 0
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                        HistoryMetric(
-                          label: loc?.profit ?? 'Profit',
-                          value: '₹${totalProfit.toStringAsFixed(0)}',
-                          valueColor: totalProfit >= 0
-                              ? Colors.green
-                              : Colors.red,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: (profitMargin.clamp(0, 100) / 100),
-                        backgroundColor: Colors.grey.withValues(alpha: 0.2),
-                        valueColor: AlwaysStoppedAnimation(
-                          historyMarginColor(profitMargin),
-                        ),
-                        minHeight: 6,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.payments_outlined,
-                          size: 14,
-                          color: mutedColor,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            purchase['paymentMethod'] ?? 'N/A',
-                            style: TextStyle(fontSize: 12, color: mutedColor),
-                          ),
-                        ),
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                          ),
-                          onPressed: () => _openPurchaseDetails(purchase),
-                          child: Text(loc?.viewDetails ?? 'View Details'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
-          ),
-          if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16),
-        ],
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: HistoryDetailsButton(
+                onPressed: () => _openPurchaseDetails(purchase),
+              ),
+            ),
+          ],
+        ),
+        if (showDivider) const Divider(height: 1, indent: 16, endIndent: 16),
+      ],
     );
   }
 
