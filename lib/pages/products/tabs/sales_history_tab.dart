@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/pages/products/tabs/history_ui.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
@@ -271,6 +273,58 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
     _ => loc?.date ?? 'Date',
   };
 
+  void _openSaleDetails(Map<String, dynamic> sale) {
+    final billId = (sale['billId'] ?? sale['id'] ?? '').toString();
+    if (billId.isEmpty) {
+      final loc = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            loc?.errorOpeningBillDetails ?? 'Unable to open bill details',
+          ),
+        ),
+      );
+      return;
+    }
+
+    AppNavigator.push(
+      context,
+      ViewBillDetailsScreen(
+        billId: billId,
+        billDate: (sale['billDate'] ?? sale['date'] ?? '').toString(),
+        customerName: (sale['customerName'] ?? '').toString(),
+        customerMobile: (sale['customerMobile'] ?? 'N/A').toString(),
+        customerVehicle: sale['customerVehicle'] as String?,
+        totalAmount: ((sale['totalAmount'] ?? 0) as num).toInt(),
+        totalAmountPaid: sale['totalAmountPaid'] == true,
+        amountPaid: ((sale['amountPaid'] ?? 0) as num).toInt(),
+        amountRemaining: ((sale['amountRemaining'] ?? sale['totalAmount'] ?? 0)
+                as num)
+            .toInt(),
+        products: _saleProducts(sale),
+        paymentMethod: (sale['paymentMethod'] ?? 'cash').toString(),
+        nextPaymentDate: sale['nextPaymentDate'] as String?,
+        previousDueAmount: ((sale['previousDueAmount'] ?? 0) as num).toDouble(),
+        previousPaidAmount: ((sale['previousPaidAmount'] ?? 0) as num)
+            .toDouble(),
+        previousDueDescription: (sale['previousDueDescription'] ?? '')
+            .toString(),
+      ),
+    );
+  }
+
+  List<Map<String, dynamic>>? _saleProducts(Map<String, dynamic> sale) {
+    final products = sale['products'];
+    if (products is! Map) return null;
+    final list = <Map<String, dynamic>>[];
+    for (final value in products.values) {
+      if (value is Map) {
+        list.add(Map<String, dynamic>.from(value));
+      }
+    }
+    return list.isEmpty ? null : list;
+  }
+
   Widget _buildToolbar(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Column(
@@ -279,35 +333,22 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Row(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: Adaptive.compactOutlined,
-                  onPressed: () => _showCustomerFilterSheet(context),
-                  icon: const Icon(Icons.filter_list, size: 16),
-                  label: Text(
-                    _filterCustomer == 'all'
-                        ? (loc?.allCustomers ?? 'All Customers')
-                        : (_filterCustomer == 'Unknown'
-                            ? (loc?.unknown ?? 'Unknown')
-                            : _filterCustomer),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              HistoryFilterButton(
+                icon: Icons.filter_list,
+                label: _filterCustomer == 'all'
+                    ? (loc?.all ?? 'All')
+                    : (_filterCustomer == 'Unknown'
+                          ? (loc?.unknown ?? 'Unknown')
+                          : _filterCustomer),
+                onPressed: () => _showCustomerFilterSheet(context),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: Adaptive.compactOutlined,
-                  onPressed: () => _showSalesSortSheet(context),
-                  icon: const Icon(Icons.sort, size: 16),
-                  label: Text(
-                    _sortLabel(loc),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              const SizedBox(width: 6),
+              HistoryFilterButton(
+                icon: Icons.sort,
+                label: _sortLabel(loc),
+                onPressed: () => _showSalesSortSheet(context),
               ),
+              const Spacer(),
               IconButton(
                 style: historyDenseIconButton,
                 tooltip: _sortSalesAscending
@@ -451,7 +492,13 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                           color: scheme.primary,
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
+                      IconButton(
+                        style: historyDenseIconButton,
+                        tooltip: loc?.viewDetails ?? 'View Details',
+                        icon: const Icon(Icons.open_in_new, size: 18),
+                        onPressed: () => _openSaleDetails(sale),
+                      ),
                       Icon(
                         isExpanded ? Icons.expand_less : Icons.expand_more,
                         size: 20,
@@ -541,9 +588,19 @@ class _SalesHistoryTabState extends State<SalesHistoryTab> {
                           color: mutedColor,
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          sale['paymentMethod'] ?? 'N/A',
-                          style: TextStyle(fontSize: 12, color: mutedColor),
+                        Expanded(
+                          child: Text(
+                            sale['paymentMethod'] ?? 'N/A',
+                            style: TextStyle(fontSize: 12, color: mutedColor),
+                          ),
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          onPressed: () => _openSaleDetails(sale),
+                          child: Text(loc?.viewDetails ?? 'View Details'),
                         ),
                       ],
                     ),

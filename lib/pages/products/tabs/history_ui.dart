@@ -14,6 +14,41 @@ ButtonStyle get historyDenseIconButton => IconButton.styleFrom(
   iconSize: 20,
 );
 
+ButtonStyle get historyCompactFilterButton => OutlinedButton.styleFrom(
+  minimumSize: const Size(0, 32),
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+  visualDensity: VisualDensity.compact,
+  padding: const EdgeInsets.symmetric(horizontal: 8),
+);
+
+class HistoryFilterButton extends StatelessWidget {
+  const HistoryFilterButton({
+    super.key,
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      style: historyCompactFilterButton,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 14),
+      label: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+      ),
+    );
+  }
+}
+
 Color historyMarginColor(double margin) {
   if (margin < 0) return Colors.red;
   if (margin < 10) return Colors.orange;

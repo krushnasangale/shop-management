@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/products/tabs/history_ui.dart';
+import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
 
@@ -286,6 +288,27 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
     _ => loc?.date ?? 'Date',
   };
 
+  void _openPurchaseDetails(Map<String, dynamic> purchase) {
+    final purchaseId = (purchase['purchaseId'] ?? purchase['id'] ?? '')
+        .toString();
+    if (purchaseId.isEmpty) {
+      final loc = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            loc?.errorLoadingHistory ?? 'Unable to open purchase details',
+          ),
+        ),
+      );
+      return;
+    }
+
+    AppNavigator.push(
+      context,
+      PurchaseEntryDetails(entry: {...purchase, 'id': purchaseId}),
+    );
+  }
+
   Widget _buildToolbar(BuildContext context) {
     final loc = AppLocalizations.of(context);
     return Column(
@@ -294,35 +317,22 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: Row(
             children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: Adaptive.compactOutlined,
-                  onPressed: () => _showSupplierFilterSheet(context),
-                  icon: const Icon(Icons.filter_list, size: 16),
-                  label: Text(
-                    _filterSupplier == 'all'
-                        ? (loc?.allSuppliers ?? 'All Suppliers')
-                        : (_filterSupplier == 'Unknown'
-                            ? (loc?.unknown ?? 'Unknown')
-                            : _filterSupplier),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              HistoryFilterButton(
+                icon: Icons.filter_list,
+                label: _filterSupplier == 'all'
+                    ? (loc?.all ?? 'All')
+                    : (_filterSupplier == 'Unknown'
+                          ? (loc?.unknown ?? 'Unknown')
+                          : _filterSupplier),
+                onPressed: () => _showSupplierFilterSheet(context),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: Adaptive.compactOutlined,
-                  onPressed: () => _showPurchaseSortSheet(context),
-                  icon: const Icon(Icons.sort, size: 16),
-                  label: Text(
-                    _sortLabel(loc),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+              const SizedBox(width: 6),
+              HistoryFilterButton(
+                icon: Icons.sort,
+                label: _sortLabel(loc),
+                onPressed: () => _showPurchaseSortSheet(context),
               ),
+              const Spacer(),
               IconButton(
                 style: historyDenseIconButton,
                 tooltip: _sortAscending
@@ -466,7 +476,13 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                           color: scheme.primary,
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: 2),
+                      IconButton(
+                        style: historyDenseIconButton,
+                        tooltip: loc?.viewDetails ?? 'View Details',
+                        icon: const Icon(Icons.open_in_new, size: 18),
+                        onPressed: () => _openPurchaseDetails(purchase),
+                      ),
                       Icon(
                         isExpanded ? Icons.expand_less : Icons.expand_more,
                         size: 20,
@@ -556,9 +572,19 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                           color: mutedColor,
                         ),
                         const SizedBox(width: 6),
-                        Text(
-                          purchase['paymentMethod'] ?? 'N/A',
-                          style: TextStyle(fontSize: 12, color: mutedColor),
+                        Expanded(
+                          child: Text(
+                            purchase['paymentMethod'] ?? 'N/A',
+                            style: TextStyle(fontSize: 12, color: mutedColor),
+                          ),
+                        ),
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                          ),
+                          onPressed: () => _openPurchaseDetails(purchase),
+                          child: Text(loc?.viewDetails ?? 'View Details'),
                         ),
                       ],
                     ),
