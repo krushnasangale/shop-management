@@ -860,5 +860,10 @@
     "weak_password": "Password is too weak",
     "registration_failed": "Registration failed. Please try again.",
     "fill_all_required_fields": "Fill all required fields to get started",
-    "account_details": "Account Details"
+    "account_details": "Account Details",
+    "continue_with_google": "Continue with Google",
+    "or_label": "or",
+    "google_sign_in_failed": "Google sign-in failed. Please try again.",
+    "google_account_not_registered": "No shop account found. Please register first.",
+    "google_register_hint": "Continue with Google, then fill shop details"
 }

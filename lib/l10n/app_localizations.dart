@@ -127,6 +127,19 @@ class AppLocalizations {
   );
   String get accountDetails =>
       translate('account_details', fallback: 'Account Details');
+  String get continueWithGoogle =>
+      translate('continue_with_google', fallback: 'Continue with Google');
+  String get orLabel => translate('or_label', fallback: 'or');
+  String get googleSignInFailed =>
+      translate('google_sign_in_failed', fallback: 'Google sign-in failed');
+  String get googleAccountNotRegistered => translate(
+    'google_account_not_registered',
+    fallback: 'No shop account found. Please register first.',
+  );
+  String get googleRegisterHint => translate(
+    'google_register_hint',
+    fallback: 'Continue with Google, then fill shop details',
+  );
   String get totalSales => translate('total_sales');
   String get totalPurchases => translate('total_purchases');
   String get totalProfit => translate('total_profit');

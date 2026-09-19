@@ -860,5 +860,10 @@
     "weak_password": "पासवर्ड खूप कमकुवत आहे",
     "registration_failed": "नोंदणी अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
     "fill_all_required_fields": "सुरू करण्यासाठी सर्व आवश्यक माहिती भरा",
-    "account_details": "खाते तपशील"
+    "account_details": "खाते तपशील",
+    "continue_with_google": "Google सह सुरू ठेवा",
+    "or_label": "किंवा",
+    "google_sign_in_failed": "Google साइन इन अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
+    "google_account_not_registered": "दुकान खाते सापडले नाही. कृपया आधी नोंदणी करा.",
+    "google_register_hint": "Google सह सुरू ठेवा, नंतर दुकान माहिती भरा"
 }

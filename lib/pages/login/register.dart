@@ -1,17 +1,16 @@
 import 'dart:convert';
-import 'dart:io' show Platform;
 import 'dart:ui' as ui;
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/main.dart';
 import 'package:flashbill/providers/language_provider.dart';
-import 'package:flashbill/services/notification_service.dart';
+import 'package:flashbill/services/auth_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
-import 'package:flashbill/utils/device_utils.dart';
 import 'package:flashbill/widgets/app_loader.dart';
+import 'package:flashbill/widgets/continue_with_google_button.dart';
+import 'package:flashbill/widgets/language_selector.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
@@ -40,10 +39,38 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _showPassword = false;
   bool _showConfirmPassword = false;
   bool _submitted = false;
+  bool _skipAccountFields = false;
+  bool _googleLinked = false;
   String? _ownerSignatureBase64;
 
   bool get _hasSignature =>
       _ownerSignatureBase64 != null && _ownerSignatureBase64!.isNotEmpty;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _applyGoogleUser(user);
+    }
+  }
+
+  void _applyGoogleUser(User user) {
+    _googleLinked = user.providerData.any(
+      (info) => info.providerId == 'google.com',
+    );
+    _skipAccountFields = _googleLinked;
+    if (user.email != null && user.email!.isNotEmpty) {
+      _emailController.text = user.email!;
+      if (_shopEmailController.text.trim().isEmpty) {
+        _shopEmailController.text = user.email!;
+      }
+    }
+    if ((user.displayName ?? '').trim().isNotEmpty &&
+        _ownerNameController.text.trim().isEmpty) {
+      _ownerNameController.text = user.displayName!.trim();
+    }
+  }
 
   @override
   void dispose() {
@@ -81,18 +108,46 @@ class _RegisterPageState extends State<RegisterPage> {
     return null;
   }
 
-  Future<void> _register() async {
-    setState(() => _submitted = true);
-    if (!_formKey.currentState!.validate()) return;
-    if (!_hasSignature) {
-      final loc = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(loc?.pleaseAddSignature ?? 'Please add owner signature'),
-        ),
-      );
-      return;
+  bool _validateProfile({bool requireAccount = true}) {
+    setState(() {
+      _submitted = true;
+      _skipAccountFields = !requireAccount;
+    });
+    final formOk = _formKey.currentState?.validate() ?? false;
+    if (!formOk || !_hasSignature) {
+      if (!_hasSignature && mounted) {
+        final loc = AppLocalizations.of(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              loc?.pleaseAddSignature ?? 'Please add owner signature',
+            ),
+          ),
+        );
+      }
+      return false;
     }
+    return true;
+  }
+
+  Future<void> _saveCurrentProfile(String userId, String email) async {
+    await AuthService.saveShopProfile(
+      userId: userId,
+      email: email,
+      shopName: _shopNameController.text.trim(),
+      ownerName: _ownerNameController.text.trim(),
+      ownerPhone: _ownerPhoneController.text.trim(),
+      shopAddress: _shopAddressController.text.trim(),
+      shopPhone: _shopPhoneController.text.trim(),
+      shopEmail: _shopEmailController.text.trim(),
+      ownerSignature: _ownerSignatureBase64 ?? '',
+      authProvider: _googleLinked ? 'google' : 'password',
+    );
+    await AuthService.finishSignIn(userId);
+  }
+
+  Future<void> _register() async {
+    if (!_validateProfile(requireAccount: !_googleLinked)) return;
 
     setState(() => _loading = true);
     AppLoader.show(
@@ -101,6 +156,17 @@ class _RegisterPageState extends State<RegisterPage> {
 
     User? createdUser;
     try {
+      final existingUser = FirebaseAuth.instance.currentUser;
+      if (existingUser != null && _googleLinked) {
+        await _saveCurrentProfile(
+          existingUser.uid,
+          existingUser.email ?? _shopEmailController.text.trim(),
+        );
+        if (!mounted) return;
+        _goHome();
+        return;
+      }
+
       final email = _emailController.text.trim();
       final password = _passwordController.text;
       final credential = await FirebaseAuth.instance
@@ -110,40 +176,13 @@ class _RegisterPageState extends State<RegisterPage> {
         throw Exception('Failed to create user');
       }
 
-      await FirebaseFirestore.instance
-          .collection('shop-profile')
-          .doc(createdUser.uid)
-          .set({
-            'email': email,
-            'shopName': _shopNameController.text.trim(),
-            'ownerName': _ownerNameController.text.trim(),
-            'ownerPhone': _ownerPhoneController.text.trim(),
-            'shopAddress': _shopAddressController.text.trim(),
-            'shopPhone': _shopPhoneController.text.trim(),
-            'shopEmail': _shopEmailController.text.trim(),
-            'ownerSignature': _ownerSignatureBase64 ?? '',
-            'userType': 'user',
-            'isActive': true,
-            'createdAt': FieldValue.serverTimestamp(),
-            'lastUpdated': DateTime.now().toIso8601String(),
-          });
-
-      await _trackDevice(createdUser.uid);
-      if (!Platform.isWindows) {
-        await NotificationService().saveTokenToFirestore();
-      }
-
+      await _saveCurrentProfile(createdUser.uid, email);
       if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => const MyHomePage(title: '# NK Nagarwala'),
-        ),
-        (route) => false,
-      );
+      _goHome();
     } on FirebaseAuthException catch (e) {
       final loc = AppLocalizations.of(context);
-      String message = loc?.registrationFailed ??
-          'Registration failed. Please try again.';
+      String message =
+          loc?.registrationFailed ?? 'Registration failed. Please try again.';
       if (e.code == 'email-already-in-use') {
         message = loc?.emailAlreadyInUse ?? 'This email is already registered';
       } else if (e.code == 'weak-password') {
@@ -160,7 +199,7 @@ class _RegisterPageState extends State<RegisterPage> {
       if (createdUser != null) {
         try {
           await createdUser.delete();
-          await FirebaseAuth.instance.signOut();
+          await AuthService.signOut();
         } catch (_) {}
       }
       if (mounted) {
@@ -179,106 +218,102 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  Future<void> _trackDevice(String userId) async {
-    try {
-      final deviceInfo = await DeviceUtils.getDeviceInfo();
-      final deviceDoc = FirebaseFirestore.instance
-          .collection('user-devices')
-          .doc(userId)
-          .collection('devices')
-          .doc(deviceInfo['deviceId']);
+  Future<void> _registerWithGoogle() async {
+    setState(() => _loading = true);
+    AppLoader.show(
+      message:
+          AppLocalizations.of(context)?.continueWithGoogle ??
+          'Continue with Google',
+    );
 
-      await deviceDoc.set({
-        'deviceId': deviceInfo['deviceId'],
-        'deviceName': deviceInfo['deviceName'],
-        'deviceModel': deviceInfo['deviceModel'],
-        'platform': deviceInfo['platform'],
-        'osVersion': deviceInfo['osVersion'],
-        'lastLoginAt': FieldValue.serverTimestamp(),
-        'firstLoginAt': FieldValue.serverTimestamp(),
-        'revokedAt': FieldValue.delete(),
-      }, SetOptions(merge: true));
+    User? signedInUser;
+    try {
+      final credential = await AuthService.signInWithGoogle();
+      signedInUser = credential.user;
+      if (signedInUser == null) {
+        throw Exception('Google sign-in failed');
+      }
+
+      final alreadyRegistered = await AuthService.hasShopProfile(
+        signedInUser.uid,
+      );
+      if (alreadyRegistered) {
+        await AuthService.finishSignIn(signedInUser.uid);
+        if (!mounted) return;
+        _goHome();
+        return;
+      }
+
+      if (mounted) {
+        setState(() => _applyGoogleUser(signedInUser!));
+      }
+      if (!mounted) return;
+      final loc = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            loc?.googleRegisterHint ??
+                'Fill all shop details below to finish registration',
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (AuthService.isCancelled(e)) return;
+      if (signedInUser != null &&
+          !await AuthService.hasShopProfile(signedInUser.uid)) {
+        await AuthService.signOut();
+      }
+      if (!mounted) return;
+      final loc = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            loc?.googleSignInFailed ?? 'Google sign-in failed. Please try again.',
+          ),
+        ),
+      );
     } catch (e) {
-      debugPrint('Error tracking device: $e');
+      if (AuthService.isCancelled(e)) return;
+      if (signedInUser != null) {
+        try {
+          if (!await AuthService.hasShopProfile(signedInUser.uid)) {
+            await AuthService.signOut();
+          }
+        } catch (_) {}
+      }
+      if (!mounted) return;
+      final loc = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${loc?.registrationFailed ?? 'Registration failed'}: $e',
+          ),
+        ),
+      );
+    } finally {
+      AppLoader.hide();
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showLanguageSelector() {
-    final languageProvider = Provider.of<LanguageProvider>(
-      context,
-      listen: false,
+  void _goHome() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const MyHomePage(title: '# NK Nagarwala'),
+      ),
+      (route) => false,
     );
-    final loc = AppLocalizations.of(context);
+  }
 
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        final scheme = Theme.of(context).colorScheme;
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.language_rounded, color: scheme.primary),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        loc?.selectLanguage ?? 'Select Language',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ...languageProvider.supportedLanguages.map((language) {
-                  final isSelected =
-                      languageProvider.currentLocale.languageCode ==
-                      language['code'];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Material(
-                      color: isSelected
-                          ? scheme.primary.withValues(alpha: 0.1)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(12),
-                      child: ListTile(
-                        onTap: () async {
-                          await languageProvider.changeLanguage(
-                            language['code'] ?? 'en',
-                          );
-                          if (context.mounted) Navigator.pop(context);
-                        },
-                        selected: isSelected,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        title: Text(language['nativeName'] ?? ''),
-                        subtitle: Text(language['name'] ?? ''),
-                        trailing: isSelected
-                            ? Icon(Icons.check_circle, color: scheme.primary)
-                            : null,
-                      ),
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      },
-    );
+  Future<void> _onBack() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && !await AuthService.hasShopProfile(user.uid)) {
+      await AuthService.signOut();
+    }
+    if (!mounted) return;
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _showSignaturePicker() async {
@@ -483,16 +518,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Row(
                   children: [
                     IconButton.filledTonal(
-                      onPressed:
-                          _loading ? null : () => Navigator.of(context).pop(),
+                      onPressed: _loading ? null : _onBack,
                       icon: const Icon(Icons.arrow_back_rounded),
                     ),
                     const Spacer(),
-                    IconButton.filledTonal(
-                      onPressed: _showLanguageSelector,
-                      tooltip: loc?.selectLanguage ?? 'Select Language',
-                      icon: const Icon(Icons.language_rounded),
-                    ),
+                    const LanguageMenuButton(filledTonal: true),
                   ],
                 ),
               ),
@@ -576,73 +606,101 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _sectionLabel(loc?.accountDetails ?? 'Account Details'),
-              _buildTextField(
-                controller: _emailController,
-                label: loc?.email ?? 'Email',
-                hint: loc?.enterEmailOrUsername ?? 'Enter your email',
-                icon: Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress,
-                validator: (v) => _email(
-                  v,
-                  loc?.pleaseEnterEmailOrUsername ?? 'Please enter email',
-                  loc?.pleaseEnterValidEmail ?? 'Please enter valid email',
+              if (!_googleLinked) ...[
+                ContinueWithGoogleButton(
+                  label: loc?.continueWithGoogle ?? 'Continue with Google',
+                  loading: _loading,
+                  onPressed: _registerWithGoogle,
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _passwordController,
-                label: loc?.password ?? 'Password',
-                hint: loc?.enterPassword ?? 'Enter your password',
-                icon: Icons.lock_outline_rounded,
-                obscureText: !_showPassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _showPassword
-                        ? Icons.visibility_rounded
-                        : Icons.visibility_off_rounded,
+                const SizedBox(height: 8),
+                Text(
+                  loc?.googleRegisterHint ??
+                      'Continue with Google, then fill shop details',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 13,
                   ),
-                  onPressed: () => setState(() => _showPassword = !_showPassword),
                 ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) {
-                    return loc?.pleaseEnterPassword ?? 'Please enter password';
-                  }
-                  if (v.length < 6) {
-                    return loc?.passwordMinLength ??
-                        'Password must be at least 6 characters';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _confirmPasswordController,
-                label: loc?.confirmPassword ?? 'Confirm Password',
-                hint: loc?.confirmPassword ?? 'Confirm Password',
-                icon: Icons.lock_outline_rounded,
-                obscureText: !_showConfirmPassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _showConfirmPassword
-                        ? Icons.visibility_rounded
-                        : Icons.visibility_off_rounded,
+                const SizedBox(height: 16),
+                GoogleAuthDivider(label: loc?.orLabel ?? 'or'),
+                const SizedBox(height: 16),
+                _sectionLabel(loc?.accountDetails ?? 'Account Details'),
+                _buildTextField(
+                  controller: _emailController,
+                  label: loc?.email ?? 'Email',
+                  hint: loc?.enterEmailOrUsername ?? 'Enter your email',
+                  icon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (v) {
+                    if (_skipAccountFields) return null;
+                    return _email(
+                      v,
+                      loc?.pleaseEnterEmailOrUsername ?? 'Please enter email',
+                      loc?.pleaseEnterValidEmail ?? 'Please enter valid email',
+                    );
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildTextField(
+                  controller: _passwordController,
+                  label: loc?.password ?? 'Password',
+                  hint: loc?.enterPassword ?? 'Enter your password',
+                  icon: Icons.lock_outline_rounded,
+                  obscureText: !_showPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _showPassword
+                          ? Icons.visibility_rounded
+                          : Icons.visibility_off_rounded,
+                    ),
+                    onPressed: () =>
+                        setState(() => _showPassword = !_showPassword),
                   ),
-                  onPressed: () =>
-                      setState(() => _showConfirmPassword = !_showConfirmPassword),
+                  validator: (v) {
+                    if (_skipAccountFields) return null;
+                    if (v == null || v.isEmpty) {
+                      return loc?.pleaseEnterPassword ?? 'Please enter password';
+                    }
+                    if (v.length < 6) {
+                      return loc?.passwordMinLength ??
+                          'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
                 ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) {
-                    return loc?.confirmPasswordRequired ??
-                        'Please confirm your password';
-                  }
-                  if (v != _passwordController.text) {
-                    return loc?.passwordsDoNotMatch ?? 'Passwords do not match';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                _buildTextField(
+                  controller: _confirmPasswordController,
+                  label: loc?.confirmPassword ?? 'Confirm Password',
+                  hint: loc?.confirmPassword ?? 'Confirm Password',
+                  icon: Icons.lock_outline_rounded,
+                  obscureText: !_showConfirmPassword,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _showConfirmPassword
+                          ? Icons.visibility_rounded
+                          : Icons.visibility_off_rounded,
+                    ),
+                    onPressed: () => setState(
+                      () => _showConfirmPassword = !_showConfirmPassword,
+                    ),
+                  ),
+                  validator: (v) {
+                    if (_skipAccountFields) return null;
+                    if (v == null || v.isEmpty) {
+                      return loc?.confirmPasswordRequired ??
+                          'Please confirm your password';
+                    }
+                    if (v != _passwordController.text) {
+                      return loc?.passwordsDoNotMatch ??
+                          'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
               _sectionLabel(loc?.basicInformation ?? 'Basic Information'),
               _buildTextField(
                 controller: _shopNameController,

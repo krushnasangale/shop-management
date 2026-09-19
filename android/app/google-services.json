@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "963502909808",
+    "firebase_url": "https://shop-management-42ce1-default-rtdb.firebaseio.com",
     "project_id": "shop-management-42ce1",
     "storage_bucket": "shop-management-42ce1.firebasestorage.app"
   },
@@ -9,10 +10,23 @@
       "client_info": {
         "mobilesdk_app_id": "1:963502909808:android:644446d146ffb3962247b5",
         "android_client_info": {
-          "package_name": "com.flashbill.manage"
+          "package_name": "com.example.nkt"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "963502909808-r2ousmcokfmi8tscc15jjan6v3900ood.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.nkt",
+            "certificate_hash": "4a64797627c037c130d8c9fe0e801244bdf19acc"
+          }
+        },
+        {
+          "client_id": "963502909808-btglho1ku9ava03crdestnu84rhu7jup.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDsuK0AH8t16OMiISVNnw0GLIyqKwl5WgI"
@@ -20,7 +34,63 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "963502909808-btglho1ku9ava03crdestnu84rhu7jup.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "963502909808-hq52lhmafn4fa06hukj4mtcraa5t2tf7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.nkt"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:963502909808:android:68099767c7fd66692247b5",
+        "android_client_info": {
+          "package_name": "com.flashbill.manage"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "963502909808-m7g4b2o186np0td2u4ntf0i49akdnpk7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.flashbill.manage",
+            "certificate_hash": "4a64797627c037c130d8c9fe0e801244bdf19acc"
+          }
+        },
+        {
+          "client_id": "963502909808-btglho1ku9ava03crdestnu84rhu7jup.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsuK0AH8t16OMiISVNnw0GLIyqKwl5WgI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "963502909808-btglho1ku9ava03crdestnu84rhu7jup.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "963502909808-hq52lhmafn4fa06hukj4mtcraa5t2tf7.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.nkt"
+              }
+            }
+          ]
         }
       }
     }

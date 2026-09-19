@@ -860,5 +860,10 @@
     "weak_password": "पासवर्ड बहुत कमज़ोर है",
     "registration_failed": "पंजीकरण विफल रहा। कृपया पुनः प्रयास करें।",
     "fill_all_required_fields": "शुरू करने के लिए सभी आवश्यक फ़ील्ड भरें",
-    "account_details": "खाता विवरण"
+    "account_details": "खाता विवरण",
+    "continue_with_google": "Google के साथ जारी रखें",
+    "or_label": "या",
+    "google_sign_in_failed": "Google साइन इन विफल रहा। कृपया पुनः प्रयास करें।",
+    "google_account_not_registered": "कोई दुकान खाता नहीं मिला। कृपया पहले पंजीकरण करें।",
+    "google_register_hint": "Google के साथ जारी रखें, फिर दुकान विवरण भरें"
 }

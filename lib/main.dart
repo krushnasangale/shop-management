@@ -2,6 +2,7 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/login/login.dart';
+import 'package:flashbill/pages/login/register.dart';
 import 'package:flashbill/pages/products/available_products.dart';
 import 'package:flashbill/pages/billing/bills.dart';
 import 'package:flashbill/pages/purchase/purchase_items_list.dart';
@@ -294,7 +295,28 @@ class MyApp extends StatelessWidget {
                           }
                         }
 
-                        return const MyHomePage(title: '');
+                        return StreamBuilder<
+                          DocumentSnapshot<Map<String, dynamic>>
+                        >(
+                          stream: FirebaseFirestore.instance
+                              .collection('shop-profile')
+                              .doc(snapshot.data!.uid)
+                              .snapshots(),
+                          builder: (context, profileSnapshot) {
+                            if (profileSnapshot.connectionState ==
+                                    ConnectionState.waiting &&
+                                !profileSnapshot.hasData) {
+                              return Scaffold(body: AppLoader.page());
+                            }
+                            final shopName = profileSnapshot.data
+                                ?.data()?['shopName'];
+                            if (shopName is String &&
+                                shopName.trim().isNotEmpty) {
+                              return const MyHomePage(title: '');
+                            }
+                            return const RegisterPage();
+                          },
+                        );
                       },
                     );
                   },

@@ -1,16 +1,14 @@
-import 'package:flashbill/providers/language_provider.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/main.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:io' show Platform;
 import 'package:flashbill/l10n/app_localizations.dart';
-import 'package:provider/provider.dart';
-import 'package:flashbill/services/notification_service.dart';
-import 'package:flashbill/utils/device_utils.dart';
 import 'package:flashbill/pages/login/register.dart';
+import 'package:flashbill/services/auth_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_loader.dart';
+import 'package:flashbill/widgets/continue_with_google_button.dart';
+import 'package:flashbill/widgets/language_selector.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,22 +40,12 @@ class _LoginScreenState extends State<LoginScreen> {
       final userCredential = await FirebaseAuth.instance
           .signInWithEmailAndPassword(email: email, password: password);
 
-      // Track device after successful login
       if (userCredential.user != null) {
-        await _trackDevice(userCredential.user!.uid);
-
-        // Save FCM token to Firestore on login
-        if (!Platform.isWindows) {
-          await NotificationService().saveTokenToFirestore();
-        }
+        await AuthService.finishSignIn(userCredential.user!.uid);
       }
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (context) => const MyHomePage(title: '# NK Nagarwala'),
-        ),
-      );
+      _goHome();
     } on FirebaseAuthException catch (e, st) {
       final loc = AppLocalizations.of(context);
       String message = loc?.loginFailed ?? 'Login failed. Please try again.';
@@ -86,117 +74,50 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _trackDevice(String userId) async {
+  Future<void> _loginWithGoogle() async {
+    setState(() => _loading = true);
+    AppLoader.show(message: AppLocalizations.of(context)?.signIn ?? 'Sign In');
     try {
-      final deviceInfo = await DeviceUtils.getDeviceInfo();
-      final deviceId = deviceInfo['deviceId']!;
-      final deviceName = deviceInfo['deviceName']!;
-      final deviceModel = deviceInfo['deviceModel']!;
-      final osVersion = deviceInfo['osVersion']!;
-      final platform = deviceInfo['platform']!;
+      final credential = await AuthService.signInWithGoogle();
+      final user = credential.user;
+      if (user == null) {
+        throw Exception('Google sign-in failed');
+      }
 
-      // Store device information in Firestore
-      final deviceDoc = FirebaseFirestore.instance
-          .collection('user-devices')
-          .doc(userId)
-          .collection('devices')
-          .doc(deviceId);
+      final hasProfile = await AuthService.hasShopProfile(user.uid);
+      if (!hasProfile) {
+        return;
+      }
 
-      // Check if device was previously revoked
-      final existingDoc = await deviceDoc.get();
-      final wasRevoked =
-          existingDoc.exists && existingDoc.data()?['revokedAt'] != null;
-
-      await deviceDoc.set({
-        'deviceId': deviceId,
-        'deviceName': deviceName,
-        'deviceModel': deviceModel,
-        'platform': platform,
-        'osVersion': osVersion,
-        'lastLoginAt': FieldValue.serverTimestamp(),
-        'firstLoginAt': FieldValue.serverTimestamp(),
-        'revokedAt': FieldValue.delete(), // Remove revocation on new login
-      }, SetOptions(merge: true)); // Merge to keep firstLoginAt
-
-      debugPrint(
-        'Device tracked successfully: $deviceId${wasRevoked ? " (revocation cleared)" : ""}',
+      await AuthService.finishSignIn(user.uid);
+      if (!mounted) return;
+      _goHome();
+    } on FirebaseAuthException catch (e) {
+      if (AuthService.isCancelled(e)) return;
+      if (!mounted) return;
+      final loc = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(loc?.googleSignInFailed ?? 'Google sign-in failed'),
+        ),
       );
     } catch (e) {
-      debugPrint('Error tracking device: $e');
-      // Don't block login if device tracking fails
+      if (AuthService.isCancelled(e)) return;
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      AppLoader.hide();
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  void _showLanguageSelector() {
-    final languageProvider = Provider.of<LanguageProvider>(
-      context,
-      listen: false,
-    );
-    final loc = AppLocalizations.of(context);
-
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (BuildContext context) {
-        final scheme = Theme.of(context).colorScheme;
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.language_rounded, color: scheme.primary),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        loc?.selectLanguage ?? 'Select Language',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ...languageProvider.supportedLanguages.map((language) {
-                  final isSelected =
-                      languageProvider.currentLocale.languageCode ==
-                      language['code'];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: ListTile(
-                      onTap: () async {
-                        await languageProvider.changeLanguage(
-                          language['code'] ?? 'en',
-                        );
-                        if (context.mounted) Navigator.pop(context);
-                      },
-                      selected: isSelected,
-                      selectedTileColor: scheme.primary.withValues(alpha: 0.1),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      title: Text(language['nativeName'] ?? ''),
-                      subtitle: Text(language['name'] ?? ''),
-                      trailing: isSelected
-                          ? Icon(Icons.check_circle, color: scheme.primary)
-                          : null,
-                    ),
-                  );
-                }),
-              ],
-            ),
-          ),
-        );
-      },
+  void _goHome() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => const MyHomePage(title: '# NK Nagarwala'),
+      ),
     );
   }
 
@@ -224,14 +145,10 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SafeArea(
           child: Stack(
             children: [
-              Positioned(
+              const Positioned(
                 top: 8,
                 right: 8,
-                child: IconButton.filledTonal(
-                  onPressed: _showLanguageSelector,
-                  tooltip: loc?.selectLanguage ?? 'Select Language',
-                  icon: const Icon(Icons.language_rounded),
-                ),
+                child: LanguageMenuButton(filledTonal: true),
               ),
               Center(
                 child: SingleChildScrollView(
@@ -348,6 +265,14 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 28),
               _buildLoginButton(loc),
+              const SizedBox(height: 16),
+              GoogleAuthDivider(label: loc?.orLabel ?? 'or'),
+              const SizedBox(height: 16),
+              ContinueWithGoogleButton(
+                label: loc?.continueWithGoogle ?? 'Continue with Google',
+                loading: _loading,
+                onPressed: _loginWithGoogle,
+              ),
               const SizedBox(height: 16),
               _buildSignUpRow(loc),
             ],

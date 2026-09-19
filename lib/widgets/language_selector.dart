@@ -3,8 +3,60 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/providers/language_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+
+class LanguageMenuButton extends StatelessWidget {
+  const LanguageMenuButton({super.key, this.filledTonal = false});
+
+  final bool filledTonal;
+
+  @override
+  Widget build(BuildContext context) {
+    final languageProvider = Provider.of<LanguageProvider>(context);
+    final loc = AppLocalizations.of(context);
+    final tooltip = loc?.selectLanguage ?? 'Select Language';
+    final items = languageProvider.supportedLanguages
+        .map(
+          (language) => AppContextMenuItem(
+            label: language['nativeName'] ?? language['name'] ?? '',
+            icon: languageProvider.currentLocale.languageCode ==
+                    language['code']
+                ? Icons.check_circle
+                : Icons.language_rounded,
+            selected:
+                languageProvider.currentLocale.languageCode == language['code'],
+            onPressed: () {
+              languageProvider.changeLanguage(language['code'] ?? 'en');
+            },
+          ),
+        )
+        .toList();
+
+    return Builder(
+      builder: (buttonContext) {
+        void showMenu() {
+          AppContextMenu.show(buttonContext: buttonContext, items: items);
+        }
+
+        if (filledTonal) {
+          return IconButton.filledTonal(
+            onPressed: showMenu,
+            tooltip: tooltip,
+            icon: const Icon(Icons.language_rounded),
+          );
+        }
+
+        return IconButton(
+          onPressed: showMenu,
+          tooltip: tooltip,
+          icon: const Icon(Icons.language_rounded),
+        );
+      },
+    );
+  }
+}
 
 class LanguageSelector extends StatefulWidget {
   const LanguageSelector({super.key});
