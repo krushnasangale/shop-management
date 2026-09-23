@@ -866,6 +866,8 @@
     "google_sign_in_failed": "Google साइन इन अयशस्वी. कृपया पुन्हा प्रयत्न करा.",
     "google_account_not_registered": "दुकान खाते सापडले नाही. कृपया आधी नोंदणी करा.",
     "google_register_hint": "Google सह सुरू ठेवा, नंतर दुकान माहिती भरा",
+    "agree_privacy_prefix": "पुढे जाऊन, तुम्ही आमच्या ",
+    "agree_privacy_suffix": " शी सहमत आहात.",
     "skip": "वगळा",
     "next": "पुढे",
     "get_started": "सुरू करा",
@@ -883,5 +885,9 @@
     "onboarding_notifications_payments": "थकबाकी पेमेंट स्मरण",
     "onboarding_notifications_daily": "दैनंदिन दुकान अपडेट्स",
     "allow_notifications": "सूचनांना परवानगी द्या",
-    "not_now": "आत्ता नाही"
+    "not_now": "आत्ता नाही",
+    "profile_percent_complete": "प्रोफाइल {percent}% पूर्ण",
+    "profile_incomplete_dashboard": "सर्व सुविधा वापरण्यासाठी दुकानाची प्रोफाइल पूर्ण करा.",
+    "profile_incomplete_bills": "बिल तयार करण्यासाठी दुकानाची प्रोफाइल पूर्ण करा.",
+    "profile_required_to_create_bill": "बिल तयार करण्यापूर्वी दुकानाची प्रोफाइल पूर्ण करा."
 }

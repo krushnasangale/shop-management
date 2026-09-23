@@ -89,11 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('Google sign-in failed');
       }
 
-      final hasProfile = await AuthService.hasShopProfile(user.uid);
-      if (!hasProfile) {
-        return;
-      }
-
+      await AuthService.ensureGoogleShopProfile(user);
       await AuthService.finishSignIn(user.uid);
       if (!mounted) return;
       _goHome();

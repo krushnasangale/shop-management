@@ -17,6 +17,7 @@ import 'package:flashbill/services/onboarding_service.dart';
 // import 'package:flashbill/services/subscription_guard.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
+import 'package:flashbill/widgets/profile_incomplete_banner.dart';
 import 'package:flashbill/utils/app_logger.dart';
 
 class Dashboard extends StatefulWidget {
@@ -675,8 +676,7 @@ class _DashboardState extends State<Dashboard>
       body: SafeArea(
         child: Column(
           children: [
-            // Subscription expiry is temporarily disabled.
-            // const SubscriptionExpiredBanner(),
+            const ProfileIncompleteBanner(),
             Expanded(
               child: _isLoading
                   ? AppLoader.page()

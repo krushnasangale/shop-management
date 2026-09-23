@@ -140,9 +140,31 @@ class AppLocalizations {
     'google_register_hint',
     fallback: 'Continue with Google, then fill shop details',
   );
+  String get agreePrivacyPrefix => translate(
+    'agree_privacy_prefix',
+    fallback: 'By continuing, you agree to our ',
+  );
+  String get agreePrivacySuffix =>
+      translate('agree_privacy_suffix', fallback: '.');
   String get skip => translate('skip', fallback: 'Skip');
   String get next => translate('next', fallback: 'Next');
   String get getStarted => translate('get_started', fallback: 'Get Started');
+  String get profilePercentComplete => translate(
+    'profile_percent_complete',
+    fallback: 'Profile {percent}% complete',
+  );
+  String get profileIncompleteDashboard => translate(
+    'profile_incomplete_dashboard',
+    fallback: 'Complete your shop profile to use all features.',
+  );
+  String get profileIncompleteBills => translate(
+    'profile_incomplete_bills',
+    fallback: 'Complete your shop profile to create bills.',
+  );
+  String get profileRequiredToCreateBill => translate(
+    'profile_required_to_create_bill',
+    fallback: 'Complete your shop profile before creating a bill.',
+  );
   String get onboardingWelcomeTitle => translate(
     'onboarding_welcome_title',
     fallback: 'Welcome to FlashBill',

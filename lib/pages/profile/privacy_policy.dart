@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -230,15 +231,29 @@ class PrivacyPolicyPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.email, size: 16, color: Colors.blue[700]),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Email: support@flashbill.com',
-                        style: context.bodyMediumText,
+                  InkWell(
+                    onTap: () => launchUrl(
+                      Uri(
+                        scheme: 'mailto',
+                        path: 'krushnasangale7447@gmail.com',
                       ),
-                    ],
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.email, size: 16, color: Colors.blue[700]),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Email: krushnasangale7447@gmail.com',
+                            style: context.bodyMediumText?.copyWith(
+                              color: Colors.blue[700],
+                              decoration: TextDecoration.underline,
+                              decorationColor: Colors.blue[700],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(

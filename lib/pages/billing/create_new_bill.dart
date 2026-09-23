@@ -11,6 +11,7 @@ import 'package:flashbill/pages/billing/bill_success_page.dart';
 import 'package:flashbill/pages/billing/review_billing_details.dart';
 import 'package:flashbill/pages/product_image_preview_page.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/widgets/profile_incomplete_banner.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/utils/search_utils.dart';
@@ -164,11 +165,10 @@ class _CreateNewBillState extends State<CreateNewBill> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      // if (!SubscriptionGuard.ensureCanWrite(context)) {
-        //   Navigator.of(context).maybePop();
-      // }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted || widget.isEditMode) return;
+      if (await ensureProfileCompleteForBilling(context)) return;
+      if (mounted) Navigator.of(context).maybePop();
     });
     _searchController = TextEditingController();
     _dateController = TextEditingController(

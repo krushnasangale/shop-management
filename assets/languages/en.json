@@ -866,6 +866,8 @@
     "google_sign_in_failed": "Google sign-in failed. Please try again.",
     "google_account_not_registered": "No shop account found. Please register first.",
     "google_register_hint": "Continue with Google, then fill shop details",
+    "agree_privacy_prefix": "By continuing, you agree to our ",
+    "agree_privacy_suffix": ".",
     "skip": "Skip",
     "next": "Next",
     "get_started": "Get Started",
@@ -883,5 +885,9 @@
     "onboarding_notifications_payments": "Pending payment reminders",
     "onboarding_notifications_daily": "Daily shop updates",
     "allow_notifications": "Allow notifications",
-    "not_now": "Not now"
+    "not_now": "Not now",
+    "profile_percent_complete": "Profile {percent}% complete",
+    "profile_incomplete_dashboard": "Complete your shop profile to use all features.",
+    "profile_incomplete_bills": "Complete your shop profile to create bills.",
+    "profile_required_to_create_bill": "Complete your shop profile before creating a bill."
 }

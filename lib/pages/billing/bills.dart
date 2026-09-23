@@ -19,6 +19,7 @@ import 'package:flashbill/services/file_service.dart';
 import 'dart:typed_data';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/widgets/app_loader.dart';
+import 'package:flashbill/widgets/profile_incomplete_banner.dart';
 // import 'package:flashbill/services/subscription_guard.dart';
 
 class Bills extends StatefulWidget {
@@ -862,8 +863,9 @@ class _BillsState extends State<Bills> {
           IconButton(
             icon: const Icon(Icons.add_rounded, size: 32),
             tooltip: localizations.createBill,
-            onPressed: () {
-              // if (!SubscriptionGuard.ensureCanWrite(context)) return;
+            onPressed: () async {
+              if (!await ensureProfileCompleteForBilling(context)) return;
+              if (!context.mounted) return;
               AppNavigator.push(context, const CreateNewBill());
             },
           ),
@@ -891,6 +893,7 @@ class _BillsState extends State<Bills> {
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const ProfileIncompleteBanner(forBilling: true),
                 // --- 1. Search Bar (Toggle Visibility) ---
                 if (_showSearchBar)
                   Padding(

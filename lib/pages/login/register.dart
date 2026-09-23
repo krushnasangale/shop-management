@@ -5,6 +5,8 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/main.dart';
+import 'package:flashbill/navigation/app_navigator.dart';
+import 'package:flashbill/pages/profile/privacy_policy.dart';
 import 'package:flashbill/providers/language_provider.dart';
 import 'package:flashbill/services/auth_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
@@ -53,25 +55,22 @@ class _RegisterPageState extends State<RegisterPage> {
   void initState() {
     super.initState();
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      _applyGoogleUser(user);
-    }
-  }
-
-  void _applyGoogleUser(User user) {
-    _googleLinked = user.providerData.any(
-      (info) => info.providerId == 'google.com',
-    );
-    _skipAccountFields = _googleLinked;
-    if (user.email != null && user.email!.isNotEmpty) {
-      _emailController.text = user.email!;
-      if (_shopEmailController.text.trim().isEmpty) {
-        _shopEmailController.text = user.email!;
-      }
-    }
-    if ((user.displayName ?? '').trim().isNotEmpty &&
-        _ownerNameController.text.trim().isEmpty) {
-      _ownerNameController.text = user.displayName!.trim();
+    if (user != null &&
+        user.providerData.any((info) => info.providerId == 'google.com')) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        setState(() => _googleLoading = true);
+        AppLoader.show(
+          message: AppLocalizations.of(context)?.continueWithGoogle ??
+              'Continue with Google',
+        );
+        try {
+          await _completeGoogleRegistration(user);
+        } finally {
+          AppLoader.hide();
+          if (mounted) setState(() => _googleLoading = false);
+        }
+      });
     }
   }
 
@@ -237,29 +236,7 @@ class _RegisterPageState extends State<RegisterPage> {
         throw Exception('Google sign-in failed');
       }
 
-      final alreadyRegistered = await AuthService.hasShopProfile(
-        signedInUser.uid,
-      );
-      if (alreadyRegistered) {
-        await AuthService.finishSignIn(signedInUser.uid);
-        if (!mounted) return;
-        _goHome();
-        return;
-      }
-
-      if (mounted) {
-        setState(() => _applyGoogleUser(signedInUser!));
-      }
-      if (!mounted) return;
-      final loc = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            loc?.googleRegisterHint ??
-                'Fill all shop details below to finish registration',
-          ),
-        ),
-      );
+      await _completeGoogleRegistration(signedInUser);
     } on FirebaseAuthException catch (e) {
       if (AuthService.isCancelled(e)) return;
       if (signedInUser != null &&
@@ -297,6 +274,13 @@ class _RegisterPageState extends State<RegisterPage> {
       AppLoader.hide();
       if (mounted) setState(() => _googleLoading = false);
     }
+  }
+
+  Future<void> _completeGoogleRegistration(User user) async {
+    await AuthService.ensureGoogleShopProfile(user);
+    await AuthService.finishSignIn(user.uid);
+    if (!mounted) return;
+    _goHome();
   }
 
   void _goHome() {
@@ -615,16 +599,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   loading: _googleLoading,
                   onPressed: _busy ? null : _registerWithGoogle,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  loc?.googleRegisterHint ??
-                      'Continue with Google, then fill shop details',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 13,
-                  ),
-                ),
                 const SizedBox(height: 16),
                 GoogleAuthDivider(label: loc?.orLabel ?? 'or'),
                 const SizedBox(height: 16),
@@ -787,7 +761,9 @@ class _RegisterPageState extends State<RegisterPage> {
               _buildSignatureField(scheme, loc),
               const SizedBox(height: 28),
               _buildSubmitButton(loc),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
+              _buildPrivacyLink(loc),
+              const SizedBox(height: 8),
               _buildSignInRow(loc),
             ],
           ),
@@ -953,6 +929,46 @@ class _RegisterPageState extends State<RegisterPage> {
     }
 
     return FilledButton(onPressed: _busy ? null : _register, child: child);
+  }
+
+  Widget _buildPrivacyLink(AppLocalizations? loc) {
+    return Text.rich(
+      TextSpan(
+        style: TextStyle(
+          fontSize: 13,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        children: [
+          TextSpan(
+            text: loc?.agreePrivacyPrefix ?? 'By continuing, you agree to our ',
+          ),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: GestureDetector(
+              onTap: _busy
+                  ? null
+                  : () => AppNavigator.push(
+                      context,
+                      const PrivacyPolicyPage(),
+                    ),
+              child: Text(
+                loc?.privacyPolicy ?? 'Privacy Policy',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: Theme.of(context).colorScheme.primary,
+                  decoration: TextDecoration.underline,
+                  decorationColor: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ),
+          TextSpan(text: loc?.agreePrivacySuffix ?? '.'),
+        ],
+      ),
+      textAlign: TextAlign.center,
+    );
   }
 
   Widget _buildSignInRow(AppLocalizations? loc) {

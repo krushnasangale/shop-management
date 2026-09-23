@@ -42,6 +42,27 @@ class AuthService {
     return shopName is String && shopName.trim().isNotEmpty;
   }
 
+  static Future<void> ensureGoogleShopProfile(User user) async {
+    if (await hasShopProfile(user.uid)) return;
+    final email = (user.email ?? '').trim();
+    final name = (user.displayName ?? '').trim();
+    final fallbackName = name.isNotEmpty
+        ? name
+        : (email.contains('@') ? email.split('@').first : 'My Shop');
+    await saveShopProfile(
+      userId: user.uid,
+      email: email,
+      shopName: fallbackName,
+      ownerName: name,
+      ownerPhone: '',
+      shopAddress: '',
+      shopPhone: '',
+      shopEmail: email,
+      ownerSignature: '',
+      authProvider: 'google',
+    );
+  }
+
   static Future<void> saveShopProfile({
     required String userId,
     required String email,
