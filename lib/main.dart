@@ -3,6 +3,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/login/login.dart';
 import 'package:flashbill/pages/login/register.dart';
+import 'package:flashbill/pages/onboarding/onboarding_screen.dart';
+import 'package:flashbill/services/onboarding_service.dart';
 import 'package:flashbill/pages/products/available_products.dart';
 import 'package:flashbill/pages/billing/bills.dart';
 import 'package:flashbill/pages/purchase/purchase_items_list.dart';
@@ -129,10 +131,6 @@ class MyApp extends StatelessWidget {
     }
   }
 
-  Future<String> _getCurrentDeviceId() async {
-    return await DeviceUtils.getDeviceId();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer2<ThemeProvider, LanguageProvider>(
@@ -168,23 +166,79 @@ class MyApp extends StatelessWidget {
               ),
             );
           },
-          home: StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+          home: const _AppEntry(),
+        );
+      },
+    );
+  }
+}
+
+class _AppEntry extends StatefulWidget {
+  const _AppEntry();
+
+  @override
+  State<_AppEntry> createState() => _AppEntryState();
+}
+
+class _AppEntryState extends State<_AppEntry> {
+  bool? _onboardingDone;
+
+  @override
+  void initState() {
+    super.initState();
+    OnboardingService.hasCompleted().then((done) {
+      if (mounted) setState(() => _onboardingDone = done);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_onboardingDone == null) {
+      return Scaffold(body: AppLoader.page());
+    }
+    if (_onboardingDone!) {
+      return const _AuthGate();
+    }
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(body: AppLoader.page());
+        }
+        if (snapshot.hasData && snapshot.data != null) {
+          return const _AuthGate();
+        }
+        return OnboardingScreen(
+          onComplete: () {
+            if (mounted) setState(() => _onboardingDone = true);
+          },
+        );
+      },
+    );
+  }
+}
+
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(body: AppLoader.page());
+        }
+        if (snapshot.hasData && snapshot.data != null) {
+          return FutureBuilder<String>(
+            future: DeviceUtils.getDeviceId(),
+            builder: (context, deviceIdSnapshot) {
+              if (deviceIdSnapshot.connectionState ==
+                  ConnectionState.waiting) {
                 return Scaffold(body: AppLoader.page());
               }
-              if (snapshot.hasData && snapshot.data != null) {
-                // Listen to device revocation status in real-time
-                return FutureBuilder<String>(
-                  future: _getCurrentDeviceId(),
-                  builder: (context, deviceIdSnapshot) {
-                    if (deviceIdSnapshot.connectionState ==
-                        ConnectionState.waiting) {
-                      return Scaffold(body: AppLoader.page());
-                    }
 
-                    final deviceId = deviceIdSnapshot.data ?? 'unknown';
+              final deviceId = deviceIdSnapshot.data ?? 'unknown';
 
                     // Stream for device document with error handling to avoid
                     // permission-denied crashes when auth state changes rapidly.
@@ -324,10 +378,7 @@ class MyApp extends StatelessWidget {
               }
               return const LoginScreen();
             },
-          ),
-        );
-      },
-    );
+          );
   }
 }
 

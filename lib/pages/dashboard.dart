@@ -13,6 +13,7 @@ import 'package:flashbill/services/dashboard_service.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:flashbill/widgets/dashboard_widgets.dart';
 import 'package:flashbill/services/notification_service.dart';
+import 'package:flashbill/services/onboarding_service.dart';
 // import 'package:flashbill/services/subscription_guard.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
@@ -61,8 +62,8 @@ class _DashboardState extends State<Dashboard>
     _dashboardService = DashboardService();
     _loadFilterPreference();
 
-    // Request notification permission after dashboard loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (await OnboardingService.wasNotificationPrompted()) return;
       NotificationService().requestPermission();
     });
   }

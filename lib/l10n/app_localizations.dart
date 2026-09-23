@@ -140,6 +140,65 @@ class AppLocalizations {
     'google_register_hint',
     fallback: 'Continue with Google, then fill shop details',
   );
+  String get skip => translate('skip', fallback: 'Skip');
+  String get next => translate('next', fallback: 'Next');
+  String get getStarted => translate('get_started', fallback: 'Get Started');
+  String get onboardingWelcomeTitle => translate(
+    'onboarding_welcome_title',
+    fallback: 'Welcome to FlashBill',
+  );
+  String get onboardingWelcomeSubtitle => translate(
+    'onboarding_welcome_subtitle',
+    fallback: 'Run stock, bills, and profit from one shop app.',
+  );
+  String get onboardingStockTitle => translate(
+    'onboarding_stock_title',
+    fallback: 'Stock that stays current',
+  );
+  String get onboardingStockSubtitle => translate(
+    'onboarding_stock_subtitle',
+    fallback: 'Record purchases and see what is available, instantly.',
+  );
+  String get onboardingBillingTitle => translate(
+    'onboarding_billing_title',
+    fallback: 'Bill in seconds',
+  );
+  String get onboardingBillingSubtitle => translate(
+    'onboarding_billing_subtitle',
+    fallback: 'Create bills, collect payments, and share receipts.',
+  );
+  String get onboardingInsightsTitle => translate(
+    'onboarding_insights_title',
+    fallback: 'See your profit clearly',
+  );
+  String get onboardingInsightsSubtitle => translate(
+    'onboarding_insights_subtitle',
+    fallback: 'Sales, dues, and daily performance at a glance.',
+  );
+  String get onboardingNotificationsTitle => translate(
+    'onboarding_notifications_title',
+    fallback: 'Stay in the loop',
+  );
+  String get onboardingNotificationsSubtitle => translate(
+    'onboarding_notifications_subtitle',
+    fallback:
+        'Allow notifications for low stock, pending payments, and daily shop updates.',
+  );
+  String get onboardingNotificationsLowStock => translate(
+    'onboarding_notifications_low_stock',
+    fallback: 'Low stock warnings',
+  );
+  String get onboardingNotificationsPayments => translate(
+    'onboarding_notifications_payments',
+    fallback: 'Pending payment reminders',
+  );
+  String get onboardingNotificationsDaily => translate(
+    'onboarding_notifications_daily',
+    fallback: 'Daily shop updates',
+  );
+  String get allowNotifications =>
+      translate('allow_notifications', fallback: 'Allow notifications');
+  String get notNow => translate('not_now', fallback: 'Not now');
   String get totalSales => translate('total_sales');
   String get totalPurchases => translate('total_purchases');
   String get totalProfit => translate('total_profit');
