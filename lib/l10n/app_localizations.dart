@@ -161,6 +161,16 @@ class AppLocalizations {
     'profile_incomplete_bills',
     fallback: 'Complete your shop profile to create bills.',
   );
+  String get country => translate('country', fallback: 'Country');
+  String get currency => translate('currency', fallback: 'Currency');
+  String get selectCountry =>
+      translate('select_country', fallback: 'Select country');
+  String get selectCurrency =>
+      translate('select_currency', fallback: 'Select currency');
+  String get pleaseSelectCountry =>
+      translate('please_select_country', fallback: 'Please select country');
+  String get pleaseSelectCurrency =>
+      translate('please_select_currency', fallback: 'Please select currency');
   String get profileRequiredToCreateBill => translate(
     'profile_required_to_create_bill',
     fallback: 'Complete your shop profile before creating a bill.',

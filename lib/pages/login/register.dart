@@ -12,6 +12,7 @@ import 'package:flashbill/services/auth_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/widgets/continue_with_google_button.dart';
+import 'package:flashbill/widgets/country_currency_fields.dart';
 import 'package:flashbill/widgets/language_selector.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_ui/material_ui.dart';
@@ -47,6 +48,10 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _skipAccountFields = false;
   bool _googleLinked = false;
   String? _ownerSignatureBase64;
+  String _countryCode = '';
+  String _countryName = '';
+  String _currencyCode = '';
+  String _currencySymbol = '';
 
   bool get _hasSignature =>
       _ownerSignatureBase64 != null && _ownerSignatureBase64!.isNotEmpty;
@@ -116,7 +121,10 @@ class _RegisterPageState extends State<RegisterPage> {
       _skipAccountFields = !requireAccount;
     });
     final formOk = _formKey.currentState?.validate() ?? false;
-    if (!formOk || !_hasSignature) {
+    if (!formOk ||
+        !_hasSignature ||
+        _countryCode.isEmpty ||
+        _currencyCode.isEmpty) {
       if (!_hasSignature && mounted) {
         final loc = AppLocalizations.of(context);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -143,6 +151,10 @@ class _RegisterPageState extends State<RegisterPage> {
       shopPhone: _shopPhoneController.text.trim(),
       shopEmail: _shopEmailController.text.trim(),
       ownerSignature: _ownerSignatureBase64 ?? '',
+      countryCode: _countryCode,
+      countryName: _countryName,
+      currencyCode: _currencyCode,
+      currencySymbol: _currencySymbol,
       authProvider: _googleLinked ? 'google' : 'password',
     );
     await AuthService.finishSignIn(userId);
@@ -699,6 +711,24 @@ class _RegisterPageState extends State<RegisterPage> {
                   v,
                   loc?.pleaseEnterOwnerName ?? 'Please enter owner name',
                 ),
+              ),
+              const SizedBox(height: 16),
+              CountryCurrencyFields(
+                countryCode: _countryCode,
+                currencyCode: _currencyCode,
+                submitted: _submitted,
+                onCountrySelected: (country) {
+                  setState(() {
+                    _countryCode = country.code;
+                    _countryName = country.name;
+                  });
+                },
+                onCurrencySelected: (currency) {
+                  setState(() {
+                    _currencyCode = currency.code;
+                    _currencySymbol = currency.symbol;
+                  });
+                },
               ),
               const SizedBox(height: 24),
               _sectionLabel(loc?.contactInformation ?? 'Contact Information'),

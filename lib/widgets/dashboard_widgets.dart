@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 
 Color dashboardSurface(BuildContext context) {
   return Theme.of(context).brightness == Brightness.dark
@@ -182,7 +183,7 @@ class ProductListItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${loc?.qty ?? 'Qty'}: $quantity  ·  ${loc?.revenue ?? 'Revenue'}: ₹$revenue',
+                  '${loc?.qty ?? 'Qty'}: $quantity  ·  ${loc?.revenue ?? 'Revenue'}: ${context.currencySymbol}$revenue',
                   style: TextStyle(
                     fontSize: 12,
                     color: scheme.onSurfaceVariant,
@@ -193,7 +194,7 @@ class ProductListItem extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${loc?.profit ?? 'Profit'}: ₹$profit',
+            '${loc?.profit ?? 'Profit'}: ${context.currencySymbol}$profit',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -358,7 +359,7 @@ class PaymentListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${loc?.bill ?? 'Bill'}: ₹$totalAmount  ·  ${loc?.remaining ?? 'Remaining'}: ₹$remainingAmount',
+                    '${loc?.bill ?? 'Bill'}: ${context.currencySymbol}$totalAmount  ·  ${loc?.remaining ?? 'Remaining'}: ${context.currencySymbol}$remainingAmount',
                     style: TextStyle(
                       fontSize: 12,
                       color: scheme.onSurfaceVariant,

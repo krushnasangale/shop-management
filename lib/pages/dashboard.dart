@@ -17,6 +17,7 @@ import 'package:flashbill/services/onboarding_service.dart';
 // import 'package:flashbill/services/subscription_guard.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/widgets/profile_incomplete_banner.dart';
 import 'package:flashbill/utils/app_logger.dart';
 
@@ -296,7 +297,7 @@ class _DashboardState extends State<Dashboard>
       title: loc?.pendingPayments ?? 'Pending Payments',
       themeColor: Colors.orange,
       badgeText:
-          '₹${_formatCurrency(_dashboardData?.pendingPayments.totalAmount ?? 0, loc: AppLocalizations.of(context))}',
+          '${context.currencySymbol}${_formatCurrency(_dashboardData?.pendingPayments.totalAmount ?? 0, loc: AppLocalizations.of(context))}',
       grouped: true,
       showDivider: true,
       initiallyExpanded: _expandPendingPayments,
@@ -382,19 +383,19 @@ class _DashboardState extends State<Dashboard>
                 DashboardMetric(
                   label: loc?.totalDue ?? 'Total Due',
                   value:
-                      '₹${_formatCurrency(((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt(), loc: loc)}',
+                      '${context.currencySymbol}${_formatCurrency(((_dashboardData?.previousDueTracking.totalCollected ?? 0) + (_dashboardData?.previousDueTracking.totalPending ?? 0)).toInt(), loc: loc)}',
                   valueColor: Colors.purple[600],
                 ),
                 DashboardMetric(
                   label: loc?.collected ?? 'Collected',
                   value:
-                      '₹${_formatCurrency(_dashboardData?.previousDueTracking.totalCollected.toInt() ?? 0, loc: loc)}',
+                      '${context.currencySymbol}${_formatCurrency(_dashboardData?.previousDueTracking.totalCollected.toInt() ?? 0, loc: loc)}',
                   valueColor: Colors.green[600],
                 ),
                 DashboardMetric(
                   label: loc?.pending ?? 'Pending',
                   value:
-                      '₹${_formatCurrency(_dashboardData?.previousDueTracking.totalPending.toInt() ?? 0, loc: loc)}',
+                      '${context.currencySymbol}${_formatCurrency(_dashboardData?.previousDueTracking.totalPending.toInt() ?? 0, loc: loc)}',
                   valueColor: Colors.orange[600],
                 ),
               ],
@@ -441,7 +442,7 @@ class _DashboardState extends State<Dashboard>
           DashboardMetric(
             label: loc?.stockValue ?? 'Stock value',
             value:
-                '₹${_formatCurrency((_dashboardData?.productsData.totalAvailableAmount ?? 0).toInt(), loc: loc)}',
+                '${context.currencySymbol}${_formatCurrency((_dashboardData?.productsData.totalAvailableAmount ?? 0).toInt(), loc: loc)}',
             valueColor: Colors.blue[600],
           ),
         ],
@@ -501,7 +502,7 @@ class _DashboardState extends State<Dashboard>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${loc?.due ?? 'Due'}: ${payment['nextPaymentDate']}  ·  ₹${payment['totalAmount']}',
+                                '${loc?.due ?? 'Due'}: ${payment['nextPaymentDate']}  ·  ${context.currencySymbol}${payment['totalAmount']}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: scheme.onSurfaceVariant,
@@ -511,7 +512,7 @@ class _DashboardState extends State<Dashboard>
                           ),
                         ),
                         Text(
-                          '${loc?.remaining ?? 'Remaining'}: ₹${payment['amountRemaining']}',
+                          '${loc?.remaining ?? 'Remaining'}: ${context.currencySymbol}${payment['amountRemaining']}',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -884,7 +885,7 @@ class _DashboardState extends State<Dashboard>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '₹${_formatCurrency(totalSales, loc: loc)}',
+                  '${context.currencySymbol}${_formatCurrency(totalSales, loc: loc)}',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -906,7 +907,7 @@ class _DashboardState extends State<Dashboard>
               ),
               const SizedBox(height: 6),
               Text(
-                '${isProfitable ? '+' : '-'}₹${_formatCurrency(profit.abs(), loc: loc)}',
+                '${isProfitable ? '+' : '-'}${context.currencySymbol}${_formatCurrency(profit.abs(), loc: loc)}',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -983,7 +984,10 @@ class _DashboardState extends State<Dashboard>
             : (loc?.selectMonthYear ?? 'Select Month & Year');
 
         return AlertDialog(
-          title: Text(dialogTitle, style: TextStyle(color: primaryColor)),
+          title: Text(
+            dialogTitle,
+            style: TextStyle(color: primaryColor, fontSize: 19),
+          ),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
               return SizedBox(
@@ -1006,7 +1010,7 @@ class _DashboardState extends State<Dashboard>
                         Text(
                           selectedYear.toString(),
                           style: const TextStyle(
-                            fontSize: 20,
+                            fontSize: 19,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -1033,6 +1037,7 @@ class _DashboardState extends State<Dashboard>
                             ),
                         itemCount: 12,
                         itemBuilder: (context, index) {
+                          final isSelected = selectedMonth == index + 1;
                           return InkWell(
                             onTap: () {
                               setStateDialog(() {
@@ -1042,14 +1047,14 @@ class _DashboardState extends State<Dashboard>
                             child: Container(
                               margin: const EdgeInsets.all(4),
                               decoration: BoxDecoration(
-                                color: selectedMonth == index + 1
+                                color: isSelected
                                     ? Theme.of(context).primaryColor
-                                    : null,
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: selectedMonth == index + 1
+                                  color: isSelected
                                       ? Theme.of(context).primaryColor
-                                      : Colors.grey,
+                                      : const Color(0xFFD0D5DD),
                                 ),
                               ),
                               child: Center(
@@ -1057,12 +1062,15 @@ class _DashboardState extends State<Dashboard>
                                   loc?.getFullMonthName(index + 1) ??
                                       getMonthName(index + 1),
                                   style: TextStyle(
-                                    color: selectedMonth == index + 1
+                                    fontSize: 13,
+                                    color: isSelected
                                         ? Colors.white
-                                        : null,
-                                    fontWeight: selectedMonth == index + 1
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    fontWeight: isSelected
                                         ? FontWeight.bold
-                                        : null,
+                                        : FontWeight.w500,
                                   ),
                                 ),
                               ),
@@ -1078,10 +1086,20 @@ class _DashboardState extends State<Dashboard>
           ),
           actions: [
             TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Theme.of(context).colorScheme.onSurface,
+                textStyle: const TextStyle(fontSize: 13),
+              ),
               onPressed: () => Navigator.of(context).pop(),
               child: Text(loc?.cancel ?? 'Cancel'),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).primaryColor,
+                foregroundColor: Colors.white,
+                textStyle: const TextStyle(fontSize: 13),
+              ),
               onPressed: () {
                 setState(() {
                   selectedDate = DateTime(selectedYear, selectedMonth, 1);

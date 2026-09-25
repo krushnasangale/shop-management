@@ -5,6 +5,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
 import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/widgets/app_loader.dart';
 import 'package:material_ui/material_ui.dart';
 // import 'package:flashbill/services/subscription_guard.dart';
@@ -109,7 +110,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                     _SummaryTile(
                       icon: Icons.account_balance_wallet_outlined,
                       label: loc.total,
-                      value: '₹${widget.totalAmount}',
+                      value: '${context.currencySymbol}${widget.totalAmount}',
                       valueColor: scheme.primary,
                     ),
                     const SizedBox(width: 8),
@@ -196,11 +197,11 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                     subtitle: Text(
                       '${loc.supplier}: ${product.supplierName}\n'
                       '${loc.qty}: ${product.quantity.toStringAsFixed(0)} ${product.unit}'
-                      '  ·  ₹${product.price} ${loc.each}',
+                      '  ·  ${context.currencySymbol}${product.price} ${loc.each}',
                     ),
                     isThreeLine: true,
                     trailing: Text(
-                      '₹${product.total.toStringAsFixed(2)}',
+                      '${context.currencySymbol}${product.total.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontWeight: FontWeight.w800,
                         color: scheme.primary,
@@ -225,7 +226,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                   _infoTile(
                     icon: Icons.account_balance_wallet_outlined,
                     label: loc.amount,
-                    value: '₹${widget.previousDueAmount.toStringAsFixed(2)}',
+                    value: '${context.currencySymbol}${widget.previousDueAmount.toStringAsFixed(2)}',
                     valueColor: scheme.error,
                   ),
                   if (widget.previousPaidAmount > 0)
@@ -233,7 +234,7 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                       icon: Icons.payments_outlined,
                       label: loc.previousPaidAmount,
                       value:
-                          '₹${widget.previousPaidAmount.toStringAsFixed(2)}',
+                          '${context.currencySymbol}${widget.previousPaidAmount.toStringAsFixed(2)}',
                       valueColor: scheme.primary,
                     ),
                   if (widget.previousDueDescription.isNotEmpty)
@@ -260,24 +261,24 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
                 _infoTile(
                   icon: Icons.shopping_bag_outlined,
                   label: loc.totalAmount,
-                  value: '₹${widget.totalAmount}',
+                  value: '${context.currencySymbol}${widget.totalAmount}',
                 ),
                 if (widget.deliveryCharges > 0)
                   _infoTile(
                     icon: Icons.local_shipping_outlined,
                     label: loc.deliveryCharges,
-                    value: '₹${widget.deliveryCharges}',
+                    value: '${context.currencySymbol}${widget.deliveryCharges}',
                   ),
                 _infoTile(
                   icon: Icons.payments_outlined,
                   label: loc.amountPaid,
-                  value: '₹${widget.amountPaid ?? 0}',
+                  value: '${context.currencySymbol}${widget.amountPaid ?? 0}',
                   valueColor: scheme.primary,
                 ),
                 _infoTile(
                   icon: Icons.account_balance_wallet_outlined,
                   label: loc.amountDue,
-                  value: '₹${widget.amountRemaining ?? 0}',
+                  value: '${context.currencySymbol}${widget.amountRemaining ?? 0}',
                   valueColor: (widget.amountRemaining ?? 0) > 0
                       ? scheme.error
                       : null,
@@ -351,11 +352,13 @@ class _ReviewBillingDetailsState extends State<ReviewBillingDetails> {
             widget.isEditMode
                 ? localizations!.updateBill
                 : localizations!.confirmBill,
+            textAlign: TextAlign.center,
           ),
           content: Text(
             widget.isEditMode
                 ? localizations!.areYouSureUpdateBill
                 : localizations!.areYouSureCreateBill,
+            textAlign: TextAlign.center,
           ),
           actions: [
             TextButton(

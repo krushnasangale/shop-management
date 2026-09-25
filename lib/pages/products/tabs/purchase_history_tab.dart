@@ -3,6 +3,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/products/tabs/history_ui.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/search_utils.dart';
 
@@ -385,11 +386,11 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
             ),
             HistoryMetric(
               label: loc?.spent ?? 'Spent',
-              value: '₹${(stats['totalSpent'] as num).toStringAsFixed(0)}',
+              value: '${context.currencySymbol}${(stats['totalSpent'] as num).toStringAsFixed(0)}',
             ),
             HistoryMetric(
               label: loc?.profit ?? 'Profit',
-              value: '₹${totalProfit.toStringAsFixed(0)}',
+              value: '${context.currencySymbol}${totalProfit.toStringAsFixed(0)}',
               valueColor: totalProfit >= 0 ? Colors.green : Colors.red,
             ),
           ],
@@ -467,7 +468,7 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '₹${purchase['total'] ?? 0}',
+                            '${context.currencySymbol}${purchase['total'] ?? 0}',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
@@ -524,22 +525,22 @@ class _PurchaseHistoryTabState extends State<PurchaseHistoryTab> {
                           children: [
                             HistoryMetric(
                               label: loc?.buy ?? 'Buy',
-                              value: '₹${purchase['buyingPrice']}',
+                              value: '${context.currencySymbol}${purchase['buyingPrice']}',
                             ),
                             HistoryMetric(
                               label: loc?.sell ?? 'Sell',
-                              value: '₹${purchase['sellingPrice']}',
+                              value: '${context.currencySymbol}${purchase['sellingPrice']}',
                             ),
                             HistoryMetric(
                               label: loc?.perUnit ?? 'Per unit',
-                              value: '₹${profitPerUnit.toStringAsFixed(0)}',
+                              value: '${context.currencySymbol}${profitPerUnit.toStringAsFixed(0)}',
                               valueColor: profitPerUnit >= 0
                                   ? Colors.green
                                   : Colors.red,
                             ),
                             HistoryMetric(
                               label: loc?.profit ?? 'Profit',
-                              value: '₹${totalProfit.toStringAsFixed(0)}',
+                              value: '${context.currencySymbol}${totalProfit.toStringAsFixed(0)}',
                               valueColor: totalProfit >= 0
                                   ? Colors.green
                                   : Colors.red,

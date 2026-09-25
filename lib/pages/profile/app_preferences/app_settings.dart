@@ -309,7 +309,7 @@ class _SettingTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final leading = _settingsLeading(context, icon);
     final titleStyle = _settingsTitleStyle(context);
-    final switchWidget = CupertinoSwitch(
+    final switchWidget = Adaptive.toggle(
       value: value,
       onChanged: onChanged,
     );
@@ -407,7 +407,7 @@ class _ThemeTile extends StatelessWidget {
       builder: (context, themeProvider, _) {
         final isLight = themeProvider.isLightTheme;
         final scheme = Theme.of(context).colorScheme;
-        final switchWidget = CupertinoSwitch(
+        final switchWidget = Adaptive.toggle(
           value: isLight,
           onChanged: (_) => themeProvider.toggleTheme(),
         );

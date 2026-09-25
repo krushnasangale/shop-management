@@ -12,6 +12,7 @@ import 'package:flashbill/services/file_service.dart';
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
@@ -263,10 +264,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     _nextPaymentDateController = TextEditingController(
       text: nextPaymentDate ?? '',
     );
-    totalAmount = '₹ ${widget.totalAmount.toString()}';
+    final symbol = context.currenciesRead.symbol;
+    totalAmount = '$symbol ${widget.totalAmount.toString()}';
     isTotalAmountPaid = widget.totalAmountPaid;
-    amountPaid = '₹ ${widget.amountPaid.toString()}';
-    amountRemaining = '₹ ${widget.amountRemaining.toString()}';
+    amountPaid = '$symbol ${widget.amountPaid.toString()}';
+    amountRemaining = '$symbol ${widget.amountRemaining.toString()}';
 
     // Load app settings
     _loadAppSettings();
@@ -278,8 +280,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             (p) => {
               'name': (p['productName'] ?? 'Unknown').toString(),
               'qty': (p['quantity'] ?? 0).toString(),
-              'price': '₹ ${(p['price'] ?? 0).toString()}',
-              'boughtPrice': '₹ ${(p['boughtPrice'] ?? 0).toString()}',
+              'price': '$symbol ${(p['price'] ?? 0).toString()}',
+              'boughtPrice': '$symbol ${(p['boughtPrice'] ?? 0).toString()}',
               'batchId': (p['batchId'] as String?) ?? '',
               'profitTotal':
                   (p['profitTotal'] as num?)?.toStringAsFixed(2) ?? '0.00',
@@ -805,6 +807,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     String? shopPhone,
     String? ownerPhone,
   }) async {
+    final currencySymbol = context.currenciesRead.symbol;
+
     // Ensure billNumber is loaded before generating PDF
     if (billNumber == 0) {
       await _loadDiscount(); // This will load or generate billNumber
@@ -867,6 +871,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       shopAddress: finalShopAddress,
       shopPhone: finalShopPhone,
       ownerPhone: finalOwnerPhone,
+      currencySymbol: currencySymbol,
     );
   }
 
@@ -887,8 +892,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
         return;
       }
 
-      final totalAmountInt = int.parse(totalAmount.replaceAll('₹ ', ''));
-      final currentAmountPaid = int.parse(amountPaid.replaceAll('₹ ', ''));
+      final totalAmountInt = int.parse(totalAmount.replaceAll('${context.currencySymbol} ', ''));
+      final currentAmountPaid = int.parse(amountPaid.replaceAll('${context.currencySymbol} ', ''));
       final newTotalAmountPaid = currentAmountPaid + paymentAmount;
 
       if (newTotalAmountPaid > totalAmountInt) {
@@ -897,7 +902,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             content: Text(
               localizations.totalPaymentCannotExceed.replaceAll(
                 '%s',
-                '₹$totalAmountInt',
+                '${context.currencySymbol}$totalAmountInt',
               ),
             ),
           ),
@@ -930,8 +935,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       if (!mounted) return;
       // Update local state
       setState(() {
-        amountPaid = '₹ $newTotalAmountPaid';
-        amountRemaining = '₹ $newRemaining';
+        amountPaid = '${context.currencySymbol} $newTotalAmountPaid';
+        amountRemaining = '${context.currencySymbol} $newRemaining';
         isTotalAmountPaid = isFullyPaid;
         paymentStatus = isFullyPaid
             ? localizations.paid
@@ -988,10 +993,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final baseAmount = int.tryParse(totalAmount.replaceAll('₹ ', '')) ?? 0;
-    final paidAmount = int.tryParse(amountPaid.replaceAll('₹ ', '')) ?? 0;
+    final baseAmount = int.tryParse(totalAmount.replaceAll('${context.currencySymbol} ', '')) ?? 0;
+    final paidAmount = int.tryParse(amountPaid.replaceAll('${context.currencySymbol} ', '')) ?? 0;
     final remainingAmount =
-        int.tryParse(amountRemaining.replaceAll('₹ ', '')) ?? 0;
+        int.tryParse(amountRemaining.replaceAll('${context.currencySymbol} ', '')) ?? 0;
     final finalAmount =
         baseAmount + (_deliveryChargesEnabled ? deliveryCharges : 0) - discount;
     final isMobile = Platform.isAndroid || Platform.isIOS;
@@ -1010,7 +1015,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       for (final product in widget.products!) {
         final boughtPrice =
             double.tryParse(
-              product['boughtPrice']?.toString().replaceAll('₹', '').trim() ??
+              product['boughtPrice']?.toString().replaceAll('${context.currencySymbol}', '').trim() ??
                   '0',
             ) ??
             0;
@@ -1096,20 +1101,20 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 _SummaryTile(
                   icon: Icons.receipt_long_outlined,
                   label: localizations.finalAmount,
-                  value: '₹${_formatAmount(finalAmount)}',
+                  value: '${context.currencySymbol}${_formatAmount(finalAmount)}',
                   valueColor: scheme.primary,
                 ),
                     const SizedBox(width: 8),
                 _SummaryTile(
                   icon: Icons.payments_outlined,
                   label: localizations.amountPaid,
-                  value: '₹${_formatAmount(paidAmount)}',
+                  value: '${context.currencySymbol}${_formatAmount(paidAmount)}',
                 ),
                 const SizedBox(width: 8),
                 _SummaryTile(
                   icon: Icons.account_balance_wallet_outlined,
                   label: localizations.remaining,
-                  value: '₹${_formatAmount(remainingAmount)}',
+                  value: '${context.currencySymbol}${_formatAmount(remainingAmount)}',
                   valueColor: remainingAmount > 0 ? scheme.error : null,
                 ),
                   ],
@@ -1214,31 +1219,31 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
               _infoTile(
                 icon: Icons.local_offer_outlined,
                 label: localizations.discount,
-                value: '₹${_formatAmount(discount)}',
+                value: '${context.currencySymbol}${_formatAmount(discount)}',
                 onTap: _showEditDiscountDialog,
               ),
               if (_deliveryChargesEnabled || deliveryCharges > 0)
                 _infoTile(
                   icon: Icons.local_shipping_outlined,
                   label: localizations.deliveryCharges,
-                  value: '₹${_formatAmount(deliveryCharges)}',
+                  value: '${context.currencySymbol}${_formatAmount(deliveryCharges)}',
                 ),
               _infoTile(
                 icon: Icons.receipt_long_outlined,
                 label: localizations.finalAmount,
-                value: '₹${_formatAmount(finalAmount)}',
+                value: '${context.currencySymbol}${_formatAmount(finalAmount)}',
                 valueColor: scheme.primary,
               ),
               _infoTile(
                 icon: Icons.payments_outlined,
                 label: localizations.amountPaid,
-                value: '₹${_formatAmount(paidAmount)}',
+                value: '${context.currencySymbol}${_formatAmount(paidAmount)}',
                 onTap: _showEditAmountPaidDialog,
               ),
               _infoTile(
                 icon: Icons.account_balance_wallet_outlined,
                 label: localizations.amountRemaining,
-                value: '₹${_formatAmount(remainingAmount)}',
+                value: '${context.currencySymbol}${_formatAmount(remainingAmount)}',
                 valueColor: remainingAmount > 0 ? scheme.error : null,
               ),
               _infoTile(
@@ -1271,17 +1276,17 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                 _infoTile(
                   icon: Icons.account_balance_wallet_outlined,
                   label: localizations.total,
-                  value: '₹${_formatAmount(previousDueAmount)}',
+                  value: '${context.currencySymbol}${_formatAmount(previousDueAmount)}',
                 ),
                 _infoTile(
                   icon: Icons.payments_outlined,
                   label: localizations.paid,
-                  value: '₹${_formatAmount(previousPaidAmount)}',
+                  value: '${context.currencySymbol}${_formatAmount(previousPaidAmount)}',
                 ),
                 _infoTile(
                   icon: Icons.pending_actions_outlined,
                   label: localizations.remaining,
-                  value: '₹${_formatAmount(pendingPreviousDue)}',
+                  value: '${context.currencySymbol}${_formatAmount(pendingPreviousDue)}',
                   valueColor: pendingPreviousDue > 0 ? scheme.error : null,
                 ),
                 if (previousDueDescription.isNotEmpty)
@@ -1307,7 +1312,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     ? Icons.trending_up_rounded
                     : Icons.trending_down_rounded,
                 label: isProfitable ? localizations.profit : localizations.loss,
-                value: '₹${_formatAmount(totalProfit.abs())}',
+                value: '${context.currencySymbol}${_formatAmount(totalProfit.abs())}',
                 valueColor: profitColor,
               ),
               _infoTile(
@@ -1368,7 +1373,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     icon: _paymentMethodIcon(payment.paymentMethod),
                     label:
                         '${payment.date}  ·  ${_paymentMethodLabel(payment.paymentMethod)}',
-                    value: '₹${_formatAmount(payment.amount)}',
+                    value: '${context.currencySymbol}${_formatAmount(payment.amount)}',
                   ),
             ],
           ),
@@ -1438,7 +1443,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   void _showAddPaymentDialog() {
     // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController amountController = TextEditingController();
-    final remainingAmount = int.parse(amountRemaining.replaceAll('₹ ', ''));
+    final remainingAmount = int.parse(amountRemaining.replaceAll('${context.currencySymbol} ', ''));
     String selectedPaymentMethod = 'cash';
 
     showDialog(
@@ -1476,7 +1481,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                             ),
                           ),
                           Text(
-                            '₹ $remainingAmount',
+                            '${context.currencySymbol} $remainingAmount',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -1493,8 +1498,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                       decoration: InputDecoration(
                         labelText: localizations.paymentAmount,
                         hintText: localizations.eg2000,
-                        prefixText: '₹ ',
-                        helperText: '${localizations.max}: ₹ $remainingAmount',
+                        prefixText: '${context.currencySymbol} ',
+                        helperText: '${localizations.max}: ${context.currencySymbol} $remainingAmount',
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1585,7 +1590,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           content: Text(
                             localizations.totalPaymentCannotExceed.replaceAll(
                               '%s',
-                              '₹ $remainingAmount',
+                              '${context.currencySymbol} $remainingAmount',
                             ),
                           ),
                         ),
@@ -1942,7 +1947,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
     // Prepare message based on payment status
     String message;
-    final remainingAmount = int.parse(amountRemaining.replaceAll('₹ ', ''));
+    final remainingAmount = int.parse(amountRemaining.replaceAll('${context.currencySymbol} ', ''));
 
     if (remainingAmount > 0) {
       // Pending payment reminder message
@@ -1950,7 +1955,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
           '$shopName\n\n'
           'Dear $customerName,\n\n'
           'Thank you for shopping with us!\n\n'
-          'This is a friendly reminder that you have a pending payment of ₹$remainingAmount '
+          'This is a friendly reminder that you have a pending payment of ${context.currencySymbol}$remainingAmount '
           'for your purchase on $billDate.\n\n'
           '${nextPaymentDate != null && nextPaymentDate!.isNotEmpty ? "Please arrange payment by $nextPaymentDate.\n\n" : ""}'
           'We appreciate your business!\n\n'
@@ -1989,7 +1994,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
     final TextEditingController discountController = TextEditingController();
     String? errorText;
     final remainingAmountValue = int.parse(
-      amountRemaining.replaceAll('₹ ', ''),
+      amountRemaining.replaceAll('${context.currencySymbol} ', ''),
     );
 
     showDialog(
@@ -2026,7 +2031,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           ),
                         ),
                         Text(
-                          '₹ $remainingAmountValue',
+                          '${context.currencySymbol} $remainingAmountValue',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -2048,9 +2053,9 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     decoration: InputDecoration(
                       labelText: localizations.addDiscount,
                       hintText: localizations.eg100,
-                      prefixText: '₹ ',
+                      prefixText: '${context.currencySymbol} ',
                       helperText:
-                          '${localizations.max}: ₹ $remainingAmountValue',
+                          '${localizations.max}: ${context.currencySymbol} $remainingAmountValue',
                       prefixIcon: const Icon(Icons.discount),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -2108,10 +2113,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       if (user == null) throw Exception('User not authenticated');
 
       final currentRemainingAmount = int.parse(
-        amountRemaining.replaceAll('₹ ', ''),
+        amountRemaining.replaceAll('${context.currencySymbol} ', ''),
       );
-      final currentAmountPaid = int.parse(amountPaid.replaceAll('₹ ', ''));
-      final totalAmountValue = int.parse(totalAmount.replaceAll('₹ ', ''));
+      final currentAmountPaid = int.parse(amountPaid.replaceAll('${context.currencySymbol} ', ''));
+      final totalAmountValue = int.parse(totalAmount.replaceAll('${context.currencySymbol} ', ''));
 
       // Calculate new total discount (current + additional)
       final newTotalDiscount = discount + additionalDiscount;
@@ -2142,8 +2147,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
       setState(() {
         discount = newTotalDiscount;
-        amountRemaining = '₹ ${isFullyPaid ? 0 : newRemainingAmount}';
-        amountPaid = '₹ ${isFullyPaid ? totalAmountValue : newAmountPaid}';
+        amountRemaining = '${context.currencySymbol} ${isFullyPaid ? 0 : newRemainingAmount}';
+        amountPaid = '${context.currencySymbol} ${isFullyPaid ? totalAmountValue : newAmountPaid}';
         isTotalAmountPaid = isFullyPaid;
         paymentStatus = isFullyPaid
             ? localizations.paid
@@ -2164,11 +2169,11 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
             isFullyPaid
                 ? localizations.discountAddedBillFullyPaid.replaceAll(
                     '%s',
-                    '₹$additionalDiscount',
+                    '${context.currencySymbol}$additionalDiscount',
                   )
                 : localizations.discountAddedSuccessfully.replaceAll(
                     '%s',
-                    '₹$additionalDiscount',
+                    '${context.currencySymbol}$additionalDiscount',
                   ),
           ),
         ),
@@ -2184,10 +2189,10 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
   void _showEditAmountPaidDialog() {
     // if (!SubscriptionGuard.ensureCanWrite(context)) return;
     final TextEditingController amountController = TextEditingController(
-      text: amountPaid.replaceAll('₹ ', ''),
+      text: amountPaid.replaceAll('${context.currencySymbol} ', ''),
     );
     String? errorText;
-    final totalAmountValue = int.parse(totalAmount.replaceAll('₹ ', ''));
+    final totalAmountValue = int.parse(totalAmount.replaceAll('${context.currencySymbol} ', ''));
     final finalAmountValue = totalAmountValue - discount;
 
     showDialog(
@@ -2224,7 +2229,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                           ),
                         ),
                         Text(
-                          '₹ $finalAmountValue',
+                          '${context.currencySymbol} $finalAmountValue',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -2258,8 +2263,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
                     decoration: InputDecoration(
                       labelText: localizations.amountPaid,
                       hintText: localizations.eg100,
-                      prefixText: '₹ ',
-                      helperText: '${localizations.max}: ₹ $finalAmountValue',
+                      prefixText: '${context.currencySymbol} ',
+                      helperText: '${localizations.max}: ${context.currencySymbol} $finalAmountValue',
                       prefixIcon: const Icon(Icons.payment),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
@@ -2307,7 +2312,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) throw Exception('User not authenticated');
 
-      final totalAmountValue = int.parse(totalAmount.replaceAll('₹ ', ''));
+      final totalAmountValue = int.parse(totalAmount.replaceAll('${context.currencySymbol} ', ''));
       final finalAmountValue = totalAmountValue - discount;
       final newRemainingAmount = finalAmountValue - newAmountPaid;
       final isFullyPaid = newRemainingAmount <= 0;
@@ -2320,7 +2325,7 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
 
       // Add new payment record for the adjustment
       await _addPaymentRecord(
-        newAmountPaid - int.parse(amountPaid.replaceAll('₹ ', '')),
+        newAmountPaid - int.parse(amountPaid.replaceAll('${context.currencySymbol} ', '')),
         'adjustment',
       );
 
@@ -2332,8 +2337,8 @@ class _ViewBillDetailsScreenState extends State<ViewBillDetailsScreen> {
       });
 
       setState(() {
-        amountPaid = '₹ $newAmountPaid';
-        amountRemaining = '₹ ${isFullyPaid ? 0 : newRemainingAmount}';
+        amountPaid = '${context.currencySymbol} $newAmountPaid';
+        amountRemaining = '${context.currencySymbol} ${isFullyPaid ? 0 : newRemainingAmount}';
         isTotalAmountPaid = isFullyPaid;
         paymentStatus = isFullyPaid
             ? localizations.paid
@@ -2403,11 +2408,11 @@ class _BillProductTile extends StatelessWidget {
     final name = product['name'] ?? '';
     final quantity = double.tryParse(product['qty'] ?? '0') ?? 0;
               final sellingPrice =
-        double.tryParse(product['price']?.replaceAll('₹', '').trim() ?? '0') ??
+        double.tryParse(product['price']?.replaceAll('${context.currencySymbol}', '').trim() ?? '0') ??
                   0;
               final boughtPrice =
                   double.tryParse(
-          product['boughtPrice']?.replaceAll('₹', '').trim() ?? '0',
+          product['boughtPrice']?.replaceAll('${context.currencySymbol}', '').trim() ?? '0',
                   ) ??
                   0;
     final batchId = product['batchId'] ?? '';
@@ -2442,7 +2447,7 @@ class _BillProductTile extends StatelessWidget {
               ),
               const SizedBox(width: 8),
                             Text(
-                '₹${_formatAmount(total)}',
+                '${context.currencySymbol}${_formatAmount(total)}',
                               style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: scheme.primary,
@@ -2461,11 +2466,11 @@ class _BillProductTile extends StatelessWidget {
                         children: [
                 _Metric(
                   label: localizations.buyingPrice,
-                  value: '₹${_formatAmount(boughtPrice)}',
+                  value: '${context.currencySymbol}${_formatAmount(boughtPrice)}',
                 ),
                 _Metric(
                   label: localizations.sellingPrice,
-                  value: '₹${_formatAmount(sellingPrice)}',
+                  value: '${context.currencySymbol}${_formatAmount(sellingPrice)}',
                           ),
                         ],
                       ),
@@ -2474,14 +2479,14 @@ class _BillProductTile extends StatelessWidget {
                         children: [
                 _Metric(
                   label: localizations.profitPerUnit,
-                  value: '₹${_formatAmount(profitPerUnit)}',
+                  value: '${context.currencySymbol}${_formatAmount(profitPerUnit)}',
                   valueColor: profitPerUnit >= 0
                       ? scheme.primary
                       : scheme.error,
                 ),
                 _Metric(
                   label: localizations.totalProfit,
-                  value: '₹${_formatAmount(profit)}',
+                  value: '${context.currencySymbol}${_formatAmount(profit)}',
                   valueColor: profit >= 0 ? scheme.primary : scheme.error,
                           ),
                         ],

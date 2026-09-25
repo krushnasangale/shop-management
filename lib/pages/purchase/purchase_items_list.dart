@@ -11,6 +11,7 @@ import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
 import 'package:flashbill/services/gemini_service.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/utils/app_logger.dart';
@@ -999,7 +1000,7 @@ class _PurchaseEntryTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '₹${_formatAmount(amount)}',
+                        '${context.currencySymbol}${_formatAmount(amount)}',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,

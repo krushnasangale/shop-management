@@ -3,6 +3,7 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:intl/intl.dart';
@@ -187,8 +188,8 @@ class _SupplierHistoryScreenState extends State<SupplierHistoryScreen> {
     const icons = [
       CupertinoIcons.clock,
       CupertinoIcons.clock,
-      Icons.currency_rupee,
-      Icons.currency_rupee,
+      Icons.payments,
+      Icons.payments,
     ];
     final options = _sortOptions(loc);
     return AppContextMenu.iconButton(
@@ -309,7 +310,7 @@ class _SummaryCard extends StatelessWidget {
         children: [
           CupertinoListTile(
             title: Text(totalInvestedLabel),
-            additionalInfo: Text('₹${totalSpent.toStringAsFixed(2)}'),
+            additionalInfo: Text('${context.currencySymbol}${totalSpent.toStringAsFixed(2)}'),
           ),
           CupertinoListTile(
             title: Text(purchasesLabel),
@@ -331,7 +332,7 @@ class _SummaryCard extends StatelessWidget {
         children: [
           row(
             totalInvestedLabel,
-            '₹${totalSpent.toStringAsFixed(2)}',
+            '${context.currencySymbol}${totalSpent.toStringAsFixed(2)}',
             emphasize: true,
           ),
           const Divider(height: 1, indent: 16),
@@ -374,7 +375,7 @@ class _MonthHeader extends StatelessWidget {
             ),
           ),
           Text(
-            '₹${total.toStringAsFixed(0)}',
+            '${context.currencySymbol}${total.toStringAsFixed(0)}',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -460,7 +461,7 @@ class _TransactionTile extends StatelessWidget {
     final amount = ((purchase['totalAmount'] ?? 0) as num).toDouble();
     final qty = purchase['totalUnits'] ?? 0;
     final date = purchase['date']?.toString() ?? 'N/A';
-    final amountText = '₹${amount.toStringAsFixed(2)}';
+    final amountText = '${context.currencySymbol}${amount.toStringAsFixed(2)}';
     final subtitle = '$qty $qtyLabel';
 
     if (Adaptive.isCupertino) {

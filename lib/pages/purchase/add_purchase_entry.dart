@@ -13,6 +13,7 @@ import 'package:flashbill/pages/product_image_preview_page.dart';
 import 'package:flashbill/pages/purchase/add_purchase_review.dart';
 import 'package:flashbill/services/image_upload_service.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/utils/app_logger.dart';
@@ -689,6 +690,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         ),
                         decoration: Adaptive.compactField(
                           label: appLocalizations.buyingPriceRupees,
+                          prefixText: context.currencySymbol,
                         ),
                       ),
                     ),
@@ -699,6 +701,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                         keyboardType: TextInputType.number,
                         decoration: Adaptive.compactField(
                           label: appLocalizations.sellingPriceRupees,
+                          prefixText: context.currencySymbol,
                         ),
                       ),
                     ),
@@ -2429,6 +2432,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                                 const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
+                            prefixText: context.currencySymbol,
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -2450,6 +2454,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                             label: loc.sellingPrice,
                             controller: _sellingPriceController,
                             keyboardType: TextInputType.number,
+                            prefixText: context.currencySymbol,
                           ),
                           const SizedBox(height: 6),
                           Text(
@@ -2524,7 +2529,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
                           ),
                         ),
                         Text(
-                          '₹${_formatAmount(_totalBoughtAmount)}',
+                          '${context.currencySymbol}${_formatAmount(_totalBoughtAmount)}',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -2559,6 +2564,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
     VoidCallback? onTap,
     TextInputType? keyboardType,
     String? errorText,
+    String? prefixText,
   }) {
     final scheme = Theme.of(context).colorScheme;
     return TextFormField(
@@ -2570,6 +2576,7 @@ class _AddPurchaseEntryState extends State<AddPurchaseEntry> {
         label: label,
         icon: icon,
         errorText: (errorText == null || errorText.isEmpty) ? null : errorText,
+        prefixText: prefixText,
       ).copyWith(
         suffixIcon: dropdown
             ? Icon(
@@ -2828,7 +2835,7 @@ class _BoughtItemCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '₹${_formatAmount(item.total)}',
+                  '${context.currencySymbol}${_formatAmount(item.total)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: scheme.primary,
@@ -2864,11 +2871,11 @@ class _BoughtItemCard extends StatelessWidget {
                 ),
                 _BoughtMetric(
                   label: loc.buy,
-                  value: '₹${_formatAmount(item.buyingPrice)}',
+                  value: '${context.currencySymbol}${_formatAmount(item.buyingPrice)}',
                 ),
                 _BoughtMetric(
                   label: loc.sell,
-                  value: '₹${_formatAmount(item.sellingPrice)}',
+                  value: '${context.currencySymbol}${_formatAmount(item.sellingPrice)}',
                 ),
                 _BoughtMetric(
                   label: loc.minQty,
@@ -2902,7 +2909,7 @@ class _BoughtItemCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  '${loc.profitPerUnit}: ${profit >= 0 ? '+' : ''}₹${_formatAmount(profit)}',
+                  '${loc.profitPerUnit}: ${profit >= 0 ? '+' : ''}${context.currencySymbol}${_formatAmount(profit)}',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

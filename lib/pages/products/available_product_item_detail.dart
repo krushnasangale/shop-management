@@ -12,6 +12,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/pages/products/tabs/sales_history_tab.dart';
 import 'package:flashbill/pages/products/tabs/purchase_history_tab.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/services/image_upload_service.dart';
 import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/theme/adaptive.dart';
@@ -594,7 +595,7 @@ class _AvailableProductDetailScreenState
                       '${batch.supplierName} - ${batch.purchaseDate}',
                     ),
                     subtitle: Text(
-                      '${batch.quantity} ${batch.unit} @ ₹${batch.sellingPrice.toStringAsFixed(2)}',
+                      '${batch.quantity} ${batch.unit} @ ${context.currencySymbol}${batch.sellingPrice.toStringAsFixed(2)}',
                     ),
                     onTap: () => Navigator.of(context).pop(batch),
                   );
@@ -636,7 +637,7 @@ class _AvailableProductDetailScreenState
       // Create share text with essential product details
       final shareText =
           '📦 ${batch.productName}\n'
-          '💰 Price: ₹${batch.sellingPrice.toStringAsFixed(2)}\n'
+          '💰 Price: ${context.currencySymbol}${batch.sellingPrice.toStringAsFixed(2)}\n'
           '📊 Available Stock: ${batch.quantity} ${batch.unit}';
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
@@ -679,7 +680,7 @@ class _AvailableProductDetailScreenState
         // Create fallback share text with essential product details
         final fallbackText =
             '📦 ${batch.productName}\n'
-            '💰 Price: ₹${batch.sellingPrice.toStringAsFixed(2)}\n'
+            '💰 Price: ${context.currencySymbol}${batch.sellingPrice.toStringAsFixed(2)}\n'
             '📊 Available: ${batch.quantity} ${batch.unit}';
 
         await SharePlus.instance.share(ShareParams(text: fallbackText));
@@ -822,7 +823,7 @@ class _AvailableProductDetailScreenState
           decoration: InputDecoration(
             labelText: localizations.sellingPrice,
             hintText: localizations.enterPrice,
-            prefix: const Text('₹'),
+            prefix: Text(context.currencySymbol),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
           autofocus: true,
@@ -1919,7 +1920,7 @@ class _AvailableProductDetailScreenState
                                       ),
                                     ),
                                     Text(
-                                      '₹${batch.sellingPrice.toStringAsFixed(0)}',
+                                      '${context.currencySymbol}${batch.sellingPrice.toStringAsFixed(0)}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
@@ -2029,7 +2030,7 @@ class _AvailableProductDetailScreenState
                                                       ),
                                                       const SizedBox(height: 2),
                                                       Text(
-                                                        '₹${batch.profitMargin.toStringAsFixed(2)}',
+                                                        '${context.currencySymbol}${batch.profitMargin.toStringAsFixed(2)}',
                                                         style: TextStyle(
                                                           color:
                                                               batch.profitMargin >=
@@ -2080,7 +2081,7 @@ class _AvailableProductDetailScreenState
                                                       ),
                                                       const SizedBox(height: 2),
                                                       Text(
-                                                        '₹${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                        '${context.currencySymbol}${batch.buyingPrice.toStringAsFixed(2)}/${batch.unit}',
                                                         style: TextStyle(
                                                           color:
                                                               Colors.red[400],
@@ -2120,7 +2121,7 @@ class _AvailableProductDetailScreenState
                                                         children: [
                                                           Expanded(
                                                             child: Text(
-                                                              '₹${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
+                                                              '${context.currencySymbol}${batch.sellingPrice.toStringAsFixed(2)}/${batch.unit}',
                                                               style: TextStyle(
                                                                 color: Colors
                                                                     .green[600],
@@ -2198,7 +2199,7 @@ class _AvailableProductDetailScreenState
                   _buildDetailRow(
                     context,
                     localizations.totalPotentialRevenue,
-                    '₹${totalPotentialRevenue.toStringAsFixed(2)}',
+                    '${context.currencySymbol}${totalPotentialRevenue.toStringAsFixed(2)}',
                     valueColor: Colors.green[600],
                   ),
                   const Divider(height: 16),
@@ -2206,7 +2207,7 @@ class _AvailableProductDetailScreenState
                   _buildDetailRow(
                     context,
                     localizations.totalPotentialProfit,
-                    '₹${totalPotentialProfit.toStringAsFixed(2)}',
+                    '${context.currencySymbol}${totalPotentialProfit.toStringAsFixed(2)}',
                     valueColor: Theme.of(context).colorScheme.primary,
                   ),
                   const Divider(height: 16),
@@ -2224,7 +2225,7 @@ class _AvailableProductDetailScreenState
                   _buildDetailRow(
                     context,
                     localizations.totalAmount,
-                    '₹${totalInvestedAmount.toStringAsFixed(2)}',
+                    '${context.currencySymbol}${totalInvestedAmount.toStringAsFixed(2)}',
                   ),
                   const Divider(height: 16),
 
@@ -2234,14 +2235,14 @@ class _AvailableProductDetailScreenState
                         child: _buildDetailRow(
                           context,
                           localizations.buyingPrice,
-                          '₹${avgBuyingPrice.toStringAsFixed(2)}',
+                          '${context.currencySymbol}${avgBuyingPrice.toStringAsFixed(2)}',
                         ),
                       ),
                       Expanded(
                         child: _buildDetailRow(
                           context,
                           localizations.sellingPrice,
-                          '₹${avgSellingPrice.toStringAsFixed(2)}',
+                          '${context.currencySymbol}${avgSellingPrice.toStringAsFixed(2)}',
                         ),
                       ),
                     ],

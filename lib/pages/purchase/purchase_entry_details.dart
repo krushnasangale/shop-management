@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/purchase/add_purchase_entry.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
@@ -356,7 +357,7 @@ class _PurchaseEntryDetailsState extends State<PurchaseEntryDetails> {
                       _SummaryTile(
                         icon: Icons.account_balance_wallet_outlined,
                         label: loc?.total ?? 'Total',
-                        value: '₹${_formatAmount(totalAmount)}',
+                        value: '${context.currencySymbol}${_formatAmount(totalAmount)}',
                         valueColor: scheme.primary,
                       ),
                       const SizedBox(width: 8),
@@ -539,7 +540,7 @@ class _PurchaseItemTile extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '₹${_formatAmount(total)}',
+                  '${context.currencySymbol}${_formatAmount(total)}',
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: scheme.primary,
@@ -571,15 +572,15 @@ class _PurchaseItemTile extends StatelessWidget {
                 ),
                 _Metric(
                   label: loc?.buy ?? 'Buy',
-                  value: '₹${_formatAmount(buyingPrice)}',
+                  value: '${context.currencySymbol}${_formatAmount(buyingPrice)}',
                 ),
                 _Metric(
                   label: loc?.sell ?? 'Sell',
-                  value: '₹${_formatAmount(sellingPrice)}',
+                  value: '${context.currencySymbol}${_formatAmount(sellingPrice)}',
                 ),
                 _Metric(
                   label: loc?.profit ?? 'Profit',
-                  value: '${profit >= 0 ? '+' : ''}₹${_formatAmount(profit)}',
+                  value: '${profit >= 0 ? '+' : ''}${context.currencySymbol}${_formatAmount(profit)}',
                   valueColor: profit >= 0 ? scheme.primary : scheme.error,
                 ),
               ],

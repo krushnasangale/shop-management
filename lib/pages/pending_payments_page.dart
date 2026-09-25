@@ -9,6 +9,7 @@ import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -263,7 +264,7 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
             items: () => [
               AppContextMenuItem(
                 label: loc?.sortByAmount ?? 'Sort by Amount',
-                icon: Icons.currency_rupee,
+                icon: Icons.payments,
                 selected: _sortBy == 'amount',
                 onPressed: () {
                   setState(() => _sortBy = 'amount');
@@ -302,20 +303,20 @@ class _PendingPaymentsPageState extends State<PendingPaymentsPage> {
                 _SummaryTile(
                   icon: Icons.account_balance_wallet_outlined,
                   label: loc?.total ?? 'Total',
-                  value: '₹${_formatCurrency(_totalAmount)}',
+                  value: '${context.currencySymbol}${_formatCurrency(_totalAmount)}',
                 ),
                 const SizedBox(width: 8),
                 _SummaryTile(
                   icon: Icons.check_circle_outline,
                   label: loc?.collected ?? 'Collected',
-                  value: '₹${_formatCurrency(_totalCollectedAmount)}',
+                  value: '${context.currencySymbol}${_formatCurrency(_totalCollectedAmount)}',
                   valueColor: scheme.primary,
                 ),
                 const SizedBox(width: 8),
                 _SummaryTile(
                   icon: Icons.schedule_outlined,
                   label: loc?.pending ?? 'Pending',
-                  value: '₹${_formatCurrency(_totalPendingAmount)}',
+                  value: '${context.currencySymbol}${_formatCurrency(_totalPendingAmount)}',
                   valueColor: scheme.error,
                 ),
               ],
@@ -529,8 +530,8 @@ class _PaymentTile extends StatelessWidget {
 
     final details = <String>[
       payment['billDate']?.toString() ?? '',
-      '₹$total',
-      '$paidLabel ₹$paid',
+      '${context.currencySymbol}$total',
+      '$paidLabel ${context.currencySymbol}$paid',
       if (mobile.isNotEmpty && mobile != 'N/A') mobile,
       if (vehicle.isNotEmpty) vehicle,
     ];
@@ -583,7 +584,7 @@ class _PaymentTile extends StatelessWidget {
                 ),
               ),
               Text(
-                '₹$remaining',
+                '${context.currencySymbol}$remaining',
                 style: TextStyle(fontSize: 11, color: scheme.error),
               ),
             ],

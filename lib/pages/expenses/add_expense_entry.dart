@@ -3,6 +3,7 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/theme/adaptive.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
 // import 'package:flashbill/services/subscription_guard.dart';
@@ -248,7 +249,8 @@ class _AddExpenseEntryState extends State<AddExpenseEntry> {
                     decoration: Adaptive.compactField(
                       label: loc?.amount ?? 'Amount',
                       hint: '0',
-                      icon: Icons.currency_rupee,
+                      icon: Icons.payments,
+                      prefixText: context.currencySymbol,
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {

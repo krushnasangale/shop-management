@@ -6,6 +6,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/services/bills_data_service.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:intl/intl.dart';
 import 'package:material_ui/material_ui.dart';
@@ -94,7 +95,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
-    final symbol = loc?.currencySymbol ?? '₹';
+    final symbol = context.currencySymbol;
 
     final previousDueAmount =
         (currentBillData?['previousDueAmount'] as num?)?.toDouble() ??
@@ -381,7 +382,7 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
         widget.payment['previousPaidAmount'] as double;
     final remainingAmount = previousDueAmount - previousPaidAmount;
     String selectedPaymentMethod = 'cash';
-    final symbol = loc?.currencySymbol ?? '₹';
+    final symbol = context.currencySymbol;
 
     showDialog(
       context: context,
@@ -445,7 +446,8 @@ class _PreviousDueDetailsPageState extends State<PreviousDueDetailsPage> {
                             Adaptive.compactField(
                               label: loc?.paymentAmount ?? 'Payment Amount',
                               hint: '1000',
-                              icon: Icons.currency_rupee,
+                              icon: Icons.payments,
+                              prefixText: symbol,
                             ).copyWith(
                               helperText:
                                   '${loc?.max ?? 'Max'}: $symbol${remainingAmount.toStringAsFixed(2)}',

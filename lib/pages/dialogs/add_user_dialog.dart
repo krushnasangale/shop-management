@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:flashbill/models/user_model.dart';
 
@@ -201,7 +202,7 @@ class _AddUserDialogState extends State<AddUserDialog> {
                       (plan) => DropdownMenuItem(
                         value: plan.type,
                         child: Text(
-                          '${plan.displayName} - ₹${plan.price.toStringAsFixed(0)}',
+                          '${plan.displayName} - ${context.currencySymbol}${plan.price.toStringAsFixed(0)}',
                         ),
                       ),
                     )

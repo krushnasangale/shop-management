@@ -8,6 +8,7 @@ import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/expenses/add_expense_entry.dart';
 import 'package:flashbill/pages/expenses/expense_details.dart';
 import 'package:flashbill/pages/profile/my_profile.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/utils/search_utils.dart';
@@ -310,13 +311,13 @@ class _OverviewTab extends StatelessWidget {
               _SummaryTile(
                 icon: Icons.account_balance_wallet_outlined,
                 label: loc?.totalExpenses ?? 'Total',
-                value: '₹${_formatAmount(totalAmount)}',
+                value: '${context.currencySymbol}${_formatAmount(totalAmount)}',
               ),
               const SizedBox(width: 8),
               _SummaryTile(
                 icon: Icons.calendar_month_outlined,
                 label: loc?.thisMonth ?? 'This Month',
-                value: '₹${_formatAmount(thisMonth)}',
+                value: '${context.currencySymbol}${_formatAmount(thisMonth)}',
                 valueColor: scheme.error,
               ),
               const SizedBox(width: 8),
@@ -346,7 +347,7 @@ class _OverviewTab extends StatelessWidget {
                   title: _categoryLabel(entry.key, loc),
                   subtitle:
                       '${totalAmount > 0 ? (entry.value / totalAmount * 100).toStringAsFixed(1) : 0}%',
-                  trailing: '₹${_formatAmount(entry.value)}',
+                  trailing: '${context.currencySymbol}${_formatAmount(entry.value)}',
                   trailingColor: scheme.error,
                                     ),
                                   ],
@@ -369,7 +370,7 @@ class _OverviewTab extends StatelessWidget {
                 icon: Icons.calendar_today_outlined,
                 title: _monthName(entry.key),
                 subtitle: '',
-                trailing: '₹${_formatAmount(entry.value)}',
+                trailing: '${context.currencySymbol}${_formatAmount(entry.value)}',
                 trailingColor: entry.value > 0 ? scheme.error : null,
                     ),
                   ],
@@ -393,7 +394,7 @@ class _OverviewTab extends StatelessWidget {
                   title: _paymentLabel(method.key, loc),
                   subtitle:
                       '${totalAmount > 0 ? (method.value / totalAmount * 100).toStringAsFixed(1) : 0}%',
-                  trailing: '₹${_formatAmount(method.value)}',
+                  trailing: '${context.currencySymbol}${_formatAmount(method.value)}',
                         ),
                       ],
                     ),
@@ -585,7 +586,7 @@ class _CategoryTab extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
               children: [
                     Text(
-                      '₹${_formatAmount(summary['totalAmount'] as double)}',
+                      '${context.currencySymbol}${_formatAmount(summary['totalAmount'] as double)}',
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         color: scheme.error,
@@ -644,14 +645,14 @@ class CategoryExpensesPage extends StatelessWidget {
                       _SummaryTile(
                         icon: Icons.account_balance_wallet_outlined,
                         label: loc?.total ?? 'Total',
-                        value: '₹${_formatAmount(totalAmount)}',
+                        value: '${context.currencySymbol}${_formatAmount(totalAmount)}',
                         valueColor: scheme.error,
                       ),
                       const SizedBox(width: 8),
                       _SummaryTile(
                         icon: Icons.trending_up,
                         label: loc?.average ?? 'Average',
-                        value: '₹${_formatAmount(average)}',
+                        value: '${context.currencySymbol}${_formatAmount(average)}',
                       ),
                       const SizedBox(width: 8),
                       _SummaryTile(
@@ -727,7 +728,7 @@ class _ExpenseTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
                               children: [
           Text(
-            '₹${_formatAmount(amount)}',
+            '${context.currencySymbol}${_formatAmount(amount)}',
             style: TextStyle(fontWeight: FontWeight.w700, color: scheme.error),
           ),
           const SizedBox(width: 4),

@@ -10,6 +10,7 @@ import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/bill_success_page.dart';
 import 'package:flashbill/pages/billing/review_billing_details.dart';
 import 'package:flashbill/pages/product_image_preview_page.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/widgets/profile_incomplete_banner.dart';
 import 'package:flashbill/theme/adaptive.dart';
@@ -661,9 +662,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   for (var i = 0; i < _billItems.length; i++) ...[
                     _BillItemCard(
                       item: _billItems[i],
-                      currencySymbol: localizations.translate(
-                        'currency_symbol',
-                      ),
+                      currencySymbol: context.currencySymbol,
                       qtyLabel: localizations.translate('qty_colon'),
                       totalLabel: localizations.translate('total_colon'),
                       onTap: () => _editBillProduct(context, i, _billItems[i]),
@@ -716,7 +715,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               ),
                             ),
                             Text(
-                              '${localizations.translate('currency_symbol')}${_getTotalAmount().toStringAsFixed(2)}',
+                              '${context.currencySymbol}${_getTotalAmount().toStringAsFixed(2)}',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
@@ -740,6 +739,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     controller: _deliveryChargesController,
                     icon: Icons.local_shipping_outlined,
                     keyboardType: TextInputType.number,
+                    prefixText: context.currencySymbol,
                     onChanged: (value) {
                       setState(() {
                         _deliveryCharges = double.tryParse(value) ?? 0.0;
@@ -758,17 +758,27 @@ class _CreateNewBillState extends State<CreateNewBill> {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  trailing: CupertinoSwitch(
+                  trailing: Adaptive.toggle(
                     value: totalAmountPaid,
                     onChanged: (value) {
                       setState(() {
                         totalAmountPaid = value;
+                        if (!value) {
+                          _amountRemainingController.text = _getTotalAmount()
+                              .toInt()
+                              .toString();
+                        }
                       });
                     },
                   ),
                   onTap: () {
                     setState(() {
                       totalAmountPaid = !totalAmountPaid;
+                      if (!totalAmountPaid) {
+                        _amountRemainingController.text = _getTotalAmount()
+                            .toInt()
+                            .toString();
+                      }
                     });
                   },
                 ),
@@ -810,8 +820,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   _compactInput(
                     label: localizations.translate('enter_paid_amount'),
                     controller: _amountPaidController,
-                    icon: Icons.currency_rupee,
+                    icon: Icons.payments,
                     keyboardType: TextInputType.number,
+                    prefixText: context.currencySymbol,
                     onChanged: (value) {
                       setState(() {
                         final totalAmount = _getTotalAmount().toInt();
@@ -822,12 +833,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                     },
                   ),
                   const SizedBox(height: 12),
-                  _compactInput(
-                    label: localizations.translate('amount_remaining'),
-                    controller: _amountRemainingController,
-                    icon: Icons.currency_rupee,
-                    readOnly: true,
-                    enabled: false,
+                  _amountRemainingLabel(
+                    localizations.translate('amount_remaining'),
+                    _amountRemainingController.text,
                   ),
                   const SizedBox(height: 12),
                   _compactInput(
@@ -890,8 +898,9 @@ class _CreateNewBillState extends State<CreateNewBill> {
                   _compactInput(
                     label: localizations.translate('previous_due_amount'),
                     controller: _previousDueAmountController,
-                    icon: Icons.currency_rupee,
+                    icon: Icons.payments,
                     keyboardType: TextInputType.number,
+                    prefixText: context.currencySymbol,
                     errorText: _previousDueAmountError,
                     onChanged: (value) {
                       setState(() {
@@ -974,6 +983,38 @@ class _CreateNewBillState extends State<CreateNewBill> {
     );
   }
 
+  Widget _amountRemainingLabel(String label, String value) {
+    final scheme = Theme.of(context).colorScheme;
+    final amount = value.trim().isEmpty ? '0' : value;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Text(
+            '${context.currencySymbol}$amount',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: (int.tryParse(amount) ?? 0) > 0
+                  ? scheme.error
+                  : scheme.onSurface,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _compactInput({
     required String label,
     required TextEditingController controller,
@@ -986,6 +1027,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
     String? errorText,
+    String? prefixText,
   }) {
     final scheme = Theme.of(context).colorScheme;
     return TextFormField(
@@ -1003,6 +1045,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
             errorText: (errorText == null || errorText.isEmpty)
                 ? null
                 : errorText,
+            prefixText: prefixText,
           ).copyWith(
             suffixIcon: dropdown
                 ? Icon(
@@ -1386,7 +1429,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           ),
                         const SizedBox(height: 4),
                         Text(
-                          '${dialogLocalizations.translate('buy')}: ${dialogLocalizations.translate('currency_symbol')}${batch.buyingPrice.toStringAsFixed(2)} | ${dialogLocalizations.translate('sell')}: ${dialogLocalizations.translate('currency_symbol')}${batch.sellingPrice.toStringAsFixed(2)}',
+                          '${dialogLocalizations.translate('buy')}: ${context.currencySymbol}${batch.buyingPrice.toStringAsFixed(2)} | ${dialogLocalizations.translate('sell')}: ${context.currencySymbol}${batch.sellingPrice.toStringAsFixed(2)}',
                           style: Theme.of(dialogContext).textTheme.bodyMedium
                               ?.copyWith(fontWeight: FontWeight.w500),
                         ),
@@ -1399,7 +1442,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                           Padding(
                             padding: const EdgeInsets.only(top: 4.0),
                             child: Text(
-                              '${dialogLocalizations.translate('profit_per_unit')}: ${dialogLocalizations.translate('currency_symbol')}${batch.profitMargin.toStringAsFixed(2)}',
+                              '${dialogLocalizations.translate('profit_per_unit')}: ${context.currencySymbol}${batch.profitMargin.toStringAsFixed(2)}',
                               style: TextStyle(
                                 color: scheme.tertiary,
                                 fontSize: 11,
@@ -1511,7 +1554,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               ),
                             ),
                             Text(
-                              '${dialogLocalizations.translate('currency_symbol')} ${billItem.buyingPrice.toStringAsFixed(2)}',
+                              '${context.currencySymbol} ${billItem.buyingPrice.toStringAsFixed(2)}',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -1661,9 +1704,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                               labelText: dialogLocalizations.translate(
                                 'selling_price_label',
                               ),
-                              prefixText: dialogLocalizations.translate(
-                                'currency_symbol',
-                              ),
+                              prefixText: context.currencySymbol,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -2184,7 +2225,7 @@ class _CreateNewBillState extends State<CreateNewBill> {
                                       ),
                                     )
                                   : Text(
-                                      '${modalLocalizations.translate('currency_symbol')}${product.sellingPrice.toStringAsFixed(2)}',
+                                      '${context.currencySymbol}${product.sellingPrice.toStringAsFixed(2)}',
                                       style: TextStyle(
                                         fontWeight: FontWeight.w700,
                                         color: scheme.primary,

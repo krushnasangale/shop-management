@@ -73,6 +73,10 @@ class AuthService {
     required String shopPhone,
     required String shopEmail,
     required String ownerSignature,
+    String countryCode = '',
+    String countryName = '',
+    String currencyCode = '',
+    String currencySymbol = '',
     String authProvider = 'password',
   }) async {
     await FirebaseFirestore.instance.collection('shop-profile').doc(userId).set({
@@ -84,6 +88,10 @@ class AuthService {
       'shopPhone': shopPhone,
       'shopEmail': shopEmail,
       'ownerSignature': ownerSignature,
+      'countryCode': countryCode,
+      'countryName': countryName,
+      'currencyCode': currencyCode,
+      'currencySymbol': currencySymbol,
       'userType': 'user',
       'isActive': true,
       'authProvider': authProvider,

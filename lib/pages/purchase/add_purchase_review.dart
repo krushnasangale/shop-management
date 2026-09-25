@@ -1,4 +1,5 @@
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:material_ui/material_ui.dart';
 // import 'package:flashbill/services/subscription_guard.dart';
@@ -87,7 +88,7 @@ class _AddPurchaseReviewState extends State<AddPurchaseReview> {
                     _SummaryTile(
                       icon: Icons.account_balance_wallet_outlined,
                       label: loc.total,
-                      value: '₹${_formatAmount(widget.totalAmount)}',
+                      value: '${context.currencySymbol}${_formatAmount(widget.totalAmount)}',
                       valueColor: scheme.primary,
                     ),
                     const SizedBox(width: 8),
@@ -233,7 +234,7 @@ class _ReviewProductRow extends StatelessWidget {
                 ),
               ),
               Text(
-                '₹${_formatAmount(product.total)}',
+                '${context.currencySymbol}${_formatAmount(product.total)}',
                 style: TextStyle(
                   fontWeight: FontWeight.w800,
                   color: scheme.primary,
@@ -252,15 +253,15 @@ class _ReviewProductRow extends StatelessWidget {
               ),
               _Metric(
                 label: loc.buyingPrice,
-                value: '₹${_formatAmount(product.buyingPrice)}',
+                value: '${context.currencySymbol}${_formatAmount(product.buyingPrice)}',
               ),
               _Metric(
                 label: loc.sellingPrice,
-                value: '₹${_formatAmount(product.sellingPrice)}',
+                value: '${context.currencySymbol}${_formatAmount(product.sellingPrice)}',
               ),
               _Metric(
                 label: loc.profit,
-                value: '${profit >= 0 ? '+' : ''}₹${_formatAmount(profit)}',
+                value: '${profit >= 0 ? '+' : ''}${context.currencySymbol}${_formatAmount(profit)}',
                 valueColor: profit >= 0 ? scheme.primary : scheme.error,
               ),
             ],

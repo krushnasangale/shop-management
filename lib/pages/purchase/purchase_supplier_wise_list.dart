@@ -3,6 +3,7 @@ import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/purchase/purchase_entry_details.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -73,7 +74,7 @@ class _CustomerBillsPageState extends State<CustomerBillsPage> {
                       _SummaryTile(
                         icon: Icons.account_balance_wallet_outlined,
                         label: loc?.total ?? 'Total',
-                        value: '₹${_formatAmount(totalAmount)}',
+                        value: '${context.currencySymbol}${_formatAmount(totalAmount)}',
                         valueColor: scheme.primary,
                       ),
                       const SizedBox(width: 8),
@@ -156,7 +157,7 @@ class _PurchaseTile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            '₹${_formatAmount(amount)}',
+            '${context.currencySymbol}${_formatAmount(amount)}',
             style: TextStyle(
               fontWeight: FontWeight.w700,
               color: scheme.primary,

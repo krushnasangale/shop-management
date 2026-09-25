@@ -47,12 +47,14 @@ abstract final class Adaptive {
     String? hint,
     IconData? icon,
     String? errorText,
+    String? prefixText,
   }) {
     return InputDecoration(
       isDense: true,
       labelText: label,
       hintText: hint,
       errorText: errorText,
+      prefixText: prefixText,
       prefixIcon: icon == null ? null : Icon(icon, size: compactIconSize),
       prefixIconConstraints: icon == null ? null : compactPrefixConstraints,
       contentPadding: compactFieldPadding,
@@ -74,6 +76,21 @@ abstract final class Adaptive {
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     iconSize: 32,
   );
+
+  /// Default CupertinoSwitch is 51×31. Shrink both sides by 4px.
+  static const switchScale = 27 / 31;
+
+  static Widget toggle({
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+    Alignment alignment = Alignment.centerRight,
+  }) {
+    return Transform.scale(
+      scale: switchScale,
+      alignment: alignment,
+      child: CupertinoSwitch(value: value, onChanged: onChanged),
+    );
+  }
 
   static Widget searchField({
     required TextEditingController controller,

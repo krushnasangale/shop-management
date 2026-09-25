@@ -9,6 +9,7 @@ import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/utils/search_utils.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -207,7 +208,7 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
             items: () => [
               AppContextMenuItem(
                 label: loc?.sortByAmount ?? 'Sort by Amount',
-                icon: Icons.currency_rupee,
+                icon: Icons.payments,
                 selected: _sortBy == 'amount',
                 onPressed: () {
                   setState(() => _sortBy = 'amount');
@@ -246,20 +247,20 @@ class _PreviousDuePaymentsPageState extends State<PreviousDuePaymentsPage> {
                 _SummaryTile(
                   icon: Icons.account_balance_wallet_outlined,
                   label: loc?.total ?? 'Total',
-                  value: '₹${_formatCurrency(_totalPreviousDueAmount.toInt())}',
+                  value: '${context.currencySymbol}${_formatCurrency(_totalPreviousDueAmount.toInt())}',
                 ),
                 const SizedBox(width: 8),
                 _SummaryTile(
                   icon: Icons.check_circle_outline,
                   label: loc?.collected ?? 'Collected',
-                  value: '₹${_formatCurrency(_totalCollectedAmount.toInt())}',
+                  value: '${context.currencySymbol}${_formatCurrency(_totalCollectedAmount.toInt())}',
                   valueColor: scheme.primary,
                 ),
                 const SizedBox(width: 8),
                 _SummaryTile(
                   icon: Icons.schedule_outlined,
                   label: loc?.pending ?? 'Pending',
-                  value: '₹${_formatCurrency(_totalPendingAmount.toInt())}',
+                  value: '${context.currencySymbol}${_formatCurrency(_totalPendingAmount.toInt())}',
                   valueColor: scheme.error,
                 ),
               ],
@@ -532,21 +533,6 @@ class _PaymentTile extends StatelessWidget {
       contentPadding: const EdgeInsets.fromLTRB(16, 2, 12, 2),
       minVerticalPadding: 4,
       onTap: onTap,
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: ColoredBox(
-          color: scheme.primaryContainer,
-          child: SizedBox(
-            width: 36,
-            height: 36,
-            child: Icon(
-              Icons.person_outline,
-              size: 20,
-              color: scheme.onPrimaryContainer,
-            ),
-          ),
-        ),
-      ),
       title: Text(
         payment['customerName'],
         maxLines: 1,
@@ -554,7 +540,7 @@ class _PaymentTile extends StatelessWidget {
         style: TextStyle(fontWeight: FontWeight.w700, color: scheme.onSurface),
       ),
       subtitle: Text(
-        '${payment['billDate']}  ·  ₹${due.toStringAsFixed(0)}  ·  $collectedLabel ₹${paid.toStringAsFixed(0)}',
+        '${payment['billDate']}  ·  ${context.currencySymbol}${due.toStringAsFixed(0)}  ·  $collectedLabel ${context.currencySymbol}${paid.toStringAsFixed(0)}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -575,7 +561,7 @@ class _PaymentTile extends StatelessWidget {
               ),
               if (pending > 0)
                 Text(
-                  '$pendingLabel ₹${pending.toStringAsFixed(0)}',
+                  '$pendingLabel ${context.currencySymbol}${pending.toStringAsFixed(0)}',
                   style: TextStyle(fontSize: 11, color: scheme.error),
                 ),
             ],

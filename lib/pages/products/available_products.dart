@@ -23,6 +23,8 @@ import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
 import 'package:flashbill/pages/product_image_preview_page.dart';
+import 'package:flashbill/providers/currency_provider.dart';
+import 'package:flashbill/services/pdf_fonts.dart';
 
 class AvailableProducts extends StatefulWidget {
   const AvailableProducts({super.key});
@@ -479,6 +481,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     });
 
     final pdf = pw.Document();
+    final theme = await PdfFonts.theme();
     final now = DateTime.now();
     debugPrint('Generating product catalogue PDF');
 
@@ -587,6 +590,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        theme: theme,
         margin: const pw.EdgeInsets.all(15), // Reduced margin for more space
         build: (pw.Context context) {
           List<pw.Widget> widgets = [];
@@ -1004,10 +1008,12 @@ class _AvailableProductsState extends State<AvailableProducts> {
     if (_cancelGeneration) throw Exception('Generation cancelled by user');
 
     final pdf = pw.Document();
+    final theme = await PdfFonts.theme();
     final now = DateTime.now();
     final formattedDate =
         '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
 
+    final symbol = context.currencySymbol;
     debugPrint('Generating products report PDF');
 
     // Filter out products with 0 quantity and sort alphabetically (A to Z)
@@ -1021,6 +1027,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        theme: theme,
         margin: const pw.EdgeInsets.all(20),
         build: (pw.Context context) {
           return [
@@ -1095,11 +1102,11 @@ class _AvailableProductsState extends State<AvailableProducts> {
                         isCenter: true,
                       ),
                       _buildTableCell(
-                        'Rs.${product.buyingPrice.toStringAsFixed(2)}',
+                        '$symbol${product.buyingPrice.toStringAsFixed(2)}',
                         isCenter: true,
                       ),
                       _buildTableCell(
-                        'Rs.${product.sellingPrice.toStringAsFixed(2)}',
+                        '$symbol${product.sellingPrice.toStringAsFixed(2)}',
                         isCenter: true,
                       ),
                     ],
@@ -1128,6 +1135,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
   }
 
   Future<String> _generateProductsCSV() async {
+    final symbol = context.currencySymbol;
     debugPrint('Generating products CSV report');
 
     // Filter out products with 0 quantity and sort alphabetically (A to Z)
@@ -1148,7 +1156,7 @@ class _AvailableProductsState extends State<AvailableProducts> {
     for (var i = 0; i < productsWithStock.length; i++) {
       final product = productsWithStock[i];
       csv.writeln(
-        '${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},Rs.${product.buyingPrice.toStringAsFixed(2)},Rs.${product.sellingPrice.toStringAsFixed(2)}',
+        '${i + 1},"${product.productName}","${product.supplierName}","${product.unit}",${product.quantity},$symbol${product.buyingPrice.toStringAsFixed(2)},$symbol${product.sellingPrice.toStringAsFixed(2)}',
       );
     }
 
@@ -1280,42 +1288,41 @@ class _AvailableProductsState extends State<AvailableProducts> {
       ),
       body: Column(
         children: [
-              if (_showSearchBar)
-                Adaptive.searchField(
-                  controller: _searchController,
-                  hint: localizations!.searchProductOrSupplier,
-                  query: _searchQuery,
-                ),
-              if (!_showSearchBar) const SizedBox(height: 5),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16.0,
-                  vertical: 2.0,
-                ),
-                child: Row(
-                  children: _filterOptions.map((option) {
-                    return Row(
-                      children: [
-                        _buildFilterChip(option['key']!, option['label']!),
-                        if (option != _filterOptions.last)
-                          const SizedBox(width: 8),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: _filteredProducts.isEmpty
-                    ? Center(
-                        child: Text(
-                          localizations!.noProductsFound,
-                          style: context.subtitleMedium,
-                        ),
-                      )
-                    : _buildGroupedProductList(context),
-              ),
+          if (_showSearchBar)
+            Adaptive.searchField(
+              controller: _searchController,
+              hint: localizations!.searchProductOrSupplier,
+              query: _searchQuery,
+            ),
+          if (!_showSearchBar) const SizedBox(height: 5),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 2.0,
+            ),
+            child: Row(
+              children: _filterOptions.map((option) {
+                return Row(
+                  children: [
+                    _buildFilterChip(option['key']!, option['label']!),
+                    if (option != _filterOptions.last) const SizedBox(width: 8),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _filteredProducts.isEmpty
+                ? Center(
+                    child: Text(
+                      localizations!.noProductsFound,
+                      style: context.subtitleMedium,
+                    ),
+                  )
+                : _buildGroupedProductList(context),
+          ),
         ],
       ),
     );

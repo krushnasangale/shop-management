@@ -12,6 +12,8 @@ class ProfileCompletion {
     'shopAddress',
     'shopPhone',
     'ownerSignature',
+    'countryCode',
+    'currencyCode',
   ];
 
   int get percent =>

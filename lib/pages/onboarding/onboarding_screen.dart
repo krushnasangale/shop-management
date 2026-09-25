@@ -120,6 +120,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
+  void _skipToNotifications() {
+    final last = _pages(AppLocalizations.of(context)).length - 1;
+    setState(() => _index = last);
+    _controller.jumpToPage(last);
+  }
+
   @override
   void dispose() {
     _controller.dispose();
@@ -151,7 +157,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   children: [
                     if (!isLast)
                       TextButton(
-                        onPressed: _finishing ? null : _finish,
+                        onPressed: _finishing ? null : _skipToNotifications,
                         child: Text(loc?.skip ?? 'Skip'),
                       )
                     else

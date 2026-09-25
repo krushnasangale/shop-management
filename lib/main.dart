@@ -14,6 +14,7 @@ import 'package:flashbill/pages/profile/my_profile.dart';
 import 'package:flashbill/providers/theme_provider.dart';
 import 'package:flashbill/providers/dashboard_provider.dart';
 import 'package:flashbill/providers/language_provider.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 // import 'package:flashbill/providers/subscription_provider.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/services/profile_service.dart';
@@ -80,6 +81,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => CurrencyProvider()),
         // Subscription expiry is temporarily disabled.
         // ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
       ],

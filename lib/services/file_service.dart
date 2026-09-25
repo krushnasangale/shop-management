@@ -6,6 +6,8 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'dart:convert' as convert;
 import 'package:path/path.dart' as p;
+import 'package:flashbill/providers/currency_provider.dart';
+import 'package:flashbill/services/pdf_fonts.dart';
 
 /// Service for managing and sharing files across different platforms
 class FileService {
@@ -138,9 +140,10 @@ class FileService {
   /// - [customerMobile]: Customer's mobile number
   /// - [customerVehicle]: Optional vehicle number
   /// - [products]: List of products with name, qty, and price
-  /// - [totalAmount]: Total bill amount (with ₹ symbol)
-  /// - [amountPaid]: Amount paid (with ₹ symbol)
-  /// - [amountRemaining]: Amount remaining (with ₹ symbol)
+  /// - [totalAmount]: Total bill amount
+  /// - [amountPaid]: Amount paid
+  /// - [amountRemaining]: Amount remaining
+  /// - [currencySymbol]: Shop currency symbol used on amounts
   /// - [discount]: Discount amount
   /// - [deliveryCharges]: Delivery charges amount
   /// - [nextPaymentDate]: Next payment date if applicable
@@ -178,8 +181,10 @@ class FileService {
     String shopAddress = '--',
     String shopPhone = '--',
     String ownerPhone = '',
+    String currencySymbol = '',
   }) async {
     final pdf = pw.Document();
+    final theme = await PdfFonts.theme();
 
     final now = DateTime.now();
     final billDate = now.toString().split('.')[0];
@@ -187,6 +192,7 @@ class FileService {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        theme: theme,
         margin: const pw.EdgeInsets.all(20),
         header: (pw.Context context) {
           // Only show header on first page
@@ -319,6 +325,7 @@ class FileService {
               amountRemaining,
               discount,
               deliveryCharges,
+              currencySymbol,
             ),
             pw.SizedBox(height: 40),
 
@@ -327,9 +334,9 @@ class FileService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 // Remaining Amount Instruction (if applicable)
-                if (amountRemaining != '₹ 0') ...[
+                if (parseMoneyInt(amountRemaining) != 0) ...[
                   pw.Text(
-                    'Please arrange payment of ${amountRemaining.replaceAll('₹', 'Rs.')} on or before $nextPaymentDate to complete this transaction.',
+                    'Please arrange payment of $currencySymbol${parseMoneyInt(amountRemaining)} on or before $nextPaymentDate to complete this transaction.',
                     style: pw.TextStyle(
                       fontSize: 10,
                       fontWeight: pw.FontWeight.bold,
@@ -343,7 +350,7 @@ class FileService {
                 if (previousDueAmount > 0 || previousPaidAmount > 0) ...[
                   if (previousDueAmount > 0) ...[
                     pw.Text(
-                      'Previous Due: Rs. ${previousDueAmount.toStringAsFixed(2)} ${previousDueDescription.isNotEmpty ? '($previousDueDescription)' : ''}',
+                      'Previous Due: $currencySymbol${previousDueAmount.toStringAsFixed(2)} ${previousDueDescription.isNotEmpty ? '($previousDueDescription)' : ''}',
                       style: pw.TextStyle(
                         fontSize: 10,
                         fontWeight: pw.FontWeight.bold,
@@ -353,7 +360,7 @@ class FileService {
                   ],
                   if (previousPaidAmount > 0) ...[
                     pw.Text(
-                      'Previous Paid: Rs. ${previousPaidAmount.toStringAsFixed(2)}',
+                      'Previous Paid: $currencySymbol${previousPaidAmount.toStringAsFixed(2)}',
                       style: pw.TextStyle(
                         fontSize: 10,
                         fontWeight: pw.FontWeight.bold,
@@ -469,27 +476,27 @@ class FileService {
     String amountRemaining,
     int discount,
     int deliveryCharges,
+    String currencySymbol,
   ) {
     // Table headers
     final headers = ['S.No.', 'Description', 'Qty', 'Rate', 'Amount'];
 
-    // Table rows - format prices with rupee text
+    // Table rows - format prices with the shop currency
     final rows = <List<String>>[
       ...products.asMap().entries.map((entry) {
         String price = entry.value['price']!;
         String qty = entry.value['qty']!;
 
-        // Remove rupee symbol and add 'Rs.' prefix for PDF
-        price = price.replaceAll('₹', '').trim();
+        price = parseMoneyDouble(price).toString();
 
         // Calculate total amount (quantity × rate)
         final priceValue = double.tryParse(price.replaceAll(',', '')) ?? 0.0;
         final qtyValue = double.tryParse(qty.split(' ')[0]) ?? 0.0;
         final totalAmount = priceValue * qtyValue;
 
-        final formattedPrice = 'Rs. $price';
+        final formattedPrice = '$currencySymbol$price';
         final formattedAmount =
-            'Rs. ${totalAmount % 1 == 0 ? totalAmount.toInt() : totalAmount}';
+            '$currencySymbol${totalAmount % 1 == 0 ? totalAmount.toInt() : totalAmount}';
 
         return [
           '${entry.key + 1}',
@@ -594,7 +601,7 @@ class FileService {
               pw.Padding(
                 padding: const pw.EdgeInsets.all(5),
                 child: pw.Text(
-                  'Rs. $deliveryCharges',
+                  '$currencySymbol$deliveryCharges',
                   style: pw.TextStyle(
                     fontSize: 10,
                     fontWeight: pw.FontWeight.bold,
@@ -635,7 +642,7 @@ class FileService {
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
               child: pw.Text(
-                'Rs. ${totalAmount.replaceAll('₹', '').trim()}',
+                '$currencySymbol${parseMoneyInt(totalAmount)}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -676,7 +683,7 @@ class FileService {
               pw.Padding(
                 padding: const pw.EdgeInsets.all(5),
                 child: pw.Text(
-                  'Rs. $discount',
+                  '$currencySymbol$discount',
                   style: pw.TextStyle(
                     fontSize: 10,
                     fontWeight: pw.FontWeight.bold,
@@ -716,7 +723,7 @@ class FileService {
             pw.Padding(
               padding: const pw.EdgeInsets.all(5),
               child: pw.Text(
-                'Rs. ${int.parse(amountPaid.replaceAll('₹ ', '')) - discount}',
+                '$currencySymbol${parseMoneyInt(amountPaid) - discount}',
                 style: pw.TextStyle(
                   fontSize: 10,
                   fontWeight: pw.FontWeight.bold,
@@ -727,7 +734,7 @@ class FileService {
           ],
         ),
         // Remaining Amount row (if amounts don't match)
-        if (amountRemaining != '₹ 0')
+        if (parseMoneyInt(amountRemaining) != 0)
           pw.TableRow(
             decoration: pw.BoxDecoration(color: PdfColors.grey300),
             children: [
@@ -757,7 +764,7 @@ class FileService {
               pw.Padding(
                 padding: const pw.EdgeInsets.all(5),
                 child: pw.Text(
-                  amountRemaining.replaceAll('₹', 'Rs.'),
+                  '$currencySymbol${parseMoneyInt(amountRemaining)}',
                   style: pw.TextStyle(
                     fontSize: 10,
                     fontWeight: pw.FontWeight.bold,

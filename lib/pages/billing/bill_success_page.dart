@@ -3,6 +3,7 @@ import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/pages/billing/create_new_bill.dart';
 import 'package:flashbill/services/file_service.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
 import 'package:material_ui/material_ui.dart';
@@ -186,7 +187,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                   _SummaryTile(
                     icon: Icons.account_balance_wallet_outlined,
                     label: localizations.total,
-                    value: '₹$totalAmount',
+                    value: '${context.currencySymbol}$totalAmount',
                     valueColor: scheme.primary,
                   ),
                   const SizedBox(width: 8),
@@ -226,7 +227,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
                 _infoTile(
                   icon: Icons.receipt_long_outlined,
                   label: localizations.totalAmount,
-                  value: '₹$totalAmount',
+                  value: '${context.currencySymbol}$totalAmount',
                   valueColor: scheme.primary,
                 ),
               ],
@@ -277,6 +278,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
 
   void _shareBill(BuildContext context, AppLocalizations localizations) async {
     final scheme = Theme.of(context).colorScheme;
+    final currencySymbol = context.currencySymbol;
     try {
       AppLoader.show(message: localizations.generatingPdf);
 
@@ -307,8 +309,8 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
             (product) => {
               'name': product.productName,
               'qty': '${product.quantity} ${product.unit}',
-              'price': 'Rs. ${product.price}',
-              'total': 'Rs. ${product.total.toStringAsFixed(0)}',
+              'price': '${product.price}',
+              'total': product.total.toStringAsFixed(0),
             },
           )
           .toList();
@@ -336,6 +338,7 @@ class _BillSuccessPageState extends State<BillSuccessPage> {
         shopAddress: shopAddress,
         shopPhone: shopPhone,
         ownerPhone: ownerPhone,
+        currencySymbol: currencySymbol,
       );
 
       // Generate filename and share using FileService

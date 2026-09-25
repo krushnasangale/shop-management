@@ -182,7 +182,7 @@ EXTRACTION RULES:
 4. **totalAmount**: Total invoice amount (decimal). If not found, sum all product line totals
 
 IMPORTANT:
-- Extract unit prices, NOT line totals (e.g., if "5 items × ₹100 = ₹500", price should be 100.00, not 500.00)
+- Extract unit prices, NOT line totals (e.g., if "5 items × 100 = 500", price should be 100.00, not 500.00)
 - For product names, include relevant details but keep concise
 - Ignore GST/tax line items as separate products
 - If no products found, return empty array []

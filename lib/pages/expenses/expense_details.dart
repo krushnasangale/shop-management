@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/expenses/add_expense_entry.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_context_menu.dart';
 import 'package:intl/intl.dart';
@@ -137,7 +138,7 @@ class _ExpenseDetailsState extends State<ExpenseDetails> {
                 _SummaryTile(
                   icon: Icons.account_balance_wallet_outlined,
                   label: loc?.amount ?? 'Amount',
-                  value: '₹${_formatAmount(amount)}',
+                  value: '${context.currencySymbol}${_formatAmount(amount)}',
                   valueColor: scheme.error,
                 ),
                 const SizedBox(width: 8),

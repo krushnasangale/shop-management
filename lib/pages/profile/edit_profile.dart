@@ -5,7 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/services/app_currencies.dart';
 import 'package:flashbill/services/profile_service.dart';
+import 'package:flashbill/widgets/country_currency_fields.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -39,6 +41,13 @@ class _EditProfileState extends State<EditProfile> {
 
   String? _ownerSignatureBase64;
   bool _hasSignature = false;
+  String _countryCode = '';
+  String _countryName = '';
+  String _currencyCode = '';
+  String _currencySymbol = '';
+  bool _countryLocked = false;
+  bool _currencyLocked = false;
+  bool _locationSubmitted = false;
 
   @override
   void initState() {
@@ -95,11 +104,26 @@ class _EditProfileState extends State<EditProfile> {
         _subscriptionExpiryController.text = loc?.notSet ?? 'Not set';
       }
     }
+    final savedCountry = (profileData['countryCode'] as String? ?? '').trim();
+    final savedCurrency = (profileData['currencyCode'] as String? ?? '').trim();
+    _countryLocked = savedCountry.isNotEmpty;
+    _currencyLocked = savedCurrency.isNotEmpty;
+    if (_countryCode.isEmpty) {
+      _countryCode = savedCountry;
+      _countryName = profileData['countryName'] as String? ?? '';
+      _currencyCode = savedCurrency;
+      _currencySymbol = profileData['currencySymbol'] as String? ?? '';
+    }
   }
 
   Future<void> _saveShopDetails() async {
     // if (!SubscriptionGuard.ensureCanWrite(context)) return;
-    if (!_formKey.currentState!.validate()) return;
+    setState(() => _locationSubmitted = true);
+    if (!_formKey.currentState!.validate() ||
+        _countryCode.isEmpty ||
+        _currencyCode.isEmpty) {
+      return;
+    }
 
     setState(() => _isSaving = true);
 
@@ -118,6 +142,10 @@ class _EditProfileState extends State<EditProfile> {
         'shopEmail': _shopEmailController.text,
         'licenseNumber': _licenseNumberController.text,
         'ownerSignature': _ownerSignatureBase64 ?? '',
+        'countryCode': _countryCode,
+        'countryName': _countryName,
+        'currencyCode': _currencyCode,
+        'currencySymbol': _currencySymbol,
         'lastUpdated': DateTime.now().toIso8601String(),
       };
 
@@ -587,6 +615,39 @@ class _EditProfileState extends State<EditProfile> {
                       ],
                     ),
                     const SizedBox(height: 24),
+                    _sectionLabel(loc?.location ?? 'Location'),
+                    _InfoGroup(
+                      editing: _isEditMode,
+                      children: [
+                        _PickerRow(
+                          label: loc?.country ?? 'Country',
+                          value: _countryDisplay,
+                          hint: loc?.selectCountry ?? 'Select country',
+                          icon: Icons.public_outlined,
+                          editable: _isEditMode && !_countryLocked,
+                          locked: _countryLocked,
+                          errorText: _locationSubmitted && _countryCode.isEmpty
+                              ? (loc?.pleaseSelectCountry ??
+                                  'Please select country')
+                              : null,
+                          onTap: _countryLocked ? null : _pickCountry,
+                        ),
+                        _PickerRow(
+                          label: loc?.currency ?? 'Currency',
+                          value: _currencyDisplay,
+                          hint: loc?.selectCurrency ?? 'Select currency',
+                          icon: Icons.payments_outlined,
+                          editable: _isEditMode && !_currencyLocked,
+                          locked: _currencyLocked,
+                          errorText: _locationSubmitted && _currencyCode.isEmpty
+                              ? (loc?.pleaseSelectCurrency ??
+                                  'Please select currency')
+                              : null,
+                          onTap: _currencyLocked ? null : _pickCurrency,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
                     _sectionLabel(
                       loc?.contactInformation ?? 'Contact Information',
                     ),
@@ -719,6 +780,58 @@ class _EditProfileState extends State<EditProfile> {
         );
       },
     );
+  }
+
+  String get _countryDisplay {
+    if (_countryName.isNotEmpty) return _countryName;
+    final country = AppCurrencies.countryByCode(_countryCode);
+    return country?.name ?? '';
+  }
+
+  String get _currencyDisplay {
+    if (_currencyCode.isEmpty) return '';
+    final currency = AppCurrencies.byCode(_currencyCode);
+    final symbol = _currencySymbol.isNotEmpty
+        ? _currencySymbol
+        : currency.symbol;
+    return '${currency.name} ($symbol ${currency.code})';
+  }
+
+  Future<void> _pickCountry() async {
+    if (_countryLocked) return;
+    final loc = AppLocalizations.of(context);
+    final selected = await showSearchPicker<AppCountry>(
+      context: context,
+      title: loc?.selectCountry ?? 'Select country',
+      items: AppCurrencies.countries,
+      queryMatcher: AppCurrencies.searchCountries,
+      labelOf: (country) => country.name,
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _isEditMode = true;
+      _countryCode = selected.code;
+      _countryName = selected.name;
+    });
+  }
+
+  Future<void> _pickCurrency() async {
+    if (_currencyLocked) return;
+    final loc = AppLocalizations.of(context);
+    final selected = await showSearchPicker<AppCurrency>(
+      context: context,
+      title: loc?.selectCurrency ?? 'Select currency',
+      items: AppCurrencies.currencies,
+      queryMatcher: AppCurrencies.searchCurrencies,
+      labelOf: (currency) =>
+          '${currency.name} (${currency.symbol} ${currency.code})',
+    );
+    if (selected == null || !mounted) return;
+    setState(() {
+      _isEditMode = true;
+      _currencyCode = selected.code;
+      _currencySymbol = selected.symbol;
+    });
   }
 
   Widget _sectionLabel(String title) {
@@ -927,6 +1040,133 @@ class _InfoGroup extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _PickerRow extends StatelessWidget {
+  const _PickerRow({
+    required this.label,
+    required this.value,
+    required this.hint,
+    required this.icon,
+    required this.editable,
+    this.locked = false,
+    this.onTap,
+    this.errorText,
+  });
+
+  final String label;
+  final String value;
+  final String hint;
+  final IconData icon;
+  final bool editable;
+  final bool locked;
+  final String? errorText;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final muted = scheme.onSurface.withValues(alpha: 0.38);
+    final iconColor = locked ? muted : scheme.primary;
+    final leading = Icon(icon, color: iconColor, size: 22);
+    final display = value.trim().isEmpty ? hint : value;
+    final empty = value.trim().isEmpty;
+
+    if (Adaptive.isCupertino) {
+      return Opacity(
+        opacity: locked ? 0.45 : 1,
+        child: CupertinoListTile(
+          leading: leading,
+          title: Text(label),
+          additionalInfo: Text(
+            empty ? (editable ? hint : '—') : value,
+            maxLines: 1,
+          ),
+          trailing: locked
+              ? Icon(
+                  CupertinoIcons.lock_fill,
+                  size: 16,
+                  color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                )
+              : onTap == null
+              ? null
+              : const CupertinoListTileChevron(),
+          onTap: onTap,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          enabled: !locked,
+          visualDensity: const VisualDensity(horizontal: 0, vertical: -0.5),
+          leading: leading,
+          title: Text(
+            label,
+            style: TextStyle(
+              fontSize: editable ? 12 : 16,
+              fontWeight: editable ? FontWeight.w600 : FontWeight.w400,
+              color: locked
+                  ? muted
+                  : (editable ? scheme.onSurfaceVariant : scheme.onSurface),
+            ),
+          ),
+          subtitle: editable
+              ? Text(
+                  display,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: empty ? scheme.onSurfaceVariant : scheme.onSurface,
+                  ),
+                )
+              : null,
+          trailing: locked
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 148),
+                      child: Text(
+                        empty ? '—' : value,
+                        textAlign: TextAlign.end,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: muted, fontSize: 14),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Icon(Icons.lock_outline, size: 16, color: muted),
+                  ],
+                )
+              : editable
+              ? Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: scheme.onSurfaceVariant,
+                )
+              : ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 180),
+                  child: Text(
+                    empty ? '—' : value,
+                    textAlign: TextAlign.end,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+                ),
+          onTap: onTap,
+        ),
+        if (errorText != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(72, 0, 16, 8),
+            child: Text(
+              errorText!,
+              style: TextStyle(color: scheme.error, fontSize: 12),
+            ),
+          ),
+      ],
     );
   }
 }

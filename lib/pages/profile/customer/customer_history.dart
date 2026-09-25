@@ -5,6 +5,7 @@ import 'package:flashbill/ui helpers/app_text_styles.dart';
 import 'package:flashbill/navigation/app_navigator.dart';
 import 'package:flashbill/pages/billing/view_existing_bill_details.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/theme/adaptive.dart';
 import 'package:flashbill/widgets/app_loader.dart';
 
@@ -200,7 +201,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
           ),
           const SizedBox(width: 4),
           Text(
-            '₹$profitDisplay ${isProfit ? (localizations?.profit ?? 'Profit') : (localizations?.loss ?? 'Loss')}',
+            '${context.currencySymbol}$profitDisplay ${isProfit ? (localizations?.profit ?? 'Profit') : (localizations?.loss ?? 'Loss')}',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -268,7 +269,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                     style: context.subtitleMedium,
                                   ),
                                   Text(
-                                    '₹ ${_totalBilledAmount.toStringAsFixed(0)}',
+                                    '${context.currencySymbol} ${_totalBilledAmount.toStringAsFixed(0)}',
                                     style: context.displayMedium?.copyWith(
                                       fontSize: 24,
                                       fontWeight: FontWeight.bold,
@@ -292,7 +293,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '₹ ${_totalPaidAmount.toStringAsFixed(0)}',
+                                    '${context.currencySymbol} ${_totalPaidAmount.toStringAsFixed(0)}',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -312,7 +313,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '₹ ${(_totalBilledAmount - _totalPaidAmount).toStringAsFixed(0)}',
+                                    '${context.currencySymbol} ${(_totalBilledAmount - _totalPaidAmount).toStringAsFixed(0)}',
                                     style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -425,13 +426,13 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      '${localizations?.amount ?? 'Amount'}: ₹ $totalAmount',
+                                      '${localizations?.amount ?? 'Amount'}: ${context.currencySymbol} $totalAmount',
                                       style: context.subtitleMedium?.copyWith(
                                         fontSize: 13,
                                       ),
                                     ),
                                     Text(
-                                      '${localizations?.paidAmount ?? 'Paid'}: ₹ $amountPaid',
+                                      '${localizations?.paidAmount ?? 'Paid'}: ${context.currencySymbol} $amountPaid',
                                       style: TextStyle(
                                         color: Colors.green.shade400,
                                         fontSize: 13,
@@ -444,7 +445,7 @@ class _CustomerHistoryScreenState extends State<CustomerHistoryScreen> {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 8),
                                     child: Text(
-                                      '${localizations?.remaining ?? 'Remaining'}: ₹ $amountRemaining',
+                                      '${localizations?.remaining ?? 'Remaining'}: ${context.currencySymbol} $amountRemaining',
                                       style: TextStyle(
                                         color: Colors.orange.shade400,
                                         fontSize: 13,

@@ -16,9 +16,11 @@ import 'package:flashbill/utils/search_utils.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/services/bills_data_service.dart';
 import 'package:flashbill/services/file_service.dart';
+import 'package:flashbill/services/pdf_fonts.dart';
 import 'dart:typed_data';
 import 'package:flashbill/utils/app_logger.dart';
 import 'package:flashbill/widgets/app_loader.dart';
+import 'package:flashbill/providers/currency_provider.dart';
 import 'package:flashbill/widgets/profile_incomplete_banner.dart';
 // import 'package:flashbill/services/subscription_guard.dart';
 
@@ -712,7 +714,9 @@ class _BillsState extends State<Bills> {
 
   Future<Uint8List> _generateBillsPDF() async {
     final loc = AppLocalizations.of(context)!;
+    final symbol = context.currencySymbol;
     final pdf = pw.Document();
+    final theme = await PdfFonts.theme();
     final now = DateTime.now();
     final formattedDate =
         '${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
@@ -721,6 +725,7 @@ class _BillsState extends State<Bills> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
+        theme: theme,
         margin: const pw.EdgeInsets.all(20),
         build: (pw.Context context) {
           return [
@@ -792,7 +797,7 @@ class _BillsState extends State<Bills> {
                       _buildTableCell(bill.customerName),
                       _buildTableCell(bill.customerMobile, isCenter: true),
                       _buildTableCell(bill.date, isCenter: true),
-                      _buildTableCell('Rs.${bill.totalAmount}', isCenter: true),
+                      _buildTableCell('$symbol${bill.totalAmount}', isCenter: true),
                       _buildTableCell(
                         _getPDFStatusText(bill.status, loc),
                         isCenter: true,
@@ -817,6 +822,7 @@ class _BillsState extends State<Bills> {
 
   Future<String> _generateBillsCSV() async {
     final loc = AppLocalizations.of(context)!;
+    final symbol = context.currencySymbol;
     final reportBills = _getReportBills();
 
     // Create CSV header
@@ -829,7 +835,7 @@ class _BillsState extends State<Bills> {
     for (var i = 0; i < reportBills.length; i++) {
       final bill = reportBills[i];
       csv.writeln(
-        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",Rs.${bill.totalAmount},Rs.${bill.amountPaid},Rs.${bill.amountRemaining},"${_getPDFStatusText(bill.status, loc)}"',
+        '${i + 1},"${bill.customerName}","${bill.customerMobile}","${bill.date}",$symbol${bill.totalAmount},$symbol${bill.amountPaid},$symbol${bill.amountRemaining},"${_getPDFStatusText(bill.status, loc)}"',
       );
     }
 
@@ -1286,7 +1292,7 @@ class _BillsState extends State<Bills> {
 
                       // Amount Section
                       Text(
-                        '${localizations.currencySymbol}${bill.totalAmount}',
+                        '${context.currencySymbol}${bill.totalAmount}',
                         style: context.titleLarge?.copyWith(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
@@ -1325,7 +1331,7 @@ class _BillsState extends State<Bills> {
                                 ),
                               ),
                               Text(
-                                '${localizations.currencySymbol}${bill.previousDueAmount}',
+                                '${context.currencySymbol}${bill.previousDueAmount}',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
@@ -1347,7 +1353,7 @@ class _BillsState extends State<Bills> {
                                 ),
                               ),
                               Text(
-                                '${localizations.currencySymbol}${bill.previousPaidAmount}',
+                                '${context.currencySymbol}${bill.previousPaidAmount}',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
