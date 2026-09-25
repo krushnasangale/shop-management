@@ -81,7 +81,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _loginWithGoogle() async {
     setState(() => _googleLoading = true);
-    AppLoader.show(message: AppLocalizations.of(context)?.signIn ?? 'Sign In');
     try {
       final credential = await AuthService.signInWithGoogle();
       final user = credential.user;
@@ -89,6 +88,8 @@ class _LoginScreenState extends State<LoginScreen> {
         throw Exception('Google sign-in failed');
       }
 
+      if (!mounted) return;
+      AppLoader.show(message: AppLocalizations.of(context)?.signIn ?? 'Sign In');
       await AuthService.ensureGoogleShopProfile(user);
       await AuthService.finishSignIn(user.uid);
       if (!mounted) return;

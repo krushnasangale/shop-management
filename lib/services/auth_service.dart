@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flashbill/services/notification_service.dart';
 import 'package:flashbill/utils/device_utils.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   AuthService._();
@@ -17,8 +18,19 @@ class AuthService {
           code == 'web-context-canceled';
     }
     final text = error.toString().toLowerCase();
-    return text.contains('cancel') || text.contains('aborted');
+    return text.contains('cancel') ||
+        text.contains('aborted') ||
+        text.contains('sign_in_canceled') ||
+        text.contains('signincanceled');
   }
+
+  static const _googleWebClientId =
+      '963502909808-btglho1ku9ava03crdestnu84rhu7jup.apps.googleusercontent.com';
+
+  static final GoogleSignIn _googleSignIn = GoogleSignIn(
+    scopes: const ['email', 'profile'],
+    serverClientId: _googleWebClientId,
+  );
 
   static Future<UserCredential> signInWithGoogle() async {
     final provider = GoogleAuthProvider()
@@ -29,7 +41,47 @@ class AuthService {
     if (kIsWeb) {
       return FirebaseAuth.instance.signInWithPopup(provider);
     }
+
+    if (Platform.isAndroid || Platform.isIOS) {
+      return _signInWithGoogleNative();
+    }
+
     return FirebaseAuth.instance.signInWithProvider(provider);
+  }
+
+  static Future<UserCredential> _signInWithGoogleNative() async {
+    await _revokePreviousGoogleAccount();
+
+    final account = await _googleSignIn.signIn();
+    if (account == null) {
+      throw FirebaseAuthException(
+        code: 'canceled',
+        message: 'Google sign-in canceled',
+      );
+    }
+
+    final auth = await account.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: auth.accessToken,
+      idToken: auth.idToken,
+    );
+    return FirebaseAuth.instance.signInWithCredential(credential);
+  }
+
+  /// Play Services keeps the last authorized account after [GoogleSignIn.signOut].
+  /// [GoogleSignIn.signIn] then returns that account immediately — no chooser.
+  /// Restore it first so [disconnect] can revoke the grant, then the picker shows.
+  static Future<void> _revokePreviousGoogleAccount() async {
+    try {
+      var previous = _googleSignIn.currentUser;
+      previous ??= await _googleSignIn.signInSilently(suppressErrors: true);
+      if (previous != null) {
+        await _googleSignIn.disconnect();
+      }
+    } catch (_) {}
+    try {
+      await _googleSignIn.signOut();
+    } catch (_) {}
   }
 
   static Future<bool> hasShopProfile(String userId) async {
@@ -131,6 +183,13 @@ class AuthService {
   }
 
   static Future<void> signOut() async {
+    try {
+      await _googleSignIn.disconnect();
+    } catch (_) {
+      try {
+        await _googleSignIn.signOut();
+      } catch (_) {}
+    }
     await FirebaseAuth.instance.signOut();
   }
 }

@@ -32,189 +32,155 @@ class PrivacyPolicyPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Last Updated: December 29, 2025',
+              'Last Updated: September 25, 2026',
               style: context.subtitleSmall,
             ),
             const SizedBox(height: 24),
 
-            // Introduction
             _buildSection(
               context,
               'Introduction',
-              'FlashBill ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our shop management application.',
+              'FlashBill is a shop management app for billing, stock, purchases, expenses, and daily shop work. This Privacy Policy explains that we do not collect your information, that the app has no payments, and how FlashBill works.',
             ),
 
             _buildSection(
               context,
-              'Information We Collect',
-              'We collect information that you provide directly to us when using FlashBill:',
-            ),
-
-            _buildBulletPoint(
-              context,
-              'Account Information: Email address and shop name',
+              'We Do Not Collect Information',
+              'FlashBill does not collect personal information from you. We do not gather, store, sell, rent, or share your data for advertising, marketing, analytics, or any other purpose.',
             ),
             _buildBulletPoint(
               context,
-              'Business Data: Product information, supplier details, customer information, purchase records, and inventory data',
+              'We do not collect your name, phone number, location, contacts, photos, or payment details.',
             ),
             _buildBulletPoint(
               context,
-              'Device Information: Device type, operating system, and unique device identifiers for logged-in device tracking',
+              'We do not track how you use the app, and we do not use advertising or tracking SDKs.',
             ),
             _buildBulletPoint(
               context,
-              'Usage Data: How you interact with the app, features used, and error logs',
+              'Anything you type in the app (shop name, products, bills, customers) stays for your own shop use. We do not use it.',
+            ),
+            _buildBulletPoint(
+              context,
+              'Sign-in with email or Google is only so you can open your shop in the app. We do not use that account for any other purpose.',
             ),
 
             const SizedBox(height: 16),
 
             _buildSection(
               context,
-              'How We Use Your Information',
-              'We use the collected information for the following purposes:',
-            ),
-
-            _buildBulletPoint(
-              context,
-              'To provide, maintain, and improve our services',
+              'No Payments in the App',
+              'FlashBill has no payments, purchases, subscriptions, or in-app billing.',
             ),
             _buildBulletPoint(
               context,
-              'To manage your account and authenticate your identity',
+              'You never pay inside the app. There is no checkout, card, UPI, wallet, or subscription screen.',
             ),
             _buildBulletPoint(
               context,
-              'To store and sync your business data across devices',
-            ),
-
-            _buildBulletPoint(
-              context,
-              'To analyze usage patterns and improve user experience',
-            ),
-            _buildBulletPoint(
-              context,
-              'To detect and prevent fraud or security issues',
+              'Bills and pending-payment screens are only for your shop records. They are not payments to FlashBill.',
             ),
 
             const SizedBox(height: 16),
 
             _buildSection(
               context,
-              'Data Storage and Security',
-              'Your data is stored securely using Google Firebase services:',
-            ),
-
-            _buildBulletPoint(
-              context,
-              'All data is encrypted in transit using SSL/TLS',
+              'Permissions',
+              'FlashBill asks for only one permission: notifications.',
             ),
             _buildBulletPoint(
               context,
-              'Data is stored on secure Firebase Cloud Firestore servers',
+              'Notifications are optional. You can allow or skip them during onboarding, and you can still use every feature if you decline.',
             ),
             _buildBulletPoint(
               context,
-              'Access to your data is protected by Firebase Authentication',
+              'If you allow notifications, we may send alerts for low stock, pending payments, and daily shop updates.',
             ),
             _buildBulletPoint(
               context,
-              'We implement industry-standard security measures to protect your information',
+              'We do not ask for contacts, camera, location, microphone, or storage as a condition of using the app.',
             ),
 
             const SizedBox(height: 16),
 
             _buildSection(
               context,
-              'Data Sharing and Disclosure',
-              'We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances:',
-            ),
-
-            _buildBulletPoint(
-              context,
-              'With service providers (Google Firebase) who help us operate our app',
+              'App Functionality',
+              'FlashBill is a shop tool. These are the features you can use:',
             ),
             _buildBulletPoint(
               context,
-              'When required by law or to protect our legal rights',
-            ),
-            _buildBulletPoint(context, 'With your explicit consent'),
-
-            const SizedBox(height: 16),
-
-            _buildSection(
-              context,
-              'Your Data Rights',
-              'You have the following rights regarding your data:',
-            ),
-
-            _buildBulletPoint(
-              context,
-              'Access: You can view all your data within the app',
+              'Account: Sign in with email and password or Continue with Google. Sign out and change password from Profile.',
             ),
             _buildBulletPoint(
               context,
-              'Correction: You can edit and update your information at any time',
-            ),
-
-            _buildBulletPoint(
-              context,
-              'Export: You can export your data in PDF or CSV format',
+              'Onboarding: Short welcome slides, then an optional notification allow step.',
             ),
             _buildBulletPoint(
               context,
-              'Portability: You can transfer your data to another service',
+              'Dashboard: Products, quantity, total stock value, sales, and profit for a selected month and year.',
             ),
-
-            const SizedBox(height: 16),
-
-            _buildSection(
-              context,
-              'Data Retention',
-              'We retain your data for as long as your account is active. Your data is securely stored in Firebase Cloud Firestore and remains accessible across all your logged-in devices.',
-            ),
-
-            _buildSection(
-              context,
-              'Third-Party Services',
-              'FlashBill uses the following third-party services:',
-            ),
-
             _buildBulletPoint(
               context,
-              'Google Firebase: For authentication, database, and cloud storage',
+              'Products: Add and manage product names, units, stock, and availability.',
             ),
-
-            const SizedBox(height: 8),
-            Text(
-              'These services have their own privacy policies governing their use of your information.',
-              style: context.subtitleMedium?.copyWith(height: 1.5),
+            _buildBulletPoint(
+              context,
+              'Bills: Create bills, review details, view past bills, and share or save a bill as PDF.',
+            ),
+            _buildBulletPoint(
+              context,
+              'Purchases: Record purchase entries and keep a purchase list.',
+            ),
+            _buildBulletPoint(
+              context,
+              'Expenses: Track shop expenses when this option is turned on in App Settings.',
+            ),
+            _buildBulletPoint(
+              context,
+              'Customers and suppliers: Keep customer and supplier lists for billing and purchases.',
+            ),
+            _buildBulletPoint(
+              context,
+              'Pending payments and previous due: See unpaid bills and record dues when those options are enabled.',
+            ),
+            _buildBulletPoint(
+              context,
+              'Shop profile: Shop name, address, owner details, country, and currency. Country and currency can be set once.',
+            ),
+            _buildBulletPoint(
+              context,
+              'App settings: Language, theme, and optional fields such as vehicle number, delivery charges, expiry date, previous due, and expenses.',
+            ),
+            _buildBulletPoint(
+              context,
+              'Logged-in devices: See devices that have opened your account.',
             ),
 
             const SizedBox(height: 16),
 
             _buildSection(
               context,
-              'Cookies and Tracking',
-              'We do not use cookies or tracking technologies in our mobile application. However, Firebase services may use similar technologies for authentication and analytics purposes.',
+              'Sharing',
+              'We do not share, sell, or transfer any information. There is nothing for us to share because we do not collect your information.',
             ),
 
             _buildSection(
               context,
               'Children\'s Privacy',
-              'FlashBill is not intended for use by children under the age of 13. We do not knowingly collect personal information from children under 13.',
+              'FlashBill is for shop owners and staff. It is not directed at children under 13, and we do not collect information from children.',
             ),
 
             _buildSection(
               context,
               'Changes to This Privacy Policy',
-              'We may update this Privacy Policy from time to time. We will notify you of any changes by updating the "Last Updated" date at the top of this policy. Your continued use of the app after such changes constitutes acceptance of the updated policy.',
+              'We may update this page if the app changes. The "Last Updated" date at the top will change when we do. Continued use of the app means you accept the updated policy.',
             ),
 
             _buildSection(
               context,
               'Contact Us',
-              'If you have any questions or concerns about this Privacy Policy or our data practices, please contact us at:',
+              'If you have questions about this Privacy Policy or FlashBill, contact us at:',
             ),
 
             const SizedBox(height: 8),
@@ -277,7 +243,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             // Footer
             Center(
               child: Text(
-                '© 2025 FlashBill. All rights reserved.',
+                '© 2026 FlashBill. All rights reserved.',
                 style: context.captionLarge,
               ),
             ),

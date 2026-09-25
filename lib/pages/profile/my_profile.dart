@@ -15,6 +15,7 @@ import 'package:flashbill/pages/profile/privacy_policy.dart';
 import 'package:flashbill/pages/profile/products/product.dart';
 import 'package:flashbill/pages/profile/supplier/suppliers.dart';
 import 'package:flashbill/pages/profile/units/units.dart';
+import 'package:flashbill/services/auth_service.dart';
 import 'package:flashbill/services/notification_service.dart';
 import 'package:flashbill/services/profile_service.dart';
 import 'package:flashbill/theme/adaptive.dart';
@@ -75,7 +76,7 @@ class _MyProfileState extends State<MyProfile> {
     setState(() => _isLoggingOut = true);
     try {
       await NotificationService().removeTokenFromFirestore();
-      await FirebaseAuth.instance.signOut();
+      await AuthService.signOut();
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const LoginScreen()),

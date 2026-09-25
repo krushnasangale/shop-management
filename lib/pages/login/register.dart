@@ -234,11 +234,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   Future<void> _registerWithGoogle() async {
     setState(() => _googleLoading = true);
-    AppLoader.show(
-      message:
-          AppLocalizations.of(context)?.continueWithGoogle ??
-          'Continue with Google',
-    );
 
     User? signedInUser;
     try {
@@ -248,6 +243,12 @@ class _RegisterPageState extends State<RegisterPage> {
         throw Exception('Google sign-in failed');
       }
 
+      if (!mounted) return;
+      AppLoader.show(
+        message:
+            AppLocalizations.of(context)?.continueWithGoogle ??
+            'Continue with Google',
+      );
       await _completeGoogleRegistration(signedInUser);
     } on FirebaseAuthException catch (e) {
       if (AuthService.isCancelled(e)) return;
