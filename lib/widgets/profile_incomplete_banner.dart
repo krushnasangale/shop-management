@@ -22,7 +22,8 @@ class ProfileIncompleteBanner extends StatelessWidget {
           .doc(user.uid)
           .snapshots(),
       builder: (context, snapshot) {
-        final completion = ProfileCompletion.from(snapshot.data?.data());
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final completion = ProfileCompletion.from(snapshot.data!.data());
         if (completion.isComplete) return const SizedBox.shrink();
         return _ProfileIncompleteBar(
           percent: completion.percent,

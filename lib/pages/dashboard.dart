@@ -429,18 +429,18 @@ class _DashboardState extends State<Dashboard>
       child: Row(
         children: [
           DashboardMetric(
-            label: loc?.availableProductsCount ?? 'Products',
+            label: loc?.dashboardProducts ?? 'Products',
             value:
                 '${_dashboardData?.productsData.availableProductsCount ?? 0}',
             valueColor: Colors.orange[600],
           ),
           DashboardMetric(
-            label: loc?.totalQuantity ?? 'Qty',
+            label: loc?.dashboardQuantity ?? 'Quantity',
             value: '${_dashboardData?.productsData.totalAvailableQty ?? 0}',
             valueColor: Colors.green[600],
           ),
           DashboardMetric(
-            label: loc?.stockValue ?? 'Stock value',
+            label: loc?.dashboardTotalValue ?? 'Total Value',
             value:
                 '${context.currencySymbol}${_formatCurrency((_dashboardData?.productsData.totalAvailableAmount ?? 0).toInt(), loc: loc)}',
             valueColor: Colors.blue[600],
@@ -632,14 +632,13 @@ class _DashboardState extends State<Dashboard>
     final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
-      child: Row(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          Row(
+            children: [
+              Expanded(
+                child: Text(
                   title,
                   style: TextStyle(
                     fontSize: 15,
@@ -647,18 +646,15 @@ class _DashboardState extends State<Dashboard>
                     color: scheme.onSurface,
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+              ),
+              if (trailing != null) trailing,
+            ],
           ),
-          ?trailing,
+          const SizedBox(height: 2),
+          Text(
+            description,
+            style: TextStyle(fontSize: 12, color: scheme.onSurfaceVariant),
+          ),
         ],
       ),
     );
@@ -686,7 +682,18 @@ class _DashboardState extends State<Dashboard>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 12),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                            child: Text(
+                              loc?.businessDashboard ?? 'Business Dashboard',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.3,
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                          ),
                           _sectionBox(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -711,104 +718,132 @@ class _DashboardState extends State<Dashboard>
                                   trailing: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
+                                      const SizedBox(width: 8),
                                       Builder(
                                         builder: (buttonContext) {
                                           return IconButton(
                                             tooltip: loc?.filter ?? 'Filter',
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            style: IconButton.styleFrom(
+                                              tapTargetSize:
+                                                  MaterialTapTargetSize
+                                                      .shrinkWrap,
+                                              minimumSize: const Size(36, 36),
+                                              padding: EdgeInsets.zero,
+                                            ),
                                             icon: Icon(
                                               Icons.filter_list,
                                               color: scheme.primary,
                                             ),
-                                            onPressed: () => AppContextMenu.show(
-                                              buttonContext: buttonContext,
-                                              items: [
-                                                AppContextMenuItem(
-                                                  label:
-                                                      loc?.allData ??
-                                                      'All Data',
-                                                  icon: Icons.all_inclusive,
-                                                  selected: filterType == 'all',
-                                                  onPressed: () {
-                                                    setState(
-                                                      () => filterType = 'all',
-                                                    );
-                                                    _saveFilterPreference(
-                                                      'all',
-                                                    );
-                                                    _applySalesDateFilter();
-                                                  },
+                                            onPressed: () =>
+                                                AppContextMenu.show(
+                                                  buttonContext: buttonContext,
+                                                  items: [
+                                                    AppContextMenuItem(
+                                                      label:
+                                                          loc?.allData ??
+                                                          'All Data',
+                                                      icon: Icons.all_inclusive,
+                                                      selected:
+                                                          filterType == 'all',
+                                                      onPressed: () {
+                                                        setState(
+                                                          () => filterType =
+                                                              'all',
+                                                        );
+                                                        _saveFilterPreference(
+                                                          'all',
+                                                        );
+                                                        _applySalesDateFilter();
+                                                      },
+                                                    ),
+                                                    AppContextMenuItem(
+                                                      label:
+                                                          loc?.dateRange ??
+                                                          'Date Range',
+                                                      icon: Icons.date_range,
+                                                      selected:
+                                                          filterType == 'range',
+                                                      onPressed: () {
+                                                        setState(
+                                                          () => filterType =
+                                                              'range',
+                                                        );
+                                                        _saveFilterPreference(
+                                                          'range',
+                                                        );
+                                                        _applySalesDateFilter();
+                                                      },
+                                                    ),
+                                                    AppContextMenuItem(
+                                                      label: loc?.day ?? 'Day',
+                                                      icon:
+                                                          Icons.calendar_today,
+                                                      selected:
+                                                          filterType == 'day',
+                                                      onPressed: () {
+                                                        setState(
+                                                          () => filterType =
+                                                              'day',
+                                                        );
+                                                        _saveFilterPreference(
+                                                          'day',
+                                                        );
+                                                        _applySalesDateFilter();
+                                                      },
+                                                    ),
+                                                    AppContextMenuItem(
+                                                      label:
+                                                          loc?.month ?? 'Month',
+                                                      icon:
+                                                          Icons.calendar_month,
+                                                      selected:
+                                                          filterType == 'month',
+                                                      onPressed: () {
+                                                        setState(
+                                                          () => filterType =
+                                                              'month',
+                                                        );
+                                                        _saveFilterPreference(
+                                                          'month',
+                                                        );
+                                                        _applySalesDateFilter();
+                                                      },
+                                                    ),
+                                                    AppContextMenuItem(
+                                                      label:
+                                                          loc?.year ?? 'Year',
+                                                      icon: Icons
+                                                          .calendar_view_month,
+                                                      selected:
+                                                          filterType == 'year',
+                                                      onPressed: () {
+                                                        setState(
+                                                          () => filterType =
+                                                              'year',
+                                                        );
+                                                        _saveFilterPreference(
+                                                          'year',
+                                                        );
+                                                        _applySalesDateFilter();
+                                                      },
+                                                    ),
+                                                  ],
                                                 ),
-                                                AppContextMenuItem(
-                                                  label:
-                                                      loc?.dateRange ??
-                                                      'Date Range',
-                                                  icon: Icons.date_range,
-                                                  selected:
-                                                      filterType == 'range',
-                                                  onPressed: () {
-                                                    setState(
-                                                      () =>
-                                                          filterType = 'range',
-                                                    );
-                                                    _saveFilterPreference(
-                                                      'range',
-                                                    );
-                                                    _applySalesDateFilter();
-                                                  },
-                                                ),
-                                                AppContextMenuItem(
-                                                  label: loc?.day ?? 'Day',
-                                                  icon: Icons.calendar_today,
-                                                  selected: filterType == 'day',
-                                                  onPressed: () {
-                                                    setState(
-                                                      () => filterType = 'day',
-                                                    );
-                                                    _saveFilterPreference(
-                                                      'day',
-                                                    );
-                                                    _applySalesDateFilter();
-                                                  },
-                                                ),
-                                                AppContextMenuItem(
-                                                  label: loc?.month ?? 'Month',
-                                                  icon: Icons.calendar_month,
-                                                  selected:
-                                                      filterType == 'month',
-                                                  onPressed: () {
-                                                    setState(
-                                                      () =>
-                                                          filterType = 'month',
-                                                    );
-                                                    _saveFilterPreference(
-                                                      'month',
-                                                    );
-                                                    _applySalesDateFilter();
-                                                  },
-                                                ),
-                                                AppContextMenuItem(
-                                                  label: loc?.year ?? 'Year',
-                                                  icon:
-                                                      Icons.calendar_view_month,
-                                                  selected:
-                                                      filterType == 'year',
-                                                  onPressed: () {
-                                                    setState(
-                                                      () => filterType = 'year',
-                                                    );
-                                                    _saveFilterPreference(
-                                                      'year',
-                                                    );
-                                                    _applySalesDateFilter();
-                                                  },
-                                                ),
-                                              ],
-                                            ),
                                           );
                                         },
                                       ),
+                                      const SizedBox(width: 10),
                                       IconButton(
                                         tooltip: loc?.select ?? 'Select',
+                                        visualDensity: VisualDensity.compact,
+                                        style: IconButton.styleFrom(
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          minimumSize: const Size(36, 36),
+                                          padding: EdgeInsets.zero,
+                                        ),
                                         icon: Icon(
                                           Icons.calendar_today,
                                           color: filterType == 'all'
@@ -974,32 +1009,87 @@ class _DashboardState extends State<Dashboard>
 
     int selectedYear = selectedDate.year;
     int selectedMonth = selectedDate.month;
-    Color primaryColor = Theme.of(context).primaryColor;
+    final scheme = Theme.of(context).colorScheme;
+    final primaryColor = Theme.of(context).primaryColor;
+    final isYearOnly = filterType == 'year';
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        String dialogTitle = filterType == 'year'
+        final dialogTitle = isYearOnly
             ? (loc?.selectYear ?? 'Select Year')
             : (loc?.selectMonthYear ?? 'Select Month & Year');
+        final dialogSubtitle = isYearOnly
+            ? (loc?.chooseYear ?? 'Choose the year to view data')
+            : (loc?.chooseMonthYear ??
+                  'Choose the month and year to view data');
 
         return AlertDialog(
-          title: Text(
-            dialogTitle,
-            style: TextStyle(color: primaryColor, fontSize: 19),
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
           ),
+          contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+          actionsPadding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+          titlePadding: EdgeInsets.zero,
+          title: const SizedBox.shrink(),
           content: StatefulBuilder(
             builder: (context, setStateDialog) {
               return SizedBox(
-                width: 300,
+                width: 320,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Year Selector (always shown)
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: scheme.surfaceContainerHighest.withValues(
+                              alpha: 0.7,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.calendar_today_outlined,
+                            size: 20,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                dialogTitle,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                dialogSubtitle,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         IconButton(
+                          visualDensity: VisualDensity.compact,
                           icon: const Icon(Icons.chevron_left),
                           onPressed: () {
                             setStateDialog(() {
@@ -1007,14 +1097,19 @@ class _DashboardState extends State<Dashboard>
                             });
                           },
                         ),
-                        Text(
-                          selectedYear.toString(),
-                          style: const TextStyle(
-                            fontSize: 19,
-                            fontWeight: FontWeight.bold,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            selectedYear.toString(),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: scheme.onSurface,
+                            ),
                           ),
                         ),
                         IconButton(
+                          visualDensity: VisualDensity.compact,
                           icon: const Icon(Icons.chevron_right),
                           onPressed: () {
                             setStateDialog(() {
@@ -1024,52 +1119,51 @@ class _DashboardState extends State<Dashboard>
                         ),
                       ],
                     ),
-                    // Only show month selector if not year filter
-                    if (filterType != 'year') ...[
-                      const SizedBox(height: 20),
-                      // Month Grid
+                    if (!isYearOnly) ...[
+                      const SizedBox(height: 12),
                       GridView.builder(
                         shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 3,
-                              childAspectRatio: 1.5,
+                              childAspectRatio: 2.15,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
                             ),
                         itemCount: 12,
                         itemBuilder: (context, index) {
                           final isSelected = selectedMonth == index + 1;
-                          return InkWell(
-                            onTap: () {
-                              setStateDialog(() {
-                                selectedMonth = index + 1;
-                              });
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? Theme.of(context).primaryColor
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : const Color(0xFFD0D5DD),
+                          return Material(
+                            color: isSelected ? primaryColor : Colors.white,
+                            borderRadius: BorderRadius.circular(22),
+                            child: InkWell(
+                              onTap: () {
+                                setStateDialog(() {
+                                  selectedMonth = index + 1;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(22),
+                              child: Container(
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? primaryColor
+                                        : const Color(0xFFE4E7EC),
+                                  ),
                                 ),
-                              ),
-                              child: Center(
                                 child: Text(
                                   loc?.getFullMonthName(index + 1) ??
                                       getMonthName(index + 1),
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 11,
                                     color: isSelected
                                         ? Colors.white
-                                        : Theme.of(
-                                            context,
-                                          ).colorScheme.onSurface,
+                                        : scheme.onSurface,
                                     fontWeight: isSelected
-                                        ? FontWeight.bold
+                                        ? FontWeight.w700
                                         : FontWeight.w500,
                                   ),
                                 ),
@@ -1084,30 +1178,62 @@ class _DashboardState extends State<Dashboard>
               );
             },
           ),
+          actionsAlignment: MainAxisAlignment.end,
           actions: [
-            TextButton(
-              style: TextButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Theme.of(context).colorScheme.onSurface,
-                textStyle: const TextStyle(fontSize: 13),
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(loc?.cancel ?? 'Cancel'),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).primaryColor,
-                foregroundColor: Colors.white,
-                textStyle: const TextStyle(fontSize: 13),
-              ),
-              onPressed: () {
-                setState(() {
-                  selectedDate = DateTime(selectedYear, selectedMonth, 1);
-                });
-                Navigator.of(context).pop();
-                _applySalesDateFilter();
-              },
-              child: Text(loc?.select ?? 'Select'),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: scheme.onSurface,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                      side: const BorderSide(color: Color(0xFFE4E7EC)),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text(loc?.cancel ?? 'Cancel'),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    foregroundColor: Colors.white,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      selectedDate = DateTime(selectedYear, selectedMonth, 1);
+                    });
+                    Navigator.of(context).pop();
+                    _applySalesDateFilter();
+                  },
+                  child: Text(loc?.select ?? 'Select'),
+                ),
+              ],
             ),
           ],
         );

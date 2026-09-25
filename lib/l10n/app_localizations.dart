@@ -346,11 +346,20 @@ class AppLocalizations {
   String get liveStatus => translate('live_status');
   String get availability => translate('availability');
   String get currentStockOverview => translate('current_stock_overview');
+  String get businessDashboard =>
+      translate('business_dashboard', fallback: 'Business Dashboard');
   String get availableProductsCount => translate('available_products_count');
+  String get dashboardProducts =>
+      translate('dashboard_products', fallback: 'Products');
+  String get dashboardQuantity =>
+      translate('dashboard_quantity', fallback: 'Quantity');
+  String get dashboardTotalValue =>
+      translate('dashboard_total_value', fallback: 'Total Value');
   String get totalQuantity => translate('total_quantity');
   String get itemsInStock => translate('items_in_stock');
   String get totalAmount => translate('total_amount');
-  String get stockValue => translate('stock_value');
+  String get stockValue =>
+      translate('stock_value', fallback: 'Stock Value');
   String get upcomingPayments => translate('upcoming_payments');
   String get due => translate('due');
   String get noUpcomingPayments => translate('no_upcoming_payments');
@@ -375,6 +384,12 @@ class AppLocalizations {
   String get allTime => translate('all_time');
   String get selectYear => translate('select_year');
   String get selectMonthYear => translate('select_month_year');
+  String get chooseMonthYear => translate(
+    'choose_month_year',
+    fallback: 'Choose the month and year to view data',
+  );
+  String get chooseYear =>
+      translate('choose_year', fallback: 'Choose the year to view data');
   String get monthJan => translate('month_jan');
   String get monthFeb => translate('month_feb');
   String get monthMar => translate('month_mar');

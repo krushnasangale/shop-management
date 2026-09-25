@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flashbill/l10n/app_localizations.dart';
@@ -126,21 +127,13 @@ class _ProductImagePreviewPageState extends State<ProductImagePreviewPage> {
   Widget build(BuildContext context) {
     final loc = AppLocalizations.of(context);
     final scheme = Theme.of(context).colorScheme;
+    final topInset = MediaQuery.paddingOf(context).top;
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: Text(
-          widget.productName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
+          Positioned.fill(
             child: InteractiveViewer(
               minScale: 0.8,
               maxScale: 4,
@@ -159,35 +152,86 @@ class _ProductImagePreviewPageState extends State<ProductImagePreviewPage> {
               ),
             ),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _busy ? null : _download,
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(46),
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        foregroundColor: Colors.white,
-                        side: const BorderSide(color: Colors.white54),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: ClipRect(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  padding: EdgeInsets.fromLTRB(4, topInset + 4, 16, 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.62),
+                        Colors.black.withValues(alpha: 0.18),
+                      ],
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        color: Colors.white,
                       ),
-                      icon: const Icon(Icons.download_outlined, size: 20),
-                      label: Text(loc?.download ?? 'Download'),
-                    ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          widget.productName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: _busy ? null : _share,
-                      style: Adaptive.compactFilled,
-                      icon: const Icon(Icons.share_outlined, size: 20),
-                      label: Text(loc?.share ?? 'Share'),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _busy ? null : _download,
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(46),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white54),
+                        ),
+                        icon: const Icon(Icons.download_outlined, size: 20),
+                        label: Text(loc?.download ?? 'Download'),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _busy ? null : _share,
+                        style: Adaptive.compactFilled,
+                        icon: const Icon(Icons.share_outlined, size: 20),
+                        label: Text(loc?.share ?? 'Share'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
